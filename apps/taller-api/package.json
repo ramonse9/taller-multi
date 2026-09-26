@@ -16,6 +16,7 @@
     "lint:fix": "eslint \"{src,test}/**/*.ts\" --fix",
     "format": "prettier --write \"{src,test}/**/*.ts\" \"*.{json,md,yml}\"",
     "test": "jest --runInBand",
+    "test:integration": "jest --config jest.integration.json --runInBand",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "migration:public:run": "typeorm-ts-node-commonjs migration:run -d src/database/public-data-source.ts",

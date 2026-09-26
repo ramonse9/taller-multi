@@ -124,7 +124,7 @@ export class ClientsService {
       const current = await this.findOne(runner, schema, id);
       if (!current) throw new NotFoundException('Cliente no encontrado');
       try {
-        const rows = (await runner.query(
+        const result = (await runner.query(
           `UPDATE ${quoteIdentifier(schema)}.customers SET
              full_name = $2, corporate_customer_id = $3, tax_id = $4, email = $5,
              phone = $6, notes = $7, is_active = $8, updated_by_user_id = $9, updated_at = now()
@@ -142,8 +142,8 @@ export class ClientsService {
             input.isActive ?? current.is_active,
             user.id,
           ],
-        )) as ClientRow[];
-        return this.toResponse(rows[0]!);
+        )) as [ClientRow[], number];
+        return this.toResponse(result[0][0]!);
       } catch (error: unknown) {
         this.rethrowConstraint(error);
       }

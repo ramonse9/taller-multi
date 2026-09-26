@@ -154,15 +154,15 @@ export class UsersService {
       if (assignments.length === 0) throw new BadRequestException('No hay cambios para aplicar');
 
       values.push(id, companyId);
-      const rows = (await runner.query(
+      const result = (await runner.query(
         `UPDATE public.users
          SET ${assignments.join(', ')}, updated_at = NOW()
          WHERE id = $${values.length - 1} AND company_id = $${values.length}
          RETURNING id, email, full_name, role, company_id, timezone_code,
                    is_active, created_at, updated_at`,
         values,
-      )) as UserRow[];
-      const updated = rows[0];
+      )) as [UserRow[], number];
+      const updated = result[0][0];
       if (!updated) throw new NotFoundException('Usuario no encontrado');
       const response = this.toResponse(updated);
       await runner.commitTransaction();

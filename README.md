@@ -29,6 +29,7 @@ npm run db:bootstrap
 npm run db:verify
 npm run build
 npm test
+npm run test:integration
 npm run lint
 ```
 

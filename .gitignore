@@ -13,6 +13,7 @@
 **/.env
 **/.env.*
 !**/.env.example
+!**/.env.test.example
 
 # Local certificates and private keys
 **/*.key

@@ -53,6 +53,16 @@ La primera vertical HTTP operativa es clientes y demuestra el patrón seguro que
 
 La búsqueda trata `%` y `_` como texto, no como comodines introducidos por el cliente. El RFC se normaliza en mayúsculas y es único por tenant. Los campos de auditoría se obtienen exclusivamente del usuario autenticado.
 
+## Pruebas de integración
+
+La suite de integración levanta NestJS y usa PostgreSQL real. Crea una base dedicada, copia `.env.test.example` como `.env.test.local`, ajusta `TEST_DATABASE_URL` y ejecuta desde la raíz:
+
+```bash
+npm run test:integration
+```
+
+Como protección, la suite rechaza cualquier base cuyo nombre no termine en `_test`. Cada ejecución elimina y reconstruye `public` y los schemas tenant de esa base, aplica la migración y los seeds, y vuelve a dejarla vacía al finalizar. Verifica rollback del aprovisionamiento, schemas duplicados, aislamiento entre tenants, reutilización de conexiones, desactivación de usuarios y compañías, y el flujo compañía → usuario → login → clientes.
+
 ## Seguridad operativa
 
 El propietario de migraciones necesita permiso para crear schemas y extensiones durante bootstrap. Para producción se recomienda separar ese rol del rol de runtime: el runtime sólo necesita conexión, DML sobre `public` y los schemas tenant, y capacidad de aprovisionamiento si la API de plataforma permanecerá habilitada. `REVOKE CREATE ON SCHEMA public FROM PUBLIC` se aplica en la migración inicial.
