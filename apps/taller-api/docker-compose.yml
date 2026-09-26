@@ -2,13 +2,13 @@ services:
   postgres:
     image: postgres:17-alpine
     environment:
-      POSTGRES_DB: taller_v2
-      POSTGRES_USER: app_user
-      POSTGRES_PASSWORD: local_only_change_me
+      POSTGRES_DB: taller_multi_dev
+      POSTGRES_USER: taller_app
+      POSTGRES_PASSWORD: taller_local_dev_2026
     ports:
       - '5432:5432'
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U app_user -d taller_v2']
+      test: ['CMD-SHELL', 'pg_isready -U taller_app -d taller_multi_dev']
       interval: 5s
       timeout: 5s
       retries: 10

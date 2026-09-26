@@ -1,35 +1,107 @@
 import 'dotenv/config';
 import * as argon2 from 'argon2';
+import { DataSource } from 'typeorm';
 import publicDataSource from './public-data-source';
+import { seedPublicCatalogs } from './seeds/public-catalogs.seed';
 
-async function bootstrapDatabase(): Promise<void> {
+interface AdminRow {
+  company_id: string | null;
+  is_active: boolean;
+  role: string;
+}
+
+export interface BootstrapResult {
+  adminCreated: boolean;
+  migrationsExecuted: number;
+}
+
+function bootstrapCredentials(): { email: string; password: string } {
   const email = process.env.BOOTSTRAP_ADMIN_EMAIL?.trim().toLowerCase();
   const password = process.env.BOOTSTRAP_ADMIN_PASSWORD;
-  if (!email || !/^\S+@\S+\.\S+$/.test(email))
+  if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
     throw new Error('BOOTSTRAP_ADMIN_EMAIL is required and must be valid');
+  }
   if (!password || password.length < 12 || password.length > 128) {
     throw new Error('BOOTSTRAP_ADMIN_PASSWORD must contain between 12 and 128 characters');
   }
+  return { email, password };
+}
 
-  await publicDataSource.initialize();
+export async function bootstrapDatabase(
+  dataSource: DataSource = publicDataSource,
+): Promise<BootstrapResult> {
+  const { email, password } = bootstrapCredentials();
+  await dataSource.initialize();
+  const queryRunner = dataSource.createQueryRunner();
+
   try {
-    await publicDataSource.runMigrations({ transaction: 'all' });
-    const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
-    const result = await publicDataSource.query<unknown[]>(
-      `INSERT INTO public.users(email, password_hash, full_name, role, company_id)
-       VALUES ($1, $2, 'Platform Administrator', 'platform_admin', NULL)
-       ON CONFLICT (email) DO NOTHING RETURNING id`,
-      [email, passwordHash],
-    );
-    if (result.length === 0)
-      process.stdout.write('Bootstrap admin already exists; credentials were not changed.\n');
-    else process.stdout.write('Public schema migrated and bootstrap admin created.\n');
+    const migrations = await dataSource.runMigrations({ transaction: 'all' });
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      await seedPublicCatalogs(queryRunner);
+      const existingAdmins = (await queryRunner.query(
+        `SELECT company_id, role, is_active
+         FROM public.users
+         WHERE email = $1
+         FOR UPDATE`,
+        [email],
+      )) as AdminRow[];
+
+      let adminCreated = false;
+      if (existingAdmins.length === 0) {
+        const passwordHash = await argon2.hash(password, {
+          type: argon2.argon2id,
+        });
+        await queryRunner.query(
+          `INSERT INTO public.users(
+             email, password_hash, full_name, role, company_id
+           )
+           VALUES ($1, $2, 'Platform Administrator', 'platform_admin', NULL)`,
+          [email, passwordHash],
+        );
+        adminCreated = true;
+      } else {
+        const existingAdmin = existingAdmins[0];
+        if (!existingAdmin) throw new Error('Could not read the existing account');
+        const isValidPlatformAdmin =
+          existingAdmin.role === 'platform_admin' &&
+          existingAdmin.company_id === null &&
+          existingAdmin.is_active;
+        if (!isValidPlatformAdmin) {
+          throw new Error(
+            `The account ${email} already exists but is not an active platform administrator`,
+          );
+        }
+      }
+
+      await queryRunner.commitTransaction();
+      return { adminCreated, migrationsExecuted: migrations.length };
+    } catch (error) {
+      if (queryRunner.isTransactionActive) await queryRunner.rollbackTransaction();
+      throw error;
+    }
   } finally {
-    await publicDataSource.destroy();
+    await queryRunner.release();
+    await dataSource.destroy();
   }
 }
 
-void bootstrapDatabase().catch((error: unknown) => {
-  process.stderr.write(`${error instanceof Error ? error.message : 'Bootstrap failed'}\n`);
-  process.exitCode = 1;
-});
+async function main(): Promise<void> {
+  const result = await bootstrapDatabase();
+  process.stdout.write(
+    `Public migrations executed: ${result.migrationsExecuted}\n` +
+      'Public catalogs seeded successfully.\n' +
+      (result.adminCreated
+        ? 'Platform administrator created.\n'
+        : 'Platform administrator already exists and is valid.\n'),
+  );
+}
+
+if (require.main === module) {
+  void main().catch((error: unknown) => {
+    process.stderr.write(`${error instanceof Error ? error.message : 'Bootstrap failed'}\n`);
+    process.exitCode = 1;
+  });
+}

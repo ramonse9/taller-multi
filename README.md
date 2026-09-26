@@ -25,6 +25,8 @@ Los proyectos dentro de `legacy/` no son workspaces y no deben recibir nuevas fu
 ```bash
 npm run dev:api
 npm run dev:web
+npm run db:bootstrap
+npm run db:verify
 npm run build
 npm test
 npm run lint

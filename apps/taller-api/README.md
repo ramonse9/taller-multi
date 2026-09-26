@@ -9,13 +9,16 @@ Backend NestJS/PostgreSQL multi-tenant con aislamiento mediante un schema por co
 
 ## Inicio local reproducible
 
-1. Copia `.env.example` a `.env` y reemplaza secretos y contraseña de base de datos.
-2. Inicia PostgreSQL: `docker compose up -d postgres`.
-3. Instala dependencias: `npm install`.
-4. Define `BOOTSTRAP_ADMIN_EMAIL` y `BOOTSTRAP_ADMIN_PASSWORD` sólo en el entorno.
-5. Ejecuta `npm run bootstrap`. Esto aplica la migración pública y crea el administrador inicial con Argon2id.
-6. Inicia con `npm run start:dev` y abre `/docs`.
-7. Autentica al administrador en `POST /api/auth/login` y registra la primera compañía en `POST /api/companies`. Este es exactamente el mismo flujo transaccional usado para compañías posteriores.
+1. Instala PostgreSQL 17 con `brew install postgresql@17` y arráncalo con `brew services start postgresql@17`. Como alternativa, `docker compose up -d postgres` inicia la misma versión en contenedor.
+2. Copia `.env.example` a `.env` y reemplaza la contraseña de base de datos, `JWT_SECRET` y las credenciales bootstrap. `.env` está ignorado por Git.
+3. Crea el rol y la base indicados por `DATABASE_URL` cuando uses la instalación de Homebrew.
+4. Instala dependencias desde la raíz del monorepo con `npm install`.
+5. Ejecuta `npm run db:bootstrap` desde la raíz. El comando aplica la migración pública, carga los catálogos de manera idempotente y crea el administrador con Argon2id.
+6. Ejecuta `npm run db:verify` para comprobar migraciones, catálogos, aislamiento de tablas tenant y administrador.
+7. Inicia con `npm run dev:api` y abre `/docs`.
+8. Autentica al administrador en `POST /api/auth/login` y registra la primera compañía en `POST /api/companies`. Este es exactamente el mismo flujo transaccional usado para compañías posteriores.
+
+Los pasos internos también pueden ejecutarse por separado con `npm run db:migrate` y `npm run db:seed`. Repetir `db:bootstrap` no duplica catálogos ni usuarios, y no reemplaza la contraseña de un administrador existente.
 
 `synchronize` está deshabilitado y no forma parte de ningún comando.
 

@@ -90,20 +90,6 @@ export class PublicBaseline1700000000000 implements MigrationInterface {
         UNIQUE (brand_id, name)
       )
     `);
-    await queryRunner.query(`
-      INSERT INTO public.company_types(code, name) VALUES
-        ('workshop', 'Taller automotriz'), ('multi_service', 'Multiservicios')
-    `);
-    await queryRunner.query(`
-      INSERT INTO public.person_types(code, name) VALUES
-        ('individual', 'Persona física'), ('legal_entity', 'Persona moral')
-    `);
-    await queryRunner.query(`
-      INSERT INTO public.timezones(code, description) VALUES
-        ('America/Mazatlan', 'Hora estándar de la montaña'),
-        ('America/Mexico_City', 'Hora del centro de México'),
-        ('America/Tijuana', 'Hora del Pacífico')
-    `);
   }
 
   async down(queryRunner: QueryRunner): Promise<void> {

@@ -20,7 +20,9 @@
     "test:cov": "jest --coverage",
     "migration:public:run": "typeorm-ts-node-commonjs migration:run -d src/database/public-data-source.ts",
     "migration:public:revert": "typeorm-ts-node-commonjs migration:revert -d src/database/public-data-source.ts",
-    "bootstrap": "ts-node -r tsconfig-paths/register src/database/bootstrap.ts"
+    "seed:public": "ts-node -r tsconfig-paths/register src/database/seeds/run-public-seed.ts",
+    "bootstrap": "ts-node -r tsconfig-paths/register src/database/bootstrap.ts",
+    "bootstrap:verify": "ts-node -r tsconfig-paths/register src/database/verify-bootstrap.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.6",
