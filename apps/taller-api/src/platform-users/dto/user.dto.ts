@@ -34,9 +34,9 @@ export class CreateTenantAdminDto {
   @Length(3, 254)
   email!: string;
 
-  @ApiProperty({ minLength: 12, maxLength: 128, writeOnly: true })
+  @ApiProperty({ minLength: 8, maxLength: 10, writeOnly: true })
   @IsString()
-  @Length(12, 128)
+  @Length(8, 10)
   password!: string;
 
   @ApiPropertyOptional({ default: 'America/Mazatlan' })
@@ -87,9 +87,9 @@ export class UpdateUserDto {
 }
 
 export class ChangePasswordDto {
-  @ApiProperty({ minLength: 12, maxLength: 128, writeOnly: true })
+  @ApiProperty({ minLength: 8, maxLength: 128, writeOnly: true })
   @IsString()
-  @Length(12, 128)
+  @Length(8, 128)
   currentPassword!: string;
 
   @ApiProperty({ minLength: 12, maxLength: 128, writeOnly: true })
@@ -99,9 +99,9 @@ export class ChangePasswordDto {
 }
 
 export class ResetPasswordDto {
-  @ApiProperty({ minLength: 12, maxLength: 128, writeOnly: true })
+  @ApiProperty({ minLength: 8, maxLength: 10, writeOnly: true })
   @IsString()
-  @Length(12, 128)
+  @Length(8, 10)
   password!: string;
 }
 
@@ -145,6 +145,7 @@ export class UserResponseDto {
   @ApiProperty({ format: 'uuid' }) companyId!: string;
   @ApiProperty() timezoneCode!: string;
   @ApiProperty() isActive!: boolean;
+  @ApiProperty() mustChangePassword!: boolean;
   @ApiProperty() createdAt!: Date;
   @ApiProperty() updatedAt!: Date;
 }

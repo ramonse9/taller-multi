@@ -11,9 +11,9 @@ export class LoginDto {
   @IsEmail()
   email!: string;
 
-  @ApiProperty({ minLength: 12, maxLength: 128 })
+  @ApiProperty({ minLength: 8, maxLength: 128 })
   @IsString()
-  @Length(12, 128)
+  @Length(8, 128)
   password!: string;
 }
 
@@ -23,6 +23,7 @@ export class LoginUserResponseDto {
   @ApiProperty() fullName!: string;
   @ApiProperty() role!: string;
   @ApiProperty({ nullable: true, type: String }) companyId!: string | null;
+  @ApiProperty() mustChangePassword!: boolean;
 }
 
 export class LoginResponseDto {

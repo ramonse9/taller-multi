@@ -2,7 +2,6 @@ import { SessionUser } from "../../core/auth/auth.models";
 
 export interface CreateCompanyInput {
   name: string;
-  schemaName: string;
   companyTypeCode: string;
   personTypeCode: string;
   withholdsIsr: boolean;

@@ -7,4 +7,5 @@ export interface AuthenticatedUser {
   role: PlatformRole;
   companyId: string | null;
   companySchema: string | null;
+  mustChangePassword: boolean;
 }

@@ -65,6 +65,7 @@ export class AuthService {
         fullName: user.fullName,
         role: user.role,
         companyId: user.companyId,
+        mustChangePassword: user.mustChangePassword,
       },
     };
   }

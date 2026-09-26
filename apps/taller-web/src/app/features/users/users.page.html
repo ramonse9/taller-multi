@@ -222,16 +222,14 @@
           type="password"
           formControlName="password"
           autocomplete="new-password"
-          placeholder="Mínimo 12 caracteres"
+          placeholder="Entre 8 y 10 caracteres"
         />@if (form.controls.password.touched && form.controls.password.invalid)
-        { <small>Debe contener entre 12 y 128 caracteres.</small> }
+        { <small>Debe contener entre 8 y 10 caracteres.</small> }
       </div>
       } @if (editing()) {
       <label class="toggle full"
-        ><input
-          type="checkbox"
-          formControlName="isActive"
-        /><span></span> Usuario activo</label
+        ><input type="checkbox" formControlName="isActive" /><span></span>
+        Usuario activo</label
       >
       }
       <footer>
@@ -273,7 +271,7 @@
           autocomplete="new-password"
         />@if (passwordForm.controls.password.touched &&
         passwordForm.controls.password.invalid) {
-        <small>Debe contener entre 12 y 128 caracteres.</small> }
+        <small>Debe contener entre 8 y 10 caracteres.</small> }
       </div>
       <div class="field">
         <label for="reset-confirmation">Confirmar <b>*</b></label

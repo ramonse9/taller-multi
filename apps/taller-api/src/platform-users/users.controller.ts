@@ -20,7 +20,7 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import { JwtAuthGuard, Roles, RolesGuard } from '../auth/roles';
+import { AllowPendingPasswordChange, JwtAuthGuard, Roles, RolesGuard } from '../auth/roles';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../common/types/authenticated-user';
 import {
@@ -76,6 +76,7 @@ export class UsersController {
   }
 
   @Patch('me/password')
+  @AllowPendingPasswordChange()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Cambiar la contraseña del usuario autenticado' })
   @ApiNoContentResponse()

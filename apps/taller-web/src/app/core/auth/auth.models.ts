@@ -6,6 +6,7 @@ export interface SessionUser {
   fullName: string;
   role: UserRole;
   companyId: string | null;
+  mustChangePassword: boolean;
 }
 
 export interface LoginResponse {

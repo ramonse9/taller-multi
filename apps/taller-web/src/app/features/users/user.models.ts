@@ -8,6 +8,7 @@ export interface TenantUser {
   companyId: string;
   timezoneCode: string;
   isActive: boolean;
+  mustChangePassword: boolean;
   createdAt: string;
   updatedAt: string;
 }

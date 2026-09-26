@@ -22,7 +22,9 @@ Los pasos internos también pueden ejecutarse por separado con `npm run db:migra
 
 ## Onboarding y usuarios
 
-`POST /api/companies` recibe los datos de la compañía y un objeto `admin` con `fullName`, `email`, `password` y `timezoneCode`. En una sola transacción registra la compañía, crea y migra su schema, registra la versión tenant y crea el primer `company_admin`. Un fallo en cualquiera de esos pasos revierte todo el onboarding.
+`POST /api/companies` recibe los datos de la compañía y un objeto `admin` con `fullName`, `email`, `password` y `timezoneCode`. El cliente no elige el schema: el servidor lo genera como `_<consecutivo>_<tipo>_<nombre_comercial>`, por ejemplo `_0003_mul_melkars_diagnostico_automotriz`. Los tipos vigentes son `mul`, `car` y `mec`; el nombre se normaliza sin acentos, con guiones bajos y dentro del límite de 63 caracteres de PostgreSQL.
+
+En una sola transacción registra la compañía, crea y migra su schema, registra la versión tenant y crea el primer `company_admin`. Un fallo en cualquiera de esos pasos revierte todo el onboarding. El consecutivo proviene de una secuencia PostgreSQL para impedir colisiones concurrentes, por lo que puede contener saltos cuando una transacción falla.
 
 Los administradores tenant disponen de:
 
@@ -33,7 +35,7 @@ Los administradores tenant disponen de:
 - `PATCH /api/users/:id/password`: restablecimiento de contraseña por otro administrador.
 - `PATCH /api/users/me/password`: cambio personal que exige la contraseña actual.
 
-La API impide que un administrador se desactive o pierda su propio rol y garantiza que cada compañía conserve al menos un administrador activo. Las contraseñas nunca forman parte de una respuesta y se almacenan con Argon2id.
+La API impide que un administrador se desactive o pierda su propio rol y garantiza que cada compañía conserve al menos un administrador activo. Las contraseñas nunca forman parte de una respuesta y se almacenan con Argon2id. Las contraseñas temporales de administradores y usuarios deben tener entre 8 y 10 caracteres. Al iniciar sesión con una de ellas, la sesión sólo permite consultar la identidad y establecer una contraseña definitiva de 12 a 128 caracteres.
 
 `synchronize` está deshabilitado y no forma parte de ningún comando.
 

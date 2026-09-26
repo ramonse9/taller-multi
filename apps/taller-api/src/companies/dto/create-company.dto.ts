@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform, Type } from 'class-transformer';
-import { IsBoolean, IsString, Length, Matches, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsBoolean, IsIn, IsString, Length, ValidateNested } from 'class-validator';
+import { COMPANY_TYPE_CODES, CompanyTypeCode } from '../../database/schema-name';
 import { CreateTenantAdminDto, UserResponseDto } from '../../platform-users/dto/user.dto';
 
 export class CreateCompanyDto {
@@ -9,20 +10,9 @@ export class CreateCompanyDto {
   @Length(2, 150)
   name!: string;
 
-  @ApiProperty({ example: 'taller_norte' })
-  @Transform(({ value }) => {
-    const input: unknown = value;
-    return typeof input === 'string' ? input.trim().toLowerCase() : input;
-  })
-  @IsString()
-  @Length(3, 50)
-  @Matches(/^[a-z][a-z0-9_]+$/)
-  schemaName!: string;
-
-  @ApiProperty({ example: 'workshop' })
-  @IsString()
-  @Length(1, 30)
-  companyTypeCode!: string;
+  @ApiProperty({ enum: COMPANY_TYPE_CODES, example: 'mul' })
+  @IsIn(COMPANY_TYPE_CODES)
+  companyTypeCode!: CompanyTypeCode;
 
   @ApiProperty({ example: 'individual' })
   @IsString()

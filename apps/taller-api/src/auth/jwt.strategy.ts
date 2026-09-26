@@ -41,6 +41,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         role: user.role,
         companyId: null,
         companySchema: null,
+        mustChangePassword: user.mustChangePassword,
       };
     }
     if (!user.companyId) throw new UnauthorizedException('Compañía requerida');
@@ -53,6 +54,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       role: user.role,
       companyId: company.id,
       companySchema: company.schemaName,
+      mustChangePassword: user.mustChangePassword,
     };
   }
 }

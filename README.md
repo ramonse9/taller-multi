@@ -35,6 +35,8 @@ npm run lint
 
 Los detalles de configuración y bootstrap están en los README de [taller-api](apps/taller-api/README.md) y [taller-web](apps/taller-web/README.md).
 
+Los schemas tenant se asignan automáticamente con el formato `_<consecutivo>_<tipo>_<nombre_comercial>`; no se capturan manualmente desde el frontend.
+
 ## Historial anterior
 
 Los repositorios Git que existían dentro de `apps/` fueron convertidos en directorios normales. Antes de la conversión se generaron bundles completos y verificados en `.local-backups/git-history/`; esa carpeta es local y está ignorada por Git. Los repositorios remotos originales no fueron modificados.

@@ -13,6 +13,7 @@ import {
   Validators,
 } from "@angular/forms";
 import { finalize } from "rxjs";
+import { Router } from "@angular/router";
 import { AuthService } from "../../core/auth/auth.service";
 import { apiErrorMessage } from "../../core/http/api-error";
 import { UsersService } from "../users/users.service";
@@ -28,6 +29,7 @@ export class AccountPage {
   readonly auth = inject(AuthService);
   private readonly users = inject(UsersService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly router = inject(Router);
 
   readonly saving = signal(false);
   readonly error = signal("");
@@ -37,7 +39,7 @@ export class AccountPage {
       nonNullable: true,
       validators: [
         Validators.required,
-        Validators.minLength(12),
+        Validators.minLength(8),
         Validators.maxLength(128),
       ],
     }),
@@ -72,6 +74,8 @@ export class AccountPage {
       )
       .subscribe({
         next: () => {
+          const wasTemporary = this.auth.user()?.mustChangePassword === true;
+          this.auth.completePasswordChange();
           this.form.reset({
             currentPassword: "",
             newPassword: "",
@@ -80,6 +84,7 @@ export class AccountPage {
           this.notice.set(
             "Tu contraseña fue actualizada. La sesión actual permanece activa.",
           );
+          if (wasTemporary) void this.router.navigateByUrl(this.auth.homeUrl());
         },
         error: (error: unknown) =>
           this.error.set(

@@ -37,6 +37,9 @@ export const roleGuard: CanActivateFn = (route) => {
   const router = inject(Router);
   const user = auth.user();
   const roles = route.data["roles"] as UserRole[] | undefined;
+  if (user?.mustChangePassword && route.routeConfig?.path !== "account") {
+    return router.createUrlTree(["/account"]);
+  }
   if (user && (!roles || roles.includes(user.role))) return true;
   return router.createUrlTree([auth.homeUrl(user)]);
 };

@@ -53,15 +53,6 @@ export class CompaniesPage implements OnInit {
         Validators.maxLength(150),
       ],
     }),
-    schemaName: new FormControl("", {
-      nonNullable: true,
-      validators: [
-        Validators.required,
-        Validators.minLength(3),
-        Validators.maxLength(50),
-        Validators.pattern(/^[a-z][a-z0-9_]+$/),
-      ],
-    }),
     companyTypeCode: new FormControl("", {
       nonNullable: true,
       validators: [Validators.required],
@@ -93,8 +84,8 @@ export class CompaniesPage implements OnInit {
         nonNullable: true,
         validators: [
           Validators.required,
-          Validators.minLength(12),
-          Validators.maxLength(128),
+          Validators.minLength(8),
+          Validators.maxLength(10),
         ],
       }),
       confirmPassword: new FormControl("", {
@@ -109,13 +100,6 @@ export class CompaniesPage implements OnInit {
   });
 
   ngOnInit(): void {
-    this.form.controls.name.valueChanges
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((name) => {
-        if (this.form.controls.schemaName.pristine) {
-          this.form.controls.schemaName.setValue(this.slug(name));
-        }
-      });
     this.loadCatalogs();
   }
 
@@ -161,7 +145,6 @@ export class CompaniesPage implements OnInit {
     const raw = this.form.getRawValue();
     const input: CreateCompanyInput = {
       name: raw.name.trim(),
-      schemaName: raw.schemaName.trim().toLowerCase(),
       companyTypeCode: raw.companyTypeCode,
       personTypeCode: raw.personTypeCode,
       withholdsIsr: raw.withholdsIsr,
@@ -203,7 +186,6 @@ export class CompaniesPage implements OnInit {
   private resetForm(): void {
     this.form.reset({
       name: "",
-      schemaName: "",
       companyTypeCode: this.companyTypes()[0]?.code ?? "",
       personTypeCode: this.personTypes()[0]?.code ?? "",
       withholdsIsr: false,
@@ -216,16 +198,5 @@ export class CompaniesPage implements OnInit {
         timezoneCode: "America/Mazatlan",
       },
     });
-    this.form.controls.schemaName.markAsPristine();
-  }
-
-  private slug(value: string): string {
-    return value
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "_")
-      .replace(/^_+|_+$/g, "")
-      .slice(0, 50);
   }
 }

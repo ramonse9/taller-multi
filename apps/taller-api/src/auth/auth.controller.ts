@@ -4,7 +4,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../common/types/authenticated-user';
 import { AuthService } from './auth.service';
 import { LoginDto, LoginResponseDto, LoginUserResponseDto } from './dto/login.dto';
-import { JwtAuthGuard } from './roles';
+import { AllowPendingPasswordChange, JwtAuthGuard } from './roles';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -20,6 +20,7 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
+  @AllowPendingPasswordChange()
   @ApiBearerAuth()
   @ApiOkResponse({ type: LoginUserResponseDto })
   me(@CurrentUser() user: AuthenticatedUser): LoginUserResponseDto {
@@ -29,6 +30,7 @@ export class AuthController {
       fullName: user.fullName,
       role: user.role,
       companyId: user.companyId,
+      mustChangePassword: user.mustChangePassword,
     };
   }
 }

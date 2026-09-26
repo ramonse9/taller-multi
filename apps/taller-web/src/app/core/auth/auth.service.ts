@@ -17,7 +17,14 @@ export class AuthService {
   readonly isAuthenticated = computed(() => this.userState() !== null);
 
   homeUrl(user: SessionUser | null = this.userState()): string {
+    if (user?.mustChangePassword) return "/account";
     return user?.role === "platform_admin" ? "/companies" : "/clients";
+  }
+
+  completePasswordChange(): void {
+    this.userState.update((user) =>
+      user ? { ...user, mustChangePassword: false } : user,
+    );
   }
 
   get token(): string | null {

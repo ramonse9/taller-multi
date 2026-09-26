@@ -12,6 +12,7 @@ const admin: AuthenticatedUser = {
   role: PlatformRole.CompanyAdmin,
   companyId,
   companySchema: 'taller_norte',
+  mustChangePassword: false,
 };
 const row = {
   id: admin.id,
@@ -21,6 +22,7 @@ const row = {
   company_id: companyId,
   timezone_code: 'America/Mazatlan',
   is_active: true,
+  must_change_password: false,
   created_at: new Date('2026-01-01T00:00:00Z'),
   updated_at: new Date('2026-01-01T00:00:00Z'),
 };

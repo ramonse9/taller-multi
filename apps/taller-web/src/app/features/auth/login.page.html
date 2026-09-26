@@ -39,7 +39,7 @@
         placeholder="••••••••••••"
       />
       @if (form.controls.password.touched && form.controls.password.invalid) {
-      <small>La contraseña debe tener al menos 12 caracteres.</small>
+      <small>La contraseña debe tener al menos 8 caracteres.</small>
       } @if (error()) {
       <div class="form-error" role="alert">{{ error() }}</div>
       }

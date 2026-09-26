@@ -40,6 +40,9 @@ export class PlatformUser {
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive!: boolean;
 
+  @Column({ name: 'must_change_password', type: 'boolean', default: false })
+  mustChangePassword!: boolean;
+
   @Column({ name: 'failed_login_attempts', type: 'smallint', default: 0 })
   failedLoginAttempts!: number;
 

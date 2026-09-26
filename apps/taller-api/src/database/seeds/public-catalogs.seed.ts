@@ -2,8 +2,9 @@ import { QueryRunner } from 'typeorm';
 
 export const PUBLIC_CATALOGS = {
   companyTypes: [
-    { code: 'workshop', name: 'Taller automotriz' },
-    { code: 'multi_service', name: 'Multiservicios' },
+    { code: 'mul', name: 'Multiservicios' },
+    { code: 'car', name: 'Carrocería' },
+    { code: 'mec', name: 'Mecánica automotriz' },
   ],
   personTypes: [
     { code: 'individual', name: 'Persona física' },

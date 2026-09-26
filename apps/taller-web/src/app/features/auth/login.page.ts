@@ -33,7 +33,7 @@ export class LoginPage {
     }),
     password: new FormControl("", {
       nonNullable: true,
-      validators: [Validators.required, Validators.minLength(12)],
+      validators: [Validators.required, Validators.minLength(8)],
     }),
   });
 

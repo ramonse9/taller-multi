@@ -7,6 +7,7 @@ export class PublicBaseline1700000000000 implements MigrationInterface {
     await queryRunner.query('CREATE EXTENSION IF NOT EXISTS pgcrypto');
     await queryRunner.query('CREATE EXTENSION IF NOT EXISTS citext');
     await queryRunner.query('REVOKE CREATE ON SCHEMA public FROM PUBLIC');
+    await queryRunner.query('CREATE SEQUENCE public.tenant_schema_number_seq AS bigint START 1');
     await queryRunner.query(`
       CREATE TABLE public.company_types (
         code varchar(30) PRIMARY KEY,
@@ -32,7 +33,7 @@ export class PublicBaseline1700000000000 implements MigrationInterface {
       CREATE TABLE public.companies (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
         name varchar(150) NOT NULL UNIQUE,
-        schema_name varchar(50) NOT NULL UNIQUE,
+        schema_name varchar(63) NOT NULL UNIQUE,
         company_type_code varchar(30) NOT NULL REFERENCES public.company_types(code),
         person_type_code varchar(20) NOT NULL REFERENCES public.person_types(code),
         is_active boolean NOT NULL DEFAULT true,
@@ -40,7 +41,7 @@ export class PublicBaseline1700000000000 implements MigrationInterface {
         withholds_iva boolean NOT NULL DEFAULT false,
         created_at timestamptz NOT NULL DEFAULT now(),
         updated_at timestamptz NOT NULL DEFAULT now(),
-        CONSTRAINT companies_schema_name_format CHECK (schema_name ~ '^[a-z][a-z0-9_]{2,49}$'),
+        CONSTRAINT companies_schema_name_format CHECK (schema_name ~ '^[a-z_][a-z0-9_]{2,62}$'),
         CONSTRAINT companies_schema_name_reserved CHECK (schema_name <> 'public' AND schema_name <> 'information_schema' AND schema_name !~ '^pg_')
       )
     `);
@@ -54,6 +55,7 @@ export class PublicBaseline1700000000000 implements MigrationInterface {
         company_id uuid REFERENCES public.companies(id) ON DELETE RESTRICT,
         timezone_code varchar(80) NOT NULL DEFAULT 'America/Mazatlan' REFERENCES public.timezones(code),
         is_active boolean NOT NULL DEFAULT true,
+        must_change_password boolean NOT NULL DEFAULT false,
         failed_login_attempts smallint NOT NULL DEFAULT 0 CHECK (failed_login_attempts >= 0),
         locked_until timestamptz,
         created_at timestamptz NOT NULL DEFAULT now(),
@@ -101,5 +103,6 @@ export class PublicBaseline1700000000000 implements MigrationInterface {
     await queryRunner.query('DROP TABLE IF EXISTS public.timezones');
     await queryRunner.query('DROP TABLE IF EXISTS public.person_types');
     await queryRunner.query('DROP TABLE IF EXISTS public.company_types');
+    await queryRunner.query('DROP SEQUENCE IF EXISTS public.tenant_schema_number_seq');
   }
 }

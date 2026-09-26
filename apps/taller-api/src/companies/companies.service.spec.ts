@@ -12,8 +12,8 @@ describe('CompaniesService', () => {
     const company = {
       id: companyId,
       name: 'Taller Norte',
-      schemaName: 'taller_norte',
-      companyTypeCode: 'workshop',
+      schemaName: '_0001_mul_taller_norte',
+      companyTypeCode: 'mul',
       personTypeCode: 'individual',
       isActive: true,
       withholdsIsr: false,
@@ -23,10 +23,11 @@ describe('CompaniesService', () => {
     } as Company;
     const query = jest
       .fn<Promise<unknown[]>, [string, unknown[]?]>()
-      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([
         { company_type_exists: true, person_type_exists: true, timezone_exists: true },
       ])
+      .mockResolvedValueOnce([{ number: '1' }])
+      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
@@ -40,6 +41,7 @@ describe('CompaniesService', () => {
           company_id: companyId,
           timezone_code: 'America/Mazatlan',
           is_active: true,
+          must_change_password: true,
           created_at: createdAt,
           updated_at: createdAt,
         },
@@ -68,20 +70,19 @@ describe('CompaniesService', () => {
 
     const result = await service.create({
       name: 'Taller Norte',
-      schemaName: 'taller_norte',
-      companyTypeCode: 'workshop',
+      companyTypeCode: 'mul',
       personTypeCode: 'individual',
       withholdsIsr: false,
       withholdsIva: false,
       admin: {
         email: 'admin@tallernorte.mx',
         fullName: 'María López',
-        password: 'A-secure-password-2026',
+        password: 'Temp2026!',
         timezoneCode: 'America/Mazatlan',
       },
     });
 
-    expect(migrateBase).toHaveBeenCalledWith(runner, 'taller_norte');
+    expect(migrateBase).toHaveBeenCalledWith(runner, '_0001_mul_taller_norte');
     expect(commitTransaction).toHaveBeenCalledTimes(1);
     expect(rollbackTransaction).not.toHaveBeenCalled();
     expect(result.admin).toMatchObject({

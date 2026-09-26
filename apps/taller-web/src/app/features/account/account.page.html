@@ -22,7 +22,11 @@
           </div>
         </header>
         <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-          @if (notice()) {
+          @if (auth.user()?.mustChangePassword) {
+          <div class="error" role="alert">
+            Debes reemplazar tu contraseña temporal antes de continuar.
+          </div>
+          } @if (notice()) {
           <div class="notice" role="status">✓ {{ notice() }}</div>
           } @if (error()) {
           <div class="error" role="alert">{{ error() }}</div>

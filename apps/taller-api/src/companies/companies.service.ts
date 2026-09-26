@@ -6,7 +6,7 @@ import {
   TENANT_BASE_NAME,
   TENANT_BASE_VERSION,
 } from '../database/tenant/tenant-migrator';
-import { normalizeAndValidateSchemaName, quoteIdentifier } from '../database/schema-name';
+import { buildTenantSchemaName, quoteIdentifier } from '../database/schema-name';
 import { UserResponseDto } from '../platform-users/dto/user.dto';
 import { PlatformRole } from '../platform-users/entities/platform-user.entity';
 import { CreateCompanyDto, CompanyResponseDto } from './dto/create-company.dto';
@@ -20,7 +20,6 @@ export class CompaniesService {
   ) {}
 
   async create(input: CreateCompanyDto): Promise<CompanyResponseDto> {
-    const schemaName = normalizeAndValidateSchemaName(input.schemaName);
     const passwordHash = await argon2.hash(input.admin.password, {
       type: argon2.argon2id,
     });
@@ -28,15 +27,21 @@ export class CompaniesService {
     await runner.connect();
     await runner.startTransaction('SERIALIZABLE');
     try {
-      await runner.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
-        `tenant-schema:${schemaName}`,
-      ]);
       await this.validateCatalogs(
         runner,
         input.companyTypeCode,
         input.personTypeCode,
         input.admin.timezoneCode,
       );
+      const sequenceRows = (await runner.query(
+        "SELECT nextval('public.tenant_schema_number_seq')::text AS number",
+      )) as Array<{ number: string }>;
+      const sequenceNumber = sequenceRows[0]?.number;
+      if (!sequenceNumber) throw new Error('No se pudo generar el consecutivo del schema');
+      const schemaName = buildTenantSchemaName(sequenceNumber, input.companyTypeCode, input.name);
+      await runner.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
+        `tenant-schema:${schemaName}`,
+      ]);
       const registered = (await runner.query(
         'SELECT 1 FROM public.companies WHERE schema_name = $1',
         [schemaName],
@@ -63,10 +68,11 @@ export class CompaniesService {
       );
       const admins = (await runner.query(
         `INSERT INTO public.users(
-           email, password_hash, full_name, role, company_id, timezone_code
-         ) VALUES ($1, $2, $3, $4, $5, $6)
+           email, password_hash, full_name, role, company_id, timezone_code,
+           must_change_password
+         ) VALUES ($1, $2, $3, $4, $5, $6, true)
          RETURNING id, email, full_name, role, company_id, timezone_code,
-                   is_active, created_at, updated_at`,
+                   is_active, must_change_password, created_at, updated_at`,
         [
           input.admin.email,
           passwordHash,
@@ -83,6 +89,7 @@ export class CompaniesService {
         company_id: string;
         timezone_code: string;
         is_active: boolean;
+        must_change_password: boolean;
         created_at: Date;
         updated_at: Date;
       }>;
@@ -96,6 +103,7 @@ export class CompaniesService {
         companyId: admin.company_id,
         timezoneCode: admin.timezone_code,
         isActive: admin.is_active,
+        mustChangePassword: admin.must_change_password,
         createdAt: admin.created_at,
         updatedAt: admin.updated_at,
       });

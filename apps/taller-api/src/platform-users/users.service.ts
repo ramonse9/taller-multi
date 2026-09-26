@@ -28,6 +28,7 @@ interface UserRow {
   company_id: string;
   timezone_code: string;
   is_active: boolean;
+  must_change_password: boolean;
   created_at: Date;
   updated_at: Date;
 }
@@ -59,7 +60,7 @@ export class UsersService {
     const totalItems = Number(countRows[0]?.total ?? 0);
     const rows = await this.dataSource.query<UserRow[]>(
       `SELECT id, email, full_name, role, company_id, timezone_code,
-              is_active, created_at, updated_at
+              is_active, must_change_password, created_at, updated_at
        FROM public.users
        WHERE ${where}
        ORDER BY full_name, id
@@ -81,7 +82,7 @@ export class UsersService {
     const companyId = this.companyIdForAdmin(user);
     const rows = await this.dataSource.query<UserRow[]>(
       `SELECT id, email, full_name, role, company_id, timezone_code,
-              is_active, created_at, updated_at
+              is_active, must_change_password, created_at, updated_at
        FROM public.users WHERE id = $1 AND company_id = $2`,
       [id, companyId],
     );
@@ -99,10 +100,11 @@ export class UsersService {
       await this.validateTimezone(runner, input.timezoneCode);
       const rows = (await runner.query(
         `INSERT INTO public.users(
-           email, password_hash, full_name, role, company_id, timezone_code
-         ) VALUES ($1, $2, $3, $4, $5, $6)
+           email, password_hash, full_name, role, company_id, timezone_code,
+           must_change_password
+         ) VALUES ($1, $2, $3, $4, $5, $6, true)
          RETURNING id, email, full_name, role, company_id, timezone_code,
-                   is_active, created_at, updated_at`,
+                   is_active, must_change_password, created_at, updated_at`,
         [input.email, passwordHash, input.fullName, input.role, companyId, input.timezoneCode],
       )) as UserRow[];
       const created = rows[0];
@@ -159,7 +161,7 @@ export class UsersService {
          SET ${assignments.join(', ')}, updated_at = NOW()
          WHERE id = $${values.length - 1} AND company_id = $${values.length}
          RETURNING id, email, full_name, role, company_id, timezone_code,
-                   is_active, created_at, updated_at`,
+                   is_active, must_change_password, created_at, updated_at`,
         values,
       )) as [UserRow[], number];
       const updated = result[0][0];
@@ -185,7 +187,7 @@ export class UsersService {
     const companyId = this.companyIdForTenant(user);
     const rows = await this.dataSource.query<PasswordRow[]>(
       `SELECT id, email, full_name, role, company_id, timezone_code, is_active,
-              created_at, updated_at, password_hash
+              must_change_password, created_at, updated_at, password_hash
        FROM public.users
        WHERE id = $1 AND company_id = $2 AND is_active = TRUE`,
       [user.id, companyId],
@@ -201,7 +203,7 @@ export class UsersService {
     await this.dataSource.query(
       `UPDATE public.users
        SET password_hash = $1, failed_login_attempts = 0, locked_until = NULL,
-           updated_at = NOW()
+           must_change_password = false, updated_at = NOW()
        WHERE id = $2 AND company_id = $3`,
       [passwordHash, user.id, companyId],
     );
@@ -217,7 +219,7 @@ export class UsersService {
     await this.dataSource.query(
       `UPDATE public.users
        SET password_hash = $1, failed_login_attempts = 0, locked_until = NULL,
-           updated_at = NOW()
+           must_change_password = true, updated_at = NOW()
        WHERE id = $2 AND company_id = $3`,
       [passwordHash, id, companyId],
     );
@@ -240,7 +242,7 @@ export class UsersService {
   private async lockUser(runner: QueryRunner, companyId: string, id: string): Promise<UserRow> {
     const rows = (await runner.query(
       `SELECT id, email, full_name, role, company_id, timezone_code,
-              is_active, created_at, updated_at
+              is_active, must_change_password, created_at, updated_at
        FROM public.users
        WHERE id = $1 AND company_id = $2
        FOR UPDATE`,
@@ -300,6 +302,7 @@ export class UsersService {
       companyId: row.company_id,
       timezoneCode: row.timezone_code,
       isActive: row.is_active,
+      mustChangePassword: row.must_change_password,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };

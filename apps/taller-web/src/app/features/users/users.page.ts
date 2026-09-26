@@ -93,8 +93,8 @@ export class UsersPage implements OnInit {
       nonNullable: true,
       validators: [
         Validators.required,
-        Validators.minLength(12),
-        Validators.maxLength(128),
+        Validators.minLength(8),
+        Validators.maxLength(10),
       ],
     }),
     confirmation: new FormControl("", {
@@ -159,8 +159,8 @@ export class UsersPage implements OnInit {
     this.form.controls.isActive.enable();
     this.form.controls.password.setValidators([
       Validators.required,
-      Validators.minLength(12),
-      Validators.maxLength(128),
+      Validators.minLength(8),
+      Validators.maxLength(10),
     ]);
     this.form.controls.password.updateValueAndValidity();
     this.form.reset({

@@ -16,7 +16,7 @@ export class Company {
   name!: string;
 
   @Index({ unique: true })
-  @Column({ name: 'schema_name', type: 'varchar', length: 50, unique: true })
+  @Column({ name: 'schema_name', type: 'varchar', length: 63, unique: true })
   schemaName!: string;
 
   @Column({ name: 'company_type_code', type: 'varchar', length: 30 })

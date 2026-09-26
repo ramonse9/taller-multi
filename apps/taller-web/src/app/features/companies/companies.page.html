@@ -45,7 +45,7 @@
             <span>01</span>
             <div>
               <h3>Identidad de la compañía</h3>
-              <p>Información global y nombre técnico del tenant.</p>
+              <p>Información global; el schema se genera automáticamente.</p>
             </div>
           </header>
           <div class="fields company-fields">
@@ -60,32 +60,9 @@
               @if (form.controls.name.touched && form.controls.name.invalid) {
               <small>Escribe un nombre de 2 a 150 caracteres.</small> }
             </div>
-            <div class="field full">
-              <label for="schema-name">Schema PostgreSQL <b>*</b></label>
-              <input
-                id="schema-name"
-                formControlName="schemaName"
-                spellcheck="false"
-                autocomplete="off"
-                placeholder="taller_norte"
-              />
-              <span class="hint"
-                >Sólo minúsculas, números y guion bajo. No podrá modificarse
-                después.</span
-              >
-              @if (form.controls.schemaName.touched &&
-              form.controls.schemaName.invalid) {
-              <small
-                >Usa entre 3 y 50 caracteres; debe iniciar con una letra.</small
-              >
-              }
-            </div>
             <div class="field">
               <label for="company-type">Tipo de compañía <b>*</b></label>
-              <select
-                id="company-type"
-                formControlName="companyTypeCode"
-              >
+              <select id="company-type" formControlName="companyTypeCode">
                 @for (item of companyTypes(); track item.code) {
                 <option [value]="item.code">{{ item.name }}</option>
                 }
@@ -93,10 +70,7 @@
             </div>
             <div class="field">
               <label for="person-type">Persona fiscal <b>*</b></label>
-              <select
-                id="person-type"
-                formControlName="personTypeCode"
-              >
+              <select id="person-type" formControlName="personTypeCode">
                 @for (item of personTypes(); track item.code) {
                 <option [value]="item.code">{{ item.name }}</option>
                 }
@@ -156,11 +130,11 @@
                 type="password"
                 formControlName="password"
                 autocomplete="new-password"
-                placeholder="Mínimo 12 caracteres"
+                placeholder="Entre 8 y 10 caracteres"
               />
               @if (form.controls.admin.controls.password.touched &&
               form.controls.admin.controls.password.invalid) {
-              <small>Debe contener entre 12 y 128 caracteres.</small> }
+              <small>Debe contener entre 8 y 10 caracteres.</small> }
             </div>
             <div class="field">
               <label for="confirm-password"
@@ -178,10 +152,7 @@
             </div>
             <div class="field full">
               <label for="timezone">Zona horaria <b>*</b></label>
-              <select
-                id="timezone"
-                formControlName="timezoneCode"
-              >
+              <select id="timezone" formControlName="timezoneCode">
                 @for (timezone of timezones(); track timezone.code) {
                 <option [value]="timezone.code">
                   {{ timezone.description }} — {{ timezone.code }}
@@ -199,7 +170,7 @@
         <dl>
           <div>
             <dt>Schema</dt>
-            <dd>{{ form.controls.schemaName.value || 'por definir' }}</dd>
+            <dd>Se asignará al registrar</dd>
           </div>
           <div>
             <dt>Administrador</dt>
