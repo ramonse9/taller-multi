@@ -20,6 +20,21 @@ Backend NestJS/PostgreSQL multi-tenant con aislamiento mediante un schema por co
 
 Los pasos internos también pueden ejecutarse por separado con `npm run db:migrate` y `npm run db:seed`. Repetir `db:bootstrap` no duplica catálogos ni usuarios, y no reemplaza la contraseña de un administrador existente.
 
+## Onboarding y usuarios
+
+`POST /api/companies` recibe los datos de la compañía y un objeto `admin` con `fullName`, `email`, `password` y `timezoneCode`. En una sola transacción registra la compañía, crea y migra su schema, registra la versión tenant y crea el primer `company_admin`. Un fallo en cualquiera de esos pasos revierte todo el onboarding.
+
+Los administradores tenant disponen de:
+
+- `GET /api/users` y `GET /api/users/:id`: listado paginado y detalle, siempre limitados a su compañía.
+- `POST /api/users`: creación con rol `user` o `company_admin`.
+- `PATCH /api/users/:id`: nombre, correo, zona horaria, rol y activación.
+- `DELETE /api/users/:id`: baja lógica para conservar referencias de auditoría.
+- `PATCH /api/users/:id/password`: restablecimiento de contraseña por otro administrador.
+- `PATCH /api/users/me/password`: cambio personal que exige la contraseña actual.
+
+La API impide que un administrador se desactive o pierda su propio rol y garantiza que cada compañía conserve al menos un administrador activo. Las contraseñas nunca forman parte de una respuesta y se almacenan con Argon2id.
+
 `synchronize` está deshabilitado y no forma parte de ningún comando.
 
 ## Fronteras actuales

@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
-import { IsBoolean, IsString, Length, Matches } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import { IsBoolean, IsString, Length, Matches, ValidateNested } from 'class-validator';
+import { CreateTenantAdminDto, UserResponseDto } from '../../platform-users/dto/user.dto';
 
 export class CreateCompanyDto {
   @ApiProperty({ example: 'Taller Norte' })
@@ -35,6 +36,11 @@ export class CreateCompanyDto {
   @ApiPropertyOptional({ default: false })
   @IsBoolean()
   withholdsIva = false;
+
+  @ApiProperty({ type: CreateTenantAdminDto })
+  @ValidateNested()
+  @Type(() => CreateTenantAdminDto)
+  admin!: CreateTenantAdminDto;
 }
 
 export class CompanyResponseDto {
@@ -47,4 +53,5 @@ export class CompanyResponseDto {
   @ApiProperty() withholdsIsr!: boolean;
   @ApiProperty() withholdsIva!: boolean;
   @ApiProperty() createdAt!: Date;
+  @ApiProperty({ type: UserResponseDto }) admin!: UserResponseDto;
 }
