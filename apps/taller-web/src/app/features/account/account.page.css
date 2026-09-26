@@ -1,0 +1,179 @@
+:host {
+  display: block;
+  min-height: 100vh;
+}
+.topbar {
+  min-height: 9rem;
+  padding: 2.3rem clamp(1.5rem, 5vw, 5rem);
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  background: rgba(249, 247, 240, 0.88);
+}
+.breadcrumb {
+  font: 700 0.64rem var(--mono);
+  color: var(--orange);
+  letter-spacing: 0.14em;
+  margin: 0 0 0.65rem;
+}
+h1 {
+  font: 600 clamp(2.4rem, 4vw, 4rem)/0.9 var(--display);
+  letter-spacing: -0.05em;
+  margin: 0;
+}
+.content {
+  padding: 2.3rem clamp(1.5rem, 5vw, 5rem) 4rem;
+}
+.intro h2 {
+  font: 600 1.7rem var(--display);
+  margin: 0;
+}
+.intro > p {
+  color: var(--muted);
+  margin: 0.4rem 0 1.7rem;
+}
+.security-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 19rem;
+  align-items: start;
+  gap: 1.3rem;
+  max-width: 64rem;
+}
+.card,
+.session-card {
+  background: white;
+  border: 1px solid var(--line);
+}
+.card > header {
+  padding: 1.3rem 1.5rem;
+  background: #f2f0e9;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  gap: 1rem;
+}
+.card > header > span {
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  background: var(--ink);
+  color: white;
+  font: 700 0.62rem var(--mono);
+}
+.card h3,
+.session-card h3 {
+  margin: 0;
+  font: 600 1.35rem var(--display);
+}
+.card header p {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+.card form {
+  padding: 1.5rem;
+  display: grid;
+  gap: 1rem;
+}
+.field label {
+  display: block;
+  font-size: 0.74rem;
+  font-weight: 750;
+  margin-bottom: 0.4rem;
+}
+.field b {
+  color: var(--orange);
+}
+.field input {
+  width: 100%;
+}
+.field small {
+  display: block;
+  color: var(--danger);
+  font-size: 0.67rem;
+  margin-top: 0.35rem;
+}
+.card .primary {
+  justify-self: end;
+  margin-top: 0.4rem;
+}
+.notice,
+.error {
+  padding: 0.75rem 1rem;
+  font-size: 0.78rem;
+}
+.notice {
+  color: #245b3b;
+  background: #e7f2eb;
+}
+.error {
+  color: #8e3214;
+  background: #fff0ea;
+}
+.session-card {
+  padding: 1.5rem;
+  text-align: center;
+}
+.session-card .breadcrumb {
+  text-align: left;
+}
+.avatar {
+  width: 4rem;
+  height: 4rem;
+  margin: 1.2rem auto 0.8rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #e6eee9;
+  color: #2f5944;
+  font: 600 1.6rem var(--display);
+}
+.session-card > p:not(.breadcrumb) {
+  color: var(--muted);
+  font-size: 0.74rem;
+  overflow-wrap: anywhere;
+}
+.session-card dl {
+  text-align: left;
+  margin: 1.5rem 0;
+}
+.session-card dl div {
+  border-top: 1px solid #ece9df;
+  padding: 0.65rem 0;
+}
+.session-card dt {
+  font: 700 0.55rem var(--mono);
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.session-card dd {
+  margin: 0.2rem 0 0;
+  font-size: 0.75rem;
+}
+.logout {
+  width: 100%;
+  padding: 0.7rem;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--danger);
+}
+@media (max-width: 750px) {
+  .topbar {
+    min-height: auto;
+    padding-block: 1.5rem;
+  }
+  .content {
+    padding-top: 1.5rem;
+  }
+  .security-grid {
+    grid-template-columns: 1fr;
+  }
+  .session-card {
+    order: -1;
+  }
+  .card .primary {
+    width: 100%;
+  }
+}

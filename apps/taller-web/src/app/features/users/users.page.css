@@ -2,9 +2,6 @@
   display: block;
   min-height: 100vh;
 }
-main {
-  min-width: 0;
-}
 .topbar {
   min-height: 9rem;
   padding: 2.3rem clamp(1.5rem, 5vw, 5rem);
@@ -13,7 +10,6 @@ main {
   justify-content: space-between;
   border-bottom: 1px solid var(--line);
   background: rgba(249, 247, 240, 0.88);
-  backdrop-filter: blur(12px);
 }
 .breadcrumb {
   font: 700 0.64rem var(--mono);
@@ -25,7 +21,6 @@ h1 {
   font: 600 clamp(2.4rem, 4vw, 4rem)/0.9 var(--display);
   letter-spacing: -0.05em;
   margin: 0;
-  color: var(--ink);
 }
 .primary span {
   font-size: 1.25rem;
@@ -69,7 +64,7 @@ h1 {
   flex: 1;
   max-width: 40rem;
 }
-.search span {
+.search > span {
   position: absolute;
   left: 1rem;
   top: 0.72rem;
@@ -89,11 +84,32 @@ h1 {
 .segments button {
   background: transparent;
   color: var(--muted);
-  padding: 0.6rem 1rem;
+  padding: 0.6rem 0.85rem;
 }
 .segments button.selected {
   background: var(--ink);
   color: white;
+}
+.notice,
+.error-banner {
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.82rem;
+}
+.notice {
+  background: #e7f2eb;
+  color: #245b3b;
+}
+.error-banner {
+  background: #fff0ea;
+  color: #8e3214;
+}
+.error-banner button {
+  float: right;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  text-decoration: underline;
 }
 .table-wrap {
   background: white;
@@ -123,7 +139,7 @@ th {
 td {
   padding: 1rem 1.2rem;
   border-bottom: 1px solid #e9e7df;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   color: #3a453f;
 }
 tr:last-child td {
@@ -155,26 +171,43 @@ td small {
 }
 .person strong {
   color: var(--ink);
-  font-size: 0.87rem;
 }
 .person small,
 td small {
   color: #879089;
   margin-top: 0.22rem;
-  font-size: 0.7rem;
+  font-size: 0.68rem;
 }
-.contact {
-  color: #445149;
+.role {
+  display: inline-block;
+  background: #edf1ee;
+  color: #44564c;
+  padding: 0.32rem 0.5rem;
+  font: 700 0.58rem var(--mono);
+  text-transform: uppercase;
 }
-.tax-id {
-  font: 600 0.73rem var(--mono);
+.role.admin {
+  background: #fff0e8;
+  color: #9b421d;
 }
-.edit-button {
+.timezone {
+  font: 500 0.69rem var(--mono);
+}
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  min-width: 13rem;
+}
+.actions button {
+  padding: 0.35rem;
   background: transparent;
   color: var(--orange-dark);
-  padding: 0.4rem;
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+.actions .danger {
+  color: var(--danger);
 }
 .loader {
   position: absolute;
@@ -217,6 +250,12 @@ td small {
   color: var(--muted);
   margin: 0.4rem 0 1.2rem;
 }
+.secondary {
+  background: white;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  padding: 0.55rem 0.9rem;
+}
 .pagination {
   display: flex;
   justify-content: space-between;
@@ -229,36 +268,11 @@ td small {
   display: flex;
   gap: 0.5rem;
 }
-.pagination button,
-.secondary {
+.pagination button {
   background: white;
   color: var(--ink);
   border: 1px solid var(--line);
   padding: 0.55rem 0.9rem;
-}
-.pagination button:disabled {
-  opacity: 0.4;
-}
-.notice,
-.error-banner {
-  padding: 0.75rem 1rem;
-  margin-bottom: 1rem;
-  font-size: 0.82rem;
-}
-.notice {
-  background: #e7f2eb;
-  color: #245b3b;
-}
-.error-banner {
-  background: #fff0ea;
-  color: #8e3214;
-}
-.error-banner button {
-  float: right;
-  padding: 0;
-  color: inherit;
-  background: transparent;
-  text-decoration: underline;
 }
 .backdrop {
   position: fixed;
@@ -277,13 +291,14 @@ td small {
   box-shadow: -20px 0 60px rgba(0, 0, 0, 0.15);
   animation: slide-in 0.22s ease-out;
 }
-.editor header {
+.editor > header {
   padding: 2.2rem 2.4rem 1.6rem;
   display: flex;
   justify-content: space-between;
   border-bottom: 1px solid var(--line);
 }
-.editor h2 {
+.editor h2,
+.password-dialog h2 {
   font: 600 2.1rem var(--display);
   margin: 0;
   letter-spacing: -0.03em;
@@ -293,7 +308,6 @@ td small {
   color: var(--ink);
   font-size: 2rem;
   padding: 0;
-  align-self: flex-start;
 }
 .editor form {
   padding: 2rem 2.4rem;
@@ -303,7 +317,7 @@ td small {
 }
 .field.full,
 .toggle.full,
-.editor footer {
+form footer {
   grid-column: 1 / -1;
 }
 .field label {
@@ -316,7 +330,7 @@ td small {
   color: var(--orange);
 }
 .field input,
-.field textarea {
+.field select {
   width: 100%;
 }
 .field small {
@@ -334,7 +348,8 @@ td small {
 .toggle input {
   width: auto;
 }
-.editor footer {
+.editor footer,
+.password-dialog footer {
   display: flex;
   justify-content: flex-end;
   gap: 0.7rem;
@@ -344,6 +359,25 @@ td small {
   background: transparent;
   color: var(--ink);
   border: 1px solid var(--line);
+}
+.backdrop.centered {
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+}
+.password-dialog {
+  width: min(100%, 30rem);
+  background: var(--paper);
+  padding: 2rem;
+}
+.password-dialog > p:not(.breadcrumb) {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.password-dialog form {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.4rem;
 }
 .sr-only {
   position: absolute;
@@ -400,9 +434,6 @@ td small {
     font-size: 1.4rem;
     margin: 0;
   }
-  .intro-row {
-    align-items: center;
-  }
   .editor form {
     grid-template-columns: 1fr;
     padding: 1.4rem;
@@ -410,11 +441,17 @@ td small {
   .field {
     grid-column: 1 / -1;
   }
-  .editor header {
+  .editor > header {
     padding: 1.5rem 1.4rem;
   }
   th:nth-child(2),
   td:nth-child(2) {
+    display: none;
+  }
+  .actions {
+    min-width: auto;
+  }
+  .actions button:not(:first-child) {
     display: none;
   }
 }

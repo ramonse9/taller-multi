@@ -9,6 +9,6 @@ npm install
 npm start
 ```
 
-La configuración de desarrollo consume `http://localhost:3000/api`. La primera vertical incluye login, restauración de sesión contra `/auth/me`, listado/búsqueda/paginación de clientes, creación, edición y activación/desactivación.
+La configuración de desarrollo consume `http://localhost:3000/api`. La aplicación incluye login y restauración de sesión contra `/auth/me`, onboarding de compañías para el administrador de plataforma, administración de usuarios para el administrador tenant, seguridad de la cuenta y la vertical de clientes.
 
-El access token se guarda en `sessionStorage`, se adjunta mediante un interceptor y se descarta ante respuestas 401. Los datos del usuario se restauran siempre desde el servidor y no se consideran válidos únicamente por existir localmente.
+El access token se guarda en `sessionStorage`, se adjunta mediante un interceptor y se descarta ante respuestas 401. Los datos del usuario se restauran siempre desde el servidor y no se consideran válidos únicamente por existir localmente. Las rutas y la navegación se limitan por rol: `platform_admin`, `company_admin` y `user`.

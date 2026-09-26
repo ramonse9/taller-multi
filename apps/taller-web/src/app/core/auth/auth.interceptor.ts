@@ -1,7 +1,7 @@
-import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
-import { inject } from '@angular/core';
-import { catchError, throwError } from 'rxjs';
-import { AuthService } from './auth.service';
+import { HttpErrorResponse, HttpInterceptorFn } from "@angular/common/http";
+import { inject } from "@angular/core";
+import { catchError, throwError } from "rxjs";
+import { AuthService } from "./auth.service";
 
 export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const auth = inject(AuthService);
@@ -12,7 +12,10 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
 
   return next(authenticatedRequest).pipe(
     catchError((error: unknown) => {
-      if (error instanceof HttpErrorResponse && error.status === 401 && !request.url.endsWith('/auth/login')) {
+      const isCredentialCheck =
+        request.url.endsWith("/auth/login") ||
+        request.url.endsWith("/users/me/password");
+      if (error instanceof HttpErrorResponse && error.status === 401 && !isCredentialCheck) {
         auth.logout();
       }
       return throwError(() => error);

@@ -1,8 +1,10 @@
+export type UserRole = "platform_admin" | "company_admin" | "user";
+
 export interface SessionUser {
   id: string;
   email: string;
   fullName: string;
-  role: 'platform_admin' | 'company_admin' | 'user';
+  role: UserRole;
   companyId: string | null;
 }
 

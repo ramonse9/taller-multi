@@ -1,0 +1,58 @@
+<div class="app-shell">
+  <aside class="sidebar">
+    <a class="logo" [routerLink]="auth.homeUrl()" aria-label="Taller Multi">
+      <span>TM</span><strong>Taller<br />Multi</strong>
+    </a>
+
+    <nav aria-label="Navegación principal">
+      @switch (auth.user()?.role) {
+        @case ("platform_admin") {
+          <a class="nav-item" routerLink="/companies" routerLinkActive="active">
+            <span>01</span> Compañías
+          </a>
+        }
+        @case ("company_admin") {
+          <a class="nav-item" routerLink="/clients" routerLinkActive="active">
+            <span>01</span> Clientes
+          </a>
+          <a class="nav-item" routerLink="/users" routerLinkActive="active">
+            <span>02</span> Usuarios
+          </a>
+          <a class="nav-item" routerLink="/account" routerLinkActive="active">
+            <span>03</span> Seguridad
+          </a>
+        }
+        @case ("user") {
+          <a class="nav-item" routerLink="/clients" routerLinkActive="active">
+            <span>01</span> Clientes
+          </a>
+          <a class="nav-item" routerLink="/account" routerLinkActive="active">
+            <span>02</span> Seguridad
+          </a>
+        }
+      }
+    </nav>
+
+    <div class="sidebar-foot">
+      <div class="user-avatar">
+        {{ initials(auth.user()?.fullName ?? "U") }}
+      </div>
+      <div class="identity">
+        <strong>{{ auth.user()?.fullName }}</strong>
+        <span>{{ roleName() }} · {{ auth.user()?.email }}</span>
+      </div>
+      <button
+        class="icon-button"
+        type="button"
+        title="Cerrar sesión"
+        (click)="auth.logout()"
+      >
+        ↗
+      </button>
+    </div>
+  </aside>
+
+  <section class="workspace">
+    <router-outlet />
+  </section>
+</div>

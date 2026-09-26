@@ -1,0 +1,91 @@
+<main>
+  <header class="topbar">
+    <div>
+      <p class="breadcrumb">CUENTA / SEGURIDAD</p>
+      <h1>Seguridad</h1>
+    </div>
+  </header>
+  <section class="content">
+    <div class="intro">
+      <h2>Protege tu acceso</h2>
+      <p>
+        Cambia tu contraseña usando la actual como confirmación de identidad.
+      </p>
+    </div>
+    <div class="security-grid">
+      <section class="card">
+        <header>
+          <span>01</span>
+          <div>
+            <h3>Cambiar contraseña</h3>
+            <p>Usa una frase distinta de al menos 12 caracteres.</p>
+          </div>
+        </header>
+        <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+          @if (notice()) {
+          <div class="notice" role="status">✓ {{ notice() }}</div>
+          } @if (error()) {
+          <div class="error" role="alert">{{ error() }}</div>
+          }
+          <div class="field">
+            <label for="current-password">Contraseña actual <b>*</b></label
+            ><input
+              id="current-password"
+              type="password"
+              formControlName="currentPassword"
+              autocomplete="current-password"
+            />@if (form.controls.currentPassword.touched &&
+            form.controls.currentPassword.invalid) {
+            <small>Escribe tu contraseña actual.</small> }
+          </div>
+          <div class="field">
+            <label for="new-password">Nueva contraseña <b>*</b></label
+            ><input
+              id="new-password"
+              type="password"
+              formControlName="newPassword"
+              autocomplete="new-password"
+            />@if (form.controls.newPassword.touched &&
+            form.controls.newPassword.invalid) {
+            <small>Debe contener entre 12 y 128 caracteres.</small> }
+          </div>
+          <div class="field">
+            <label for="confirmation">Confirmar contraseña <b>*</b></label
+            ><input
+              id="confirmation"
+              type="password"
+              formControlName="confirmation"
+              autocomplete="new-password"
+            />@if (form.controls.confirmation.touched && !passwordsMatch()) {
+            <small>Las contraseñas no coinciden.</small> }
+          </div>
+          <button class="primary" type="submit" [disabled]="saving()">
+            {{ saving() ? 'Actualizando…' : 'Cambiar contraseña' }}
+          </button>
+        </form>
+      </section>
+      <aside class="session-card">
+        <p class="breadcrumb">SESIÓN ACTUAL</p>
+        <div class="avatar">{{ auth.user()?.fullName?.charAt(0) }}</div>
+        <h3>{{ auth.user()?.fullName }}</h3>
+        <p>{{ auth.user()?.email }}</p>
+        <dl>
+          <div>
+            <dt>Rol</dt>
+            <dd>
+              {{ auth.user()?.role === 'company_admin' ? 'Administrador' :
+              'Usuario' }}
+            </dd>
+          </div>
+          <div>
+            <dt>Almacenamiento</dt>
+            <dd>Sesión del navegador</dd>
+          </div>
+        </dl>
+        <button type="button" class="logout" (click)="auth.logout()">
+          Cerrar sesión
+        </button>
+      </aside>
+    </div>
+  </section>
+</main>

@@ -1,12 +1,8 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { DataSource } from 'typeorm';
 import { JwtAuthGuard } from '../auth/roles';
-
-interface CatalogItem {
-  code: string;
-  name: string;
-}
+import { CatalogItemDto, TimezoneCatalogItemDto } from './dto/catalog.dto';
 
 @ApiTags('catalogs')
 @ApiBearerAuth()
@@ -16,16 +12,26 @@ export class CatalogsController {
   constructor(private readonly dataSource: DataSource) {}
 
   @Get('company-types')
-  async companyTypes(): Promise<CatalogItem[]> {
-    return this.dataSource.query<CatalogItem[]>(
+  @ApiOkResponse({ type: CatalogItemDto, isArray: true })
+  async companyTypes(): Promise<CatalogItemDto[]> {
+    return this.dataSource.query<CatalogItemDto[]>(
       'SELECT code, name FROM public.company_types WHERE is_active ORDER BY name',
     );
   }
 
   @Get('person-types')
-  async personTypes(): Promise<CatalogItem[]> {
-    return this.dataSource.query<CatalogItem[]>(
+  @ApiOkResponse({ type: CatalogItemDto, isArray: true })
+  async personTypes(): Promise<CatalogItemDto[]> {
+    return this.dataSource.query<CatalogItemDto[]>(
       'SELECT code, name FROM public.person_types WHERE is_active ORDER BY name',
+    );
+  }
+
+  @Get('timezones')
+  @ApiOkResponse({ type: TimezoneCatalogItemDto, isArray: true })
+  async timezones(): Promise<TimezoneCatalogItemDto[]> {
+    return this.dataSource.query<TimezoneCatalogItemDto[]>(
+      'SELECT code, description FROM public.timezones WHERE is_active ORDER BY description',
     );
   }
 }
