@@ -1,0 +1,8 @@
+
+@if( facturaRXResource.isLoading() ){
+  <app-spinner></app-spinner>
+}
+
+@if( facturaRXResource.hasValue() ){
+  <app-cancelar-factura-details [factura]="facturaRXResource.value()" ></app-cancelar-factura-details>
+}

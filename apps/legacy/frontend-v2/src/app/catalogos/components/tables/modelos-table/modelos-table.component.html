@@ -1,0 +1,50 @@
+<div class="w-full border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+  <div class="hidden md:grid grid-cols-8 bg-gray-100 dark:bg-gray-700 p-3 text-[10px] font-bold uppercase text-gray-500">
+    <div class="px-2">ID</div>
+    <div class="col-span-3 px-2">Nombre</div>
+    <div class="col-span-3 px-2">Marca</div>
+  </div>
+
+  <div class="divide-y divide-gray-200 dark:divide-gray-600">
+    @for( modelo of modelos(); track modelo.id ){
+      <div
+          class="p-4 md:p-2 md:grid md:grid-cols-8 items-center bg-white dark:bg-gray-800  transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
+          [ngClass]="{
+            'border-blue-500': idSeleccionado() === modelo.id,
+            'border-gray-200 dark:border-gray-700': idSeleccionado() !== modelo.id
+          }"
+          (click)="seleccionarEmit(modelo.id)"
+          >
+
+        <div class="flex justify-between md:block mb-2 md:mb-0 px-2">
+          <span class="md:hidden text-xs font-bold text-gray-400 uppercase">ID:</span>
+          <span class="text-sm font-medium">
+            {{modelo.id | uppercase }}
+          </span>
+        </div>
+
+        <div class="flex justify-between md:block md:col-span-3 mb-2 md:mb-0 px-2">
+          <span class="md:hidden text-xs font-bold text-gray-400 uppercase">Nombre:</span>
+          <div class="text-sm font-semibold text-gray-900 dark:text-white">
+            {{modelo.nombre | uppercase }}
+          </div>
+        </div>
+
+        <div class="flex justify-between md:block md:col-span-3 px-2">
+          <span class="md:hidden text-xs font-bold text-gray-400 uppercase">Marca:</span>
+          <div class="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-300">
+            <span class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded md:bg-transparent md:dark:bg-transparent md:p-0">
+                {{modelo.marca.nombre | uppercase}}
+            </span>
+          </div>
+        </div>
+
+      </div>
+    }
+    @empty {
+      <div class="p-8 text-center bg-white dark:bg-gray-800">
+        <app-badge-message [message]="EnumCeroRegistros.MODELOS"></app-badge-message>
+      </div>
+    }
+  </div>
+</div>

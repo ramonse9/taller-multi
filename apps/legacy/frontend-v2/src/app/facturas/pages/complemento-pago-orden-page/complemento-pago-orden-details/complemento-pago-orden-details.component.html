@@ -1,0 +1,262 @@
+<form class="p-4 min-h-[600px]" [formGroup]="complementoPagoForm" (ngSubmit)="onSubmit()" >
+
+  <app-page-form-header [titleNew]="EnumPaginasTitulo.COMPLEMENTO" [titleUpdate]="EnumPaginasTitulo.COMPLEMENTO" [id]="''" [emitir]=true detail="" [subtitle]="false"></app-page-form-header>
+
+  <app-page-form-body>
+
+    <!-- Receptor -->
+    <section class="col-span-2 mt-6">
+      <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Datos del Receptor</h2>
+      <div class="grid grid-cols-2 gap-4">
+
+        <div class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-900 bg-gray-200 border border-gray-200  focus:z-10 dark:bg-gray-900 dark:text-white  dark:border-blue-500">
+          @if( factura().receptorSatTipoPersona.tipo == EnumSatTipoPersona.MORAL ){
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-6 h-6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 21h18M9 8h6M9 12h6M9 16h6M4 21V5a1 1 0 011-1h3a1 1 0 011 1v16M15 21V3a1 1 0 011-1h3a1 1 0 011 1v18"/>
+            </svg>
+            Empresa
+          }@else{
+            <svg class="w-6 h-6" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+              <path stroke="currentColor" stroke-width="2" d="M7 17v1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1a3 3 0 0 0-3-3h-4a3 3 0 0 0-3 3Zm8-9a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
+            </svg>
+            Cliente
+          }
+        </div>
+
+        <div>
+          <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">RFC</label>
+          <p class="text-sm text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-900 px-3 py-2 rounded">
+            {{ factura().receptorRFC }}
+          </p>
+        </div>
+
+        <div>
+          <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Email</label>
+          <p class="text-sm text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-900 px-3 py-2 rounded">
+            {{ factura().receptorEmail  }}
+          </p>
+        </div>
+
+        <div>
+          <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Razón Social</label>
+          <p class="text-sm text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-900 px-3 py-2 rounded">
+            {{ factura().receptorRazonSocial }}
+          </p>
+        </div>
+
+        <div>
+          <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Código Postal</label>
+          <p class="text-sm text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-900 px-3 py-2 rounded">
+            {{ factura().receptorCodigoPostal }}
+          </p>
+        </div>
+
+        <div>
+          <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Régimen Fiscal</label>
+          <p class="text-sm text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-900 px-3 py-2 rounded">
+            {{ factura().receptorSatRegimenFiscal.clave}} - {{ factura().receptorSatRegimenFiscal.descripcion }}
+          </p>
+        </div>
+
+        <div>
+          <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Uso CFDI</label>
+          <p class="text-sm text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-900 px-3 py-2 rounded">
+            {{ factura().receptorSatUsoCFDI.clave}} - {{ factura().receptorSatUsoCFDI.descripcion }}
+          </p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Pagos -->
+    <section class="col-span-2 mt-6">
+
+      <div class="text-white inline-flex rounded-base shadow-xs -space-x-px dark:bg-gray-800 mb-4" role="group">
+        <button type="button" (click)="setPagoIndividual(true)" class="cursor-pointer bg-lightblue-600 border border-default rounded-l-2xl font-medium leading-5 text-sm px-3 py-2" [ngClass]="{'bg-lightblue-600': pagoIndividual()}">
+          Complemento de Pago Individual
+        </button>
+        <button type="button" (click)="setPagoIndividual(false)" class="cursor-pointer bg-lightblue-600 border border-default rounded-r-2xl font-medium leading-5 text-sm px-3 py-2" [ngClass]="{'bg-lightblue-600': !pagoIndividual()}">
+          Complemento de Pago Grupal
+        </button>
+      </div>
+
+
+      @if( pagoIndividual() ){
+        <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Pagos</h2>
+
+        <app-pagos-read-only-table [pagos]="pagos()"></app-pagos-read-only-table>
+
+        @if(  pagos().length === 0 ){
+          <div  class="mt-4">
+            <label class="bg-yellow-700 text-white text-sm font-medium me-2 px-2.5 py-0.5 rounded-sm dark:bg-yellow-700 dark:text-white">
+              Saldo Insoluto: $ {{factura().total}}
+            </label>
+          </div>
+        }
+      }
+      @else{
+
+        <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Órdenes Facturadas sin Liquidar</h2>
+        <!--
+        TODO
+        -->
+
+
+          <div>
+            <app-facturas-sin-liquidar-table
+              [facturas]="facturasSinLiquidar()"
+              (facturasParaLiquidarEmit)="facturasSinLiquidarEmit($event)"
+              >
+            </app-facturas-sin-liquidar-table>
+          </div>
+
+
+        <!--
+        <div class="text-white">
+          @if( facturasSinLiquidar().length > 0 ){
+            {{ facturasSinLiquidar() | json }}
+          }
+        </div>
+        -->
+      }
+
+
+      <div class="grid grid-cols-2 gap-4 mt-3">
+
+        <div>
+          <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Monto</label>
+          <input type="text" formControlName="monto"  autocomplete="off" class="custom-input-text"
+                    [ngClass]="{ 'custom-input-text-error' : complementoPagoForm.controls.monto.errors }"
+          />
+          <app-form-error-label [control]="complementoPagoForm.controls.monto"></app-form-error-label>
+        </div>
+
+        <div>
+          <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Fecha Pago</label>
+          <input #dateInputPago formControlName="fechaPago" type="text" placeholder="Selecciona una fecha"
+              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
+                >
+          <app-form-error-label [control]="complementoPagoForm.controls.fechaPago"></app-form-error-label>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- General -->
+    <section class="col-span-2 mt-6">
+      <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-white">General</h2>
+      <div class="grid grid-cols-2 gap-4">
+
+        <div>
+          <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Tipo de Comprobante</label>
+          <p class="text-sm text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-900 px-3 py-2 rounded">
+            P - PAGO
+          </p>
+        </div>
+
+        <div>
+          <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Fecha Emisión</label>
+          <input #dateInputEmision formControlName="fechaEmision" type="text" placeholder="Selecciona una fecha"
+              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
+                >
+          <app-form-error-label [control]="complementoPagoForm.controls.fechaEmision"></app-form-error-label>
+        </div>
+
+        <div>
+          <app-page-form-control-list
+            label="Forma Pago"
+            newOption="Seleccione la Forma de Pago"
+            [options]="satFormasPagosRXResource.value()?.satFormasPagos ?? []"
+            (optionSelected)="optionSelectedFormaPago($event)"
+            [controlForm]="complementoPagoForm.get('claveSatFormaPago')!"
+          >
+          </app-page-form-control-list>
+        </div>
+
+        <div>
+          <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Lugar de Expedición</label>
+          <p class="text-sm text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-900 px-3 py-2 rounded">
+            {{ factura().emisorCodigoPostal }}
+          </p>
+        </div>
+
+        <div>
+          <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Observaciones</label>
+          <textarea id="descripcion" formControlName="observaciones" rows="4" class="custom-input-text"
+            [ngClass]="{ 'custom-input-text-error' : complementoPagoForm.controls.observaciones.errors }"
+          ></textarea>
+          <app-form-error-label [control]="complementoPagoForm.controls.observaciones"></app-form-error-label>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- Emisor -->
+    <section class="col-span-2 mt-6">
+
+      <div class="flex justify-between">
+        <div>
+          <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Datos del Emisor</h2>
+        </div>
+        <!--
+        <div>
+          @if( !validarEmisor() ){
+            <app-badge-message [message]="'Revisa la información del emisor registrado, favor de comunicarse con el Administrador.'" [estatus]="EnumEstatusToast.DANGER" ></app-badge-message>
+          }
+        </div>
+        -->
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <!--
+        <div>
+          <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">RFC</label>
+          <div class="custom-input-text">
+            {{ emisor()?.rfc?.toUpperCase() }}
+          </div>
+        </div>-->
+
+
+
+        <div>
+          <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">RFC</label>
+          <p class="text-sm text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-900 px-3 py-2 rounded">
+            {{ factura().emisorRFC.toUpperCase() }}
+          </p>
+        </div>
+
+
+        <div>
+          <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Razón Social</label>
+          <p class="text-sm text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-900 px-3 py-2 rounded">
+            {{ factura().emisorRazonSocial.toUpperCase() }}
+          </p>
+        </div>
+
+        <div>
+          <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Código Postal</label>
+          <p class="text-sm text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-900 px-3 py-2 rounded">
+            {{ factura().emisorCodigoPostal }}
+          </p>
+        </div>
+
+
+
+        <div>
+          <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Régimen Fiscal</label>
+          <p class="text-sm text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-900 px-3 py-2 rounded">
+            {{ factura().emisorSatRegimenFiscal.clave }} - {{ factura().emisorSatRegimenFiscal.descripcion }}
+          </p>
+        </div>
+
+
+      </div>
+    </section>
+
+  </app-page-form-body>
+
+</form>
+
+

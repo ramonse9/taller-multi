@@ -1,0 +1,80 @@
+<div class="inline-block align-middle">
+  <table class="min-w-full divide-y table-auto divide-gray-200 dark:divide-gray-600">
+    <thead class="bg-gray-100 dark:bg-gray-700">
+      <tr>
+        <th scope="col" class="min-w-[100px] p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          Acciones
+        </th>
+        <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          ID
+        </th>
+        <th scope="col" class="min-w-60 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          Cliente
+        </th>
+        <th scope="col" class="min-w-60 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          Vehiculo
+        </th>
+        <th scope="col" class="min-w-60 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          Empresa
+        </th>
+        <th scope="col" class="min-w-60 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          Descripción
+        </th>
+        <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          Fecha Ingreso
+        </th>
+      </tr>
+    </thead>
+    <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+      @for( cotizacion of cotizacionesListado(); track cotizacion.id ){
+        <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
+          <td class="pl-6 py-4">
+            <div class="flex items-center justify-end gap-5" >
+
+              @if( cotizacion.orden == null ){
+                <a [routerLink]="['/operaciones/cotizaciones/', cotizacion.id]" title="Editar" class="flex items-center text-blue-600 hover:text-blue-500">
+                  <ng-icon class="animate-pulse" name="tablerPencil" size="2rem"></ng-icon>
+                </a>
+              }
+              <a [routerLink]="['/operaciones/cotizaciones', cotizacion.id, 'informacion']" title="Ver completo" class="flex items-center text-blue-600 hover:text-blue-500">
+                <ng-icon class="animate-pulse" name="tablerEye" size="2rem"></ng-icon>
+              </a>
+
+            </div>
+          </td>
+          <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+            <a [routerLink]="['/operaciones/cotizaciones', cotizacion.id]" class="dark:hover:text-blue-600 hover:text-blue-600 transition-colors duration-300 cursor-pointer">
+              {{cotizacion.id | uppercase }}
+            </a>
+          </td>
+          <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+            @if (cotizacion.cliente) {
+              <app-card-cliente [cliente]="cotizacion.cliente" ></app-card-cliente>
+            }
+          </td>
+          <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+            @if (cotizacion.vehiculo) {
+              <app-card-vehiculo [vehiculo]="cotizacion.vehiculo" ></app-card-vehiculo>
+            }@else{
+              {{cotizacion.anio}} {{cotizacion.modelo?.marca?.nombre | titlecase}} {{cotizacion.modelo?.nombre | titlecase}}
+            }
+          </td>
+          <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+            @if (cotizacion.empresa) {
+              <app-card-empresa [empresa]="cotizacion.empresa" ></app-card-empresa>
+            }
+          </td>
+          <td class="p-4 text-base font-medium text-gray-900 whitespace-normal break-words max-h-2 overflow-y-auto dark:text-white"> <app-text-preview [limit]="60" [text]="cotizacion.descripcion!"  ></app-text-preview> </td>
+          <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{ cotizacion.createdAt | date: 'dd/MM/yyyy' }}</td>
+        </tr>
+      }
+      @empty{
+      <tr>
+        <td colspan="15" class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+          <app-badge-message [message]="EnumCeroRegistros.COTIZACIONES"></app-badge-message>
+        </td>
+      </tr>
+    }
+  </tbody>
+</table>
+</div>

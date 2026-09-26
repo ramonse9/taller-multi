@@ -1,0 +1,43 @@
+<div
+    class="bg-gray-50 dark:bg-gray-800 relative border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300
+    flex flex-col lg:flex-row overflow-hidden"
+      [ngClass]="{
+        'border-blue-500': seleccionado(),
+        'border-gray-200 dark:border-gray-700': !seleccionado()
+      }"
+    >
+
+    <div class="flex justify-between p-4 border-b border-gray-100 dark:border-gray-700 flex-1">
+
+      <app-card-component-id [entidad]="gasto()" [label]="EnumEntidad.GASTO" ></app-card-component-id>
+
+      <div class="flex flex-col items-center gap-2">
+        <p class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase leading-none">Categoría</p>
+        <P class="text-gray-600  dark:text-white">{{ gasto().gastoCategoria.nombre! }}</P>
+      </div>
+
+    </div>
+
+    <div class="flex justify-between p-4 border-b border-gray-100 dark:border-gray-700  flex-1">
+
+      <div class="p-3 bg-white dark:bg-slate-900 rounded-lg border-l-4 border-blue-400">
+        <div class="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest pb-0">Gasto</div>
+        <div class="text-lg text-gray-700 dark:text-gray-300 italic leading-relaxed">
+          <app-text-preview [limit]="80" [text]="gasto().nombre | uppercase"></app-text-preview>
+        </div>
+      </div>
+
+      <div class="flex gap-2">
+        <div class="flex flex-col items-center gap-2">
+          <p class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase leading-none">¿Recurrente?</p>
+          <app-badge-si-no [siNo]="gasto().recurrente"></app-badge-si-no>
+        </div>
+        <div class="flex flex-col items-center gap-2">
+          <p class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase leading-none">¿Activo?</p>
+          <app-badge-si-no [siNo]="gasto().activo"></app-badge-si-no>
+        </div>
+      </div>
+
+    </div>
+
+</div>

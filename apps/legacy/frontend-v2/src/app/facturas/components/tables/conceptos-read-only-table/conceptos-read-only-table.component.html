@@ -1,0 +1,41 @@
+
+<table class="min-w-full divide-y table-fixed divide-gray-200 dark:divide-gray-600">
+    <thead class="bg-gray-100 dark:bg-gray-700">
+      <tr>
+        <th scope="col" class="w-12 p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Tipo</th>
+        <th scope="col" class="min-w-36 p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Descripción</th>
+        <th scope="col" class="w-10 p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Cantidad</th>
+        <th scope="col" class="w-28 p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Precio Unitario</th>
+        <th scope="col" class="min-w-20 p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Importe</th>
+      </tr>
+    </thead>
+    <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+      @for (concepto of conceptos(); track concepto.id_producto_servicio) {
+        <tr>
+           <td class="p-2 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white group-dark:hover:text-blue-600 group-hover:text-blue-600">
+            <!--{{ concepto.productoServicio.satProductoServicio.satTipoProductoServicio.tipo | uppercase}}-->
+            {{ concepto.tipoSatTipoProductoServicio | uppercase}}
+          </td>
+          <td class="p-2 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white group-dark:hover:text-blue-600 group-hover:text-blue-600">
+            <!--{{ concepto.productoServicio.descripcion }}-->
+            {{ concepto.descripcionProductoServicio }}
+          </td>
+          <td class="p-2 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white group-dark:hover:text-blue-600 group-hover:text-blue-600">
+            {{ concepto.cantidad }}
+          </td>
+           <td class="p-2 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white group-dark:hover:text-blue-600 group-hover:text-blue-600">
+            {{ concepto.costoUnitario | currency:'$ ':'symbol':'1.2-2':'en' }}
+          </td>
+          <td class="p-2 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white group-dark:hover:text-blue-600 group-hover:text-blue-600 text-right">
+            {{ (concepto.cantidad * concepto.costoUnitario) | currency:'$ ':'symbol':'1.2-2':'en'}}
+          </td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="6" class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-red-400 group-dark:hover:text-blue-600 group-hover:text-blue-600">
+            No hay conceptos añadidos.
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>

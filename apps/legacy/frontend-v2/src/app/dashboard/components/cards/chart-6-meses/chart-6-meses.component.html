@@ -1,0 +1,49 @@
+     <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-4">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-xl font-bold text-gray-800 dark:text-white ">{{encabezado()}}</h2>
+          <!--
+          <select class="bg-gray-100 border border-gray-300 rounded-lg px-4 py-2 text-sm">
+            <option>Últimos 6 meses</option>
+          </select>
+          -->
+        </div>
+        <div class="h-64">
+          <canvas #chartCanvas></canvas>
+        </div>
+        <!-- Tabla resumen visible solo en mobile -->
+        <div class="mt-4">
+          @if( grafica6MesesCompleto().length > 0 ){
+          <!-- Vista en mobile: tabla -->
+          <table class="w-full text-sm md:hidden">
+            <thead>
+              <tr class="bg-white dark:bg-slate-800">
+                <th class="p-2 text-left text-gray-800 dark:text-white font-medium">Mes</th>
+                <th class="p-2 text-right text-gray-800 dark:text-white font-medium">Gasto</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for ( item of grafica6MesesCompleto(); track $index) {
+              <tr class="border-b border-gray-200 dark:border-gray-500">
+                <td class="p-1 text-sm text-gray-500 dark:text-gray-500">{{ item.nombre }}</td>
+                <td class="p-1 text-right font-semibold text-gray-800 dark:text-white">
+                  {{ item.total | currency:'$':'symbol':'1.2-2':'en'}}
+                </td>
+              </tr>
+              }
+            </tbody>
+          </table>
+
+          <!-- Vista en desktop: grid horizontal -->
+          <div class="hidden md:grid md:grid-cols-6 gap-2">
+            @for ( item of grafica6MesesCompleto(); track $index) {
+            <div class="flex flex-col items-center text-xs bg-white dark:bg-slate-800 p-1 rounded shadow">
+              <span class="text-gray-800 dark:text-white font-medium">{{ item.nombre }}</span>
+              <span class="text-gray-500 dark:text-gray-400 font-semibold">
+                {{ item.total | currency:'$':'symbol':'1.2-2':'en'}}
+              </span>
+            </div>
+            }
+          </div>
+          }
+        </div>
+      </div>

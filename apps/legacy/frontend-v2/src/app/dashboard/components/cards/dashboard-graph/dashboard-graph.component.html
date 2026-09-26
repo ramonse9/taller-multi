@@ -1,0 +1,601 @@
+<div class="container mx-auto px-2 py-8 bg-gray-100 dark:bg-slate-950 text-gray-800">
+
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-6">
+      <div class="flex justify-between items-start">
+        <div>
+          <p class="text-gray-500 text-sm">Órdenes En Proceso</p>
+          <div [countUp]="obtenerTotalPorEstatus( EnumEstatusOrden.PROCESO)" class="text-3xl font-bold mt-2 text-slate-950 dark:text-white">0</div>
+        </div>
+        <div class="bg-green-100 p-3 rounded-lg text-green-600">
+          <ng-icon name="tablerCheckupList" size="2rem"></ng-icon>
+        </div>
+      </div>
+      <div class="mt-4">
+        <span class="text-green-500 text-sm flex items-center">
+          <ng-icon name="tablerArrowNarrowUp" size="1rem"></ng-icon>
+          12% vs mes anterior
+        </span>
+      </div>
+    </div>
+
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-6">
+      <div class="flex justify-between items-start">
+        <div>
+          <p class="text-gray-500 text-sm">Vehículos</p>
+          <div [countUp]="cardVehiculosTotal()" class="text-3xl font-bold mt-2 text-slate-950 dark:text-white">0</div>
+        </div>
+        <div class="bg-orange-100 p-3 rounded-lg text-orange-600">
+          <ng-icon name="tablerCar" size="2rem"></ng-icon>
+        </div>
+      </div>
+      <div class="mt-4">
+        <span class="text-green-500 text-sm flex items-center"><ng-icon name="tablerArrowNarrowUp"
+            size="1rem"></ng-icon>15% vs mes anterior</span>
+      </div>
+    </div>
+
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-6">
+      <div class="flex justify-between items-start">
+        <div>
+          <p class="text-gray-500 text-sm">Clientes</p>
+          <div [countUp]="cardClientesTotal()" class="text-3xl font-bold mt-2 text-slate-950 dark:text-white">0</div>
+        </div>
+        <div class="bg-purple-100 p-3 rounded-lg text-purple-600">
+          <ng-icon name="tablerUsersGroup" size="2rem"></ng-icon>
+        </div>
+      </div>
+      <div class="mt-4">
+        <span class="text-green-500 text-sm flex items-center"><ng-icon name="tablerArrowNarrowUp"
+            size="1rem"></ng-icon>5% vs mes anterior</span>
+      </div>
+    </div>
+
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-6">
+      <div class="flex justify-between items-start">
+        <div>
+          <p class="text-gray-500 text-sm">Empresas</p>
+          <div class="flex items-center">
+            <div class="text-3xl font-bold mt-2">$</div>
+            <div [countUp]="cardEmpresasTotal()" class="text-3xl font-bold mt-2 text-slate-950 dark:text-white">0</div>
+          </div>
+        </div>
+        <div class="bg-blue-100 p-3 rounded-lg text-blue-600">
+          <ng-icon name="tablerBuilding" size="2rem"></ng-icon>
+        </div>
+      </div>
+      <div class="mt-4">
+        <span class="text-green-500 text-sm flex items-center"><ng-icon name="tablerArrowNarrowUp"
+            size="1rem"></ng-icon>8% vs mes anterior</span>
+      </div>
+    </div>
+
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-6">
+      <div class="flex justify-between items-start">
+        <div>
+          <p class="text-gray-500 text-sm">Ingresos del Mes</p>
+          <div class="flex items-center">
+            <div class="text-3xl font-bold mt-2">$</div>
+            <div [countUp]="0" class="text-3xl font-bold mt-2 text-slate-950 dark:text-white">0</div>
+          </div>
+        </div>
+        <div class="bg-green-100 p-3 rounded-lg text-green-600">
+          <ng-icon name="tablerCurrencyDollar" size="2rem"></ng-icon>
+        </div>
+      </div>
+      <div class="mt-4">
+        <span class="text-green-500 text-sm flex items-center"><ng-icon name="tablerArrowNarrowUp"
+            size="1rem"></ng-icon>8% vs mes anterior</span>
+      </div>
+    </div>
+
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-6">
+      <div class="flex justify-between items-start">
+        <div>
+          <p class="text-gray-500 text-sm">Gastos del Mes</p>
+          <div class="flex items-center">
+            <div class="text-3xl font-bold mt-2">$</div>
+            <div [countUp]="gastoMensual()" class="text-3xl font-bold mt-2 text-slate-950 dark:text-white">0</div>
+          </div>
+        </div>
+        <div class="bg-yellow-100 p-3 rounded-lg text-yellow-600">
+          <ng-icon name="tablerCurrencyDollar" size="2rem"></ng-icon>
+        </div>
+      </div>
+      <div class="mt-4">
+        <span class="text-green-500 text-sm flex items-center"><ng-icon name="tablerArrowNarrowUp"
+            size="1rem"></ng-icon>8% vs mes anterior</span>
+      </div>
+    </div>
+
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-6">
+      <div class="flex justify-between items-start">
+        <div>
+          <p class="text-gray-500 text-sm">Nómina del Mes</p>
+          <div class="flex items-center">
+            <div class="text-3xl font-bold mt-2">$</div>
+            <div [countUp]="movimientoMensual()" class="text-3xl font-bold mt-2 text-slate-950 dark:text-white">0</div>
+          </div>
+        </div>
+        <div class="bg-yellow-100 p-3 rounded-lg text-yellow-600">
+          <ng-icon name="tablerCurrencyDollar" size="2rem"></ng-icon>
+        </div>
+      </div>
+      <div class="mt-4">
+        <span class="text-green-500 text-sm flex items-center"><ng-icon name="tablerArrowNarrowUp"
+            size="1rem"></ng-icon>8% vs mes anterior</span>
+      </div>
+    </div>
+
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-6">
+      <div class="flex justify-between items-start">
+        <div>
+          <p class="text-gray-500 text-sm">Gasto y Nómina del Mes</p>
+          <div class="flex items-center">
+            <div class="text-3xl font-bold mt-2">$</div>
+            <div [countUp]="gastoMensual() + movimientoMensual()" class="text-3xl font-bold mt-2 text-slate-950 dark:text-white">0</div>
+          </div>
+        </div>
+        <div class="bg-yellow-100 p-3 rounded-lg text-yellow-600">
+          <ng-icon name="tablerCurrencyDollar" size="2rem"></ng-icon>
+        </div>
+      </div>
+      <div class="mt-4">
+        <span class="text-green-500 text-sm flex items-center"><ng-icon name="tablerArrowNarrowUp"
+            size="1rem"></ng-icon>8% vs mes anterior</span>
+      </div>
+    </div>
+
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-6">
+      <div class="flex justify-between items-start">
+        <div>
+          <p class="text-gray-500 text-sm">Utilidad del Mes</p>
+          <div class="flex items-center">
+            <div class="text-3xl font-bold mt-2">$</div>
+            <div [countUp]="utilidadMensual()" class="text-3xl font-bold mt-2 text-slate-950 dark:text-white">0</div>
+          </div>
+        </div>
+        <div class="rounded-lg p-3"
+            [class.text-green-600]="utilidadMensual() > 0"
+            [class.bg-green-100]="utilidadMensual() > 0"
+            [class.text-red-600]="utilidadMensual() < 0"
+            [class.bg-red-100]="utilidadMensual() < 0"
+            >
+          <ng-icon name="tablerCurrencyDollar" size="2rem"></ng-icon>
+        </div>
+      </div>
+      <div class="mt-4">
+        <span class="text-green-500 text-sm flex items-center"><ng-icon name="tablerArrowNarrowUp"
+            size="1rem"></ng-icon>8% vs mes anterior</span>
+      </div>
+    </div>
+    
+  </div>
+
+  <div class="w-full space-y-8 mb-8">
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-6">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-xl font-bold text-gray-800 dark:text-white">Órdenes por Estado</h2>
+        <!--
+        <select class="bg-gray-100 border border-gray-300 rounded-lg px-4 py-2 text-sm">
+          <option>Últimos 30 días</option>
+          <option>Últimos 7 días</option>
+        </select>
+        -->
+      </div>
+      <div class="h-64">
+        <canvas #ordersChart></canvas>
+      </div>
+      @if( graficaOrdenesEstatusTotalOrdenadas().length ){
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+          <div class="text-center p-3 bg-green-700/40 rounded-lg">
+            <p class="text-2xl font-bold text-green-700">{{ obtenerTotalPorEstatus( EnumEstatusOrden.PROCESO) }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-300">Proceso</p>
+          </div>
+          <div class="text-center p-3 bg-blue-700/40 rounded-lg">
+            <p class="text-2xl font-bold text-blue-700">{{ obtenerTotalPorEstatus( EnumEstatusOrden.FINALIZADO) }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-300">Finalizado</p>
+          </div>
+          <div class="text-center p-3 bg-red-700/40 rounded-lg">
+            <p class="text-2xl font-bold text-red-700">{{ obtenerTotalPorEstatus( EnumEstatusOrden.PAUSADO) }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-300">Pausado</p>
+          </div>
+          <div class="text-center p-3 bg-purple-700/40 rounded-lg">
+            <p class="text-2xl font-bold text-purple-700">{{ obtenerTotalPorEstatus( EnumEstatusOrden.CANCELADO) }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-300">Cancelado</p>
+          </div>
+        </div>
+      }
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+      <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-4">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-xl font-bold text-gray-800 dark:text-white ">Ingresos Mensuales</h2>
+          <!--
+          <select class="bg-gray-100 border border-gray-300 rounded-lg px-4 py-2 text-sm">
+            <option>Últimos 6 meses</option>
+          </select>-->
+        </div>
+        <div class="h-64">
+          <canvas #revenueChart></canvas>
+        </div>
+      </div>
+
+      <!--<app-chart-6-meses [grafica6Meses]="grafica6MesesGastos()" ></app-chart-6-meses>-->
+      @if (grafica6MesesGastos().length > 0) {
+        <app-chart-6-meses [grafica6Meses]="grafica6MesesGastos()" encabezado="Gastos Mensuales"></app-chart-6-meses>
+      } @else {
+        <div class="text-slate-500 dark:text-white">
+          <p>Cargando datos...</p>
+        </div>
+      }
+
+      @if (grafica6MesesMovimientos().length > 0) {
+        <app-chart-6-meses [grafica6Meses]="grafica6MesesMovimientos()" encabezado="Nómina Mensual"></app-chart-6-meses>
+      } @else {
+        <div class="text-slate-500 dark:text-white">
+          <p>Cargando datos...</p>
+        </div>
+      }
+
+      @if (grafica6MesesCombinados().length > 0) {
+        <app-chart-6-meses [grafica6Meses]="grafica6MesesCombinados()" encabezado="Gastos y Nómina Mensual"></app-chart-6-meses>
+      } @else {
+        <div class="text-slate-500 dark:text-white">
+          <p>Cargando datos...</p>
+        </div>
+      }
+
+      <!--
+      <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-4">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-xl font-bold text-gray-800 dark:text-white ">Gastos Mensuales</h2>
+          <select class="bg-gray-100 border border-gray-300 rounded-lg px-4 py-2 text-sm">
+            <option>Últimos 6 meses</option>
+          </select>
+        </div>
+        <div class="h-64">
+          <canvas #chartGastos></canvas>
+        </div>
+
+        <div class="mt-4">
+          @if( grafica6MesesCompletoGastos().length > 0 ){
+
+          <table class="w-full text-sm md:hidden">
+            <thead>
+              <tr class="bg-white dark:bg-slate-800">
+                <th class="p-2 text-left text-gray-800 dark:text-white font-medium">Mes</th>
+                <th class="p-2 text-right text-gray-800 dark:text-white font-medium">Gasto</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for ( item of grafica6MesesCompletoGastos(); track $index) {
+              <tr class="border-b border-gray-200 dark:border-gray-500">
+                <td class="p-2 text-sm text-gray-500 dark:text-gray-500">{{ item.nombre }}</td>
+                <td class="p-2 text-right font-semibold text-gray-800 dark:text-white">
+                  {{ item.total | currency:'$ ':'symbol':'1.2-2':'en'}}
+                </td>
+              </tr>
+              }
+            </tbody>
+          </table>
+
+          <div class="hidden md:grid md:grid-cols-6 gap-2">
+            @for ( item of grafica6MesesCompletoGastos(); track $index) {
+            <div class="flex flex-col items-center text-xs bg-white dark:bg-slate-800 p-4 rounded shadow">
+              <span class="text-gray-800 dark:text-white font-medium">{{ item.nombre }}</span>
+              <span class="text-gray-500 dark:text-gray-400 font-semibold">
+                {{ item.total | currency:'$ ':'symbol':'1.2-2':'en'}}
+              </span>
+            </div>
+            }
+          </div>
+          }
+        </div>
+      </div>
+      -->
+
+      <!--
+      <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-4">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-xl font-bold text-gray-800 dark:text-white ">Nómina Mensual</h2>
+          <select class="bg-gray-100 border border-gray-300 rounded-lg px-4 py-2 text-sm">
+            <option>Últimos 6 meses</option>
+          </select>
+        </div>
+        <div class="h-64">
+          <canvas #chartMovimientos></canvas>
+        </div>
+
+        <div class="mt-4">
+          @if( grafica6MesesCompletoMovimientos().length > 0 ){
+          <table class="w-full text-sm md:hidden">
+            <thead>
+              <tr class="bg-white dark:bg-slate-800">
+                <th class="p-2 text-left text-gray-800 dark:text-white font-medium">Mes</th>
+                <th class="p-2 text-right text-gray-800 dark:text-white font-medium">Gasto</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for ( item of grafica6MesesCompletoMovimientos(); track $index) {
+              <tr class="border-b border-gray-200 dark:border-gray-500">
+                <td class="p-2 text-sm text-gray-500 dark:text-gray-500">{{ item.nombre }}</td>
+                <td class="p-2 text-right font-semibold text-gray-800 dark:text-white">
+                  {{ item.total | currency:'$ ':'symbol':'1.2-2':'en'}}
+                </td>
+              </tr>
+              }
+            </tbody>
+          </table>
+
+          <div class="hidden md:grid md:grid-cols-6 gap-2">
+            @for ( item of grafica6MesesCompletoMovimientos(); track $index) {
+            <div class="flex flex-col items-center text-xs bg-white dark:bg-slate-800 p-4 rounded shadow">
+              <span class="text-gray-800 dark:text-white font-medium">{{ item.nombre }}</span>
+              <span class="text-gray-500 dark:text-gray-400 font-semibold">
+                {{ item.total | currency:'$ ':'symbol':'1.2-2':'en'}}
+              </span>
+            </div>
+            }
+          </div>
+          }
+        </div>
+      </div>
+    -->
+
+    <!--
+
+      <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-4">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-xl font-bold text-gray-800 dark:text-white ">Gastos Y Nómina Mensual</h2>
+          <select class="bg-gray-100 border border-gray-300 rounded-lg px-4 py-2 text-sm">
+            <option>Últimos 6 meses</option>
+          </select>
+        </div>
+        <div class="h-64">
+          <canvas #chartCombinados></canvas>
+        </div>
+
+        <div class="mt-4">
+          @if( grafica6MesesCompletoCombinados().length > 0 ){
+
+          <table class="w-full text-sm md:hidden">
+            <thead>
+              <tr class="bg-white dark:bg-slate-800">
+                <th class="p-2 text-left text-gray-800 dark:text-white font-medium">Mes</th>
+                <th class="p-2 text-right text-gray-800 dark:text-white font-medium">Gasto</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for ( item of grafica6MesesCompletoCombinados(); track $index) {
+              <tr class="border-b border-gray-200 dark:border-gray-500">
+                <td class="p-2 text-sm text-gray-500 dark:text-gray-500">{{ item.nombre }}</td>
+                <td class="p-2 text-right font-semibold text-gray-800 dark:text-white">
+                  {{ item.total | currency:'$ ':'symbol':'1.2-2':'en'}}
+                </td>
+              </tr>
+              }
+            </tbody>
+          </table>
+
+
+          <div class="hidden md:grid md:grid-cols-6 gap-2">
+            @for ( item of grafica6MesesCompletoCombinados(); track $index) {
+            <div class="flex flex-col items-center text-xs bg-white dark:bg-slate-800 p-2 rounded shadow">
+              <span class="text-gray-800 dark:text-white font-medium">{{ item.nombre }}</span>
+              <span class="text-gray-500 dark:text-gray-400 font-semibold">
+                {{ item.total | currency:'$ ':'symbol':'1.2-2':'en'}}
+              </span>
+            </div>
+            }
+          </div>
+          }
+        </div>
+      </div>
+    -->
+
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-6">
+      <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-6">Clientes Frecuentes</h2>
+      <div class="space-y-4">
+        <div class="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-slate-900 rounded-lg">
+          <div class="flex items-center">
+            <div class="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mr-3">
+              <ng-icon name="tablerUser" size="1.5rem"></ng-icon>
+            </div>
+            <div>
+              <p class="font-medium dark:text-white">Automotriz Pérez S.A.</p>
+              <p class="text-sm text-gray-500">8 órdenes</p>
+            </div>
+          </div>
+          <span class="font-bold text-blue-700">$12,450</span>
+        </div>
+        <div class="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-slate-900 rounded-lg">
+          <div class="flex items-center">
+            <div class="w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center mr-3">
+              <ng-icon name="tablerUser" size="1.5rem"></ng-icon>
+            </div>
+            <div>
+              <p class="font-medium dark:text-white">Transportes Rápidos</p>
+              <p class="text-sm text-gray-500">6 órdenes</p>
+            </div>
+          </div>
+          <span class="font-bold text-green-700">$8,920</span>
+        </div>
+        <div class="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-slate-900 rounded-lg">
+          <div class="flex items-center">
+            <div class="w-10 h-10 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center mr-3">
+              <ng-icon name="tablerUser" size="1.5rem"></ng-icon>
+            </div>
+            <div>
+              <p class="font-medium dark:text-white">Logística Integral</p>
+              <p class="text-sm text-gray-500">5 órdenes</p>
+            </div>
+          </div>
+          <span class="font-bold text-purple-700">$7,310</span>
+        </div>
+        <div class="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-slate-900 rounded-lg">
+          <div class="flex items-center">
+            <div class="w-10 h-10 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mr-3">
+              <ng-icon name="tablerUser" size="1.5rem"></ng-icon>
+            </div>
+            <div>
+              <p class="font-medium dark:text-white">Distribuidora MX</p>
+              <p class="text-sm text-gray-500">4 órdenes</p>
+            </div>
+          </div>
+          <span class="font-bold text-yellow-700">$5,640</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-6">
+      <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-6">Servicios Más Solicitados</h2>
+      <div class="space-y-4">
+        <div>
+          <div class="flex justify-between mb-1">
+            <span class="text-sm font-medium dark:text-white">Cambio de aceite</span>
+            <span class="text-sm font-medium dark:text-white">42 veces</span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-2">
+            <div class="h-2 rounded-full transition-all duration-1000 ease-out bg-blue-600" style="width: 85%"></div>
+          </div>
+
+
+          <div>
+            <div class="flex justify-between mb-1">
+              <span class="text-sm font-medium dark:text-white">Revisión de frenos</span>
+              <span class="text-sm font-medium dark:text-white">28 veces</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+              <div class="bg-green-600 h-2 rounded-full" style="width: 65%"></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex justify-between mb-1">
+              <span class="text-sm font-medium dark:text-white">Alineación y balanceo</span>
+              <span class="text-sm font-medium dark:text-white">22 veces</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+              <div class="bg-purple-600 h-2 rounded-full" style="width: 55%"></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex justify-between mb-1">
+              <span class="text-sm font-medium dark:text-white">Diagnóstico general</span>
+              <span class="text-sm font-medium dark:text-white">18 veces</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+              <div class="bg-yellow-600 h-2 rounded-full" style="width: 45%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-4 md:p-6">
+      <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-6">Vehículos con Más Servicios</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full border-collapse">
+          <thead class="hidden md:table-header-group">
+            <tr class="text-left text-gray-500 border-b border-gray-300 dark:border-slate-700">
+              <th class="pb-3 px-2">Vehículo</th>
+              <th class="pb-3 px-2">Cliente</th>
+              <th class="pb-3 px-2">Servicios</th>
+              <th class="pb-3 px-2 text-right">Última Visita</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200 dark:divide-slate-700">
+            <tr
+              class="flex flex-col md:table-row py-4 md:py-0 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+              <td class="py-3 px-2 md:table-cell">
+                <div class="flex flex-col">
+                  <span class="md:hidden text-xs font-semibold text-gray-400 uppercase mb-1">Vehículo</span>
+                  <div class="font-bold md:font-medium dark:text-white text-lg md:text-base">Ford F-150 2020</div>
+                  <div class="text-sm text-gray-500">Placa: ABC-123</div>
+                </div>
+              </td>
+              <td class="py-2 px-2 md:table-cell">
+                <span class="md:hidden text-xs font-semibold text-gray-400 uppercase mb-1 block">Cliente</span>
+                <div class="dark:text-white">Automotriz Pérez</div>
+              </td>
+              <td class="py-2 px-2 md:table-cell">
+                <span class="md:hidden text-xs font-semibold text-gray-400 uppercase mb-1 block">Servicios</span>
+                <span
+                  class="px-3 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 rounded-full text-sm font-bold">7</span>
+              </td>
+              <td class="py-2 px-2 md:table-cell md:text-right">
+                <span class="md:hidden text-xs font-semibold text-gray-400 uppercase mb-1 block">Última Visita</span>
+                <div class="dark:text-white text-sm md:text-base">15/10/2023</div>
+              </td>
+            </tr>
+
+            <tr class="flex flex-col md:table-row py-4 md:py-0 hover:bg-gray-50 dark:hover:bg-slate-700/50">
+              <td class="py-3 px-2 md:table-cell">
+                <div class="flex flex-col">
+                  <span class="md:hidden text-xs font-semibold text-gray-400 uppercase mb-1">Vehículo</span>
+                  <div class="font-bold md:font-medium dark:text-white text-lg md:text-base">Chevrolet Silverado 2019
+                  </div>
+                  <div class="text-sm text-gray-500">Placa: XYZ-789</div>
+                </div>
+              </td>
+              <td class="py-2 px-2 md:table-cell">
+                <span class="md:hidden text-xs font-semibold text-gray-400 uppercase mb-1 block">Cliente</span>
+                <div class="dark:text-white">Transportes Rápidos</div>
+              </td>
+              <td class="py-2 px-2 md:table-cell">
+                <span class="md:hidden text-xs font-semibold text-gray-400 uppercase mb-1 block">Servicios</span>
+                <span
+                  class="px-3 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 rounded-full text-sm font-bold">5</span>
+              </td>
+              <td class="py-2 px-2 md:table-cell md:text-right">
+                <span class="md:hidden text-xs font-semibold text-gray-400 uppercase mb-1 block">Última Visita</span>
+                <div class="dark:text-white text-sm md:text-base">10/10/2023</div>
+              </td>
+            </tr>
+
+            <tr class="flex flex-col md:table-row py-4 md:py-0 hover:bg-gray-50 dark:hover:bg-slate-700/50">
+              <td class="py-3 px-2 md:table-cell">
+                <div class="flex flex-col">
+                  <span class="md:hidden text-xs font-semibold text-gray-400 uppercase mb-1">Vehículo</span>
+                  <div class="font-bold md:font-medium dark:text-white text-lg md:text-base">Toyota Hilux 2021</div>
+                  <div class="text-sm text-gray-500">Placa: XYZ-789</div>
+                </div>
+              </td>
+              <td class="py-2 px-2 md:table-cell">
+                <span class="md:hidden text-xs font-semibold text-gray-400 uppercase mb-1 block">Cliente</span>
+                <div class="dark:text-white">Logística Integral</div>
+              </td>
+              <td class="py-2 px-2 md:table-cell">
+                <span class="md:hidden text-xs font-semibold text-gray-400 uppercase mb-1 block">Servicios</span>
+                <span
+                  class="px-3 py-1 bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-green-300 rounded-full text-sm font-bold">4</span>
+              </td>
+              <td class="py-2 px-2 md:table-cell md:text-right">
+                <span class="md:hidden text-xs font-semibold text-gray-400 uppercase mb-1 block">Última Visita</span>
+                <div class="dark:text-white text-sm md:text-base">5/10/2023</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-6">
+      <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-6">Facturación por Empresa</h2>
+      <div class="h-64">
+        <canvas #companyChart></canvas>
+      </div>
+    </div>
+  </div>
+</div>

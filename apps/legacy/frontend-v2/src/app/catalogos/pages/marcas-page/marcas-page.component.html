@@ -1,0 +1,58 @@
+<div class="p-4 bg-white-2 border-b border-gray-200 dark:bg-gray-900 dark:border-gray-700">
+  <div class="flex items-center justify-between w-full">
+
+    <div class="flex-shrink-0">
+      <app-page-button-inicio></app-page-button-inicio>
+    </div>
+
+    <div class="flex-grow text-center">
+      <h1 class="text-xl font-semibold text-gray-900 sm:text-2xl dark:text-white">
+        CATÁLOGOS | Marcas: {{ marcasRXResource.value()?.totalItems }}
+      </h1>
+    </div>
+
+  </div>
+
+  <div class="mt-4">
+    <app-busqueda-general
+      placeholder="Buscar Marcas"
+      nuevaEntidad="Nueva Marca"
+      (idNuevoEmit)="idNuevo()"
+      (filtrarBusquedaEmit)="filtrar($event)"
+    ></app-busqueda-general>
+  </div>
+</div>
+
+@if( marcasRXResource.value() ){
+  <div class="overflow-x-auto" [@fadeAnimation]>
+    <app-marcas-table
+      [marcas]="marcasRXResource.value()?.marcas ?? []"
+      (idSeleccionarEmit)="idSeleccionar($event)"
+      [idSeleccionado]="idSeleccionado()"
+    ></app-marcas-table>
+  </div>
+}
+
+<app-pagination [pages]="marcasRXResource.value()?.totalPages ?? 0" [currentPage]="paginationService.currentPage()" (itemsPerPageSelected)="selectPerPageChange($event)" ></app-pagination>
+
+<app-drawer-form-container
+  [isOpen]="isOpenDrawer()"
+  [idSeleccionado]="idSeleccionado()"
+
+  [resource]="marcaRXResource"
+
+  titleNuevo="Nueva Marca"
+  titleEditar="Editar Marca"
+  [formTemplateNuevo]="nuevo"
+  (closeDrawerEmit)="idDeseleccionar()"
+  labelId="Marca"
+>
+</app-drawer-form-container>
+<ng-template #nuevo let-marca>
+  <app-drawer-marca-nuevo-editar
+    [marca]="marca"
+    (guardadoCorrectoEmit)="reload()"
+  >
+  </app-drawer-marca-nuevo-editar>
+</ng-template>
+

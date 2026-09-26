@@ -1,0 +1,219 @@
+<div class="min-h-screen bg-white-3 dark:bg-gray-950 font-display text-slate-900 dark:text-slate-100">
+
+  <header class="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800">
+    <div class="max-w-[1440px] mx-auto px-4 sm:px-6 h-auto py-3 sm:h-16 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+
+      <div class="flex justify-between sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
+        <div class="flex gap-2">
+          <button [routerLink]="'/operaciones/cotizaciones'" class="p-2 bg-blue-600 hover:bg-blue-500 dark:bg-blue-600 dark:hover:bg-blue-500 rounded-full flex items-center shrink-0 cursor-pointer transition-colors text-white">
+            <ng-icon name="tablerArrowBackUp" size="1.2rem"></ng-icon>
+          </button>
+          <div class="flex flex-col min-w-0">
+            <h1 class="text-base sm:text-lg font-bold leading-tight truncate dark:text-white">
+              Cotización #{{ cotizacion().id | uppercase }}
+            </h1>
+            <span class="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium">
+              Creado el <span class="uppercase">{{ cotizacion().createdAt | date: 'dd/MMM/yyyy • HH:mm' }}</span>
+            </span>
+          </div>
+        </div>
+
+        <div>
+          <button
+            (click)="generarYCompartir( cotizacion() )"
+            class="bg-green-500 hover:bg-green-600 text-white px-2 py-2 rounded-full flex items-center gap-2 shadow-lg transition-all"
+          >
+            <ng-icon name="tablerShare"></ng-icon>
+          </button>
+        </div>
+
+      </div>
+
+      <div class="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+        @if( !cotizacion().orden ){
+          <button [routerLink]="['/operaciones/cotizaciones/', cotizacion().id]" class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-2 text-xs sm:text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-lg transition-all whitespace-nowrap">
+            <ng-icon name="tablerPencil" size="1.2rem"></ng-icon>
+            <span class="hidden xs:inline">Editar</span>
+          </button>
+
+          <button (click)="crearNuevaOrdenDesdeCotizacion()" class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-2 text-xs sm:text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-lg transition-all shadow-lg shadow-blue-600/20 whitespace-nowrap">
+            <ng-icon name="tablerCirclePlus" size="1.2rem"></ng-icon>
+            <span>Crear Orden</span>
+          </button>
+        }
+        @else{
+        <span [routerLink]="[`/operaciones/ordenes/${cotizacion().orden?.id}/informacion`]" class="bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 text-[10px] font-bold px-3 py-1 rounded-bl-lg uppercase tracking-tighter cursor-pointer">
+          Convertida a Orden: {{ cotizacion().orden?.id | uppercase}}
+        </span>
+        }
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-[1440px] mx-auto sm:px-6 py-6 sm:py-8">
+    <div class="flex flex-col lg:flex-row gap-6 items-start">
+
+      <aside class="w-full lg:w-1/3 space-y-4 sm:space-y-6">
+
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+          <app-card-component-description [description]="cotizacion().descripcion" ></app-card-component-description>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4 w-full">
+
+          @if (cotizacion().empresa) {
+
+            <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+              <h3 class="text-[10px] font-bold text-slate-400 uppercase mb-3">Empresa</h3>
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-gray-50 dark:bg-gray-700 flex items-center justify-center shrink-0">
+                  <ng-icon name="tablerBuilding" size="1rem"></ng-icon>
+                </div>
+                <div class="flex flex-col">
+                  <span class="text-sm font-bold truncate">{{ cotizacion().empresa!.nombre | uppercase }}</span>
+                  <p class="text-[10px] text-slate-500 dark:text-slate-400">{{cotizacion().empresa!.id | uppercase}}</p>
+                </div>
+              </div>
+              <div class="flex items-center text-sm text-gray-600 dark:text-gray-400 mt-2">
+                  <div class="w-8 h-8 rounded-lg bg-gray-50 dark:bg-gray-700 flex items-center justify-center mr-3">
+                      <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                  </div>
+                  <span class="truncate">{{ cotizacion().empresa!.email }}</span>
+              </div>
+              <div class="flex items-center text-sm text-gray-600 dark:text-gray-400 mt-2">
+                  <div class="w-8 h-8 rounded-lg bg-gray-50 dark:bg-gray-700 flex items-center justify-center mr-3">
+                      <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                  </div>
+                  <span>{{ cotizacion().empresa!.telefono }}</span>
+              </div>
+            </div>
+
+          }
+
+          @if (cotizacion().cliente) {
+            <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+              <h3 class="text-[10px] font-bold text-slate-400 uppercase mb-3">Cliente</h3>
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-gray-50 dark:bg-gray-700 flex items-center justify-center shrink-0">
+                  <ng-icon name="tablerUser" size="1rem"></ng-icon>
+                </div>
+                <div class="flex flex-col">
+                  <span class="text-sm font-bold truncate">{{ nombreCompleto | titlecase}}</span>
+                  <p class="text-[10px] text-slate-500 dark:text-slate-400">{{cotizacion().cliente!.id | uppercase}}</p>
+                </div>
+              </div>
+              <div class="flex items-center text-sm text-gray-600 dark:text-gray-400 mt-2">
+                  <div class="w-8 h-8 rounded-lg bg-gray-50 dark:bg-gray-700 flex items-center justify-center mr-3">
+                      <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                  </div>
+                  <span class="truncate">{{ cotizacion().cliente!.email | uppercase }}</span>
+              </div>
+              <div class="flex items-center text-sm text-gray-600 dark:text-gray-400 mt-2">
+                  <div class="w-8 h-8 rounded-lg bg-gray-50 dark:bg-gray-700 flex items-center justify-center mr-3">
+                      <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                  </div>
+                  <span>{{ cotizacion().cliente!.telefono }}</span>
+              </div>
+            </div>
+          }
+
+        </div>
+
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+          <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Vehículo</h3>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 shrink-0 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600">
+              <ng-icon name="tablerCar" size="1.5rem"></ng-icon>
+            </div>
+            <div class="min-w-0">
+              <h3 class="text-lg font-black text-slate-900 dark:text-white leading-tight truncate">
+                @if(cotizacion().vehiculo){
+                  {{ cotizacion().vehiculo!.modelo.marca.nombre | titlecase}} {{ cotizacion().vehiculo!.modelo.nombre | titlecase}}
+                }@else {
+                  {{ cotizacion().modelo?.marca?.nombre | titlecase }} {{ cotizacion().modelo?.nombre | titlecase }}
+                }
+              </h3>
+              <p class="text-sm font-bold text-blue-600 dark:text-blue-400">
+                {{ cotizacion().vehiculo?.color | uppercase }} • {{ cotizacion().anio || cotizacion().vehiculo?.anio }}
+              </p>
+              <p class="text-sm font-bold text-gray-600 dark:text-gray-400">
+                {{ cotizacion().vehiculo?.placa || 'SIN PLACA' | uppercase }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+      </aside>
+
+      <div class="flex-1 w-full space-y-6">
+
+        <section class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+          <div class="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-3 text-blue-600">
+              <ng-icon name="tablerListCheck" size="1.3rem"></ng-icon>
+              <h3 class="font-bold text-base sm:text-lg uppercase tracking-tight dark:text-white">Servicios y Productos</h3>
+            </div>
+
+            <div class="flex items-center bg-slate-50 dark:bg-slate-800/50 p-1.5 rounded-full px-4 self-start sm:self-auto">
+              <span class="text-[10px] sm:text-xs font-bold uppercase">
+                {{ cotizacion().conceptos.length }} Items
+              </span>
+            </div>
+          </div>
+
+          <div class="block sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
+            @for( concepto of cotizacion().conceptos; track concepto.id ){
+              <div class="p-4 space-y-3">
+                <div class="flex justify-between items-start gap-4">
+                  <div>
+                    <p class="text-xs font-bold dark:text-slate-200">{{concepto.productoServicio.descripcion}}</p>
+                    <p class="text-[10px] text-slate-500 uppercase">{{concepto.productoServicio.satProductoServicio.satTipoProductoServicio.tipo}}</p>
+                  </div>
+                  <span class="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-bold px-2 py-1 rounded">
+                    x{{concepto.cantidad}}
+                  </span>
+                </div>
+                <div class="flex justify-end">
+                  <p class="text-sm font-black text-slate-900 dark:text-white">
+                    {{(concepto.cantidad * concepto.costoUnitario) | currency:'$ '}}
+                  </p>
+                </div>
+              </div>
+            }
+          </div>
+
+          <div class="hidden sm:block overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead class="bg-slate-50 dark:bg-slate-800/50">
+                <tr>
+                  <th class="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Descripción</th>
+                  <th class="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Cant.</th>
+                  <th class="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Total</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                @for( concepto of cotizacion().conceptos; track concepto.id ){
+                  <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                    <td class="px-6 py-4">
+                      <p class="text-sm font-bold dark:text-slate-200">{{concepto.productoServicio.descripcion}}</p>
+                      <p class="text-[10px] text-slate-500">{{concepto.productoServicio.satProductoServicio.satTipoProductoServicio.tipo}}</p>
+                    </td>
+                    <td class="px-6 py-4 text-sm font-bold text-right dark:text-slate-200">{{concepto.cantidad}}</td>
+                    <td class="px-6 py-4 text-sm font-bold text-right dark:text-slate-200">{{(concepto.cantidad * concepto.costoUnitario) | currency:'$ '}}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <div class="bg-slate-50 dark:bg-slate-800/50 px-4 sm:px-6 py-4 flex justify-between items-center border-t border-slate-100 dark:border-slate-800">
+            <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Subtotal de la Cotizacion</span>
+            <span class="text-lg sm:text-xl font-black text-blue-600 dark:text-blue-400">
+              {{ subtotalCotizacion | currency:'$ ' }}
+            </span>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </main>
+</div>

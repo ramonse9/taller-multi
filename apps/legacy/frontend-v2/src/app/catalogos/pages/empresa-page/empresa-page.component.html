@@ -1,0 +1,7 @@
+@if( empresaRXResource.isLoading() ){
+  <app-spinner></app-spinner>
+}
+
+@if( empresaRXResource.hasValue() ){
+  <app-empresa-details [empresa]="empresaRXResource.value()" [mostrarEspacioInferior]="true"></app-empresa-details>
+}

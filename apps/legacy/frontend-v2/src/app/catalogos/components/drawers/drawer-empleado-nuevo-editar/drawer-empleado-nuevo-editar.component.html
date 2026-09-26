@@ -1,0 +1,52 @@
+<form [formGroup]="empleadoForm" (ngSubmit)="onSubmit()" class="flex flex-col gap-4">
+
+  <div>
+    <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Nombre</label>
+    <input type="text" formControlName="nombre"  autocomplete="off" class="custom-input-text"
+      [ngClass]="{ 'custom-input-text-error' : empleadoForm.controls.nombre.errors }"
+    />
+    <app-form-error-label [control]="empleadoForm.controls.nombre"></app-form-error-label>
+  </div>
+
+  <div>
+    <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Salario Base</label>
+    <input type="text" formControlName="salarioBase"  autocomplete="off" class="custom-input-text"
+      [ngClass]="{ 'custom-input-text-error' : empleadoForm.controls.salarioBase.errors }"
+    />
+    <app-form-error-label [control]="empleadoForm.controls.salarioBase"></app-form-error-label>
+  </div>
+
+
+  @if(empleado()){
+    <div class="flex flex-col gap-4">
+
+      <label class="inline-flex items-center cursor-pointer">
+        <input type="checkbox"
+              formControlName="activo"
+              [checked]="empleadoForm.get('activo')?.value"
+              class="peer sr-only"> <div class="relative w-9 h-5 rounded-full bg-gray-200 dark:bg-gray-700
+                    peer-focus:outline-none
+                    peer-checked:bg-green-500
+                    after:content-[''] after:absolute after:top-[2px] after:start-[2px]
+                    after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all
+                    peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full"></div>
+        <span class="select-none ms-3 text-sm font-medium text-heading dark:text-white">Activo</span>
+      </label>
+
+    </div>
+  }
+
+
+  <div class="flex justify-center py-3">
+    <button type="submit" class="text-white bg-lightblue-600 hover:bg-lightblue-500 font-medium rounded-lg text-sm w-full  px-5 py-2.5 text-center dark:bg-darkblue-600 dark:hover:bg-darkblue-500 cursor-pointer disabled:opacity-50 transition-all duration-500 ease-in-out"
+        [disabled]="isLoading | async"
+        [ngClass]="{
+          'opacity-100 scale-100 pointer-events-auto': empleadoForm.valid,
+          'opacity-0 scale-95 pointer-events-none': !empleadoForm.valid
+        }">
+        Guardar
+    </button>
+  </div>
+
+
+</form>

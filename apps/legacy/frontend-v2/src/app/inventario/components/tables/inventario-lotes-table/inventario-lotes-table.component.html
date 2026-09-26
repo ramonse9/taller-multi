@@ -1,0 +1,57 @@
+<div class="inline-block align-middle">
+  <table class="min-w-full divide-y table-auto divide-gray-200 dark:divide-gray-600">
+    <thead class="bg-gray-100 dark:bg-gray-700">
+      <tr>
+        <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          ID
+        </th>
+        <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          Fecha
+        </th>
+        <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          Producto
+        </th>
+        <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          Cantidad Inicial
+        </th>
+        <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          Disponible
+        </th>
+        <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          Costo Unitario
+        </th>
+      </tr>
+    </thead>
+    <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+      @for( inventarioLote of inventarioLotesListado(); track inventarioLote.id ){
+        <tr class="hover:bg-gray-100 dark:hover:bg-gray-700 align-top">
+          <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+              {{ inventarioLote.id | uppercase }}
+          </td>
+          <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+              {{ inventarioLote.fechaEntrada | date: 'dd/MM/yyyy HH:mm:ss' }}
+          </td>
+          <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+              <app-text-preview [limit]="80" [text]="inventarioLote.producto.descripcion"></app-text-preview>
+          </td>
+          <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+              {{ inventarioLote.cantidadInicial }}
+          </td>
+          <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+              {{ inventarioLote.cantidadDisponible }}
+          </td>
+          <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+              {{ inventarioLote.costoUnitario | currency:'$ ':'symbol':'1.2-2':'en' }}
+          </td>
+        </tr>
+      }
+      @empty{
+      <tr>
+        <td colspan="15" class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+          <app-badge-message [message]="EnumCeroRegistros.INVENTARIO_LOTES"></app-badge-message>
+        </td>
+      </tr>
+    }
+  </tbody>
+</table>
+</div>

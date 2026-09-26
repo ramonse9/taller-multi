@@ -1,0 +1,250 @@
+<div class="p-4 bg-white-2 border-b border-gray-200 dark:bg-gray-900 dark:border-gray-700">
+  <div class="flex items-center justify-between w-full">
+
+    <div class="flex-shrink-0">
+      <app-page-button-inicio></app-page-button-inicio>
+    </div>
+
+    <div class="flex-grow text-center">
+      <h1 class="text-xl font-semibold text-gray-900 sm:text-2xl dark:text-white">
+       PAGOS | Gastos por Mes
+      </h1>
+    </div>
+
+  </div>
+
+  <div class="mt-4">
+    <app-busqueda-general
+      placeholder="Buscar por Nombre, Categoría..."
+      nuevaEntidad="Nuevo Gasto"
+      (filtrarBusquedaEmit)="filtrar($event)"
+      [opcionNuevaEntidad]="false"
+      [opcionCards]="false"
+      (mostrarCardsEmit)="mostrarCards($event)"
+    ></app-busqueda-general>
+  </div>
+</div>
+
+<!--
+<div class="p-4 bg-white block sm:flex items-center justify-between border-b border-gray-200 dark:bg-gray-900 dark:border-gray-700">
+  <div class="w-full mb-1">
+    <div class="p-4 border-b border-gray-100 dark:border-gray-700">
+
+      <div class="flex flex-col sm:flex-row sm:items-center sm:gap-3 gap-4">
+
+        <div class="relative flex-1">
+          <select
+            [value]="mesSeleccionado()"
+            (change)="cambiarMes($event)"
+            class="w-full appearance-none bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg pl-3 pr-8 py-2 text-sm text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            @for (mes of meses; track mes.valor) {
+              <option [value]="mes.valor" [selected]="mes.valor === mesSeleccionado()">
+                {{ mes.nombre }}
+              </option>
+            }
+          </select>
+          <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="relative w-full sm:w-24">
+          <select
+            [value]="anioSeleccionado()"
+            (change)="cambiarAnio($event)"
+            class="w-full appearance-none bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg pl-3 pr-8 py-2 text-sm text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            @for (anio of anios(); track anio) {
+              <option [value]="anio" [selected]="anio === anioSeleccionado()">
+                {{ anio }}
+              </option>
+            }
+          </select>
+          <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="text-center sm:text-left">
+          <div class="text-green-500 dark:text-green-500 font-medium">Total Gastado</div>
+          <div class="text-gray-700 dark:text-white text-2xl font-bold">{{ totalGastado() | currency:'$ ':'symbol':'1.2-2':'en' }}</div>
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>-->
+
+<div class="p-4 bg-white block sm:flex items-center justify-between border-b border-gray-200 dark:bg-gray-900 dark:border-gray-700">
+  <div class="w-full mb-1">
+    <div class="p-4 border-b border-gray-100 dark:border-gray-700">
+      <!-- Contenedor flexible -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:gap-3 gap-4">
+
+        <!-- Selector de mes con botones de navegación -->
+        <div class="flex items-center gap-2 flex-1">
+          <!-- Botón mes anterior -->
+          <button
+            (click)="mesAnterior()"
+            class="p-2 text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            title="Mes anterior"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+          </button>
+
+          <!-- Selector de mes -->
+          <div class="relative flex-1">
+            <select
+              [value]="mesSeleccionado()"
+              (change)="cambiarMes($event)"
+              class="w-full appearance-none bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg pl-3 pr-8 py-2 text-sm text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              @for (mes of meses; track mes.valor) {
+                <option [value]="mes.valor" [selected]="mes.valor === mesSeleccionado()">
+                  {{ mes.nombre }}
+                </option>
+              }
+            </select>
+            <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+              <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Botón mes siguiente -->
+          <button
+            (click)="mesSiguiente()"
+            class="p-2 text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            title="Mes siguiente"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Selector de año -->
+        <div class="relative w-full sm:w-24">
+          <select
+            [value]="anioSeleccionado()"
+            (change)="cambiarAnio($event)"
+            class="w-full appearance-none bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg pl-3 pr-8 py-2 text-sm text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            @for (anio of anios(); track anio) {
+              <option [value]="anio" [selected]="anio === anioSeleccionado()">
+                {{ anio }}
+              </option>
+            }
+          </select>
+          <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="flex justify-center items-center gap-4">
+          <!-- Total de gastos -->
+          <div class="text-center sm:text-left">
+            <div class="text-green-500 dark:text-green-500 font-medium">Total Gastado</div>
+            <div class="text-gray-700 dark:text-white text-2xl font-bold">{{ totalGastadoMes() | currency:'$ ':'symbol':'1.2-2':'en' }}</div>
+          </div>
+
+          <button
+              (click)="exportToExcel(gastosConMovimientosRXResource.value()?.gastosConMovimientos)"
+              class="bg-green-500 hover:bg-green-600 text-white px-2 py-2 rounded-full flex items-center gap-2 shadow-lg transition-all"
+            >
+            <ng-icon name="tablerFileTypeXls" size="2rem" ></ng-icon>
+          </button>
+
+        </div>
+
+
+      </div>
+    </div>
+  </div>
+</div>
+
+@if( gastosConMovimientosRXResource.value() ){
+
+  <div class="relative">
+
+    @if (soloCards()) {
+      <div class="relative" [@fadeAnimation]>
+        <app-cards-container
+          [listado]="gastosConMovimientosRXResource.value()?.gastos ?? []"
+          [idSeleccionado]="idSeleccionado()"
+          [cardTemplate]="card"
+          [listMode]="true"
+        >
+          <app-badge-message slot="empty-message" [message]="EnumCeroRegistros.GASTOS" ></app-badge-message>
+        </app-cards-container>
+      </div>
+    }
+
+    <ng-template #card let-gasto let-idSeleccionado="seleccionado">
+      <app-card-gasto-con-movimiento
+        class="h-full"
+        [gastoConMovimiento]="gasto"
+        [seleccionado]="idSeleccionado"
+        [mesSeleccionado]="mesSeleccionado()"
+        [anioSeleccionado]="anioSeleccionado()"
+        (click)="idSeleccionar(gasto.id)"
+        (guardadoCorrectoEmit)="reload()"
+      >
+      </app-card-gasto-con-movimiento>
+    </ng-template>
+
+  </div>
+
+}
+
+
+<!--
+  @if( gastosConMovimientosRXResource.value() ){
+
+    <div class="relative" [@fadeAnimation]>
+      <app-cards-gastos-conceptos-con-gastos
+        [gastosConceptosConGastos]="gastosConceptosConGastosRXResource.value()?.gastosConceptosConGastos ?? []"
+        [mesSeleccionado]="mesSeleccionado()"
+        [anioSeleccionado]="anioSeleccionado()"
+        (recargarGastosConceptosConGastosEmit)="recargarGastosConceptosConGastos()"
+        >
+      </app-cards-gastos-conceptos-con-gastos>
+    </div>-->
+
+    <!--
+    <div class="relative">
+
+      @if (soloCards()) {
+        <div class="relative" [@fadeAnimation]>
+          <app-cards-gastos-conceptos-con-gastos
+            [gastosConceptosConGastos]="gastosConceptosConGastosRXResource.value()?.gastosConceptosConGastos ?? []">
+          </app-cards-gastos-conceptos-con-gastos>
+        </div>
+      } @else {
+        <div class="relative overflow-x-scroll" [@fadeAnimation]>
+          <app-gastos-table
+            [gastos]="gastosConceptosConGastosRXResource.value()?.gastos ?? []">
+          </app-gastos-table>
+        </div>
+      }
+
+    </div>
+
+  }
+
+  -->
+  <!--
+  <app-pagination [pages]="gastosConceptosConGastosRXResource.value()?.totalPages ?? 0" [currentPage]="paginationService.currentPage()" (itemsPerPageSelected)="selectPerPageChange($event)"></app-pagination>
+-->
+

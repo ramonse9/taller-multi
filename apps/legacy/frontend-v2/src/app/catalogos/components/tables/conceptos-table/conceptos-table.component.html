@@ -1,0 +1,117 @@
+<div [formGroup]="parentFormGroup">
+
+  <div class="hidden md:block overflow-x-auto">
+    <table formArrayName="conceptos" class="min-w-full divide-y table-fixed divide-gray-200 dark:divide-gray-600">
+      <thead class="bg-gray-100 dark:bg-gray-700">
+        <tr>
+          <th scope="col" class="w-16 p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Acciones</th>
+          <th scope="col" class="w-20 p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Tipo</th>
+          <th scope="col" class="min-w-[200px] p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Descripción</th>
+          <th scope="col" class="w-20 p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Cant.</th>
+          <th scope="col" class="w-32 p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Precio Venta</th>
+          <th scope="col" class="w-28 p-2 text-xs font-medium text-right text-gray-500 uppercase dark:text-gray-400">Importe</th>
+        </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+        @for (itemGroup of conceptos().controls; track itemGroup.value.id_producto_servicio; let i = $index) {
+          <tr [formGroupName]="i" class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+            <td class="p-2 whitespace-nowrap">
+                <button type="button" (click)="onRemoveItem(i)" class="text-white bg-red-600 hover:bg-red-700 rounded-full w-8 h-8">
+                  <ng-icon name="tablerTrash" size="1rem"></ng-icon>
+                </button>
+            </td>
+            <td class="p-2 text-sm text-gray-900 dark:text-white">{{ itemGroup.get('tipo')?.value | uppercase }}</td>
+            <td class="p-2 text-sm text-gray-900 dark:text-white truncate">{{ itemGroup.get('descripcion')?.value }}</td>
+            <td class="p-2">
+              <input type="number" formControlName="cantidad" class="w-full bg-transparent border-b border-gray-300 dark:border-gray-600 focus:ring-0 text-sm dark:text-white">
+            </td>
+            <td class="p-2">
+              <input type="number" formControlName="costoUnitario" class="w-full bg-transparent border-b border-gray-300 dark:border-gray-600 focus:ring-0 text-sm dark:text-white">
+            </td>
+            <td class="p-2 text-sm font-bold text-right text-gray-900 dark:text-white">
+              {{ itemGroup.get('importe')?.value | currency:'$ ' }}
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <div class="md:hidden space-y-4" formArrayName="conceptos">
+    @for (itemGroup of conceptos().controls; track itemGroup.value.id_producto_servicio; let i = $index) {
+      <div [formGroupName]="i" class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm relative">
+
+        <button type="button" (click)="onRemoveItem(i)" class="absolute top-3 right-3 text-red-500 p-2">
+          <ng-icon name="tablerTrash" size="1.2rem"></ng-icon>
+        </button>
+
+        <div class="flex flex-col gap-3">
+          <div>
+            <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+              {{ itemGroup.get('tipo')?.value }}
+            </span>
+            <h4 class="text-gray-900 dark:text-white font-semibold mt-1 pr-8">
+              {{ itemGroup.get('descripcion')?.value }}
+            </h4>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 border-t border-gray-100 dark:border-gray-700 pt-3">
+            <div>
+              <label class="block text-[10px] text-gray-500 uppercase font-bold">Cantidad</label>
+              <input type="number" formControlName="cantidad" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:text-white">
+
+              <!--
+              <form class="max-w-xs mx-auto">
+                  <label for="quantity-input" class="block mb-2.5 text-sm font-medium text-heading">Choose quantity:</label>
+                  <div class="relative flex items-center max-w-[8rem]">
+                      <button type="button" id="decrement-button" data-input-counter-decrement="quantity-input" class="text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading focus:ring-4 focus:ring-neutral-tertiary font-medium leading-5 rounded-s-base text-sm px-3 focus:outline-none h-10">
+                          <svg class="w-4 h-4 text-heading" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14"/></svg>
+                      </button>
+                      <input type="text" id="quantity-input" data-input-counter data-input-counter-min="1" data-input-counter-max="50" aria-describedby="helper-text-explanation" class="border-x-0 h-10 placeholder:text-heading text-heading text-center w-full bg-neutral-secondary-medium border-default-medium py-2.5 placeholder:text-body" placeholder="999" value="5" required />
+                      <button type="button" id="increment-button" data-input-counter-increment="quantity-input" class="text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading focus:ring-4 focus:ring-neutral-tertiary font-medium leading-5 rounded-e-base text-sm px-3 focus:outline-none h-10">
+                          <svg class="w-4 h-4 text-heading" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14m-7 7V5"/></svg>
+                      </button>
+                  </div>
+                  <p id="helper-text-explanation" class="mt-2.5 text-sm text-body">Please select a 5 digit number from 0 to 9.</p>
+              </form>
+              -->
+
+            </div>
+            <div>
+              <label class="block text-[10px] text-gray-500 uppercase font-bold">Precio Venta</label>
+              <input type="number" formControlName="costoUnitario" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:text-white">
+            </div>
+          </div>
+
+          <div class="flex justify-between items-center bg-gray-50 dark:bg-gray-900/50 p-2 rounded-lg">
+            <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Subtotal:</span>
+            <span class="text-lg font-bold text-blue-600 dark:text-blue-400">
+              {{ itemGroup.get('importe')?.value | currency:'$ ' }}
+            </span>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+
+  @if (conceptos().controls.length > 0) {
+    <div class="mt-6 flex justify-end border-t border-gray-200 dark:border-gray-700 pt-4">
+      <div class="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl border border-gray-200 dark:border-gray-700 min-w-[200px]">
+        <div class="flex justify-between items-center gap-4">
+          <span class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            Suma Subtotal
+          </span>
+          <span class="text-xl font-black text-gray-900 dark:text-blue-400 dark:md:text-white">
+            {{ calcularTotal() | currency:'$ ' }}
+          </span>
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (conceptos().controls.length === 0) {
+    <div class="p-8 text-center ">
+      <app-badge-message message="Agrega productos o servicios para comenzar." ></app-badge-message>
+    </div>
+  }
+</div>

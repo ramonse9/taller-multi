@@ -1,0 +1,79 @@
+@if( formatoTexto() ){
+  <button type="button" (click)="showModal()" title="Ver Notas" class="flex items-center text-xs font-bold text-blue-600 dark:text-blue-400 gap-1 cursor-pointer">
+    <ng-icon name="tablerCirclePlus" class="animate-pulse" size="1.5rem"></ng-icon>
+    Añadir Nota
+  </button>
+}@else{
+  <div type="button" (click)="showModal()" class="flex items-center justify-center text-blue-600 dark:text-blue-500 cursor-pointer relative">
+    <ng-icon name="tablerMessage"  class="animate-pulse" size="1.5rem"></ng-icon>
+    @if( orden().notas.length > 1){
+      <div class="absolute -top-5 fond-bold text-xs -end-3 bg-white/80 dark:bg-gray-300 border border-2 border-blue-600 rounded-full w-6 h-6 flex items-center justify-center">{{ orden().notas.length}}</div>
+    }
+  </div>
+}
+
+@if(isVisible()){
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
+    <div class="absolute inset-0 bg-gray-900/80 backdrop-blur-sm" (click)="closeModal()"></div>
+
+    <div class="z-50 bg-gray-50 dark:bg-gray-800 rounded-t-2xl sm:rounded-lg w-full max-w-5xl max-h-[90dvh] flex flex-col relative overflow-hidden shadow-xl">
+
+      <div class="p-4 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-800 shrink-0">
+        <div class="flex flex-col md:flex-row md:justify-between gap-4 pr-8"> <div class="flex flex-col">
+            <h3 class="text-lg font-semibold dark:text-white flex flex-wrap gap-2 items-center">
+              Notas | {{ orden().id | uppercase }}
+              <app-estatus-badge [categoria]="EnumCategoria.ORDENES" [clave]="orden().estatus"></app-estatus-badge>
+            </h3>
+            <h4 class="text-sm opacity-75 dark:text-white">
+              {{ orden().vehiculo?.modelo?.marca?.nombre }} {{ orden().vehiculo?.modelo?.nombre }} {{ orden().vehiculo?.anio }}
+            </h4>
+          </div>
+        </div>
+
+        <button type="button" (click)="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 z-10">
+          <ng-icon name="tablerX" size="1.5rem"></ng-icon>
+        </button>
+      </div>
+
+      <div #scrollContainer class="flex-1 overflow-y-auto p-4 bg-white dark:bg-gray-950">
+        <ol class="relative border-s border-gray-200 dark:border-gray-700 ml-3">
+          @for(nota of orden().notas; track nota){
+            <li class="mb-6 ms-6">
+              <span class="absolute flex items-center justify-center w-6 h-6 bg-blue-100 rounded-full -start-3 ring-4 ring-white dark:ring-gray-950 dark:bg-blue-900">
+              </span>
+              <time class="block mb-1 text-xs font-normal leading-none text-gray-400">
+                {{ FormUtils.dateLocal( nota.createdAt.toString()) | date:'short' }}
+              </time>
+              <p class="text-sm font-normal text-gray-900 dark:text-white">{{ nota.nota }}</p>
+              <app-images-lighbox [imagenes]="nota.imagenes"></app-images-lighbox>
+            </li>
+          }
+        </ol>
+      </div>
+
+      <form [formGroup]="ordenNotaForm" (ngSubmit)="onSubmit()" class="p-4 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800 shrink-0">
+        <div class="flex flex-col sm:flex-row gap-3">
+          <div class="flex-1">
+            <textarea
+              formControlName="nota"
+              rows="2"
+              placeholder="Escribe una nota..."
+              class="block w-full p-2.5 text-sm rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            ></textarea>
+          </div>
+
+          <div class="flex items-center justify-between sm:justify-end gap-2">
+            <label for="multiple_files" class="p-2 cursor-pointer text-gray-400 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full">
+              <ng-icon name="tablerCamera" size="1.8rem"></ng-icon>
+            </label>
+            <input id="multiple_files" type="file" multiple (change)="onFilesChange($event)" class="hidden" />
+            <button type="submit" class="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300">
+              Guardar
+            </button>
+          </div>
+        </div>
+        <app-images-scala [imagesFiles]="imagesFiles()" (eliminarImagen)="eliminarImagen($event)"></app-images-scala>
+      </form>
+    </div>
+  </div>
+}

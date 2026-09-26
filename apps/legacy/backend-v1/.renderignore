@@ -1,0 +1,19 @@
+# Archivos fuente innecesarios en producción
+src/
+test/
+.vscode/
+.idea/
+*.log
+*.md
+
+# Configuración que no necesitas para el build
+tsconfig.json
+tsconfig.build.json
+.prettierrc
+.eslintrc.js
+.env
+.env.*.local
+
+# Directorios de dependencias
+node_modules/
+coverage/

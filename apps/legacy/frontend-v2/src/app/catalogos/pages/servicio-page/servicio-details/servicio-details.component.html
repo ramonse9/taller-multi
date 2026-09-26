@@ -1,0 +1,44 @@
+<form class="p-4 min-h-[600px]" [formGroup]="servicioForm" (ngSubmit)="onSubmit()">
+
+
+  <app-page-form-header [titleNew]="EnumPaginasTitulo.SERVICIO_NEW" [titleUpdate]="EnumPaginasTitulo.SERVICIO_UPDATE" [id]="servicio()?.id ?? ''" [detail]="`${servicio()?.descripcion}`" ></app-page-form-header>
+
+
+
+  <app-page-form-body>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 w-full">
+
+      <div>
+        <app-page-form-control-search-table-generica-simple
+          #pageFormControlSearchTableGenerica
+          label="Servicio Base"
+          optionPlaceholder="Seleccione el Servicio Base"
+          (searchText)="filtrarSatProductoServicio($event)"
+          [optionSelectedValue]="optionSelectedSatProductoServicioValue()"
+          >
+            <app-sat-productos-servicios-table [satProductosServicios]="satProductoServicioRXResource.value()?.satProductosServicios ?? [] " (satProductoServicioSelected)="optionSelectedSatProductoServicio($event)" ></app-sat-productos-servicios-table>
+        </app-page-form-control-search-table-generica-simple>
+      </div>
+
+      <div>
+        <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Precio Venta</label>
+        <input type="text" formControlName="precioVenta"  autocomplete="off" class="custom-input-text"
+          [ngClass]="{ 'custom-input-text-error' : servicioForm.controls.precioVenta.errors }"
+        />
+        <app-form-error-label [control]="servicioForm.controls.precioVenta"></app-form-error-label>
+      </div>
+
+      <div>
+        <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Descripción</label>
+        <textarea id="descripcion" formControlName="descripcion" rows="4" class="custom-input-text"
+        [ngClass]="{ 'custom-input-text-error' : servicioForm.controls.descripcion.errors }"
+        ></textarea>
+        <app-form-error-label [control]="servicioForm.controls.descripcion"></app-form-error-label>
+      </div>
+
+    </div>
+
+  </app-page-form-body>
+
+</form>

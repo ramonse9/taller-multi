@@ -1,0 +1,17 @@
+<app-topbar></app-topbar>
+
+<div class="flex bg-white-3 dark:bg-gray-950 min-h-screen">
+
+  <app-side-menu></app-side-menu>
+
+  <main
+    id="main-content"
+    class="flex-1 min-w-0 pt-20 pb-10 px-4 lg:px-8 lg:ml-64 transition-all duration-300 bg-white-3 dark:bg-gray-950">
+
+    <div class="max-w-7xl mx-auto">
+      <router-outlet></router-outlet>
+    </div>
+
+  </main>
+
+</div>

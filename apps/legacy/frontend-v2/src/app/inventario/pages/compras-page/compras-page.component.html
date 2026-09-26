@@ -1,0 +1,189 @@
+<div class="p-4 bg-white-2 border-b border-gray-200 dark:bg-gray-900 dark:border-gray-700">
+  <div class="flex items-center justify-between w-full">
+
+    <div class="flex-shrink-0">
+      <app-page-button-inicio></app-page-button-inicio>
+    </div>
+
+    <div class="flex-grow text-center">
+      <h1 class="text-xl font-semibold text-gray-900 sm:text-2xl dark:text-white">
+       INVENTARIO | Compras: {{ comprasRXResource.value()?.totalItems }}
+      </h1>
+    </div>
+
+  </div>
+
+  <div class="mt-4">
+    <app-busqueda-general
+      placeholder="Buscar por Folio, Proveedor, Producto..."
+      nuevaEntidad="Nueva Compra"
+      (idNuevoEmit)="idNuevo()"
+      (filtrarBusquedaEmit)="filtrar($event)"
+      [opcionCards]="true"
+      (mostrarCardsEmit)="mostrarCards($event)">
+    </app-busqueda-general>
+  </div>
+</div>
+
+<div class="flex flex-col sm:flex-row gap-4 p-1">
+
+  <div class="">
+
+    <label class="inline-flex items-center cursor-pointer">
+      <input type="checkbox"
+            [checked]="estatusForm.get('todos')?.value"
+            [disabled]="estatusForm.get('todos')?.value"
+            (change)="onTodosChange($event)"
+            class="peer sr-only">
+      <div class="relative w-9 h-5 rounded-full bg-gray-200 dark:bg-gray-700
+                  peer-focus:outline-none
+                  peer-checked:bg-green-500
+                  after:content-[''] after:absolute after:top-[2px] after:start-[2px]
+                  after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all
+                  peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full"></div>
+      <span class="select-none ms-3 text-sm font-medium text-heading dark:text-white">Todos</span>
+    </label>
+  </div>
+
+  <div class="">
+
+    <label class="inline-flex items-center cursor-pointer">
+      <input type="checkbox"
+            [checked]="estatusForm.get('borrador')?.value"
+            (change)="onEstatusChange('borrador', $event)"
+            class="peer sr-only">
+      <div class="relative w-9 h-5 rounded-full bg-gray-200 dark:bg-gray-700
+                  peer-focus:outline-none
+                  peer-checked:bg-green-500
+                  after:content-[''] after:absolute after:top-[2px] after:start-[2px]
+                  after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all
+                  peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full"></div>
+      <app-estatus-badge [categoria]="EnumCategoria.COMPRAS" [clave]="EnumEstatusCompra.BORRADOR" class="ml-1" ></app-estatus-badge>
+    </label>
+
+    <label class="inline-flex items-center cursor-pointer">
+      <input type="checkbox"
+            [checked]="estatusForm.get('confirmada')?.value"
+            (change)="onEstatusChange('confirmada', $event)"
+            class="peer sr-only">
+      <div class="relative w-9 h-5 rounded-full bg-gray-200 dark:bg-gray-700
+                  peer-focus:outline-none
+                  peer-checked:bg-green-500
+                  after:content-[''] after:absolute after:top-[2px] after:start-[2px]
+                  after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all
+                  peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full"></div>
+      <app-estatus-badge [categoria]="EnumCategoria.COMPRAS" [clave]="EnumEstatusCompra.CONFIRMADA" class="ml-1" ></app-estatus-badge>
+    </label>
+
+    <label class="inline-flex items-center cursor-pointer">
+      <input type="checkbox"
+            [checked]="estatusForm.get('cancelada')?.value"
+            (change)="onEstatusChange('cancelada', $event)"
+            class="peer sr-only">
+      <div class="relative w-9 h-5 rounded-full bg-gray-200 dark:bg-gray-700
+                  peer-focus:outline-none
+                  peer-checked:bg-green-500
+                  after:content-[''] after:absolute after:top-[2px] after:start-[2px]
+                  after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all
+                  peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full"></div>
+      <app-estatus-badge [categoria]="EnumCategoria.COMPRAS" [clave]="EnumEstatusCompra.CANCELADA" class="ml-1" ></app-estatus-badge>
+    </label>
+  </div>
+
+</div>
+
+<!-- TODO -->
+ <!--
+@if( comprasRXResource.value() ){
+
+  <div class="overflow-x-auto py-4" [@fadeAnimation]>
+
+    @if( soloCards() ){
+      <app-cards-compras
+        class="grid grid-cols-1 md:grid-cols-2 gap-4"
+        [compras]="comprasRXResource.value()?.compras ?? []"
+        (idSeleccionarEmit)="idSeleccionar($event)"
+        [idSeleccionado]="idSeleccionado()"
+        >
+      </app-cards-compras>
+    }@else{
+      <app-compras-table
+          [compras]="comprasRXResource.value()?.compras ?? []"
+          (idSeleccionarEmit)="idSeleccionar($event)"
+          [idSeleccionado]="idSeleccionado()"
+      ></app-compras-table>
+    }
+  </div>
+
+}-->
+
+@if( comprasRXResource.value() ){
+
+  <div class="relative">
+
+    @if (soloCards()) {
+      <div class="relative" [@fadeAnimation]>
+        <app-cards-container
+          [listado]="comprasRXResource.value()?.compras ?? []"
+          [idSeleccionado]="idSeleccionado()"
+          [cardTemplate]="card"
+          [listMode]="true"
+        >
+          <app-badge-message slot="empty-message" [message]="EnumCeroRegistros.COMPRAS" ></app-badge-message>
+        </app-cards-container>
+      </div>
+    } @else {
+      <div class="relative overflow-x-auto" [@fadeAnimation]>
+        <app-compras-table
+          [compras]="comprasRXResource.value()?.compras ?? []"
+          (idSeleccionarEmit)="idSeleccionar($event)"
+          [idSeleccionado]="idSeleccionado()"
+        >
+        </app-compras-table>
+      </div>
+    }
+
+    <ng-template #card let-compra let-idSeleccionado="seleccionado">
+      <app-card-compra
+        class="h-full"
+        [compra]="compra"
+        [seleccionado]="idSeleccionado"
+        (click)="idSeleccionar(compra.id)"
+      >
+      </app-card-compra>
+    </ng-template>
+
+  </div>
+
+}
+
+<app-pagination [pages]="comprasRXResource.value()?.totalPages ?? 0" [currentPage]="paginationService.currentPage()" (itemsPerPageSelected)="selectPerPageChange($event)"></app-pagination>
+
+<app-drawer-form-container
+  [isOpen]="isOpenDrawer()"
+  [idSeleccionado]="idSeleccionado()"
+
+  [resource]="compraRXResource"
+
+  titleNuevo="Nueva Compra"
+  titleEditar="Información de la Compra"
+  [formTemplateNuevo]="nuevo"
+  [formTemplateInformacion]="informacion"
+  (closeDrawerEmit)="idDeseleccionar()"
+  labelId="Compra"
+  >
+</app-drawer-form-container>
+<ng-template #nuevo>
+  <app-drawer-compra-nuevo
+    [compra]="null"
+    (guardadoCorrectoEmit)="reload()"
+  >
+  </app-drawer-compra-nuevo>
+</ng-template>
+<ng-template #informacion let-compra>
+  <app-drawer-compra-informacion
+    [compra]="compra"
+    (guardadoCorrectoEmit)="reload()"
+  >
+  </app-drawer-compra-informacion>
+</ng-template>

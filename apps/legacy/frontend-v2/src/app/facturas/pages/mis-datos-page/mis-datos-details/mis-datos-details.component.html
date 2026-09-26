@@ -1,0 +1,108 @@
+<form class="p-4 min-h-[600px]" [formGroup]="formPassword" (ngSubmit)="onSubmit()">
+  <!--<form class="p-4 min-h-[600px]" [formGroup]="clienteForm" (ngSubmit)="onSubmit()">-->
+
+  <app-page-form-header [titleNew]="EnumPaginasTitulo.MIS_DATOS" [titleUpdate]="EnumPaginasTitulo.MIS_DATOS" [id]="emisor().id" [detail]="`${emisor().rfc} ${emisor().razonSocial}`" ></app-page-form-header>
+
+  <app-page-form-body>
+
+    <!--
+    <div>
+      <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">RFC</label>
+      <input type="text" [value]="emisor()!.rfc" class="custom-input-text" readonly/>
+    </div>-->
+
+    <div>
+      <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">RFC</label>
+      <p class="text-sm text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700 px-3 py-2 rounded">
+        {{ emisor().rfc | uppercase }}
+      </p>
+    </div>
+
+    <!--
+    <div>
+      <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Razón Social</label>
+      <input type="text" [value]="emisor()!.razonSocial" class="custom-input-text" readonly/>
+    </div>-->
+
+    <div>
+      <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Razón Social</label>
+      <p class="text-sm text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700 px-3 py-2 rounded">
+        {{ emisor().razonSocial | uppercase }}
+      </p>
+    </div>
+
+    <!--
+    <div>
+      <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Regimen Fiscal</label>
+      <input type="text" [value]="emisor()!.satRegimenFiscal.clave" class="custom-input-text" readonly/>
+    </div>-->
+
+    <div>
+      <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Regimen Fiscal</label>
+      <p class="text-sm text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700 px-3 py-2 rounded">
+        {{ emisor().satRegimenFiscal.clave | uppercase }} - {{ emisor().satRegimenFiscal.descripcion | uppercase }}
+      </p>
+    </div>
+
+    <!--
+    <div>
+      <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Domicilio Fiscal</label>
+      <input type="text" [value]="emisor()!.codigoPostal" class="custom-input-text" readonly/>
+    </div>-->
+
+    <div>
+      <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Domicilio Fiscal</label>
+      <p class="text-sm text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700 px-3 py-2 rounded">
+        {{ emisor().codigoPostal }}
+      </p>
+    </div>
+
+    <div>
+      <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Certificado (.cer)</label>
+      <input type="file" accept=".cer" (change)="onFileChange($event, 'cer')"
+          class="block w-full text-sm text-gray-500
+          file:me-4 file:py-2 file:px-4
+          file:rounded-lg file:border-0
+          file:text-sm file:font-semibold
+          file:bg-lightblue-600 file:text-white
+          hover:file:bg-blue-500
+          file:disabled:opacity-50 file:disabled:pointer-events-none
+          dark:text-neutral-500
+          dark:file:bg-darkblue-600
+          dark:hover:file:bg-blue-500
+        ">
+    </div>
+
+    <div>
+      <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Clave Privada (.key)</label>
+      <input type="file" accept=".key" (change)="onFileChange($event, 'key')"
+          class="block w-full text-sm text-gray-500
+          file:me-4 file:py-2 file:px-4
+          file:rounded-lg file:border-0
+          file:text-sm file:font-semibold
+          file:bg-lightblue-600 file:text-white
+          hover:file:bg-blue-500
+          file:disabled:opacity-50 file:disabled:pointer-events-none
+          dark:text-neutral-500
+          dark:file:bg-darkblue-600
+          dark:hover:file:bg-blue-500
+        ">
+    </div>
+
+    <div>
+      <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Contraseña de clave privada</label>
+      <input type="password" formControlName="password" autocomplete="off" class="custom-input-text"
+        [ngClass]="{ 'custom-input-text-error' : formPassword.controls.password.errors }"
+      />
+      <app-form-error-label [control]="formPassword.controls.password"></app-form-error-label>
+    </div>
+
+    <div>
+
+      <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">NOTA:</label>
+      <app-badge-message [message]="obtenerMensajeObjeto().mensaje" [estatus]="obtenerMensajeObjeto().estatus" ></app-badge-message>
+    </div>
+
+  </app-page-form-body>
+
+</form>

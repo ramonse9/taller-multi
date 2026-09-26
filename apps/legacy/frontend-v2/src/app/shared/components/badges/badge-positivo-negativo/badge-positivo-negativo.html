@@ -1,0 +1,20 @@
+<span class="text-sm font-medium me-2 px-2.5 py-0.5 rounded-sm text-white dark:text-white"
+  [ngClass]="{
+    'bg-green-600 dark:bg-green-600': cantidad() > 0,
+    'bg-red-600 dark:bg-red-600':     cantidad() < 0,
+  }">
+    <!--bg-purple-700 dark:bg-purple-700': inventarioTipoMovimiento() == EnumInventarioTipoMovimiento.AJUSTE,-->
+    {{ cantidad() > 0 ? '+' : '-' }}{{ valorAbsoluto }}
+</span>
+
+
+<!--
+<span
+  class="inline-flex items-center justify-center w-6 h-6 text-lg font-bold rounded-full text-white dark:text-white"
+  [ngClass]="{
+    'bg-green-600 dark:bg-green-600': positivoNegativo(),
+    'bg-red-600 dark:bg-red-600': !positivoNegativo()
+  }">
+  {{ positivoNegativo() ? '+' : '-' }}
+</span>
+-->

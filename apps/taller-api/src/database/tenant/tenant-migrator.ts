@@ -1,0 +1,185 @@
+import { Injectable } from '@nestjs/common';
+import { QueryRunner } from 'typeorm';
+import { normalizeAndValidateSchemaName, quoteIdentifier } from '../schema-name';
+
+export interface TenantMigration {
+  readonly version: number;
+  readonly name: string;
+  up(queryRunner: QueryRunner, schemaName: string): Promise<void>;
+}
+
+export const TENANT_BASE_VERSION = 1;
+export const TENANT_BASE_NAME = 'tenant-base';
+
+/**
+ * Dynamic tenant migrations deliberately use qualified identifiers everywhere.
+ * Monetary numeric values are returned by pg as strings and remain strings at the API boundary.
+ */
+@Injectable()
+export class TenantMigrator {
+  async migrateBase(queryRunner: QueryRunner, rawSchemaName: string): Promise<void> {
+    const schemaName = normalizeAndValidateSchemaName(rawSchemaName);
+    const s = quoteIdentifier(schemaName);
+
+    const statements = this.baseStatements(s);
+    for (const statement of statements) await queryRunner.query(statement);
+  }
+
+  baseStatements(s: string): string[] {
+    return [
+      `CREATE TABLE ${s}.corporate_customers (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        legal_name varchar(180) NOT NULL,
+        tax_id varchar(20), email citext, phone varchar(30),
+        is_active boolean NOT NULL DEFAULT true,
+        created_by_user_id uuid NOT NULL REFERENCES public.users(id),
+        created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
+        UNIQUE (legal_name), UNIQUE (tax_id)
+      )`,
+      `CREATE TABLE ${s}.customers (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        corporate_customer_id uuid REFERENCES ${s}.corporate_customers(id) ON DELETE SET NULL,
+        full_name varchar(180) NOT NULL, tax_id varchar(20), email citext, phone varchar(30), notes text,
+        is_active boolean NOT NULL DEFAULT true,
+        created_by_user_id uuid NOT NULL REFERENCES public.users(id),
+        updated_by_user_id uuid NOT NULL REFERENCES public.users(id),
+        created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
+        UNIQUE (tax_id)
+      )`,
+      `CREATE INDEX customers_name_idx ON ${s}.customers (lower(full_name))`,
+      `CREATE TABLE ${s}.vehicles (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        customer_id uuid NOT NULL REFERENCES ${s}.customers(id) ON DELETE RESTRICT,
+        brand_id uuid REFERENCES public.vehicle_brands(id), model_id uuid REFERENCES public.vehicle_models(id),
+        vin varchar(17), license_plate varchar(20), model_year smallint,
+        color varchar(50), odometer integer CHECK (odometer IS NULL OR odometer >= 0),
+        is_active boolean NOT NULL DEFAULT true,
+        created_by_user_id uuid NOT NULL REFERENCES public.users(id),
+        created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
+        UNIQUE (vin), UNIQUE (license_plate),
+        CHECK (model_year IS NULL OR model_year BETWEEN 1886 AND 2200)
+      )`,
+      `CREATE TABLE ${s}.products_services (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        kind varchar(10) NOT NULL CHECK (kind IN ('product','service')),
+        sku varchar(80), name varchar(180) NOT NULL, description text,
+        unit_price numeric(14,2) NOT NULL DEFAULT 0 CHECK (unit_price >= 0),
+        cost numeric(14,2) NOT NULL DEFAULT 0 CHECK (cost >= 0),
+        tracks_inventory boolean NOT NULL DEFAULT false,
+        is_active boolean NOT NULL DEFAULT true,
+        created_by_user_id uuid NOT NULL REFERENCES public.users(id),
+        created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
+        UNIQUE (sku)
+      )`,
+      `CREATE TABLE ${s}.orders (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        folio bigint GENERATED ALWAYS AS IDENTITY UNIQUE,
+        customer_id uuid NOT NULL REFERENCES ${s}.customers(id),
+        vehicle_id uuid REFERENCES ${s}.vehicles(id),
+        status varchar(24) NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','open','in_progress','completed','cancelled')),
+        opened_at timestamptz NOT NULL DEFAULT now(), closed_at timestamptz,
+        subtotal numeric(14,2) NOT NULL DEFAULT 0, tax numeric(14,2) NOT NULL DEFAULT 0,
+        total numeric(14,2) NOT NULL DEFAULT 0 CHECK (total >= 0), is_paid boolean NOT NULL DEFAULT false,
+        created_by_user_id uuid NOT NULL REFERENCES public.users(id),
+        created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now()
+      )`,
+      `CREATE INDEX orders_status_opened_idx ON ${s}.orders(status, opened_at DESC)`,
+      `CREATE TABLE ${s}.order_items (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_id uuid NOT NULL REFERENCES ${s}.orders(id) ON DELETE CASCADE,
+        product_service_id uuid REFERENCES ${s}.products_services(id),
+        description varchar(300) NOT NULL, quantity numeric(12,3) NOT NULL CHECK (quantity > 0),
+        unit_price numeric(14,2) NOT NULL CHECK (unit_price >= 0), total numeric(14,2) NOT NULL CHECK (total >= 0),
+        created_at timestamptz NOT NULL DEFAULT now()
+      )`,
+      `CREATE TABLE ${s}.order_notes (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_id uuid NOT NULL REFERENCES ${s}.orders(id) ON DELETE CASCADE,
+        body text NOT NULL CHECK (length(trim(body)) > 0),
+        created_by_user_id uuid NOT NULL REFERENCES public.users(id), created_at timestamptz NOT NULL DEFAULT now()
+      )`,
+      `CREATE TABLE ${s}.suppliers (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(), name varchar(180) NOT NULL UNIQUE,
+        tax_id varchar(20), email citext, phone varchar(30), is_active boolean NOT NULL DEFAULT true,
+        created_by_user_id uuid NOT NULL REFERENCES public.users(id),
+        created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now()
+      )`,
+      `CREATE TABLE ${s}.purchases (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(), folio bigint GENERATED ALWAYS AS IDENTITY UNIQUE,
+        supplier_id uuid NOT NULL REFERENCES ${s}.suppliers(id),
+        status varchar(20) NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','confirmed','cancelled')),
+        purchased_at timestamptz NOT NULL DEFAULT now(), total numeric(14,2) NOT NULL DEFAULT 0 CHECK (total >= 0),
+        created_by_user_id uuid NOT NULL REFERENCES public.users(id),
+        created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now()
+      )`,
+      `CREATE TABLE ${s}.purchase_items (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(), purchase_id uuid NOT NULL REFERENCES ${s}.purchases(id) ON DELETE CASCADE,
+        product_id uuid NOT NULL REFERENCES ${s}.products_services(id),
+        quantity numeric(12,3) NOT NULL CHECK (quantity > 0), unit_cost numeric(14,2) NOT NULL CHECK (unit_cost >= 0),
+        total numeric(14,2) NOT NULL CHECK (total >= 0)
+      )`,
+      `CREATE TABLE ${s}.inventory_lots (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(), product_id uuid NOT NULL REFERENCES ${s}.products_services(id),
+        purchase_item_id uuid REFERENCES ${s}.purchase_items(id),
+        received_quantity numeric(12,3) NOT NULL CHECK (received_quantity > 0),
+        remaining_quantity numeric(12,3) NOT NULL CHECK (remaining_quantity >= 0),
+        unit_cost numeric(14,2) NOT NULL CHECK (unit_cost >= 0), received_at timestamptz NOT NULL DEFAULT now(),
+        CHECK (remaining_quantity <= received_quantity)
+      )`,
+      `CREATE INDEX inventory_lots_fifo_idx ON ${s}.inventory_lots(product_id, received_at, id) WHERE remaining_quantity > 0`,
+      `CREATE TABLE ${s}.inventory_movements (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(), product_id uuid NOT NULL REFERENCES ${s}.products_services(id),
+        lot_id uuid REFERENCES ${s}.inventory_lots(id), order_item_id uuid REFERENCES ${s}.order_items(id),
+        movement_type varchar(20) NOT NULL CHECK (movement_type IN ('purchase','sale','adjustment','return')),
+        quantity numeric(12,3) NOT NULL CHECK (quantity <> 0), unit_cost numeric(14,2), reason varchar(250),
+        created_by_user_id uuid NOT NULL REFERENCES public.users(id), created_at timestamptz NOT NULL DEFAULT now()
+      )`,
+      `CREATE INDEX inventory_movements_product_date_idx ON ${s}.inventory_movements(product_id, created_at DESC)`,
+      `CREATE TABLE ${s}.quotes (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(), folio bigint GENERATED ALWAYS AS IDENTITY UNIQUE,
+        customer_id uuid NOT NULL REFERENCES ${s}.customers(id), vehicle_id uuid REFERENCES ${s}.vehicles(id),
+        status varchar(20) NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','sent','accepted','rejected','expired')),
+        valid_until date, subtotal numeric(14,2) NOT NULL DEFAULT 0, tax numeric(14,2) NOT NULL DEFAULT 0,
+        total numeric(14,2) NOT NULL DEFAULT 0 CHECK (total >= 0),
+        created_by_user_id uuid NOT NULL REFERENCES public.users(id),
+        created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now()
+      )`,
+      `CREATE TABLE ${s}.quote_items (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(), quote_id uuid NOT NULL REFERENCES ${s}.quotes(id) ON DELETE CASCADE,
+        product_service_id uuid REFERENCES ${s}.products_services(id), description varchar(300) NOT NULL,
+        quantity numeric(12,3) NOT NULL CHECK (quantity > 0), unit_price numeric(14,2) NOT NULL CHECK (unit_price >= 0),
+        total numeric(14,2) NOT NULL CHECK (total >= 0)
+      )`,
+      `CREATE TABLE ${s}.expense_categories (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(), name varchar(120) NOT NULL UNIQUE,
+        is_active boolean NOT NULL DEFAULT true, created_at timestamptz NOT NULL DEFAULT now()
+      )`,
+      `CREATE TABLE ${s}.expenses (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(), category_id uuid NOT NULL REFERENCES ${s}.expense_categories(id),
+        description varchar(250) NOT NULL, amount numeric(14,2) NOT NULL CHECK (amount > 0),
+        occurred_on date NOT NULL, supplier_id uuid REFERENCES ${s}.suppliers(id),
+        created_by_user_id uuid NOT NULL REFERENCES public.users(id),
+        created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now()
+      )`,
+      `CREATE INDEX expenses_occurred_on_idx ON ${s}.expenses(occurred_on DESC)`,
+      `CREATE TABLE ${s}.employees (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(), employee_number bigint GENERATED ALWAYS AS IDENTITY UNIQUE,
+        full_name varchar(180) NOT NULL, email citext, phone varchar(30), hired_on date NOT NULL,
+        base_salary numeric(14,2) NOT NULL DEFAULT 0 CHECK (base_salary >= 0), is_active boolean NOT NULL DEFAULT true,
+        created_by_user_id uuid NOT NULL REFERENCES public.users(id),
+        created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now()
+      )`,
+      `CREATE TABLE ${s}.payroll_periods (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(), starts_on date NOT NULL, ends_on date NOT NULL,
+        status varchar(20) NOT NULL DEFAULT 'open' CHECK (status IN ('open','closed','cancelled')),
+        created_by_user_id uuid NOT NULL REFERENCES public.users(id), created_at timestamptz NOT NULL DEFAULT now(),
+        CHECK (ends_on >= starts_on), UNIQUE(starts_on, ends_on)
+      )`,
+      `CREATE TABLE ${s}.payroll_movements (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(), period_id uuid NOT NULL REFERENCES ${s}.payroll_periods(id) ON DELETE CASCADE,
+        employee_id uuid NOT NULL REFERENCES ${s}.employees(id),
+        movement_type varchar(20) NOT NULL CHECK (movement_type IN ('earning','deduction')),
+        concept varchar(180) NOT NULL, amount numeric(14,2) NOT NULL CHECK (amount > 0),
+        created_by_user_id uuid NOT NULL REFERENCES public.users(id), created_at timestamptz NOT NULL DEFAULT now()
+      )`,
+    ];
+  }
+}

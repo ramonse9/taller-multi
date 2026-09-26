@@ -1,0 +1,58 @@
+    <div class="inline-block align-middle">
+      <table class="min-w-full divide-y table-auto divide-gray-200 dark:divide-gray-600">
+          <thead class="bg-gray-100 dark:bg-gray-700">
+              <tr>
+                  <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                      ID
+                  </th>
+                  <th scope="col" class="min-w-60 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                    Modelo
+                  </th>
+                  <th scope="col" class="min-w-60 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                    Marca
+                  </th>
+                  <th scope="col" class="min-w-20 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                    Año
+                  </th>
+                  <th scope="col" class="min-w-60 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                    Color
+                  </th>
+                  <th scope="col" class="min-w-40 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                    Placa
+                  </th>
+                  <th scope="col" class="min-w-60 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                    Número de Serie
+                  </th>
+                  <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                    Fecha Registro
+                  </th>
+              </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+              @for( vehiculo of vehiculos(); track vehiculo.id ){
+                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
+                  <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                      {{vehiculo.id | uppercase }}
+                  </td>
+                  <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{vehiculo.modelo.nombre | uppercase}}</td>
+                  <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{vehiculo.modelo.marca.nombre | uppercase}}</td>
+                  <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{vehiculo.anio}}</td>
+                  <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{vehiculo.color | uppercase}} </td>
+                  <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{vehiculo.placa | uppercase}}</td>
+                  <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{vehiculo.numeroSerie | uppercase}}</td>
+                  <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{ vehiculo.createdAt | date: 'dd/MM/yyyy' }}</td>
+              </tr>
+              }
+              @empty{
+                <tr>
+                  <td colspan="10" class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                    <app-badge-message [message]="EnumCeroRegistros.VEHICULOS"  ></app-badge-message>
+                  </td>
+                </tr>
+              }
+          </tbody>
+      </table>
+  </div>
+
+
+

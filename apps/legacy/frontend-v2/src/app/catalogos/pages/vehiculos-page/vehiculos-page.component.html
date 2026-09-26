@@ -1,0 +1,89 @@
+<div class="p-4 bg-white-2 border-b border-gray-200 dark:bg-gray-900 dark:border-gray-700">
+  <div class="flex items-center justify-between w-full">
+
+    <div class="flex-shrink-0">
+      <app-page-button-inicio></app-page-button-inicio>
+    </div>
+
+    <div class="flex-grow text-center">
+      <h1 class="text-xl font-semibold text-gray-900 sm:text-2xl dark:text-white">
+        CATÁLOGOS | Vehículos: {{ vehiculosRXResource.value()?.totalItems }}
+      </h1>
+    </div>
+
+  </div>
+
+  <div class="mt-4">
+    <app-busqueda-general
+      placeholder="Buscar por placa, Número de Serie..."
+      nuevaEntidad="Nuevo Vehículo"
+      (idNuevoEmit)="idNuevo()"
+      (filtrarBusquedaEmit)="filtrar($event)"
+      [opcionCards]="true"
+      (mostrarCardsEmit)="mostrarCards($event)"
+    ></app-busqueda-general>
+  </div>
+</div>
+
+@if( vehiculosRXResource.value() ){
+
+    <div class="relative">
+
+      @if (soloCards()) {
+        <div class="relative" [@fadeAnimation]>
+          <app-cards-container
+            [listado]="vehiculosRXResource.value()?.vehiculos ?? []"
+            [idSeleccionado]="idSeleccionado()"
+            [cardTemplate]="card"
+            [listMode]="true"
+          >
+            <app-badge-message slot="empty-message" [message]="EnumCeroRegistros.VEHICULOS" ></app-badge-message>
+          </app-cards-container>
+        </div>
+      } @else {
+        <div class="relative overflow-x-auto" [@fadeAnimation]>
+          <app-vehiculos-table
+            [vehiculos]="vehiculosRXResource.value()?.vehiculos ?? []"
+            (idSeleccionarEmit)="idSeleccionar($event)"
+            [idSeleccionado]="idSeleccionado()"
+          >
+          </app-vehiculos-table>
+        </div>
+      }
+
+      <ng-template #card let-vehiculo let-idSeleccionado="seleccionado">
+        <app-card-vehiculo
+          class="h-full"
+          [vehiculo]="vehiculo"
+          [seleccionado]="idSeleccionado"
+          (click)="idSeleccionar(vehiculo.id)"
+        >
+        </app-card-vehiculo>
+      </ng-template>
+
+    </div>
+
+  }
+
+<app-pagination [pages]="vehiculosRXResource.value()?.totalPages ?? 0" [currentPage]="paginationService.currentPage()" (itemsPerPageSelected)="selectPerPageChange($event)"></app-pagination>
+
+<app-drawer-form-container
+  [isOpen]="isOpenDrawer()"
+  [idSeleccionado]="idSeleccionado()"
+
+  [resource]="vehiculoRXResource"
+
+  titleNuevo="Nuevo Vehículo"
+  titleEditar="Editar Vehículo"
+  [formTemplateNuevo]="nuevo"
+  (closeDrawerEmit)="idDeseleccionar()"
+  labelId="Vehículo"
+>
+</app-drawer-form-container>
+<ng-template #nuevo let-vehiculo>
+  <app-drawer-vehiculo-nuevo-editar
+    [vehiculo]="vehiculo"
+    (guardadoCorrectoEmit)="reload()"
+  >
+  </app-drawer-vehiculo-nuevo-editar>
+</ng-template>

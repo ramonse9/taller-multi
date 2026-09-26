@@ -1,0 +1,281 @@
+<div
+    class="bg-gray-50 dark:bg-gray-800 relative border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300
+    flex flex-col lg:flex-row 
+    "
+      [ngClass]="{
+        'border-blue-500': seleccionado(),
+        'border-gray-200 dark:border-gray-700': !seleccionado()
+      }"
+    >
+
+    <div class="flex flex-1 flex-col">
+      
+      <div class="flex justify-between">
+        
+        <div class="flex justify-between items-start p-2">
+            
+            <app-card-component-id [entidad]="orden()" [label]="EnumEntidad.ORDEN" ></app-card-component-id>
+      
+            <div class="flex items-center gap-1 block lg:hidden">
+              <app-estatus-indicator [categoria]="EnumCategoria.ORDENES" [clave]="orden().estatus"></app-estatus-indicator>
+              <app-dropdown-ordenes-estatus-update [orden]="orden()!" (ordenEstatusActualizadaEmit)="ordenEstatusActualizada($event)" ></app-dropdown-ordenes-estatus-update>
+            </div>
+      
+        </div>
+
+        <div class="p-2 flex flex-col gap-1">
+      
+          <!--<div class="rounded-2xl p-3 border border-slate-200 dark:border-slate-700 shadow-sm">-->
+      
+          <div class="flex justify-between mb-1">
+            <h3 class="text-lg font-bold text-slate-600 dark:text-slate-100 leading-tight">
+              {{ orden().vehiculo?.modelo?.marca?.nombre | titlecase }} {{orden().vehiculo?.modelo?.nombre | titlecase}}
+            </h3>
+            <div class="flex justify-between items-center mt-1">
+              <span class="text-sm text-gray-600 dark:text-slate-400">{{orden().vehiculo?.anio}} • {{orden().vehiculo?.color | titlecase}}</span>
+            </div>
+          </div>
+      
+          <div class="flex items-center justify-center bg-white border-2 border-gray-800 rounded-md shadow-sm mb-1">
+            <span class="text-xs font-bold text-gray-400 mr-2 border-r pr-2 uppercase">Número de Serie</span>
+            <span class="text-xl font-mono font-black tracking-widest text-gray-900">
+              {{ orden().vehiculo?.numeroSerie | uppercase }}
+            </span>
+          </div>
+      
+          <div class=" flex items-center justify-center  text-sm font-bold bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-gray-600 dark:text-gray-300">
+            <span class="text-xs font-bold text-gray-400 mr-2 uppercase tracking-tighter">PLACA:</span>
+            <span class="text-gray-900 dark:text-gray-100 font-bold text-xs truncate">
+              {{ orden().vehiculo?.placa | uppercase }}
+            </span>
+          </div>
+      
+          <!--<div class="rounded-2xl p-3 border border-slate-200 dark:border-slate-700 shadow-sm">-->
+          <!--<div class="pl-3">-->
+            <div class="space-y-3">
+              @if( orden().empresa ){
+                <!--
+                <div class="flex items-center gap-3">
+                  <div class="flex items-center text-gray-600 dark:text-slate-300">
+                    <ng-icon name="tablerBuilding"></ng-icon>
+                  </div>
+                  <span class="text-sm font-semibold text-gray-600 dark:text-slate-300 truncate">{{ orden().empresa?.nombre | titlecase }}</span>
+                </div>
+                -->
+      
+                <div class="flex justify-between">
+                  
+                  <div class="flex items-center gap-1">
+                    <div class="flex items-center text-gray-600 dark:text-slate-300">
+                      <ng-icon name="tablerBuilding"></ng-icon>
+                    </div>
+                    <span class="text-sm font-semibold text-gray-600 dark:text-slate-300 truncate">{{ orden().empresa?.nombre | titlecase}}</span>
+                  </div>
+                  
+                  <div class="flex items-center text-sm text-gray-600 dark:text-gray-400 gap-1">
+                    <div class="w-8 h-8 rounded text-green-500 bg-gray-50 dark:bg-gray-700 flex items-center justify-center">
+                        <ng-icon name="tablerPhone" size="1.1rem"></ng-icon>
+                    </div>
+                    <span>{{ orden().empresa?.telefono }}</span>
+                  </div>
+      
+                </div>
+              }
+      
+              @if(orden().cliente){
+                <div class="flex justify-between">
+                  
+                  <div class="flex items-center gap-1">
+                    <div class="flex items-center text-gray-600 dark:text-slate-300">
+                      <ng-icon name="tablerUser"></ng-icon>
+                    </div>
+                    <span class="text-sm font-semibold text-gray-600 dark:text-slate-300 truncate">{{ nombreCompleto | titlecase}}</span>
+                  </div>
+                  
+                  <div class="flex items-center text-sm text-gray-600 dark:text-gray-400 gap-1">
+                    <div class="w-8 h-8 rounded text-green-500 bg-gray-50 dark:bg-gray-700 flex items-center justify-center">
+                        <ng-icon name="tablerPhone" size="1.1rem"></ng-icon>
+                    </div>
+                    <span>{{ orden().cliente?.telefono }}</span>
+                  </div>
+      
+                </div>
+              }
+            </div>
+      
+          <!--</div>-->
+      
+      
+          <app-card-component-description class="lg:hidden" [description]="orden().descripcion"></app-card-component-description>
+      
+    
+      
+        </div>
+
+        <div class="p-4 m-2 flex items-center justify-between transition-colors rounded-lg" [ngClass]="footerClass()" >
+
+          <div class="flex flex-col items-center gap-1">
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                {{facturaLabel}}
+              </span>
+            <div class="w-10 h-10 bg-white/90 dark:bg-slate-800 rounded-full flex items-center justify-center shadow-sm">
+              @if( orden().estatusFactura != EnumEstatusOrdenFactura.TIMBRADA ){
+                <div class="flex items-center text-slate-600/50 dark:text-slate-600/50">
+                  <ng-icon name="tablerReceiptOff" size="1.2rem"></ng-icon>
+                </div>
+              } @else {
+                @if(orden().liquidacionFactura == false){
+                  <div class="flex items-center text-green-600/50 dark:text-green-600/50">
+                    <ng-icon name="tablerChecklist" size="1.2rem"></ng-icon>
+                  </div>
+                }
+                @else{
+                  <div class="flex items-center text-yellow-600/50 dark:text-yellow-600/50">
+                    <ng-icon name="tablerFileAlert" size="1.2rem"></ng-icon>
+                  </div>
+                }
+              }
+            </div>
+
+          </div>
+
+        </div>
+
+        <div class="p-2">
+
+
+          <div class="hidden lg:block mb-2">
+            <div class="flex items-center gap-1">
+              <app-estatus-indicator [categoria]="EnumCategoria.ORDENES" [clave]="ordenLinked().estatus"></app-estatus-indicator>
+              <app-dropdown-ordenes-estatus-update [orden]="ordenLinked()!" (ordenEstatusActualizadaEmit)="ordenEstatusActualizada($event)" ></app-dropdown-ordenes-estatus-update>
+            </div>
+          </div>
+
+          <div class="flex justify-between items-center border-t border-slate-50 pt-2 ">
+      
+            <app-dropdown-ordenes-pagada-update [orden]="ordenLinked()" (ordenEstatusActualizadaEmit)="ordenPagoActualizada($event)" ></app-dropdown-ordenes-pagada-update>
+      
+            <div class="flex flex-col">
+              <span class="text-[9px] uppercase font-bold text-gray-600 dark:text-slate-500">
+                {{ orden().estatusFactura === EnumEstatusOrdenFactura.TIMBRADA ? 'Total' : 'Subtotal' }}
+              </span>
+              <span class="text-xl font-black text-gray-600 dark:text-white tracking-tight">
+                {{ (orden().estatusFactura === EnumEstatusOrdenFactura.TIMBRADA ? totalFactura : orden().subtotalVenta) | currency:'$ ' }}
+              </span>
+            </div>
+          </div>
+
+        </div>
+      
+      </div>
+      
+      <div class="p-2">
+        
+        <div class="p-3 bg-gray-900/40 dark:bg-gray-900/40 rounded-lg border-l-4 border-gray-400 dark:border-gray-500">
+          <p class="text-[10px] font-black text-gray-500 dark:text-gray-500 uppercase mb-1">
+            Conceptos
+          </p>
+  
+
+          <div class="divide-y divide-gray-700/30">
+            
+            @for(concepto of orden().conceptos; track concepto.id){
+              
+              <!-- Usamos CSS Grid con col-span o anchos proporcionales -->
+              <div class="grid grid-cols-12 gap-3 items-center py-2.5 text-xs">
+                
+                <!-- Columna 1: Badge Tipo (Ancho fijo flexible: 2 cols) -->
+                <div class="col-span-2 sm:col-span-1 flex items-center">
+                  <app-badge-producto-servicio [tipoProductoServicio]="concepto.tipo"></app-badge-producto-servicio>
+                </div>
+
+                <div class="col-span-3 sm:col-span-2 flex items-center">
+                  @if( concepto.tipo === EnumOrdenConceptoTipo.PRODUCTO ){
+                    <app-badge-codigo-barras codigoBarras="123123123" ></app-badge-codigo-barras>
+                  }
+                </div>
+  
+                <div class="col-span-7 sm:col-span-5 flex flex-col min-w-0">
+                  
+                  <div class="text-[10px] text-gray-400 dark:text-gray-500 font-medium truncate">
+                    ID: {{ (concepto.tipo === EnumOrdenConceptoTipo.PRODUCTO ? concepto.producto.id : concepto.servicio.id) | uppercase}}
+                  </div>
+                  
+                  <p class="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 truncate">
+                    {{concepto.tipo === EnumOrdenConceptoTipo.PRODUCTO ? concepto.producto.descripcion : concepto.servicio.descripcion}}
+                  </p>
+
+                </div>
+  
+                <div class="col-span-6 sm:col-span-2 flex items-center justify-end gap-1.5">
+                  <span class="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-bold px-1.5 py-0.5 rounded">
+                    x{{concepto.cantidad | number:'1.0-0'}}
+                  </span>
+                  <p class="text-sm font-black text-slate-800 dark:text-white">
+                    {{(concepto.precioVentaSnapshot) | currency:'$ '}}
+                  </p>
+                </div>
+  
+                <div class="col-span-6 sm:col-span-2 flex justify-end items-center">                
+                  <p class="text-xs sm:text-sm font-black text-blue-600 dark:text-blue-400">
+                    {{(concepto.subtotalPrecioVentaSnapshot) | currency:'$ '}}
+                  </p>
+                </div>
+  
+              </div>
+  
+            }
+
+          </div>
+  
+  
+          
+        </div>
+
+      </div>
+
+      <div>
+
+        <app-card-component-description class="hidden lg:block px-2 pb-4" [description]="orden().descripcion"></app-card-component-description>
+      
+      </div>
+
+    </div>
+
+
+  <!-- [ngClass]="footerClass()"-->
+
+  <!--
+  <div class="p-4 flex items-center justify-between transition-colors rounded-b-lg" [ngClass]="footerClass()" >
+
+    <div class="flex items-center gap-4">
+      <div class="w-10 h-10 bg-white/90 dark:bg-slate-800 rounded-full flex items-center justify-center shadow-sm">
+        @if( orden().estatusFactura != EnumEstatusOrdenFactura.TIMBRADA ){
+          <div class="flex items-center text-slate-600/50 dark:text-slate-600/50">
+            <ng-icon name="tablerReceiptOff" size="1.2rem"></ng-icon>
+          </div>
+        } @else {
+          @if(orden().liquidacionFactura){
+            <div class="flex items-center text-green-600/50 dark:text-green-600/50">
+              <ng-icon name="tablerChecklist" size="1.2rem"></ng-icon>
+            </div>
+          }
+          @else{
+            <div class="flex items-center text-yellow-600/50 dark:text-yellow-600/50">
+              <ng-icon name="tablerFileAlert" size="1.2rem"></ng-icon>
+            </div>
+          }
+        }
+      </div>
+
+    </div>
+
+
+    <app-modal-ordenes-notas-add [orden]="ordenLinked()" [formatoTexto]="false" (ordenNotasActualizada)="ordenNotasActualizada($event)"></app-modal-ordenes-notas-add>
+
+
+
+  </div>
+  -->
+
+</div>

@@ -1,0 +1,17 @@
+<!--<div>-->
+    <!--<div class="grid grid-cols-1 md:grid-cols-2 xxl:grid-cols-3 gap-4">-->
+    <!--<div class="grid grid-cols-1 gap-4">-->
+      @for (compra of comprasListado(); track compra.id) {
+        <app-card-compra
+          class="cursor-pointer"
+          [compra]="compra"
+          (click)="seleccionarEmit(compra.id)"
+          [seleccionado]="compra.id === idSeleccionado()"
+          >
+        </app-card-compra>
+      }
+    <!--</div>-->
+    @if( comprasListado().length === 0){
+      <app-badge-message [message]="EnumCeroRegistros.COMPRAS"  ></app-badge-message>
+    }
+<!--</div>-->

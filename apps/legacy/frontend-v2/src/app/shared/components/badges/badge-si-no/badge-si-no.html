@@ -1,0 +1,7 @@
+<span class="text-md font-medium px-2.5 py-0.5 rounded-sm text-white dark:text-white"
+  [ngClass]="{
+    'bg-green-600 dark:bg-green-600': siNo(),
+    'bg-red-600 dark:bg-red-600': !siNo()
+  }">
+    {{ siNo() ? 'Si' : 'No' }}
+</span>

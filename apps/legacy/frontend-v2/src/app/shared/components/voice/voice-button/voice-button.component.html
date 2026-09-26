@@ -1,0 +1,32 @@
+<div class="fixed bottom-8 left-0 right-0 flex flex-col items-center gap-3 z-50">
+
+    @if(voiceService.isListening()){
+        <!-- Barra de progreso ajustada al nuevo tamaño -->
+        <div class="fixed bottom-32 left-1/2 -translate-x-1/2 w-48 bg-gray-200 rounded-full h-2 overflow-hidden shadow-lg">
+            <div
+              class="h-full animate-progress-bar-dynamic-voice"
+              [style.--duration]="durationSeconds() + 's'"
+              [class.bg-green-500]="!voiceService.isLowTime()"
+              [class.bg-orange-600]="voiceService.isLowTime()"
+            ></div>
+        </div>
+    }
+
+    <button
+        type="button"
+        (click)="toggleRecording()"
+        [class.bg-red-600]="voiceService.isListening()"
+        [class.scale-110]="voiceService.isListening()"
+        [class.bg-blue-600]="!voiceService.isListening()"
+        class="w-14 h-14 rounded-full flex items-center justify-center text-white shadow-xl transition-all duration-300 active:ring-4 active:ring-blue-300 outline-none"
+    >
+        <ng-icon
+            [name]="voiceService.isListening() ? 'tablerPlayerStop' : 'tablerMicrophone'"
+            size="1.8rem">
+        </ng-icon>
+    </button>
+
+    <span class="text-[10px] font-bold text-gray-500 dark:text-gray-800 uppercase tracking-widest bg-white/50 px-2 py-1 rounded">
+        {{ voiceService.isListening() ? 'Grabando... presione para parar' : 'Presione para hablar' }}
+    </span>
+</div>

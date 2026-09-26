@@ -1,0 +1,74 @@
+<div
+    class="bg-gray-50 dark:bg-gray-800 relative border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300
+    flex flex-col lg:flex-row overflow-hidden
+    "
+      [ngClass]="{
+        'border-blue-500': seleccionado(),
+        'border-gray-200 dark:border-gray-700': !seleccionado()
+      }"
+    >
+
+    <div class="flex justify-between gap-2 p-4 border-b border-gray-100 dark:border-gray-700 flex-1">
+
+      <app-card-component-id [entidad]="compra()" [label]="EnumEntidad.COMPRA" ></app-card-component-id>
+
+      <div class="flex flex-col">
+        <app-estatus-badge
+              [ngClass]="{'animate-pulse': compra().estatus === EnumEstatusCompra.BORRADOR}"
+              [categoria]="EnumCategoria.COMPRAS" [clave]="compra().estatus" >
+        </app-estatus-badge>
+        <span class="text-lg font-black text-slate-600 dark:text-slate-100 tracking-tight">
+          {{ totalCompra | currency:'$ ' }}
+        </span>
+
+      </div>
+
+    </div>
+
+    <div class="flex justify-between gap-2 p-4 border-b border-gray-100 dark:border-gray-700 flex-1">
+
+      <div class="flex flex-col">
+        <p class="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest">Proveedor</p>
+        <p class="font-black text-lg sm:text-lg text-slate-600 dark:text-slate-100">
+          {{ compra().proveedor.nombre | uppercase }}
+        </p>
+        <div class="text-[10px] text-gray-400 dark:text-gray-500 font-medium">
+          ID: {{ compra().proveedor.id | uppercase}}
+        </div>
+
+      </div>
+
+    </div>
+
+    <div class="gap-2 p-4 border-b border-gray-100 dark:border-gray-700 flex-2">
+        <p class="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest">Productos</p>
+        @for( concepto of compra().detalles; track concepto.id ){
+          <div class="p-2 my-2 border-x border-b rounded-b-lg border-gray-500">
+
+            <div class="flex justify-between items-start gap-4">
+
+              <p class="text-sm font-bold text-slate-800 dark:text-slate-200">{{concepto.producto.descripcion}}</p>
+
+              <div class="flex items-center gap-2">
+                <span class="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-sm font-bold px-2 py-1 rounded">
+                  x{{concepto.cantidad | number:'1.0-0'}}
+                </span>
+                <p class="text-sm font-black text-slate-800 dark:text-white">
+                  {{(concepto.costoUnitario) | currency:'$ '}}
+                </p>
+              </div>
+
+            </div>
+
+            <div class="flex justify-between items-center">
+              <app-badge-codigo-barras [codigoBarras]="concepto.producto.codigoBarras" ></app-badge-codigo-barras>
+              <p class="text-sm font-black text-blue-600 dark:text-blue-400">
+                {{(concepto.cantidad * concepto.costoUnitario) | currency:'$ '}}
+              </p>
+            </div>
+
+          </div>
+        }
+
+    </div>
+</div>

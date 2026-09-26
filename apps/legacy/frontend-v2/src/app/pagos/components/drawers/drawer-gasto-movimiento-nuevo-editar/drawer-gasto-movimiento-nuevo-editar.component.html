@@ -1,0 +1,28 @@
+<form [formGroup]="gastoForm" (ngSubmit)="onSubmit()" class="flex flex-col gap-4">
+
+  <div>
+    <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Monto</label>
+    <input type="text" formControlName="monto"  autocomplete="off" class="custom-input-text"
+      [ngClass]="{ 'custom-input-text-error' : gastoForm.controls.monto.errors }"
+    />
+    <app-form-error-label [control]="gastoForm.controls.monto"></app-form-error-label>
+  </div>
+
+  <div>
+    <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Fecha</label>
+    <input #dateInputFecha type="text" placeholder="Selecciona fecha" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:text-white">
+    <app-form-error-label [control]="gastoForm.controls.fecha"></app-form-error-label>
+  </div>
+
+  <div class="flex justify-center py-3">
+    <button type="submit" class="text-white bg-lightblue-600 hover:bg-lightblue-500 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-darkblue-600 dark:hover:bg-darkblue-500 cursor-pointer disabled:opacity-50 transition-all duration-500 ease-in-out"
+        [disabled]="isLoading | async"
+        [ngClass]="{
+          'opacity-100 scale-100 pointer-events-auto': gastoForm.valid,
+          'opacity-0 scale-95 pointer-events-none': !gastoForm.valid
+        }">
+        Guardar
+    </button>
+  </div>
+
+</form>

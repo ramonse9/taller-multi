@@ -1,0 +1,324 @@
+<form class="pb-24 md:pb-6" [formGroup]="ordenForm" (ngSubmit)="onSubmit()">
+
+  <app-page-form-header
+    [titleNew]="EnumPaginasTitulo.ORDEN_NEW"
+    [titleUpdate]="EnumPaginasTitulo.ORDEN_UPDATE"
+    [id]="orden()?.id ?? ''"
+    [detail]="`${orden()?.vehiculo?.modelo?.marca?.nombre ?? ''} ${orden()?.vehiculo?.modelo?.nombre ?? ''} ${orden()?.vehiculo?.anio ?? ''} - Numero de Serie: ${orden()?.vehiculo?.numeroSerie ?? ''} `"
+    [subdetail]="`${orden()?.cliente?.id}: ${orden()?.cliente?.nombre} | ${orden()?.cliente?.telefono}`">
+  </app-page-form-header>
+
+  <app-page-form-body>
+
+    <div class="grid w-full grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2">
+      <div class="md:col-span-2 rounded-xl border border-slate-200 bg-white/90 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/60">
+        <div class="mb-3 flex items-center justify-between">
+          <p class="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            Paso {{ currentStep() }} de {{ totalSteps }}
+          </p>
+          <p class="text-xs font-semibold text-slate-600 dark:text-slate-300">{{ stepProgress }}%</p>
+        </div>
+        <div class="h-2 w-full rounded-full bg-slate-200 dark:bg-slate-700">
+          <div class="h-2 rounded-full bg-blue-600 transition-all duration-300" [style.width.%]="stepProgress"></div>
+        </div>
+      </div>
+
+      <ol class="md:col-span-2 grid grid-cols-2 gap-2 text-xs font-semibold sm:grid-cols-5 sm:text-sm">
+        @for (step of stepItems; track step.id) {
+          <li>
+            <button
+              type="button"
+              (click)="goToStep(step.id)"
+              [disabled]="isStepLocked(step.id)"
+              class="w-full rounded-lg border px-2 py-2 text-left transition-all sm:text-center"
+              [ngClass]="{
+                'border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-900/30 dark:text-blue-200': isStepActive(step.id),
+                'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200': isStepCompleted(step.id),
+                'border-slate-200 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-300': !isStepActive(step.id) && !isStepCompleted(step.id),
+                'cursor-not-allowed opacity-60': isStepLocked(step.id)
+              }"
+            >
+              <span class="mr-1 inline-flex h-5 w-5 items-center justify-center rounded-full border border-current text-[11px]">{{ step.id }}</span>
+              {{ step.label }}
+            </button>
+          </li>
+        }
+      </ol>
+
+      <div class="flex md:col-span-2" [class.hidden]="currentStep() !== 1">
+        <app-card-component-toggle-nuevo label="Vehículo" [nuevo]="nuevoVehiculo()" (nuevoValorEmit)="setNuevoVehiculo($event)"></app-card-component-toggle-nuevo>
+        @if( ordenVehiculo ){
+          <div class="flex items-center ml-2 text-blue-600 dark:text-blue-500 cursor-pointer">
+            <ng-icon
+              (click)="limpiarVehiculo()"
+              name="tablerTrash"
+              class="animate-pulse"
+              size="1.5rem"
+            ></ng-icon>
+          </div>
+        }
+      </div>
+
+      <div class="md:col-span-2" [class.hidden]="currentStep() !== 1">
+        @if( nuevoVehiculo()){
+          <app-vehiculo-details [vehiculo]="ordenVehiculo" [mostrarHeader]="false"></app-vehiculo-details>
+        }
+        @else{
+          <div class="rounded-xl border p-4 shadow-sm md:col-span-2" [class]="ordenVehiculo ? EnumBorderColor.VALID : EnumBorderColor.INVALID ">
+            @if( !ordenVehiculo ){
+              <app-page-form-control-search-table-generica-simple
+                    #pageFormControlSearchTableGenericaNewVehiculo
+                    label=""
+                    optionPlaceholder="Buscar Vehículo"
+                    [plusButton]="false"
+                    [plusButtonMostrar]="plusButtonMostrarVehiculo()"
+                    (searchText)="filtrarVehiculos($event)"
+                  >
+                    <app-vehiculos-busqueda-table
+                      [vehiculos]="vehiculosRXResource.value()?.vehiculos ?? []"
+                      (vehiculoSelected)="optionSelectedVehiculo($event)"
+                    ></app-vehiculos-busqueda-table>
+              </app-page-form-control-search-table-generica-simple>
+            }
+            @else {
+              <app-card-vehiculo [vehiculo]="ordenVehiculo" [modificar]="true" ></app-card-vehiculo>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="flex md:col-span-2" [class.hidden]="currentStep() !== 2">
+        <app-card-component-toggle-nuevo label="Cliente" [nuevo]="nuevoCliente()" (nuevoValorEmit)="setNuevoCliente($event)"></app-card-component-toggle-nuevo>
+        @if( ordenCliente ){
+          <div class="flex items-center ml-2 text-blue-600 dark:text-blue-500 cursor-pointer">
+            <ng-icon
+              (click)="limpiarCliente()"
+              name="tablerTrash"
+              class="animate-pulse"
+              size="1.5rem"
+            ></ng-icon>
+          </div>
+        }
+      </div>
+
+      <div class="md:col-span-2" [class.hidden]="currentStep() !== 2">
+        @if( nuevoCliente()){
+          <app-cliente-details [cliente]="ordenCliente" [mostrarHeader]="false" ></app-cliente-details>
+        }
+        @else{
+          <div class="rounded-xl border p-4 shadow-sm md:col-span-2" [class]="ordenCliente ? EnumBorderColor.VALID : EnumBorderColor.INVALID ">
+            @if( !ordenCliente ){
+              <app-page-form-control-search-table-generica-simple
+                    #pageFormControlSearchTableGenericaNewCliente
+                    label=""
+                    optionPlaceholder="Buscar Cliente"
+                    [plusButton]="false"
+                    [plusButtonMostrar]="plusButtonMostrarCliente()"
+                    (searchText)="filtrarClientes($event)"
+                  >
+                    <app-clientes-busqueda-table
+                      [clientes]="clientesRXResource.value()?.clientes ?? []"
+                      (clienteSelected)="optionSelectedCliente($event)"
+                    ></app-clientes-busqueda-table>
+              </app-page-form-control-search-table-generica-simple>
+            }
+            @else {
+              <app-card-cliente [cliente]="ordenCliente" [modificar]="true"></app-card-cliente>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="flex flex-col gap-3 md:col-span-2" [class.hidden]="currentStep() !== 3">
+        <div>
+          <label class="inline-flex items-center cursor-pointer">
+            <input type="checkbox" [checked]="incluirEmpresa()" (change)="onToggleIncluirEmpresa($event)" class="sr-only peer">
+            <div class="relative w-9 h-5
+                      bg-yellow-500
+                      bg-neutral-quaternary
+                      peer-focus:outline-none
+                      rounded-full
+                      peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full
+                      peer-checked:after:border-buffer
+                      after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all
+                      peer-checked:bg-green-500
+                      "></div>
+            <span class="select-none ms-3 text-sm font-medium text-heading dark:text-white">Incluir Empresa</span>
+          </label>
+        </div>
+
+        @if(!incluirEmpresa()){
+          <div class="rounded-xl border p-4 shadow-sm md:col-span-2" [class]="EnumBorderColor.VALID">
+            <p class="text-gray-500 dark:text-gray-400">Si no necesitas incluir una Empresa en esta Orden da click en Siguiente.</p>
+          </div>
+        }
+        @if(incluirEmpresa()){
+
+          <div class="flex">
+            <app-card-component-toggle-nuevo label="Empresa" [nuevo]="nuevoEmpresa()" (nuevoValorEmit)="setNuevoEmpresa($event)"></app-card-component-toggle-nuevo>
+            @if( ordenEmpresa ){
+              <div class="flex items-center ml-2 text-blue-600 dark:text-blue-500 cursor-pointer">
+                <ng-icon
+                  (click)="limpiarEmpresa()"
+                  name="tablerTrash"
+                  class="animate-pulse"
+                  size="1.5rem"
+                ></ng-icon>
+              </div>
+            }
+          </div>
+
+          <div class="md:col-span-2">
+            @if( nuevoEmpresa()){
+              <app-empresa-details [empresa]="ordenEmpresa" [mostrarHeader]="false" ></app-empresa-details>
+            }
+            @else{
+              <div class="rounded-xl border p-4 shadow-sm md:col-span-2" [class]="ordenEmpresa ? EnumBorderColor.VALID : EnumBorderColor.INVALID ">
+                @if( !ordenEmpresa ){
+                  <app-page-form-control-search-table-generica-simple
+                    #pageFormControlSearchTableGenericaNewEmpresa
+                    label=""
+                    optionPlaceholder="Buscar Empresa"
+                    [plusButton]="false"
+                    [plusButtonMostrar]="plusButtonMostrarEmpresa()"
+                    (searchText)="filtrarEmpresas($event)"
+                  >
+                    <app-empresas-busqueda-table
+                      [empresas]="empresasRXResource.value()?.empresas ?? []"
+                      (empresaSelected)="optionSelectedEmpresa($event)"
+                    ></app-empresas-busqueda-table>
+                  </app-page-form-control-search-table-generica-simple>
+                }
+                @else {
+                  <app-card-empresa [empresa]="ordenEmpresa"></app-card-empresa>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="rounded-xl border p-4 shadow-sm md:col-span-2"
+          [class]="conceptosFormArray.length > 0 ? EnumBorderColor.VALID : EnumBorderColor.INVALID"
+          [class.hidden]="currentStep() !==4">
+        <section class="md:col-span-2 mt-2 dark:border-gray-700">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+              <h2 class="text-lg font-bold text-gray-800 dark:text-white">Conceptos de la Orden</h2>
+              <app-page-form-control-search-table-generica-simple
+                #pageFormControlSearchTableGenericaNewConcepto
+                label="Buscar..."
+                [plusButton]="true"
+                optionPlaceholder="Agregar"
+                (searchText)="filtrarProductoServicio($event)">
+                <app-productos-servicios-busqueda-table [productosServicios]="productosServiciosRXResource.value()?.productosServicios ?? []" (productoServicioSelected)="optionSelectedProductoServicio($event)"></app-productos-servicios-busqueda-table>
+              </app-page-form-control-search-table-generica-simple>
+            </div>
+
+            @if( orden() ){
+              <button type="button" (click)="onUpdateConceptos()" class="w-full sm:w-auto text-white bg-blue-600 hover:bg-blue-700 font-medium rounded-lg text-sm px-5 py-2.5">
+                Guardar Conceptos
+              </button>
+            }
+          </div>
+
+          <div class="overflow-x-auto">
+            <app-conceptos-table [conceptos]="conceptosFormArray" (removeConcepto)="removeConcepto($event)"></app-conceptos-table>
+          </div>
+        </section>
+      </div>
+
+      <div class="rounded-xl border p-4 shadow-sm md:col-span-2"
+        [class]="!ordenForm.invalid ? EnumBorderColor.VALID : EnumBorderColor.INVALID"
+        [class.hidden]="currentStep() !== 5"
+        >
+        <div class="md:col-span-2">
+          <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Descripción</label>
+          <textarea id="descripcion" formControlName="descripcion" rows="3" class="custom-input-text w-full"
+            [ngClass]="{ 'custom-input-text-error' : ordenForm.controls.descripcion.errors }"></textarea>
+          <app-form-error-label [control]="ordenForm.controls.descripcion"></app-form-error-label>
+        </div>
+
+        <div class="space-y-4 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+
+          <div class="mt-4">
+            <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Estatus</label>
+            <app-estatus-badge [categoria]="EnumCategoria.ORDENES" [clave]=" !orden() ? EnumEstatusOrden.PROCESO : orden()!.estatus"></app-estatus-badge>
+          </div>
+
+          <div>
+            <label for="fechaIngreso" class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Fecha Ingreso</label>
+            <p-datepicker
+              class="w-full"
+              formControlName="fechaIngreso"
+              [showTime]="true"
+              [showIcon]="true"
+              hourFormat="24"
+              [showButtonBar]="true"
+              placeholder="Selecciona fecha y hora"
+              >
+            </p-datepicker>
+          </div>
+
+          <div>
+            <label for="fechaIngreso" class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Fecha Entrega Real</label>
+            <p-datepicker
+              class="w-full"
+              formControlName="fechaEntregaReal"
+              [showTime]="true"
+              [showIcon]="true"
+              hourFormat="24"
+              [showButtonBar]="true"
+              placeholder="Selecciona fecha y hora"
+              >
+            </p-datepicker>
+          </div>
+
+          <div>
+            <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Folio Nota</label>
+            <input type="text" formControlName="folioNota" class="custom-input-text w-full" [ngClass]="{ 'custom-input-text-error' : ordenForm.controls.folioNota.errors }">
+            <app-form-error-label [control]="ordenForm.controls.folioNota"></app-form-error-label>
+          </div>
+
+          <div>
+            <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Kilómetros</label>
+            <input type="text" formControlName="kilometros" class="custom-input-text w-full" [ngClass]="{ 'custom-input-text-error' : ordenForm.controls.kilometros.errors }">
+            <app-form-error-label [control]="ordenForm.controls.kilometros"></app-form-error-label>
+          </div>
+
+        </div>
+      </div>
+
+
+      <div class="md:col-span-2 fixed bottom-0 left-0 right-0 z-20 border-t border-slate-200 bg-white/95 p-3 shadow-2xl dark:border-slate-700 dark:bg-slate-900/95 md:static md:border-0 md:bg-transparent md:p-0 md:shadow-none">
+        <div class="mx-auto flex max-w-6xl items-center justify-between gap-2">
+          <button
+            type="button"
+            (click)="prevStep()"
+            [disabled]="currentStep() === 1"
+            class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:text-slate-200"
+          >
+            Anterior
+          </button>
+
+          @if (currentStep() < totalSteps) {
+            <button
+              type="button"
+              (click)="nextStep()"
+              class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+            >
+              Siguiente
+            </button>
+          } @else {
+            <button
+              type="submit"
+              class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+            >
+              Guardar orden
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+  </app-page-form-body>
+</form>

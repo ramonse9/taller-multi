@@ -1,0 +1,46 @@
+<div class="w-full border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+  <div class="hidden md:grid grid-cols-12 bg-gray-100 dark:bg-gray-700 p-3 text-[10px] font-bold uppercase text-gray-500">
+    <div class="col-span-1 px-2">ID</div>
+    <div class="col-span-4 px-2">Descripción</div>
+    <div class="col-span-2 px-2">Precio Venta</div>
+    <div class="col-span-3 px-2">Desc. SAT</div>
+  </div>
+
+  <div class="divide-y divide-gray-200 dark:divide-gray-600">
+    @for( servicio of servicios(); track servicio.id ){
+      <div
+          class="p-4 md:p-2 md:grid md:grid-cols-6 items-center bg-white dark:bg-gray-800  transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
+          [ngClass]="{
+            'border-blue-500': idSeleccionado() === servicio.id,
+            'border-gray-200 dark:border-gray-700': idSeleccionado() !== servicio.id
+          }"
+          (click)="seleccionarEmit(servicio.id)"
+        >
+
+        <div class="mb-2 md:mb-0 md:col-span-4 px-2">
+          <p class="text-sm font-bold text-gray-900 dark:text-white leading-tight">
+            {{ servicio.descripcion | uppercase }}
+          </p>
+        </div>
+
+        <div class="flex justify-between md:block md:col-span-2 mb-2 md:mb-0 px-2">
+          <span class="md:hidden text-xs font-bold text-gray-400 uppercase">Precio Venta:</span>
+          <app-badge-precio-venta [precioVenta]="servicio.precioVenta"></app-badge-precio-venta>
+        </div>
+
+        <div class="flex flex-col md:block md:col-span-3 px-2 border-t md:border-t-0 border-gray-100 dark:border-gray-700 pt-2 md:pt-0">
+          <span class="md:hidden text-[10px] font-bold text-gray-400 uppercase mb-1">Descripción SAT:</span>
+          <p class="text-xs text-gray-500 dark:text-gray-400 italic">
+            {{ servicio.satProductoServicio.descripcion }}
+          </p>
+        </div>
+
+      </div>
+    }
+    @empty {
+      <div class="p-8 text-center bg-white dark:bg-gray-800">
+        <app-badge-message [message]="EnumCeroRegistros.SERVICIOS"></app-badge-message>
+      </div>
+    }
+  </div>
+</div>

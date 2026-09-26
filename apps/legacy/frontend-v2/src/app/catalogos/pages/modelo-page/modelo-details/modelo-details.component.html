@@ -1,0 +1,34 @@
+<form class="p-4 min-h-[600px]" [formGroup]="modeloForm" (ngSubmit)="onSubmit()" >
+
+  <app-page-form-header [titleNew]="EnumPaginasTitulo.MODELO_NEW" [titleUpdate]="EnumPaginasTitulo.MODELO_UPDATE" [id]="modelo()?.id ?? ''" [detail]="modelo()?.nombre ?? ''" ></app-page-form-header>
+
+  <app-page-form-body>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 w-full">
+
+      <div>
+        <app-page-form-control-search-list label="Marca"
+        newOption="Seleccione la Marca"
+        [options]="marcasRXResource.value()?.marcas ?? []"
+        [id]="modelo()?.marca?.id ?? ''"
+        (optionSelected)="optionSelectedMarca($event)"
+        [controlForm]="modeloForm.get('id_marca')!"
+        >
+        </app-page-form-control-search-list>
+      </div>
+  
+      <div>
+        <app-page-form-control-input-list
+        label="Nombre del modelo"
+        [name]="modelo()?.nombre ?? ''"
+        [options]="modelosPorMarcaNombre() ?? []"
+        (inputText)="inputTextModelo($event)"
+        [controlForm]="modeloForm.get('nombre')!"
+        >
+        </app-page-form-control-input-list>
+      </div>
+    </div>
+
+  </app-page-form-body>
+
+</form>

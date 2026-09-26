@@ -1,0 +1,87 @@
+<div class="w-full @container">
+  <div class="overflow-hidden shadow-sm border border-gray-200 dark:border-gray-700 @md:rounded-lg">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-600">
+
+      <thead class="hidden @md:table-header-group bg-gray-100 dark:bg-gray-700">
+        <tr>
+          <th scope="col" class="px-4 py-3 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">ID</th>
+          <th scope="col" class="px-4 py-3 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Nombre</th>
+          <th scope="col" class="px-4 py-3 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Teléfono</th>
+          <th scope="col" class="px-4 py-3 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Email</th>
+          <th scope="col" class="px-4 py-3 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Dirección</th>
+          <th scope="col" class="px-4 py-3 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Contacto</th>
+          <th scope="col" class="px-4 py-3 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Activo</th>
+        </tr>
+      </thead>
+
+      <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+        @for( proveedor of proveedores(); track proveedor.id ){
+          <tr class="flex flex-col mb-4 p-4  border border-gray-100 dark:border-gray-700 rounded-lg @md:border-none @md:rounded-none @md:p-0 @md:mb-0 @md:table-row cursor-pointer transition-colors"
+              (click)="seleccionarEmit(proveedor.id)"
+              [ngClass]="{
+                'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 ': proveedor.id !== idSeleccionado(),
+                'bg-lightblue-600 dark:bg-lightblue-600 ': proveedor.id === idSeleccionado(),
+              }">
+            <td class="py-2 @md:p-4 text-sm text-gray-900 dark:text-white flex justify-between items-center @md:table-cell border-b border-gray-100 dark:border-gray-700 @md:border-none">
+              <span class="@md:hidden font-bold text-gray-500 uppercase text-[10px]">Id:</span>
+              <span class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs @md:bg-transparent  @md:font-normal @md:text-sm">
+                {{ proveedor.id | uppercase }}
+              </span>
+            </td>
+
+            <td class="py-2 @md:p-4 text-sm text-gray-900 dark:text-white flex justify-between items-center @md:table-cell border-b border-gray-100 dark:border-gray-700 @md:border-none">
+              <span class="@md:hidden font-bold text-gray-500 uppercase text-[10px]">Nombre:</span>
+              <div class="font-semibold @md:font-normal text-right @md:text-left">{{ proveedor.nombre | uppercase }}</div>
+            </td>
+
+            <td class="py-2 @md:p-4 text-sm text-gray-900 dark:text-white flex justify-between items-center @md:table-cell border-b border-gray-100 dark:border-gray-700 @md:border-none">
+              <span class="@md:hidden font-bold text-gray-500 uppercase text-[10px]">Teléfono:</span>
+              <div class="text-right @md:text-left">{{ proveedor.telefono || 'N/A' }}</div>
+            </td>
+
+            <td class="py-2 @md:p-4 text-sm text-gray-900 dark:text-white flex justify-between items-center @md:table-cell border-b border-gray-100 dark:border-gray-700 @md:border-none">
+              <span class="@md:hidden font-bold text-gray-500 uppercase text-[10px]">Email:</span>
+              <div class="break-all text-right @md:text-left text-xs @md:text-sm text-blue-600 dark:text-blue-400 @md:text-gray-900 @md:dark:text-white">
+                {{ proveedor.email ? (proveedor.email | uppercase) : 'N/A' }}
+              </div>
+            </td>
+
+            <td class="py-2 @md:p-4 text-sm text-gray-900 dark:text-white flex justify-between items-center @md:table-cell border-b border-gray-100 dark:border-gray-700 @md:border-none">
+              <span class="@md:hidden font-bold text-gray-500 uppercase text-[10px]">Dirección:</span>
+              <div class="truncate max-w-[200px] @md:max-w-none text-right @md:text-left text-gray-600 dark:text-gray-400 @md:text-gray-900 @md:dark:text-white">
+                {{ proveedor.direccion || 'N/A' }}
+              </div>
+            </td>
+
+            <td class="py-2 @md:p-4 text-sm text-gray-900 dark:text-white flex justify-between items-center @md:table-cell border-b border-gray-100 dark:border-gray-700 @md:border-none">
+              <span class="@md:hidden font-bold text-gray-500 uppercase text-[10px]">Contacto:</span>
+              <div class="text-right @md:text-left">{{ proveedor.contacto || 'N/A' }}</div>
+            </td>
+
+            <td class="py-2 @md:p-4 text-sm text-gray-900 dark:text-white flex justify-between items-center @md:table-cell">
+              <span class="@md:hidden font-bold text-gray-500 uppercase text-[10px]">Estado:</span>
+              <div class="flex justify-end @md:justify-start">
+                @if (proveedor.activo) {
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                    Activo
+                  </span>
+                } @else {
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                    Inactivo
+                  </span>
+                }
+              </div>
+            </td>
+
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="7" class="p-8 text-center text-gray-500 dark:text-gray-400">
+              No hay proveedores registrados
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>

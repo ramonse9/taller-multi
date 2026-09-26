@@ -1,0 +1,36 @@
+<app-drawer-base-bottom
+  [isOpen]="isOpen()"
+  [title]="idSeleccionado() ? titleEditar() : titleNuevo()"
+  (closeDrawerEmit)="closeDrawerEmit.emit()"
+>
+  @if (isOpen()) {
+
+    @if (idSeleccionado()) {
+
+      @if (resource().isLoading()) {
+        <app-cargando-detalles></app-cargando-detalles>
+      }
+
+      @else if (resource().value()) {
+
+        @if( formTemplateInformacion() ){
+          <app-drawer-id-created [entidad]="resource().value()!" [label]="labelId()"></app-drawer-id-created>
+          <ng-container *ngTemplateOutlet="formTemplateInformacion(); context: { $implicit: resource().value()! }"></ng-container>
+        }@else{
+          <app-drawer-id-created [entidad]="resource().value()!" [label]="labelId()"></app-drawer-id-created>
+
+          <ng-container *ngTemplateOutlet="formTemplateNuevo(); context: { $implicit: resource().value()! }"></ng-container>
+        }
+
+      }
+
+      @else {
+        <p class="text-gray-500 text-center py-8">No se pudo cargar la información.</p>
+      }
+
+    } @else {
+      <ng-container *ngTemplateOutlet="formTemplateNuevo(); context: { $implicit: null }"></ng-container>
+    }
+
+  }
+</app-drawer-base-bottom>

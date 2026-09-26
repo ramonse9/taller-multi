@@ -1,0 +1,75 @@
+<form class="p-2 sm:p-4 min-h-[600px] w-full" [formGroup]="compraForm" (ngSubmit)="onSubmit()">
+
+  <div class="mb-4 w-full overflow-hidden">
+    <app-page-form-header [titleNew]="EnumPaginasTitulo.COMPRA_NEW" [titleUpdate]="EnumPaginasTitulo.COMPRA_UPDATE" [id]="compra()?.id ?? ''" detail="" subdetail=""  ></app-page-form-header>
+  </div>
+
+  <app-page-form-body>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 w-full">
+
+      <div>
+
+        <app-page-form-control-search-table-generica-simple
+          #pageFormControlSearchTableGenericaProveedor
+          label="Proveedor"
+          optionPlaceholder="Seleccione el Proveedor"
+          (searchText)="filtrarProveedor($event)"
+          [optionSelectedValue]="optionSelectedProveedorValue()"
+          >
+            <app-proveedores-busqueda-table [proveedores]="proveedoresRXResource.value()?.proveedores ?? [] " (proveedorSelected)="optionSelectedProveedor($event)" ></app-proveedores-busqueda-table>
+        </app-page-form-control-search-table-generica-simple>
+
+      </div>
+
+      <!--
+      <div>
+        <label class="block mb-2 text-sm font-medium text-slate-800 dark:text-white">Observaciones</label>
+        <textarea id="observaciones" formControlName="observaciones" rows="4" class="custom-input-text"
+          [ngClass]="{ 'custom-input-text-error' : compraForm.controls.observaciones.errors }"
+        ></textarea>
+        <app-form-error-label [control]="compraForm.controls.observaciones"></app-form-error-label>
+      </div>
+      -->
+
+    </div>
+
+    <section class="col-span-1 lg:col-span-2 my-5">
+
+      <div class="flex justify-between pb-2">
+        <div class="flex items-center">
+          <h2 class="text-xl font-semibold text-slate-800 dark:text-white pr-2">Productos</h2>
+
+          <app-page-form-control-search-table-generica-simple
+            #pageFormControlSearchTableGenericaNewDetalles
+            label="Producto"
+            optionPlaceholder="Agregar"
+            [plusButton]="true"
+            (searchText)="filtrarProducto($event)"
+            >
+              <app-productos-busqueda-table [productos]="productosRXResource.value()?.productos ?? [] " (productoSelected)="optionSelectedProducto($event)" ></app-productos-busqueda-table>
+          </app-page-form-control-search-table-generica-simple>
+        </div>
+
+        @if( compra() ){
+          <div>
+            <button type="button" (click)="onUpdateDetalles()" class="text-white bg-lightblue-600 hover:bg-lightblue-500 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-darkblue-600 dark:hover:bg-darkblue-500 cursor-pointer ">
+              Guardar Detalles
+            </button>
+          </div>
+        }
+
+      </div>
+
+      <div>
+        <app-compras-productos-table
+          [detalles]="detallesFormArray"
+          (removeDetalle)="removeDetalle($event)">
+        </app-compras-productos-table>
+      </div>
+
+    </section>
+
+  </app-page-form-body>
+
+</form>

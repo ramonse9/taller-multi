@@ -1,0 +1,92 @@
+<div class="p-4 bg-white-2 border-b border-gray-200 dark:bg-gray-900 dark:border-gray-700">
+  <div class="flex items-center justify-between w-full">
+
+    <div class="flex-shrink-0">
+      <app-page-button-inicio></app-page-button-inicio>
+    </div>
+
+    <div class="flex-grow text-center">
+      <h1 class="text-xl font-semibold text-gray-900 sm:text-2xl dark:text-white">
+        CATÁLOGOS | Empresas: {{ empresasRXResource.value()?.totalItems }}
+      </h1>
+    </div>
+
+  </div>
+
+  <div class="mt-4">
+    <app-busqueda-general
+      placeholder="Buscar Empresas..."
+      nuevaEntidad="Nueva Empresa"
+      (idNuevoEmit)="idNuevo()"
+      (filtrarBusquedaEmit)="filtrar($event)"
+      [opcionCards]="true"
+      (mostrarCardsEmit)="mostrarCards($event)"
+    ></app-busqueda-general>
+  </div>
+</div>
+
+@if(empresasRXResource.value()){
+
+  <div class="relative">
+
+    @if (soloCards()) {
+      <div class="relative" [@fadeAnimation]>
+        <app-cards-container
+          [listado]="empresasRXResource.value()?.empresas ?? []"
+          [idSeleccionado]="idSeleccionado()"
+          [cardTemplate]="card"
+          [listMode]="true"
+        >
+          <app-badge-message slot="empty-message" [message]="EnumCeroRegistros.CLIENTES" ></app-badge-message>
+        </app-cards-container>
+      </div>
+    } @else {
+      <div class="relative overflow-x-auto" [@fadeAnimation]>
+        <app-empresas-table
+          [empresas]="empresasRXResource.value()?.empresas ?? []"
+          (idSeleccionarEmit)="idSeleccionar($event)"
+          [idSeleccionado]="idSeleccionado()"
+        >
+        </app-empresas-table>
+      </div>
+    }
+
+    <ng-template #card let-empresa let-idSeleccionado="seleccionado">
+      <app-card-empresa
+        class="h-full"
+        [empresa]="empresa"
+        [seleccionado]="idSeleccionado"
+        (click)="idSeleccionar(empresa.id)"
+      >
+      </app-card-empresa>
+    </ng-template>
+
+  </div>
+}
+
+<app-pagination
+  [pages]="empresasRXResource.value()?.totalPages ?? 0"
+  [currentPage]="paginationService.currentPage()"
+  (itemsPerPageSelected)="selectPerPageChange($event)">
+</app-pagination>
+
+<app-drawer-form-container
+  [isOpen]="isOpenDrawer()"
+  [idSeleccionado]="idSeleccionado()"
+
+  [resource]="empresaRXResource"
+
+  titleNuevo="Nueva Empresa"
+  titleEditar="Editar Empresa"
+  [formTemplateNuevo]="nuevo"
+  (closeDrawerEmit)="idDeseleccionar()"
+  labelId="Empresa"
+>
+</app-drawer-form-container>
+<ng-template #nuevo let-empresa>
+  <app-drawer-empresa-nuevo-editar
+    [empresa]="empresa"
+    (guardadoCorrectoEmit)="reload()"
+  >
+  </app-drawer-empresa-nuevo-editar>
+</ng-template>

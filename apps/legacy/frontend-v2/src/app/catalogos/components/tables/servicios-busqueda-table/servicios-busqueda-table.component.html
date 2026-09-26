@@ -1,0 +1,62 @@
+<div class="gap-4 py-4 flex flex-col">
+  @for (servicio of servicios(); track servicio.id) {
+      <!--<ng-container *ngTemplateOutlet="cardTemplate(); context: { $implicit: item, seleccionado: item.id === idSeleccionado() }"></ng-container>-->
+
+      <app-card-servicio
+        class="h-full"
+        [servicio]="servicio"
+        (click)="seleccionar(servicio)"
+      >
+      </app-card-servicio>
+      <!--[seleccionado]="idSeleccionado"-->
+
+
+  }@empty{
+    <div class="col-span-full">
+      <slot name="empty-message">
+        <p class="text-gray-500 text-center py-4">No se encontraron registros.</p>
+      </slot>
+    </div>
+  }
+</div>
+<!--<div class="w-full">
+  <div class="hidden md:grid grid-cols-4 bg-gray-100 dark:bg-gray-700 p-2 text-[10px] font-bold uppercase text-gray-500">
+    <div class="col-span-2 px-2">Descripción</div>
+    <div>Tipo</div>
+    <div class="text-right px-2">Precio de Venta</div>
+  </div>
+
+  <div class="divide-y divide-gray-100 dark:divide-gray-600">
+    @for( servicio of servicios(); track servicio.id ){
+      <div (click)="selectServicio(servicio)"
+           class="p-4 md:p-2 md:grid md:grid-cols-4 items-center hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer transition-colors">
+
+        <div class="col-span-2">
+          <p class="text-sm font-semibold text-gray-900 dark:text-white leading-tight">
+            {{servicio.descripcion | uppercase}}
+          </p>
+        </div>
+
+        <div class="flex justify-between md:contents mt-2 md:mt-0">
+          <div class="text-xs text-gray-500 dark:text-gray-400">
+            <span class="md:hidden">Tipo: </span>
+              <app-badge-simple class="uppercase"
+                  [description]="servicio.satProductoServicio.satTipoProductoServicio.tipo"
+                  [color]="calcularBadgeSimpleColor(servicio.satProductoServicio.satTipoProductoServicio.tipo)"
+                >
+              </app-badge-simple>
+          </div>
+          <div class="text-sm font-bold text-blue-600 dark:text-blue-400 md:text-right md:px-2">
+            {{servicio.costoUnitario | currency:'$ '}}
+          </div>
+        </div>
+      </div>
+    }
+    @empty {
+      <div class="p-8 text-center text-gray-500 text-sm">
+        No hay productos registrados
+      </div>
+    }
+  </div>
+</div>
+-->

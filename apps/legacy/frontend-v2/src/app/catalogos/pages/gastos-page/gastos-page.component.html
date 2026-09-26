@@ -1,0 +1,91 @@
+
+<div class="p-4 bg-white-2 border-b border-gray-200 dark:bg-gray-900 dark:border-gray-700">
+  <div class="flex items-center justify-between w-full">
+
+    <div class="flex-shrink-0">
+      <app-page-button-inicio></app-page-button-inicio>
+    </div>
+
+    <div class="flex-grow text-center">
+      <h1 class="text-xl font-semibold text-gray-900 sm:text-2xl dark:text-white">
+        CATÁLOGOS | Gastos: {{ gastosRXResource.value()?.totalItems }}
+      </h1>
+    </div>
+
+  </div>
+
+  <div class="mt-4">
+    <app-busqueda-general
+      placeholder="Buscar Gasto..."
+      nuevaEntidad="Nuevo Gasto"
+      (idNuevoEmit)="idNuevo()"
+      (filtrarBusquedaEmit)="filtrar($event)"
+      [opcionCards]="true"
+      (mostrarCardsEmit)="mostrarCards($event)"
+    ></app-busqueda-general>
+  </div>
+</div>
+
+@if(gastosRXResource.value()){
+
+  <div class="relative">
+
+    @if (soloCards()) {
+      <div class="relative" [@fadeAnimation]>
+        <app-cards-container
+          [listado]="gastosRXResource.value()?.gastos ?? []"
+          [idSeleccionado]="idSeleccionado()"
+          [cardTemplate]="card"
+          [listMode]="true"
+        >
+          <app-badge-message slot="empty-message" [message]="EnumCeroRegistros.GASTOS" ></app-badge-message>
+        </app-cards-container>
+      </div>
+    } @else {
+      <div class="relative overflow-x-auto" [@fadeAnimation]>
+        <app-gastos-table
+          [gastos]="gastosRXResource.value()?.gastos ?? []"
+          (idSeleccionarEmit)="idSeleccionar($event)"
+          [idSeleccionado]="idSeleccionado()"
+        >
+        </app-gastos-table>
+      </div>
+    }
+
+    <ng-template #card let-gasto let-idSeleccionado="seleccionado">
+      <app-card-gasto
+        class="h-full"
+        [gasto]="gasto"
+        [seleccionado]="idSeleccionado"
+        (click)="idSeleccionar(gasto.id)"
+      >
+      </app-card-gasto>
+    </ng-template>
+
+  </div>
+}
+
+<app-pagination [pages]="gastosRXResource.value()?.totalPages ?? 0" [currentPage]="paginationService.currentPage()" (itemsPerPageSelected)="selectPerPageChange($event)"></app-pagination>
+
+<app-drawer-form-container
+  [isOpen]="isOpenDrawer()"
+  [idSeleccionado]="idSeleccionado()"
+
+  [resource]="gastoRXResource"
+
+  titleNuevo="Nuevo Gasto"
+  titleEditar="Editar Gasto"
+  [formTemplateNuevo]="nuevo"
+  (closeDrawerEmit)="idDeseleccionar()"
+  labelId="Gasto"
+>
+</app-drawer-form-container>
+<ng-template #nuevo let-gasto>
+  <app-drawer-gasto-nuevo-editar
+    [gasto]="gasto"
+    (guardadoCorrectoEmit)="reload()"
+  >
+  </app-drawer-gasto-nuevo-editar>
+</ng-template>
+
+

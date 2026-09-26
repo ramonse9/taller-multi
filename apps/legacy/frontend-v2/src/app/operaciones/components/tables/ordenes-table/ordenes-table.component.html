@@ -1,0 +1,208 @@
+  <div class="inline-block align-middle">
+    <table class="min-w-full divide-y table-auto divide-gray-200 dark:divide-gray-600">
+      <thead class="bg-gray-100 dark:bg-gray-700">
+        <tr>
+          <th scope="col" class="min-w-[100px] p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+            Acciones
+          </th>
+          <th scope="col" class="min-w-[400px] p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+            Facturación
+          </th>
+          <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+            ID
+          </th>
+          <th scope="col" class="min-w-60 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+            Cliente
+          </th>
+          <th scope="col" class="min-w-60 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+            Vehiculo
+          </th>
+          <th scope="col" class="min-w-60 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+            Empresa
+          </th>
+          <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+            Estatus
+          </th>
+          <th scope="col" class="min-w-60 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+            Descripción
+          </th>
+          <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+            Fecha Ingreso
+          </th>
+          <!--<th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+            Fecha Entrega Estimada
+          </th>-->
+          <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+            Fecha Entrega Real
+          </th>
+          <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+            Kilómetros
+          </th>
+          <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+            Póliza
+          </th>
+          <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+            Siniestro
+          </th>
+        </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+        @for( orden of ordenesListado(); track orden.id ){
+          <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
+            <td class="pl-6 py-4">
+              <div class="flex items-center justify-end gap-5" >
+
+                @if( orden.estatusFactura !== EnumEstatusOrdenFactura.TIMBRADA ){
+                  <a [routerLink]="['/operaciones/ordenes/', orden.id]" title="Editar" class="flex items-center text-blue-600 hover:text-blue-500">
+                    <ng-icon class="animate-pulse" name="tablerPencil" size="2rem"></ng-icon>
+                  </a>
+                }
+
+                <app-modal-ordenes-notas-add [orden]="orden" (ordenNotasActualizada)="ordenNotasActualizada($event)"></app-modal-ordenes-notas-add>
+
+                <a [routerLink]="['/operaciones/ordenes', orden.id, 'informacion']" title="Ver completo" class="flex items-center text-blue-600 hover:text-blue-500">
+                  <ng-icon class="animate-pulse" name="tablerEye" size="2rem"></ng-icon>
+                </a>
+
+              </div>
+            </td>
+            <td class="px-3 py-3">
+              <div class="flex gap-2 rounded-lg"
+                      [ngClass]="{
+                        'bg-green-600/25': orden.liquidacionFactura,
+                        'bg-yellow-600/25': !orden.liquidacionFactura && orden.estatusFactura === EnumEstatusOrdenFactura.TIMBRADA
+                      }">
+                <div class="flex flex-col p-3">
+                  @if( orden.estatusFactura === EnumEstatusOrdenFactura.PENDIENTE ){
+                    <div>
+                      <a [routerLink]="['/facturas/facturarorden', orden.id]" title="Facturar esta Orden">
+                        <button type="button" class="px-3 py-2 text-sm font-medium text-center text-white bg-lightblue-600 rounded-lg hover:bg-lightblue-500 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-darkblue-600 dark:hover:bg-darkblue-500 dark:focus:ring-blue-800 cursor-pointer">Facturar</button>
+                      </a>
+                    </div>
+                  }
+                  @if( orden.estatusFactura === EnumEstatusOrdenFactura.TIMBRADA ){
+                    <div class="flex mt-1">
+                      <h3>
+                        @if( orden.satMetodoPago.clave == EnumSatMetodoPago.PUE_PAGO_EN_UNA_SOLA_EXHIBICION ){
+                          <app-badge-simple [description]="orden.satMetodoPago.clave" [color]="EnumBadgeSimpleColor.GREEN" ></app-badge-simple>
+                          }@else{
+                          <app-badge-simple [description]="orden.satMetodoPago.clave" [color]="EnumBadgeSimpleColor.YELLOW" ></app-badge-simple>
+                        }
+                      </h3>
+                      <h3>
+                        @if( orden.liquidacionFactura ){
+                          <app-badge-simple description="Liquidada" [color]="EnumBadgeSimpleColor.GREEN" ></app-badge-simple>
+                          }@else{
+                          <app-badge-simple description="Sin Liquidar" [color]="EnumBadgeSimpleColor.YELLOW" ></app-badge-simple>
+                        }
+                      </h3>
+                    </div>
+                  }
+                  <div class="mt-2">
+                    @for( factura of orden.facturas; track factura.id ){
+                      <div class="flex mt-1">
+                        <h3>
+                          <span class="text-gray text-sm font-medium me-2 px-2.5 py-0.5 rounded-sm dark:text-white">{{ factura.id.toUpperCase() }}</span>
+                        </h3>
+                        <h3>
+                          @if(factura.estatus == EnumEstatusCFDI.VIGENTE ){
+                            <svg class="w-6 h-6 text-green-600 bg-white rounded-full" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"/>
+                            </svg>
+                            <span class="sr-only">Check icon</span>
+                            }@else{
+                            <svg class="w-6 h-6 text-red-600 bg-white rounded-full" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 11.793a1 1 0 1 1-1.414 1.414L10 11.414l-2.293 2.293a1 1 0 0 1-1.414-1.414L8.586 10 6.293 7.707a1 1 0 0 1 1.414-1.414L10 8.586l2.293-2.293a1 1 0 0 1 1.414 1.414L11.414 10l2.293 2.293Z"/>
+                            </svg>
+                            <span class="sr-only">Error icon</span>
+                          }
+                        </h3>
+                        <h3>
+                          <span class="text-gray text-sm font-medium me-2 px-2.5 py-0.5 rounded-sm dark:text-white">{{ factura.total | currency:'$ ':'symbol':'1.2-2':'en' }}</span>
+                        </h3>
+                        <h3 class="min-w-[100px]">
+                          @if(factura.estatus == EnumEstatusCFDI.VIGENTE ){
+                            <a [routerLink]="['/facturas/cancelarfactura', factura.id]" title="Cancelar esta Factura">
+                              <button type="button" class="px-3 text-sm font-medium text-center text-white bg-red-700 rounded-lg hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-800 cursor-pointer">Cancelar</button>
+                            </a>
+                          }
+                        </h3>
+                      </div>
+                      <hr class="text-white my-1">
+                      @if( orden.satMetodoPago.clave == EnumSatMetodoPago.PPD_PAGO_EN_PARCIALIDADES_O_DIFERIDO && orden.estatusFactura === EnumEstatusOrdenFactura.TIMBRADA ){
+                        <app-list-pagos [pagos]="factura.pagos" ></app-list-pagos>
+                      }
+                    }
+                  </div>
+                  @if( orden.estatusFactura === EnumEstatusOrdenFactura.TIMBRADA && orden.satMetodoPago.clave == EnumSatMetodoPago.PPD_PAGO_EN_PARCIALIDADES_O_DIFERIDO && orden.liquidacionFactura == false ){
+                    <div class="mt-2">
+                      <a [routerLink]="['/facturas/complementopagoorden', orden.facturas[orden.facturas.length - 1].id]" title="Complemento de Pago para esta Orden">
+                        <button type="button" class="px-3 py-2 text-sm font-medium text-center text-white bg-lightblue-600s rounded-lg hover:bg-lightblue-500 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-darkblue-600 dark:hover:bg-darkblue-500 dark:focus:ring-blue-800 cursor-pointer">Complemento de Pago</button>
+                      </a>
+                    </div>
+                  }
+                </div>
+              </div>
+            </td>
+            <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+              <a [routerLink]="['/operaciones/ordenes', orden.id]" class="dark:hover:text-blue-600 hover:text-blue-600 transition-colors duration-300 cursor-pointer">
+                {{orden.id | uppercase }}
+              </a>
+            </td>
+            <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+              @if(orden.cliente){
+                <app-card-cliente [cliente]="orden.cliente" ></app-card-cliente>
+              }
+              @else{
+                <div class="dark:text-white text-slate-800">
+                  *No hay un cliente para esta Orden
+                </div>
+              }
+            </td>
+            <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+              @if(orden.vehiculo){
+                <app-card-vehiculo [vehiculo]="orden.vehiculo" ></app-card-vehiculo>
+              }
+              @else{
+                <div class="dark:text-white text-slate-800">
+                  *No hay un vehiculo para esta Orden
+                </div>
+              }
+            </td>
+            <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+              @if (orden.empresa) {
+                <app-card-empresa [empresa]="orden.empresa" ></app-card-empresa>
+              }
+              @else{
+                <div class="dark:text-white text-slate-800">
+                  *No hay un empresa para esta Orden
+                </div>
+              }
+            </td>
+            <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+              <!--<app-modal-ordenes-estatus-update [orden]="orden!" (ordenEstatusActualizadaEmit)="ordenEstatusActualizada($event)" ></app-modal-ordenes-estatus-update>-->
+              <app-dropdown-ordenes-estatus-update [orden]="orden!" (ordenEstatusActualizadaEmit)="ordenEstatusActualizada($event)" ></app-dropdown-ordenes-estatus-update>
+            </td>
+            <td class="p-4 text-base font-medium text-gray-900 whitespace-normal break-words max-h-2 overflow-y-auto dark:text-white"> <app-text-preview [limit]="60" [text]="orden.descripcion!"  ></app-text-preview> </td>
+            <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{ orden.fechaIngreso | date: 'dd/MM/yyyy' }}</td>
+            <!--
+            <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{ orden.fechaEntregaEstimada | date: 'dd/MM/yyyy' }}</td>
+            -->
+            <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{ orden.fechaEntregaReal | date: 'dd/MM/yyyy' }}</td>
+            <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{ orden.kilometros}}</td>
+            <!--
+            <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{ orden.poliza}}</td>
+            <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{ orden.siniestro}}</td>
+            -->
+          </tr>
+        }
+        @empty{
+        <tr>
+          <td colspan="15" class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+            No hay órdenes registradas
+          </td>
+        </tr>
+      }
+    </tbody>
+    </table>
+  </div>

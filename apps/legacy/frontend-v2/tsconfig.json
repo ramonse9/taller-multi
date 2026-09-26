@@ -1,0 +1,43 @@
+/* To learn more about Typescript configuration file: https://www.typescriptlang.org/docs/handbook/tsconfig-json.html. */
+/* To learn more about Angular compiler options: https://angular.dev/reference/configs/angular-compiler-options. */
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "rootDir": "./",
+    "paths": {
+      "@env/*": ["./src/environments/*"],
+      "@auth/*": ["./src/app/auth/*"],
+      "@catalogos/*": ["./src/app/catalogos/*"],
+      "@core/*": ["./src/app/core/*"],
+      "@dashboard/*": ["./src/app/dashboard/*"],
+      "@error/*": ["./src/app/error/*"],
+      "@facturas/*": ["./src/app/facturas/*"],
+      "@layouts/*": ["./src/app/layouts/*"],
+      "@operaciones/*": ["./src/app/operaciones/*"],
+      "@shared/*": ["./src/app/shared/*"],
+      "@pagos/*": ["./src/app/pagos/*"],
+      "@inicio/*": ["./src/app/inicio/*"],
+      "@inventario/*": ["./src/app/inventario/*"],
+    },
+    "outDir": "./dist/out-tsc",
+    "strict": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "experimentalDecorators": true,
+    "moduleResolution": "bundler",
+    "importHelpers": true,
+    "target": "ES2022",
+    "module": "ES2022"
+  },
+  "angularCompilerOptions": {
+    "enableI18nLegacyMessageIdFormat": false,
+    "strictInjectionParameters": true,
+    "strictInputAccessModifiers": true,
+    "strictTemplates": true
+  }
+}

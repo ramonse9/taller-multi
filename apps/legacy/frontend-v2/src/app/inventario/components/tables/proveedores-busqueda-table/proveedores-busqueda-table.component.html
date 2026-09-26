@@ -1,0 +1,59 @@
+<div class="overflow-hidden shadow-sm border border-gray-200 dark:border-gray-700 sm:rounded-lg">
+  <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-600">
+    <thead class="hidden sm:table-header-group bg-gray-100 dark:bg-gray-700">
+      <tr>
+        <th scope="col" class="px-4 py-3 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">ID</th>
+        <th scope="col" class="px-4 py-3 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Nombre</th>
+        <th scope="col" class="px-4 py-3 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Teléfono</th>
+      </tr>
+    </thead>
+
+    <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+      @for( proveedor of proveedores(); track proveedor.id ){
+        <tr class="flex flex-col mb-4 sm:table-row sm:mb-0 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+            (click)="selectProveedor(proveedor)">
+
+          <!--
+          <td class="p-4 text-sm sm:text-base text-gray-900 dark:text-white flex justify-between sm:table-cell border-b sm:border-none">
+            <span class="sm:hidden font-bold text-gray-500 uppercase text-xs self-center">Clave:</span>
+            {{satProductoServicio.clave | uppercase }}
+          </td>-->
+          <td class="p-4 text-sm sm:text-base text-gray-900 dark:text-white flex justify-between sm:table-cell">
+            <span class="sm:hidden font-bold text-gray-500 uppercase text-xs self-center">Unidad:</span>
+            {{proveedor.id | uppercase}}
+            <!--
+              <app-badge-simple class="uppercase"
+                [description]="satProductoServicio.satClaveUnidad.nombre"
+                [color]="calcularBadgeSimpleColor(satProductoServicio.satTipoProductoServicio.tipo)"
+              >
+              </app-badge-simple>-->
+          </td>
+
+          <td class="p-4 text-sm sm:text-base text-gray-900 dark:text-white flex justify-between sm:table-cell">
+            <!--<span class="sm:hidden font-bold text-gray-500 uppercase text-xs self-center">Unidad:</span>-->
+            {{proveedor.nombre}}
+            <!--
+              <app-badge-simple class="uppercase"
+                [description]="satProductoServicio.satClaveUnidad.nombre"
+                [color]="calcularBadgeSimpleColor(satProductoServicio.satTipoProductoServicio.tipo)"
+              >
+              </app-badge-simple>-->
+          </td>
+
+          <td class="p-4 text-sm sm:text-base text-gray-900 dark:text-white flex flex-col sm:table-cell border-b sm:border-none">
+            <!--<span class="sm:hidden font-bold text-gray-500 uppercase text-xs mb-1">Descripción:</span>-->
+            <div class="break-words">{{proveedor.telefono}}</div>
+          </td>
+
+        </tr>
+      }
+      @empty {
+        <tr>
+          <td colspan="3" class="p-8 text-center text-gray-500 dark:text-gray-400">
+            No hay proveedores registrados
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>

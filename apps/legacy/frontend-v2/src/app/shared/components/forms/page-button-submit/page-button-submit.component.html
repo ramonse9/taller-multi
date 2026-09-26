@@ -1,0 +1,6 @@
+<button type="submit" class="text-white bg-lightblue-600 hover:bg-lightblue-500 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-darkblue-600 dark:hover:bg-darkblue-500 cursor-pointer disabled:opacity-50 "
+      [disabled]="isLoading | async">
+  {{
+    (id() === '') ? 'Guardar' : 'Actualizar'
+  }}
+</button>

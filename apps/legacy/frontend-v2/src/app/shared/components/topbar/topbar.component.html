@@ -1,0 +1,47 @@
+<nav class="fixed z-30 w-full bg-white border-b border-gray-200 dark:bg-gray-900 dark:border-gray-700">
+  <div class="px-3 py-2 lg:px-5">
+    <div class="flex items-center justify-between gap-2">
+
+      <div class="flex items-center min-w-0">
+
+        <button (click)="toggleSidebar()" type="button"
+          class="inline-flex items-center p-2 text-sm text-gray-500 rounded-lg lg:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600 mr-2">
+          <span class="sr-only">Abrir menú</span>
+          <ng-icon name="tablerMenu2" size="1.5rem"></ng-icon>
+        </button>
+
+        <a routerLink="/inicio/accesos" class="flex items-baseline gap-1 min-w-0">
+          <span class="font-bold text-lg sm:text-2xl dark:text-white truncate">
+            {{authService.user()?.compania?.nombre}}
+          </span>
+          <span class="text-gray-500 dark:text-gray-400 text-[10px] sm:text-xs shrink-0">
+            v{{version}}
+          </span>
+        </a>
+      </div>
+
+      <div class="flex items-center gap-1 sm:gap-3 shrink-0">
+
+        <button (click)="toggleTheme()" type="button"
+          class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-sm p-2 flex items-center cursor-pointer">
+          <ng-icon [name]="isDarkMode ? 'tablerMoon' : 'tablerSun'" size="1.2rem"></ng-icon>
+        </button>
+
+        @if( authService.authStatus() === EnumAuthStatus.Authenticated ){
+
+          <div class="hidden lg:flex items-center border-l pl-3 border-gray-200 dark:border-gray-700 ml-2">
+            <span class="text-sm font-medium text-gray-600 dark:text-gray-300 max-w-[120px] truncate">
+              {{authService.user()?.fullName}}
+            </span>
+          </div>
+
+          <app-page-button-settings></app-page-button-settings>
+
+        } @else if(authService.authStatus() === EnumAuthStatus.Not_Authenticated){
+          <a routerLink="/app" class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">Login</a>
+        }
+      </div>
+
+    </div>
+  </div>
+</nav>

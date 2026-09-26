@@ -1,0 +1,184 @@
+@import "tailwindcss";
+/*@import "tailwindcss/preflight";*/
+/*@tailwind utilities;*/
+@config "../tailwind.config.js";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer components{
+  .custom-input-text{
+    @apply bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white;
+  }
+  .custom-input-text-error{
+    @apply border-lightred-600 dark:border-lightred-600;
+    /*@apply border-red-600 dark:border-red-600;*/
+    /*@apply border-red-500 dark:border-red-500;*/
+  }
+
+  /*
+  .flatpickr-calendar {
+    @apply bg-white text-gray-900 border border-gray-300;
+  }
+
+
+  .dark .flatpickr-calendar {
+    @apply bg-gray-800 text-white border-gray-600;
+  }
+
+
+  .flatpickr-day {
+    @apply text-gray-900 dark:text-white;
+  }
+
+  .flatpickr-day.selected {
+    @apply bg-indigo-500 text-white dark:bg-indigo-400;
+  }
+  */
+
+  .dark .flatpickr-calendar {
+    background-color: #1f2937 !important; /* bg-gray-800 */
+    border-color: #374151 !important; /* border-gray-700 */
+    color: #e5e7eb !important; /* text-gray-200 */
+  }
+
+  /* 🔹 Días del calendario */
+  .dark .flatpickr-day {
+    color: #e5e7eb !important; /* text-gray-200 */
+  }
+
+  .dark .flatpickr-day.prevMonthDay,
+  .dark .flatpickr-day.nextMonthDay {
+    color: #4b5563 !important; /* text-gray-200 */
+  }
+
+  .dark .flatpickr-day.today {
+    border-color: #3b82f6 !important; /* Azul Tailwind */
+  }
+
+  .dark .flatpickr-day.selected {
+    background: #2563eb !important; /* Azul Tailwind */
+    color: white !important;
+  }
+
+  .dark .flatpickr-day:hover {
+    background-color: #374151 !important; /* bg-gray-700 */
+  }
+
+  .dark .flatpickr-day.inRange {
+    background-color: transparent !important; /* bg-gray-700 */
+  }
+
+  /* 🔹 Encabezado (Mes y Año) */
+  .dark .flatpickr-months {
+    background: #111827 !important; /* bg-gray-900 */
+    color: #e5e7eb !important; /* text-gray-200 */
+  }
+
+  /* 🔹 Flechas de navegación (mes anterior y siguiente) */
+  .dark .flatpickr-prev-month svg,
+  .dark .flatpickr-next-month svg {
+    fill: #e5e7eb !important;
+  }
+
+  .dark .flatpickr-prev-month:hover svg,
+  .dark .flatpickr-next-month:hover svg {
+    fill: #3b82f6 !important; /* Azul Tailwind */
+    transition: fill 0.4s ease-in-out;
+  }
+
+  /* 🔹 Semana (Días Lunes - Domingo) */
+  .dark .flatpickr-weekday {
+    color: #9ca3af !important; /* text-gray-400 */
+  }
+
+  /* 🔹 Input del mes y año */
+  .dark .flatpickr-monthDropdown-months,
+  .dark .flatpickr-current-month input {
+    background: #111827 !important; /* bg-gray-900 */
+    color: #e5e7eb !important; /* text-gray-200 */
+  }
+
+  /* 🔹 Flechas de selección de mes y año (arrowUp y arrowDown) */
+  .dark .flatpickr-months .flatpickr-monthDropdown-months:after,
+  .dark .flatpickr-months .numInputWrapper span {
+    border-top-color: #e5e7eb !important; /* Flecha hacia arriba */
+    border-bottom-color: #e5e7eb !important; /* Flecha hacia abajo */
+    transition: border-color 0.4s ease-in-out;
+  }
+
+  .dark .numInputWrapper span.arrowUp,
+  .dark .numInputWrapper span.arrowDown {
+    border-color: #e5e7eb !important;
+    background-color: #e5e7eb !important;
+  }
+
+  .dark .numInputWrapper span:hover {
+    border-color: #ffffff !important; /* Cambia el color de las flechas a blanco */
+  }
+
+  .dark .flatpickr-hour{
+    color: #e5e7eb !important; /* text-gray-200 */
+  }
+
+  .dark .flatpickr-time-separator{
+    color: #e5e7eb !important; /* text-gray-200 */
+  }
+
+  .dark .flatpickr-minute{
+    color: #e5e7eb !important; /* text-gray-200 */
+  }
+
+  .dark .flatpickr-time{
+    color: #e5e7eb !important; /* text-gray-200 */
+  }
+
+  .dark .numInputWrapper .flatpickr-hour {
+    background-color: purple;
+  }
+
+  .dark .flatpickr-hour {
+    background-color: #111827 !important;
+  }
+
+  .dark .flatpickr-minute {
+    background: #111827 !important;
+  }
+
+
+}
+
+/*
+input[type="date"] {
+  --color: indigo;
+
+  border: 2px solid var(--color);
+  font-size: 1.1rem;
+  background: #000d;
+  color: #fff;
+  padding: 6px;
+  border-radius: 6px;
+
+  &::-webkit-datetime-edit {
+    margin-right: 0.5rem;
+  }
+
+  &::-webkit-datetime-edit-fields-wrapper {
+    background: #000;
+    border-radius: 8px;
+    padding: 4px 10px;
+  }
+
+  &::-webkit-datetime-edit-text {
+    color: cyan;
+  }
+
+  &::-webkit-datetime-edit-day-field:focus,
+  &::-webkit-datetime-edit-month-field:focus,
+  &::-webkit-datetime-edit-year-field:focus {
+    background: indigo;
+  }
+
+  &::-webkit-calendar-picker-indicator {
+    filter:invert(1);
+  }
+}
+*/

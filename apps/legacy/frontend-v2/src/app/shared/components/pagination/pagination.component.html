@@ -1,0 +1,36 @@
+<div class="flex justify-center items-center my-6 gap-6">
+
+  <div >
+    <select #selectPerPage (change)="selectPerPageChange(+selectPerPage.value)" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+      <option value="6">6</option>
+      <option value="12">12</option>
+      <option value="18">18</option>
+      <option value="24">24</option>
+    </select>
+  </div>
+
+  <nav aria-label="Page navigation example">
+    <ul class="flex items-center -space-x-px h-10 text-base">
+      @for (page of getPagesList(); track page) {
+        <li>
+          @if (page !== '...') {
+            <a
+              class="flex items-center justify-center px-4 h-10 leading-tight border cursor-pointer"
+              [ngClass]="page === activePage()
+                ? 'text-white border-blue-300 bg-lightblue-600 hover:bg-lightblue-500 dark:bg-darkblue-600 dark:hover:bg-darkblue-500 dark:text-white'
+                : 'text-gray-500 bg-white border-gray-300 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-400'"
+              [routerLink]="[]"
+              [queryParams]="{ page: page }"
+              (click)="activePage.set(+page)"
+            >
+              {{ page }}
+            </a>
+          } @else {
+            <span class="px-4 h-10 flex items-center justify-center text-gray-500 dark:text-gray-400">...</span>
+          }
+        </li>
+      }
+    </ul>
+  </nav>
+
+</div>

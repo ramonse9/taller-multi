@@ -1,0 +1,15 @@
+<div class="grid grid-cols-1 sm:grid-cols-2 xxl:grid-cols-3 gap-4 py-4">
+  @for (cliente of clientesListado(); track cliente.id) {
+    <app-card-cliente
+      class="h-full"
+      [cliente]="cliente"
+      (click)="seleccionarEmit(cliente.id)"
+      [seleccionado]="cliente.id === idSeleccionado()"
+      >
+    </app-card-cliente>
+  }@empty{
+    <div class="col-span-full">
+      <app-badge-message [message]="EnumCeroRegistros.CLIENTES"></app-badge-message>
+    </div>
+  }
+</div>

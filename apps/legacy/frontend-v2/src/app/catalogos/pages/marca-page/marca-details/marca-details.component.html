@@ -1,0 +1,30 @@
+<form class="p-4 min-h-[600px]" [formGroup]="marcaForm" (ngSubmit)="onSubmit()">
+
+  <app-page-form-header [titleNew]="EnumPaginasTitulo.MARCA_NEW" [titleUpdate]="EnumPaginasTitulo.MARCA_UPDATE" [id]="marca()?.id ?? ''" [detail]="marca()?.nombre ?? ''"></app-page-form-header>
+
+  <app-page-form-body>
+
+    <!--
+    <div>
+      <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Nombre de la marca</label>
+      <input type="text" formControlName="nombre"  autocomplete="off" class="custom-input-text"
+        [ngClass]="{ 'custom-input-text-error' : marcaForm.controls.nombre.errors }"
+      />
+      <app-form-error-label [control]="marcaForm.controls.nombre"></app-form-error-label>
+    </div>
+    -->
+
+    <div>
+      <app-page-form-control-input-list
+      label="Nombre de la marca"
+      [name]="marca()?.nombre ?? ''"
+      [options]="marcasNombre ?? []"
+      (inputText)="inputTextModelo($event)"
+      [controlForm]="marcaForm.get('nombre')!"
+      >
+      </app-page-form-control-input-list>
+    </div>
+
+  </app-page-form-body>
+
+</form>

@@ -1,0 +1,27 @@
+<div
+  class="relative flex items-center bg-slate-400 dark:bg-slate-600 text-white rounded-full px-3 py-2 w-full max-w-md select-none"
+>
+  <div
+    class="absolute top-1 bottom-1 left-1 w-[calc(50%-4px)] rounded-full bg-lightblue-600 transition-transform duration-300 ease-in-out"
+    [class.translate-x-0]="nuevo()"
+    [class.translate-x-full]="!nuevo()"
+  ></div>
+
+  <span
+    (click)="setNuevo(true)"
+    class="relative z-10 flex-1 text-center py-1 cursor-pointer text-xs sm:text-sm font-medium transition-colors duration-300"
+    [class.text-white]="nuevoLinked()"
+    [class.text-slate-200]="!nuevoLinked()"
+  >
+    Nuevo {{label()}}
+  </span>
+
+  <span
+    (click)="setNuevo(false)"
+    class="relative z-10 flex-1 text-center py-1 cursor-pointer text-xs sm:text-sm font-medium transition-colors duration-300"
+    [class.text-white]="!nuevoLinked()"
+    [class.text-slate-200]="nuevoLinked()"
+  >
+    {{label()}} Registrado
+  </span>
+</div>

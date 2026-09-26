@@ -1,0 +1,32 @@
+<div class="relative w-full">
+  <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{label()}}</label>
+
+  <input
+    type="text"
+    #inputName
+    [value]="nameInput()"
+    (input)="onInputName( inputName.value )"
+    (blur)="hideDropDown()"
+    (focus)="showDropdown()"
+    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+    [ngClass]="{'border-red-500 dark:border-red-500': errorMessage }"
+  >
+
+  @if( isDropdownVisible() ){
+    <div class="absolute top-full mt-1 z-50 bg-white rounded-lg shadow-sm w-60 dark:bg-gray-700 border border-gray-300 dark:border-gray-600">
+      <ul class="h-48 px-3 pb-3 overflow-y-auto text-sm text-gray-700 dark:text-gray-200">
+        @for( op of optionsFiltered(); track op ){
+          <li (click)="selectOption(op)"
+            class="w-full px-4 py-2 border-b border-gray-200 dark:border-gray-600 cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-500 ">
+            {{ op | uppercase}}
+          </li>
+        }
+      </ul>
+    </div>
+  }
+
+  <div class="dark:text-red-500 dark:text-xs">
+    {{errorMessage}}
+  </div>
+
+</div>

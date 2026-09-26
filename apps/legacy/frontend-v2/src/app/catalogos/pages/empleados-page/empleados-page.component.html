@@ -1,0 +1,72 @@
+<div class="p-4 bg-white-2 border-b border-gray-200 dark:bg-gray-900 dark:border-gray-700">
+  <div class="flex items-center justify-between w-full">
+
+    <div class="flex-shrink-0">
+      <app-page-button-inicio></app-page-button-inicio>
+    </div>
+
+    <div class="flex-grow text-center">
+      <h1 class="text-xl font-semibold text-gray-900 sm:text-2xl dark:text-white">
+        CATÁLOGOS | Empleados: {{ empleadosRXResource.value()?.totalItems }}
+      </h1>
+    </div>
+
+  </div>
+
+  <div class="mt-4">
+    <app-busqueda-general
+      placeholder="Buscar por Nombre..."
+      nuevaEntidad="Nuevo Empleado"
+      (idNuevoEmit)="idNuevo()"
+      (filtrarBusquedaEmit)="filtrar($event)"
+      [opcionCards]="false"
+      (mostrarCardsEmit)="mostrarCards($event)"
+    ></app-busqueda-general>
+  </div>
+</div>
+
+<app-cards-container
+  [listado]="empleadosRXResource.value()?.empleados ?? []"
+  [idSeleccionado]="idSeleccionado()"
+  [cardTemplate]="card"
+  [listMode]="true"
+>
+  <app-badge-message slot="empty-message" [message]="EnumCeroRegistros.EMPLEADOS" ></app-badge-message>
+</app-cards-container>
+
+<ng-template #card let-empleado let-idSeleccionado="seleccionado">
+  <app-card-empleado
+    class="h-full"
+    [empleado]="empleado"
+    [seleccionado]="idSeleccionado"
+    (click)="idSeleccionar(empleado.id)"
+  >
+  </app-card-empleado>
+</ng-template>
+
+<app-pagination
+  [pages]="empleadosRXResource.value()?.totalPages ?? 0"
+  [currentPage]="paginationService.currentPage()"
+  (itemsPerPageSelected)="selectPerPageChange($event)">
+</app-pagination>
+
+<app-drawer-form-container
+  [isOpen]="isOpenDrawer()"
+  [idSeleccionado]="idSeleccionado()"
+
+  [resource]="empleadoRXResource"
+
+  titleNuevo="Nuevo Empleado"
+  titleEditar="Editar Empleado"
+  [formTemplateNuevo]="nuevo"
+  (closeDrawerEmit)="idDeseleccionar()"
+  labelId="Empleado"
+>
+</app-drawer-form-container>
+<ng-template #nuevo let-empleado>
+  <app-drawer-empleado-nuevo-editar
+    [empleado]="empleado"
+    (guardadoCorrectoEmit)="reload()"
+  >
+  </app-drawer-empleado-nuevo-editar>
+</ng-template>

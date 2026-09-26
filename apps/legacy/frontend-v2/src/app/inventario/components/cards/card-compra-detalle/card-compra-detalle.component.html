@@ -1,0 +1,144 @@
+<div
+    class="bg-gray-50 dark:bg-gray-800 relative border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 flex flex-col overflow-hidden"
+    >
+    <!--[ngClass]="bgColor"-->
+
+    <div class="flex justify-between p-4 border-b border-gray-100 dark:border-gray-700">
+      <div class="flex items-center gap-2">
+        <span class="p-2 bg-blue-600 rounded-lg">
+          <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        </span>
+        <div>
+          <p class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase leading-none">Folio Compra</p>
+          <p class="font-black text-lg sm:text-lg text-slate-600 dark:text-slate-100">
+            {{ compra().id | uppercase }}
+          </p>
+          <div class="text-[10px] text-gray-400 dark:text-gray-500 font-medium">
+            Creada: {{ compra().createdAt | date: 'dd/MM/yyyy' }}
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="flex justify-between p-4 border-b border-gray-100 dark:border-gray-700">
+
+      <div class="flex flex-col items-center gap-1">
+
+        <div class="p-4 space-y-4 flex-grow text-white">
+          <div class="space-y-2 flex justify-between gap-1">
+            <div class="flex-1">
+              <p class="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest">Proveedor</p>
+              <div>
+                <p class="font-black text-lg sm:text-lg text-slate-600 dark:text-slate-100">
+                  {{ compra().proveedor.nombre | uppercase }}
+                </p>
+                <div class="text-[10px] text-gray-400 dark:text-gray-500 font-medium">
+                  ID: {{ compra().proveedor.id | uppercase}}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+      <div class="space-y-2">
+        <p class="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest">Estatus</p>
+      </div>
+
+      <div class="flex flex-col items-center gap-1 mb-2 ">
+        <app-estatus-badge [categoria]="EnumCategoria.COMPRAS" [clave]="compraLinked().estatus" ></app-estatus-badge>
+        @if(compraLinked().estatus === EnumEstatusCompra.CONFIRMADA){
+          <p class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase leading-none">{{compraLinked().fechaConfirmacion | date: 'dd/MMMM/yyyy' }} | {{compraLinked().usuarioConfirmacion.fullName}}</p>
+        }@else if(compraLinked().estatus === EnumEstatusCompra.BORRADOR){
+          <p class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase leading-none">{{compraLinked().fechaBorrador | date: 'dd/MMMM/yyyy' }} | {{compraLinked().usuarioBorrador.fullName}}</p>
+        }@else if(compraLinked().estatus === EnumEstatusCompra.CANCELADA){
+          <p class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase leading-none">{{compraLinked().fechaCancelacion | date: 'dd/MMMM/yyyy' }} | {{compraLinked().usuarioCancelacion.fullName}}</p>
+        }
+      </div>
+
+      <div class="flex flex-col items-center justify-center sm:flex-row w-full gap-1">
+
+        <!-- Botón Cancelar -->
+        @if( compraLinked().estatus === EnumEstatusCompra.BORRADOR ) {
+          <button
+            type="button"
+            (click)="onCancelarCompra()"
+            class="w-full sm:w-auto flex items-center justify-center gap-1 px-4 py-2 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow-md transition-colors">
+            <ng-icon name="tablerX" size="1rem"></ng-icon>
+            Cancelar Compra
+          </button>
+
+          <!-- Botón Confirmar -->
+          <button
+            type="button"
+            (click)="onConfirmarCompra()"
+            class="w-full sm:w-auto flex items-center justify-center gap-1 px-4 py-2 text-sm font-bold text-white bg-green-600 hover:bg-green-700 rounded-lg shadow-md transition-colors">
+            <ng-icon name="tablerCheck" size="1rem"></ng-icon>
+            Confirmar Compra
+          </button>
+        }
+
+      </div>
+
+    </div>
+
+    <!--PRODUCTOS-->
+    <section class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+      <div class="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-center gap-3 text-blue-600">
+          <ng-icon name="tablerListCheck" size="1.3rem"></ng-icon>
+          <h3 class="font-bold text-base sm:text-lg uppercase tracking-tight dark:text-white">Productos</h3>
+        </div>
+
+        <!--
+        <div class="flex items-center bg-slate-50 dark:bg-slate-800/50 p-1.5 rounded-full px-4 self-start sm:self-auto">
+          <span class="text-[10px] sm:text-xs font-bold uppercase">
+            {{ compraLinked().detalles.length }} Items
+          </span>
+        </div>-->
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead class="bg-slate-50 dark:bg-slate-800/50">
+            <tr>
+              <th class="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Descripción</th>
+              <th class="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Cantidad</th>
+              <th class="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Costo Unitario</th>
+              <th class="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Total</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+            @for( detalle of compraLinked().detalles; track detalle.producto.id ){
+              <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                <td class="px-6 py-4">
+                  <p class="text-lg font-bold dark:text-slate-200">{{detalle.producto.descripcion}}</p>
+                </td>
+                <td class="px-6 py-4 text-lg font-bold text-right dark:text-slate-200">{{detalle.cantidad | number:'1.0-0'}}</td>
+                <td class="px-6 py-4 text-lg font-bold text-right dark:text-slate-200">{{detalle.costoUnitario | currency:'$ '}}</td>
+                <td class="px-6 py-4 text-lg font-bold text-right dark:text-slate-200">{{(detalle.cantidad * detalle.costoUnitario) | currency:'$ '}}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="bg-slate-50 dark:bg-slate-800/50 px-4 sm:px-6 py-4 flex justify-between items-center border-t border-slate-100 dark:border-slate-800">
+        <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Importe</span>
+        <span class="text-lg sm:text-xl font-black text-blue-600 dark:text-blue-400">
+          {{ subtotalCotizacion | currency:'$ ' }}
+        </span>
+      </div>
+    </section>
+
+    <div class="flex justify-between p-4 border-b border-gray-100 dark:border-gray-700">
+
+</div>
+@if(modalOpen()){
+  <app-modal-compra-estatus-update [idCompra]="compraLinked().id" [estatus]="compraLinked().estatus" [nuevoEstatus]="nuevoEstatus()" (onCloseEmit)="cerrarModal($event)" ></app-modal-compra-estatus-update>
+}

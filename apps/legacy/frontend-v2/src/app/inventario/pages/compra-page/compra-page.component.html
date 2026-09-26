@@ -1,0 +1,13 @@
+@if( compraRXResource.isLoading()){
+  <app-spinner></app-spinner>
+}
+
+@if( compraRXResource.hasValue() ){
+  @if( modo() === 'informacion' ){
+    <app-compra-informacion-page [compra]="compraRXResource.value()!"></app-compra-informacion-page>
+  }
+  @else{
+    <app-compra-details [compra]="compraRXResource.value()" ></app-compra-details>
+  }
+
+}

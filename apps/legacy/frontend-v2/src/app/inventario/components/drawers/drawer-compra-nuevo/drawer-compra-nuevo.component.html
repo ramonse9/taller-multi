@@ -1,0 +1,86 @@
+
+<form [formGroup]="compraForm" (ngSubmit)="onSubmit()" class="flex flex-col gap-4">
+
+  <div>
+
+    <app-page-form-control-search-table-generica-simple-drawer
+      #pageFormControlSearchTableGenericaSimpleDrawerProveedor
+      label="Proveedor"
+      optionPlaceholder="Seleccione el Proveedor"
+      (searchTextEmit)="filtrarProveedor($event)"
+      [optionSelectedValue]="optionSelectedProveedorValue()"
+      >
+        <app-proveedores-busqueda-table [proveedores]="proveedoresRXResource.value()?.proveedores ?? [] " (proveedorSelected)="optionSelectedProveedor($event)" ></app-proveedores-busqueda-table>
+    </app-page-form-control-search-table-generica-simple-drawer>
+
+  </div>
+
+  @if( compraForm.get('id_proveedor')?.value ){
+    <div class="flex justify-between pb-2">
+      <div class="flex items-center">
+        <h2 class="text-xl font-semibold text-slate-800 dark:text-white pr-2">Productos</h2>
+        <app-page-form-control-search-table-generica-simple-drawer
+          #pageFormControlSearchTableGenericaSimpleDrawerProductos
+          label="Producto"
+          optionPlaceholder="Agregar"
+          [plusButton]="true"
+          (searchTextEmit)="filtrarProducto($event)"
+          [optionSelectedValue]="detallesFormArray.length > 0 ? 'optionSelected':null"
+          >
+
+            <!--<app-productos-busqueda-table [productos]="productosRXResource.value()?.productos ?? [] " (productoSelected)="optionSelectedProducto($event)" ></app-productos-busqueda-table>-->
+
+            <div>
+              <app-cards-container
+                [listado]="productosRXResource.value()?.productos ?? []"
+                [cardTemplate]="card"
+                [listMode]="true"
+              >
+                <app-badge-message slot="empty-message" [message]="EnumCeroRegistros.PRODUCTOS" ></app-badge-message>
+              </app-cards-container>
+            </div>
+
+          <ng-template #card let-producto let-idSeleccionado="seleccionado">
+            <app-card-producto
+              class="h-full"
+              [producto]="producto"
+              [seleccionado]="idSeleccionado"
+              (click)="optionSelectedProducto(producto)"
+            >
+            </app-card-producto>
+          </ng-template>
+
+        </app-page-form-control-search-table-generica-simple-drawer>
+      </div>
+
+      @if( compra() ){
+        <div>
+          <button type="button" (click)="onUpdateDetalles()" class="text-white bg-lightblue-600 hover:bg-lightblue-500 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-darkblue-600 dark:hover:bg-darkblue-500 cursor-pointer ">
+            Guardar Detalles
+          </button>
+        </div>
+      }
+
+    </div>
+  }
+
+
+  <div>
+    <app-compras-productos-table
+      [detalles]="detallesFormArray"
+      (removeDetalle)="removeDetalle($event)">
+    </app-compras-productos-table>
+  </div>
+
+  <div class="flex justify-center py-3">
+    <button type="submit" class="text-white bg-lightblue-600 hover:bg-lightblue-500 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-darkblue-600 dark:hover:bg-darkblue-500 cursor-pointer disabled:opacity-50 transition-all duration-500 ease-in-out"
+        [disabled]="isLoading | async"
+        [ngClass]="{
+          'opacity-100 scale-100 pointer-events-auto': compraForm.valid,
+          'opacity-0 scale-95 pointer-events-none': !compraForm.valid
+        }">
+        Guardar
+    </button>
+  </div>
+
+</form>

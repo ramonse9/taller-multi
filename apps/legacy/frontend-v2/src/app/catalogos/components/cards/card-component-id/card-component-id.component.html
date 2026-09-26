@@ -1,0 +1,15 @@
+<div class="flex items-center gap-2">
+  <span class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center">
+    <ng-icon name="tablerHash" size="1.4rem">
+    </ng-icon>
+  </span>
+  <div>
+    <p class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase leading-none">Folio {{label()}}</p>
+    <p class="font-black text-lg sm:text-lg text-slate-600 dark:text-slate-100">
+      {{ entidad().id | uppercase }}
+    </p>
+    <div class="text-[10px] text-gray-400 dark:text-gray-500 font-medium">
+      Creada: {{ entidad().createdAt | date: 'dd/MM/yyyy' }}
+    </div>
+  </div>
+</div>

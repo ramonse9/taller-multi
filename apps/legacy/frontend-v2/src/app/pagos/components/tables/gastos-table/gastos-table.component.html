@@ -1,0 +1,39 @@
+<div class="inline-block align-middle">
+  <table class="min-w-full divide-y table-auto divide-gray-200 dark:divide-gray-600">
+      <thead class="bg-gray-100 dark:bg-gray-700">
+          <tr>
+              <th scope="col" class="min-w-10 p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                  Id
+              </th>
+              <th scope="col" class="min-w-96 p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                  Nombre
+              </th>
+              <th scope="col" class="min-w-96 p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                  Categoría
+              </th>
+          </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+          @for( gasto of gastos(); track gasto.id ){
+            <tr class="hover:bg-gray-100 dark:hover:bg-gray-700"
+              [ngClass]="{
+                  'border-blue-500': idSeleccionado() === gasto.id,
+                  'border-gray-200 dark:border-gray-700': idSeleccionado() !== gasto.id
+                }"
+                (click)="seleccionarEmit(gasto.id)"
+              >
+              <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white"> {{ gasto.id | uppercase }} </td>
+              <td class="p-4 text-base font-medium text-gray-900 break-words dark:text-white"> {{ gasto.nombre | uppercase}} </td>
+              <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{gasto.gastoCategoria.nombre | uppercase}} </td>
+          </tr>
+          }
+          @empty{
+            <tr>
+              <td colspan="5" class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                No hay gastos registrados
+              </td>
+            </tr>
+          }
+      </tbody>
+  </table>
+</div>

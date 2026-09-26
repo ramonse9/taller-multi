@@ -1,0 +1,7 @@
+<span class="text-md font-medium px-2.5 py-0.5 rounded-sm text-white dark:text-white"
+  [ngClass]="{
+    'bg-blue-600 dark:bg-blue-600': tipoProductoServicio() === 'producto',
+    'bg-orange-600 dark:bg-orange-600': tipoProductoServicio() !== 'producto'
+  }">
+    {{ tipoProductoServicio() === 'producto' ? 'Producto' : 'Servicio' }}
+</span>

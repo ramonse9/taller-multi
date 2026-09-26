@@ -1,0 +1,9 @@
+
+@if( marcaRXResource.isLoading()){
+  <app-spinner></app-spinner>
+}
+
+@if( marcaRXResource.hasValue() ){
+  <app-marca-details [marca]="marcaRXResource.value()" ></app-marca-details>
+}
+

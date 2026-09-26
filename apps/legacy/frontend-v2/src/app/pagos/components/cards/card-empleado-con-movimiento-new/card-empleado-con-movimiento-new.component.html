@@ -1,0 +1,214 @@
+<div
+    class="bg-gray-50 dark:bg-gray-800 relative border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300
+    flex flex-col lg:flex-row items-stretch overflow-hidden"
+      [ngClass]="{
+        'border-blue-500': mostrarFormulario,
+        'border-gray-200 dark:border-gray-700': !mostrarFormulario
+      }"
+    >
+
+  <div class="flex justify-between items-center p-4 border-b border-gray-100 dark:border-gray-700 flex-1">
+
+    <div class="flex items-center gap-3">
+        <span class="p-1.5 bg-indigo-600 rounded-lg flex items-center text-white dark:text-white">
+            <ng-icon name="tablerUserCircle" size="1.3rem"></ng-icon>
+        </span>
+        <div>
+            <div class="flex items-center gap-2 text-[10px] text-gray-500 dark:text-gray-400">
+              <span class="flex items-center gap-1">
+                <p class="text-xs text-slate-500 dark:text-slate-400">{{ periodo().nombre }}</p>
+              </span>
+            </div>
+
+            <p class="text-lg font-semibold text-gray-900 dark:text-white">
+                {{ empleado().nombre }}
+            </p>
+
+            <span class="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 uppercase">{{ periodo().fechaInicio | date: 'dd/MMMM/yyyy' }} • {{ periodo().fechaFin | date: 'dd/MMMM/yyyy' }}</span>
+
+
+        </div>
+    </div>
+
+    <div
+      class="flex flex-col justify-center items-center px-4 py-2 rounded-lg text-center sm:text-right border self-stretch"
+      [ngClass]="{
+        'bg-green-100 dark:bg-green-900/30 border-green-500': pagado(),
+        'bg-yellow-100 dark:bg-red-600/30 border-red-500': !pagado()
+      }"
+    >
+      <div class="text-[10px] uppercase font-medium text-gray-500 dark:text-gray-400">
+        {{ pagado() ? 'Pagado' : 'Sin Pagar' }}
+      </div>
+      <div class="text-2xl font-bold text-gray-800 dark:text-white">
+        {{ totalPagado() | currency:'$ ':'symbol':'1.2-2':'en' }}
+      </div>
+    </div>
+
+  </div>
+
+  <div class="flex justify-center p-4 border-b border-gray-100 dark:border-gray-700 flex-1">
+
+    @if( !pagado() ){
+
+        <div class="flex justify-between p-2 mx-2 bg-gray-100 dark:bg-gray-700/50 rounded-lg gap-4">
+
+            <span class="flex flex-col">
+                <span class="text-xs font-medium text-gray-600 dark:text-gray-300">Salario Base</span>
+                <span class="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                    {{ empleado().salarioBase | currency:'$ ':'symbol':'1.2-2':'en' }}
+                </span>
+            </span>
+
+            <button (click)="pagar()" type="button" class="flex items-center text-white bg-blue-700 box-border border border-transparent hover:bg-brand-strong shadow-xs font-medium leading-5 rounded-lg text-sm px-4 py-2.5">
+                <ng-icon name="tablerCurrencyDollar" size="1.2rem"></ng-icon>
+                Pagar
+            </button>
+
+        </div>
+    }
+
+  </div>
+
+    <!--
+    <div class="px-4 pb-2 border-b border-gray-100 dark:border-gray-700">
+        <span class="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 uppercase">{{ periodo().fechaInicio | date: 'dd/MMMM/yyyy' }} • {{ periodo().fechaFin | date: 'dd/MMMM/yyyy' }}</span>
+    </div>-->
+
+                      <!--
+                      @if( !pagado() ){
+
+                          <div class="flex justify-between p-2 mx-2 my-4 bg-gray-100 dark:bg-gray-700/50 rounded-lg">
+
+                              <span class="flex flex-col">
+                                  <span class="text-xs font-medium text-gray-600 dark:text-gray-300">Salario Base</span>
+                                  <span class="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                                      {{ empleado().salarioBase | currency:'$ ':'symbol':'1.2-2':'en' }}
+                                  </span>
+                              </span>
+
+                              <button (click)="pagar()" type="button" class="flex items-center text-white bg-blue-700 box-border border border-transparent hover:bg-brand-strong shadow-xs font-medium leading-5 rounded-lg text-sm px-4 py-2.5">
+                                  <ng-icon name="tablerCurrencyDollar" size="1.2rem"></ng-icon>
+                                  Pagar
+                              </button>
+
+                          </div>
+                      }-->
+
+    <!-- Botón para agregar concepto -->
+     <!--
+    <div class="p-4 border-t border-gray-100 dark:border-gray-700">
+        <button
+            (click)="toggleFormulario()"
+            class="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:text-indigo-400 dark:bg-indigo-900/20 dark:hover:bg-indigo-900/30 rounded-lg transition-colors duration-200"
+        >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+            </svg>
+            <span>{{ mostrarFormulario ? 'Cancelar' : 'Agregar concepto a nómina' }}</span>
+        </button>
+
+            <form
+                [@formularioAnim]="mostrarFormulario ? 'visible' : 'hidden'"
+                [formGroup]="conceptoForm" (ngSubmit)="onSubmit()" class="mt-4 space-y-4">
+
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Concepto
+                    </label>
+                    <input
+                        type="text"
+                        formControlName="concepto"
+                        placeholder="Ej: ISR, Seguro Social, Bono"
+                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        [class.border-red-500]="conceptoForm.get('concepto')?.invalid && conceptoForm.get('concepto')?.touched"
+                    >
+                    @if (conceptoForm.get('concepto')?.invalid && conceptoForm.get('concepto')?.touched) {
+                        <p class="mt-1 text-xs text-red-600 dark:text-red-400">
+                            El concepto es requerido
+                        </p>
+                    }
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Tipo
+                    </label>
+                    <select
+                        formControlName="tipo"
+                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        [class.border-red-500]="conceptoForm.get('tipo')?.invalid && conceptoForm.get('tipo')?.touched"
+                    >
+                        <option value="PERCEPCION">Percepción</option>
+                        <option value="DEDUCCION">Deducción</option>
+                    </select>
+                    @if (conceptoForm.get('tipo')?.invalid && conceptoForm.get('tipo')?.touched) {
+                        <p class="mt-1 text-xs text-red-600 dark:text-red-400">
+                            El tipo es requerido
+                        </p>
+                    }
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Monto
+                    </label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-2 text-gray-500 dark:text-gray-400">$</span>
+                        <input
+                            type="number"
+                            formControlName="monto"
+                            step="0.01"
+                            min="0.01"
+                            placeholder="0.00"
+                            class="w-full pl-7 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                            [class.border-red-500]="conceptoForm.get('monto')?.invalid && conceptoForm.get('monto')?.touched"
+                        >
+                    </div>
+                    @if (conceptoForm.get('monto')?.invalid && conceptoForm.get('monto')?.touched) {
+                        <p class="mt-1 text-xs text-red-600 dark:text-red-400">
+                            @if (conceptoForm.get('monto')?.errors?.['required']) {
+                                El monto es requerido
+                            } @else if (conceptoForm.get('monto')?.errors?.['min']) {
+                                El monto debe ser mayor a 0
+                            }
+                        </p>
+                    }
+                </div>
+
+                <div class="flex gap-2">
+                    <button
+                        type="submit"
+                        [disabled]="conceptoForm.invalid"
+                        class="flex-1 px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors duration-200"
+                    >
+                        Agregar concepto
+                    </button>
+                    <button
+                        type="button"
+                        (click)="toggleFormulario()"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 dark:text-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-lg transition-colors duration-200"
+                    >
+                        Cancelar
+                    </button>
+                </div>
+            </form>
+    </div>
+    -->
+
+                      <!--
+                      <div class="mt-auto p-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 flex justify-end">
+                          <div class="gap-3">
+                              @if (empleado().activo) {
+                                  <span class="px-2 py-0.5 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-full text-[10px] font-medium">
+                                      Activo
+                                  </span>
+                              } @else {
+                                  <span class="px-2 py-0.5 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-full text-[10px] font-medium">
+                                      Inactivo
+                                  </span>
+                              }
+                          </div>
+                      </div>-->
+
+</div>

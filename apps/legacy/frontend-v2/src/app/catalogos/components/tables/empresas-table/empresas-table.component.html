@@ -1,0 +1,72 @@
+<div class="inline-block align-middle">
+  <table class="min-w-full divide-y table-auto divide-gray-200 dark:divide-gray-600">
+      <thead class="bg-gray-100 dark:bg-gray-700">
+          <tr>
+              <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                  ID
+              </th>
+              <th scope="col" class="min-w-60 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                Nombre
+              </th>
+              <th scope="col" class="min-w-60 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                Teléfono
+              </th>
+              <th scope="col" class="min-w-60 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                Email
+              </th>
+               <th scope="col" class="min-w-40 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                RFC
+              </th>
+              <th scope="col" class="min-w-60 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                Razón Social
+              </th>
+              <th scope="col" class="min-w-28 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                Regimen Fiscal
+              </th>
+              <th scope="col" class="min-w-28 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                Uso CFDI
+              </th>
+              <th scope="col" class="min-w-32 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                Codigo Postal
+              </th>
+              <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                Fecha Registro
+              </th>
+          </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+          @for( empresa of empresas(); track empresa.id ){
+            <tr class="hover:bg-gray-100 dark:hover:bg-gray-700"
+              [ngClass]="{
+                  'border-blue-500': idSeleccionado() === empresa.id,
+                  'border-gray-200 dark:border-gray-700': idSeleccionado() !== empresa.id
+                }"
+                (click)="seleccionarEmit(empresa.id)"
+              >
+              <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                {{empresa.id | uppercase }}
+              </td>
+              <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{empresa.nombre | uppercase}}</td>
+              <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{empresa.telefono | uppercase}} </td>
+              <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{empresa.email | uppercase}}</td>
+              <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{empresa.rfc | uppercase}}</td>
+              <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{empresa.razonSocial | uppercase}}</td>
+              <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{ getRegimenFiscalLabel( empresa ) }}</td>
+              <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{ getUsoCFDILabel( empresa ) }}</td>
+              <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{empresa.codigoPostal | uppercase}}</td>
+              <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{empresa.createdAt | date: 'dd/MM/yyyy' }}</td>
+          </tr>
+          }
+          @empty{
+            <tr>
+              <td colspan="11" class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                <app-badge-message [message]="EnumCeroRegistros.EMPRESAS"  ></app-badge-message>
+              </td>
+            </tr>
+          }
+      </tbody>
+  </table>
+</div>
+
+
+

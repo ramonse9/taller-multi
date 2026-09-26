@@ -1,0 +1,78 @@
+<div class="inline-block align-middle">
+  <table class="min-w-full divide-y table-auto divide-gray-200 dark:divide-gray-600">
+    <thead class="bg-gray-100 dark:bg-gray-700">
+      <tr>
+        <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          ID
+        </th>
+        <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          Fecha Compra
+        </th>
+        <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          Proveedor
+        </th>
+        <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          Estatus
+        </th>
+        <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          Productos
+        </th>
+      </tr>
+    </thead>
+    <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+      @for( compra of comprasListado(); track compra.id ){
+        <tr
+          class="hover:bg-gray-100 dark:hover:bg-gray-700 align-top"
+          [ngClass]="{
+            'border-blue-500': idSeleccionado() === compra.id,
+            'border-gray-200 dark:border-gray-700': idSeleccionado() !== compra.id
+          }"
+          (click)="seleccionarEmit(compra.id)"
+          >
+          <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+              {{compra.id | uppercase }}
+          </td>
+          <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{ compra.createdAt | date: 'dd/MM/yyyy' }}</td>
+          <td class="p-4 text-base font-medium text-gray-900 whitespace-normal break-words max-h-2 overflow-y-auto dark:text-white">
+            {{compra.proveedor.id | uppercase }} - {{compra.proveedor.nombre}}
+          </td>
+          <td class="p-4 text-base font-medium text-gray-900 whitespace-normal break-words max-h-2 overflow-y-auto dark:text-white">
+            <app-estatus-badge [categoria]="EnumCategoria.COMPRAS" [clave]="compra.estatus" ></app-estatus-badge>
+          </td>
+          <td class="p-4 text-base font-medium text-gray-900 whitespace-normal break-words max-h-2 overflow-y-auto dark:text-white">
+            @for( concepto of compra.detalles; track concepto.id ){
+              <div class="p-3 my-2 border-x border-b rounded-b-lg border-gray-500">
+                <div class="flex justify-between items-start gap-4">
+                  <div>
+                    <p class="text-sm font-bold text-slate-800 dark:text-slate-200">{{concepto.producto.descripcion}}</p>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-sm font-bold px-2 py-1 rounded">
+                      x{{concepto.cantidad | number:'1.0-0'}}
+                    </span>
+                    <p class="text-sm font-black text-slate-800 dark:text-white">
+                      {{(concepto.costoUnitario) | currency:'$ '}}
+                    </p>
+                  </div>
+                </div>
+                <div class="flex justify-between items-center">
+                  <app-badge-codigo-barras [codigoBarras]="concepto.producto.codigoBarras" ></app-badge-codigo-barras>
+                  <p class="text-sm font-black text-blue-600 dark:text-blue-400">
+                    {{(concepto.cantidad * concepto.costoUnitario) | currency:'$ '}}
+                  </p>
+                </div>
+              </div>
+            }
+          </td>
+        </tr>
+      }
+      @empty{
+      <tr>
+        <td colspan="15" class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+          <app-badge-message [message]="EnumCeroRegistros.COMPRAS"></app-badge-message>
+        </td>
+      </tr>
+    }
+    </tbody>
+  </table>
+</div>

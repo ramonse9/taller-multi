@@ -1,0 +1,139 @@
+<div class="w-full @container">
+  <div class="hidden @lg:block overflow-x-auto">
+    <table class="min-w-full divide-y table-fixed divide-gray-200 dark:divide-gray-600">
+      <thead class="bg-gray-100 dark:bg-gray-700">
+        <tr>
+          <th scope="col" class="w-16 p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Acciones</th>
+          <th scope="col" class="w-20 p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">ID</th>
+          <th scope="col" class="w-28 p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Código Barras</th>
+          <th scope="col" class="w-full p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Descripción</th>
+          <th scope="col" class="w-20 p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Cant.</th>
+          <th scope="col" class="w-28 p-2 text-xs font-medium text-right text-gray-500 uppercase dark:text-gray-400">Precio Venta</th>
+          <th scope="col" class="w-28 p-2 text-xs font-medium text-right text-gray-500 uppercase dark:text-gray-400">Importe</th>
+          <th scope="col" class="w-24 p-2 text-xs font-medium text-right text-gray-500 uppercase dark:text-gray-400">Stock Act.</th>
+          <th scope="col" class="w-24 p-2 text-xs font-medium text-right text-gray-500 uppercase dark:text-gray-400">Stock Mín.</th>
+        </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+        @for (itemGroup of detalles().controls; track itemGroup; let i = $index) {
+          <tr [formGroup]="itemGroup" class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+            <td class="p-2 whitespace-nowrap">
+              <button type="button" (click)="onRemoveItem(i)" class="text-white bg-red-600 hover:bg-red-700 rounded-full w-8 h-8 flex items-center justify-center">
+                <ng-icon name="tablerTrash" size="1rem"></ng-icon>
+              </button>
+            </td>
+            <td class="p-2 text-sm text-gray-900 dark:text-white truncate">
+              {{itemGroup.get('id')?.value | uppercase}}
+              {{ itemGroup.get('tipo')?.value }}
+            </td>
+            <td class="p-2 text-sm text-gray-900 dark:text-white">
+              @if(itemGroup.get('codigoBarras')?.value){
+                <app-badge-codigo-barras [codigoBarras]="itemGroup.get('codigoBarras')?.value" ></app-badge-codigo-barras>
+              }
+            </td>
+            <td class="p-2 text-sm text-gray-900 dark:text-white truncate">
+              <app-text-preview [text]="itemGroup.get('descripcion')?.value" ></app-text-preview>
+            </td>
+            <td class="p-2">
+              <input type="number" formControlName="cantidad" class="w-full pl-2 bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:text-white">
+            </td>
+            <td class="p-2 text-sm font-bold text-right">
+              <app-badge-precio-venta [precioVenta]="itemGroup.get('precioVenta')?.value"></app-badge-precio-venta>
+            </td>
+            <td class="p-2 text-sm font-bold text-right truncate"
+              [ngClass]="{
+                'text-yellow-600 dark:text-yellow-400': getImporte( itemGroup ) === 0,
+                'text-blue-600 dark:text-blue-400': getImporte( itemGroup ) > 0
+              }">
+              {{ getImporte( itemGroup ) | currency:'$ ' }}
+            </td>            
+            <td class="p-2 text-sm font-bold text-right">
+              <span class="font-black text-sm text-slate-100 dark:text-slate-100 px-2.5 py-0.5 rounded-sm" [ngClass]="obtenerClaseStock(itemGroup)">
+                {{ itemGroup.get('stockActual')?.value || 0}}
+              </span>
+            </td>
+            <td class="p-2 text-sm font-bold text-right text-gray-900 dark:text-white">
+              {{ itemGroup.get('stockMinimo')?.value || 0 }}
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <div class="@lg:hidden space-y-4">
+    @for (itemGroup of detalles().controls; track itemGroup; let i = $index) {
+      <div [formGroup]="itemGroup" class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm relative">
+        <button type="button" (click)="onRemoveItem(i)" class="absolute top-3 right-3 text-red-500 p-2">
+          <ng-icon name="tablerTrash" size="1.2rem"></ng-icon>
+        </button>
+        <div class="flex flex-col gap-3">
+          <div>
+            <app-badge-precio-venta [precioVenta]="itemGroup.get('precioVenta')?.value"></app-badge-precio-venta>
+            <div class="text-white">
+              {{ itemGroup.get('tipo')?.value}} cualquer cosa
+
+            </div>
+            @if( itemGroup.get('codigoBarras')?.value ){
+              <app-badge-codigo-barras [codigoBarras]="itemGroup.get('codigoBarras')?.value" class="ml-1"></app-badge-codigo-barras>
+            }
+          </div>
+          <div>
+            <h4 class="text-gray-900 dark:text-white font-semibold mt-1 pr-8">
+              {{ itemGroup.get('descripcion')?.value }}
+            </h4>
+          </div>
+          <div class="grid grid-cols-2 gap-4 border-t border-gray-100 dark:border-gray-700 pt-3">
+            <div>
+              <label class="block text-[10px] text-gray-500 uppercase font-bold">Cantidad</label>
+              <input type="number" formControlName="cantidad" class="w-full mt-1 pl-3 bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:text-white">
+            </div>
+          </div>
+          <div class="flex justify-between items-center bg-gray-50 dark:bg-gray-900/50 p-2 rounded-lg">
+            <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Importe:</span>
+            <span class="text-lg font-bold"
+              [ngClass]="{
+                'text-yellow-600 dark:text-yellow-400': getImporte( itemGroup ) === 0,
+                'text-blue-600 dark:text-blue-400': getImporte( itemGroup ) > 0
+              }">
+              {{ getImporte( itemGroup ) | currency:'$ ' }}
+            </span>
+          </div>
+          <div class="flex justify-between items-center bg-gray-50 dark:bg-gray-900/50 p-2 rounded-lg">
+            <div class="text-sm text-gray-600 dark:text-gray-300 text-left">
+              <span class="font-medium">Stock Actual: </span>
+              <span class="font-black text-sm text-slate-100 dark:text-slate-100 px-2.5 py-0.5 rounded-sm" [ngClass]="obtenerClaseStock(itemGroup)">
+                {{ itemGroup.get('stockActual')?.value || 0 }}
+              </span>
+            </div>
+            <div class="text-sm text-gray-600 dark:text-gray-300 text-left">
+              <span class="font-medium">Stock Mínimo: </span>
+              <span class="font-black text-sm text-slate-100 dark:text-slate-100 px-2.5 py-0.5 rounded-sm">
+                {{ itemGroup.get('stockMinimo')?.value || 0}}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+  @if (detalles().controls.length > 0) {
+    <div class="mt-6 flex justify-end border-t border-gray-200 dark:border-gray-700 pt-4">
+      <div class="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl border border-gray-200 dark:border-gray-700 min-w-[200px]">
+        <div class="flex justify-between items-center gap-4">
+          <span class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            Suma Importes
+          </span>
+          <span class="text-xl font-black text-gray-900 dark:text-blue-400">
+            {{ calcularTotal() | currency:'$ ' }}
+          </span>
+        </div>
+      </div>
+    </div>
+  }
+  @if (detalles().controls.length === 0) {
+    <div class="p-8 text-center text-gray-500 dark:text-gray-400">
+      Agrega productos para comenzar.
+    </div>
+  }
+</div>

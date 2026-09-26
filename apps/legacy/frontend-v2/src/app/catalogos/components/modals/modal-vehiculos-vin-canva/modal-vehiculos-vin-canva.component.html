@@ -1,0 +1,53 @@
+<label (click)="showModal()" class="flex items-center p-2 cursor-pointer text-gray-400 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full">
+  <ng-icon name="tablerCamera" size="1.8rem"></ng-icon>
+</label>
+
+@if(isVisible()){
+  <div class="fixed inset-0 z-100 flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-gray-900/80 backdrop-blur-sm" (click)="closeModal()"></div>
+
+    <div class="z-50 bg-gray-50 dark:bg-gray-800 rounded-lg shadow-xl w-full md:w-1/2 max-w-3xl relative overflow-hidden">
+
+      <div class="flex items-center justify-between p-5 border-b dark:border-gray-700">
+        <h3 class="text-lg font-semibold dark:text-white">
+          Escanear Número de Serie
+        </h3>
+      </div>
+
+      <div class="p-6 flex flex-col items-center gap-4">
+
+        <div class="relative w-full overflow-hidden rounded-lg border">
+
+          <video #video
+                autoplay
+                playsinline
+                class="w-full h-full object-cover">
+          </video>
+
+          <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div class="w-3/4 h-16 border-2 border-green-400 rounded-md"></div>
+          </div>
+        </div>
+
+        <div class="flex gap-3">
+          <button
+            type="button"
+            (click)="closeModal()"
+            class="px-5 py-2.5 bg-gray-500 text-white rounded-lg hover:bg-gray-400">
+            Cancelar
+          </button>
+
+          <button
+            (click)="capturar()"
+            [disabled]="isProcessing()"
+            class="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-500"
+            [class.opacity-50]="isProcessing()">
+            {{ isProcessing() ? 'Leyendo...' : 'Capturar Numero Serie' }}
+          </button>
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+}

@@ -1,0 +1,152 @@
+<form class="p-4 min-h-[600px]" [formGroup]="productoForm" (ngSubmit)="onSubmit()">
+
+  <app-page-form-header [titleNew]="EnumPaginasTitulo.PRODUCTO_NEW" [titleUpdate]="EnumPaginasTitulo.PRODUCTO_UPDATE" [id]="producto()?.id ?? ''" [detail]="`${producto()?.descripcion}`" ></app-page-form-header>
+
+  <app-page-form-body>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 w-full">
+
+      <div>
+
+        <app-page-form-control-search-table-generica-simple
+          #pageFormControlSearchTableGenerica
+          label="Producto Base"
+          optionPlaceholder="Seleccione el Producto Base"
+          (searchText)="filtrarSatProductoServicio($event)"
+          [optionSelectedValue]="optionSelectedSatProductoServicioValue()"
+          >
+            <app-sat-productos-servicios-table [satProductosServicios]="satProductoServicioRXResource.value()?.satProductosServicios ?? [] " (satProductoServicioSelected)="optionSelectedSatProductoServicio($event)" ></app-sat-productos-servicios-table>
+        </app-page-form-control-search-table-generica-simple>
+
+      </div>
+
+      <div>
+        <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Precio Venta</label>
+        <input type="text" formControlName="precioVenta"  autocomplete="off" class="custom-input-text"
+          [ngClass]="{ 'custom-input-text-error' : productoForm.controls.precioVenta.errors }"
+        />
+        <app-form-error-label [control]="productoForm.controls.precioVenta"></app-form-error-label>
+      </div>
+
+      <div>
+        <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Descripción</label>
+        <textarea id="descripcion" formControlName="descripcion" rows="4" class="custom-input-text"
+        [ngClass]="{ 'custom-input-text-error' : productoForm.controls.descripcion.errors }"
+        ></textarea>
+        <app-form-error-label [control]="productoForm.controls.descripcion"></app-form-error-label>
+      </div>
+
+      <div>
+        <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Código de barras</label>
+        <input type="text"
+               formControlName="codigoBarras"
+               autocomplete="off"
+               class="custom-input-text"
+               [ngClass]="{ 'custom-input-text-error' : productoForm.get('codigoBarras')?.errors }"
+               [attr.aria-invalid]="productoForm.get('codigoBarras')?.invalid || null"/>
+        <app-form-error-label [control]="productoForm.get('codigoBarras')!"></app-form-error-label>
+      </div>
+
+    </div>
+
+    <!-- Inventario -->
+    <div class="mt-6 border rounded-lg overflow-hidden border-gray-700">
+      <button type="button"
+              class="w-full flex justify-between items-center px-4 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-white font-medium"
+              (click)="isOpen = !isOpen">
+        Inventario (opcional)
+        <span [class.rotate-180]="isOpen" class="transition-transform duration-300">
+          ▼
+        </span>
+      </button>
+
+      <!-- Usar *ngIf en lugar de maxHeight fijo -->
+      <div class="transition-all duration-500 ease-in-out overflow-hidden"
+          [style.maxHeight]="isOpen ? '1000px' : '0px'">
+        <div class="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+
+          <div class="flex flex-col gap-4">
+
+            <!--
+            <label class="inline-flex items-center cursor-pointer">
+              <input type="checkbox"
+                    formControlName="manejaInventario"
+                    [checked]="productoForm.get('manejaInventario')?.value"
+                    class="peer sr-only"> <div class="relative w-9 h-5 rounded-full bg-gray-200 dark:bg-gray-700
+                          peer-focus:outline-none
+                          peer-checked:bg-green-500
+                          after:content-[''] after:absolute after:top-[2px] after:start-[2px]
+                          after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all
+                          peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full"></div>
+              <span class="select-none ms-3 text-sm font-medium text-heading dark:text-white">Maneja inventario</span>
+            </label>
+            -->
+
+            <label class="inline-flex items-center cursor-pointer">
+              <input type="checkbox"
+                    formControlName="permiteVentaSinStock"
+                    [checked]="productoForm.get('permiteVentaSinStock')?.value"
+                    class="peer sr-only"> <div class="relative w-9 h-5 rounded-full bg-gray-200 dark:bg-gray-700
+                          peer-focus:outline-none
+                          peer-checked:bg-green-500
+                          after:content-[''] after:absolute after:top-[2px] after:start-[2px]
+                          after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all
+                          peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full"></div>
+              <span class="select-none ms-3 text-sm font-medium text-heading dark:text-white">Permite venta sin stock</span>
+            </label>
+
+          </div>
+
+          <div>
+            <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Stock Mínimo</label>
+            <input type="number" formControlName="stockMinimo" [value]="productoForm.controls.stockMinimo.value ?? ''"  autocomplete="off" class="custom-input-text"
+              [ngClass]="{ 'custom-input-text-error' : productoForm.controls.stockMinimo.errors }"
+            />
+            <app-form-error-label [control]="productoForm.controls.stockMinimo"></app-form-error-label>
+          </div>
+
+          <!-- RFC -->
+           <!--
+          <div>
+            <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">RFC</label>
+            <input type="text"
+                   formControlName="rfc"
+                   autocomplete="off"
+                   class="custom-input-text"
+                   [ngClass]="{ 'custom-input-text-error' : clienteForm.get('rfc')?.errors }"
+                   [attr.aria-invalid]="clienteForm.get('rfc')?.invalid || null"/>
+            <app-form-error-label [control]="clienteForm.get('rfc')!"></app-form-error-label>
+          </div>
+
+
+          <div>
+            <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Razón Social</label>
+            <input type="text"
+                   formControlName="razonSocial"
+                   autocomplete="off"
+                   class="custom-input-text"
+                   [ngClass]="{ 'custom-input-text-error' : clienteForm.get('razonSocial')?.errors }"
+                   [attr.aria-invalid]="clienteForm.get('razonSocial')?.invalid || null"/>
+            <app-form-error-label [control]="clienteForm.get('razonSocial')!"></app-form-error-label>
+          </div>
+
+
+          <div>
+            <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Código Postal</label>
+            <input type="text"
+                   formControlName="codigoPostal"
+                   autocomplete="off"
+                   class="custom-input-text"
+                   [ngClass]="{ 'custom-input-text-error' : clienteForm.get('codigoPostal')?.errors }"
+                   [attr.aria-invalid]="clienteForm.get('codigoPostal')?.invalid || null"/>
+            <app-form-error-label [control]="clienteForm.get('codigoPostal')!"></app-form-error-label>
+          </div>
+          -->
+
+        </div>
+      </div>
+    </div>
+
+  </app-page-form-body>
+
+</form>

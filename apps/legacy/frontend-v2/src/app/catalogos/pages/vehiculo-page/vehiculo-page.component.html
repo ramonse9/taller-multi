@@ -1,0 +1,7 @@
+@if( vehiculoRXResource.isLoading()){
+  <app-spinner></app-spinner>
+}
+
+@if( vehiculoRXResource.hasValue() ){
+  <app-vehiculo-details [vehiculo]="vehiculoRXResource.value()" [mostrarEspacioInferior]="true" ></app-vehiculo-details>
+}

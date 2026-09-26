@@ -1,0 +1,28 @@
+<div class="bg-white-3 dark:bg-background-dark dark:bg-gray-950 text-[#111418] dark:text-gray-100 font-display transition-colors duration-300">
+
+  <main class="max-w-[1600px] mx-auto py-8 lg:px-8">
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 xxl:grid-cols-3 gap-4">
+      @for (empleadoConMovimiento of empleadosConMovimientosListado(); track empleadoConMovimiento.id) {
+        <!-- (agregarGasto)="onAgregarGasto($event, gastoConceptoConGasto.id)" -->
+         <!--
+        <app-card-empleado-con-movimientos
+                [empleadoConMovimiento]="empleadoConMovimiento"
+
+                [mesSeleccionado]="mesSeleccionado()"
+                [anioSeleccionado]="anioSeleccionado()"
+        ></app-card-empleado-con-movimientos>-->
+
+        <app-card-empleado-con-movimiento-new
+          [empleado]="empleadoConMovimiento"
+          [periodo]="periodo()"
+          (recargarPeriodoMovimientosEmit)="recargarPeriodoMovimientos($event)"
+        ></app-card-empleado-con-movimiento-new>
+      }
+    </div>
+    @if( empleadosConMovimientosListado().length === 0){
+      <app-badge-message [message]="EnumCeroRegistros.MOVIMIENTOS"  ></app-badge-message>
+    }
+  </main>
+
+</div>

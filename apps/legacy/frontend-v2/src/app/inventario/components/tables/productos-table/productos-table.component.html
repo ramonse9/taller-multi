@@ -1,0 +1,96 @@
+<div class="inline-block align-middle">
+  <table class="min-w-full divide-y table-auto divide-gray-200 dark:divide-gray-600">
+    <thead class="bg-gray-100 dark:bg-gray-700">
+      <tr>
+        <th scope="col" class="min-w-[100px] p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          Acciones
+        </th>
+        <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          ID
+        </th>
+        <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          Código Barras
+        </th>
+        <!--
+        <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          Fecha Ingreso
+        </th>
+        -->
+        <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          Precio Venta
+        </th>
+        <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          Descripción
+        </th>
+        <th scope="col" class="min-w-20 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          Stock Actual
+        </th>
+        <th scope="col" class="min-w-20 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          Stock Mínimo
+        </th>
+        <th scope="col" class="min-w-20 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          Venta sin Stock
+        </th>
+        <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          SAT Descripcion
+        </th>
+      </tr>
+    </thead>
+    <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+      @for( producto of productosListado(); track producto.id ){
+        <tr class="hover:bg-gray-100 dark:hover:bg-gray-700"
+            [ngClass]="{
+                'border-blue-500': idSeleccionado() === producto.id,
+                'border-gray-200 dark:border-gray-700': idSeleccionado() !== producto.id
+              }"
+              (click)="seleccionarEmit(producto.id)"
+            >
+         <td class="pl-6 py-3 align-top">
+            <div class="flex items-start justify-end gap-5">
+              <a [routerLink]="['/inventario/compras', producto.id, 'informacion']"
+                title="Ver completo"
+                class="flex items-start text-blue-600 hover:text-blue-500">
+                <ng-icon class="animate-pulse" name="tablerEye" size="2rem"></ng-icon>
+              </a>
+            </div>
+          </td>
+          <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+              {{producto.id | uppercase }}
+          </td>
+          <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+            <app-badge-codigo-barras [codigoBarras]="producto.codigoBarras" ></app-badge-codigo-barras>
+          </td>
+          <!--
+          <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{ producto.createdAt | date: 'dd/MM/yyyy' }}</td>
+          -->
+          <td class="p-4 text-base font-medium text-gray-900 whitespace-normal break-words max-h-2 overflow-y-auto dark:text-white">
+            <app-badge-precio-venta [precioVenta]="producto.precioVenta" ></app-badge-precio-venta>
+          </td>
+          <td class="p-4 text-base font-medium text-gray-900 whitespace-normal break-words max-h-2 overflow-y-auto dark:text-white">
+            <app-text-preview [limit]="60" [text]="producto.descripcion"  ></app-text-preview>
+          </td>
+          <td class="p-4 text-base font-medium text-gray-900 whitespace-normal break-words max-h-2 overflow-y-auto dark:text-white">
+            {{ producto.stockActual}}
+          </td>
+          <td class="p-4 text-base font-medium text-gray-900 whitespace-normal break-words max-h-2 overflow-y-auto dark:text-white">
+            {{ producto.stockMinimo}}
+          </td>
+          <td class="p-4 text-base font-medium text-gray-900 whitespace-normal break-words max-h-2 overflow-y-auto dark:text-white">
+            <app-badge-si-no [siNo]="producto.permiteVentaSinStock"></app-badge-si-no>
+          </td>
+          <td class="p-4 text-base font-medium text-gray-900 whitespace-normal break-words max-h-2 overflow-y-auto dark:text-white">
+            {{producto.satProductoServicio.descripcion}}
+          </td>
+
+        </tr>
+      }
+      @empty{
+      <tr>
+        <td colspan="15" class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+          <app-badge-message [message]="EnumCeroRegistros.PRODUCTOS"></app-badge-message>
+        </td>
+      </tr>
+    }
+  </tbody>
+</table>
+</div>

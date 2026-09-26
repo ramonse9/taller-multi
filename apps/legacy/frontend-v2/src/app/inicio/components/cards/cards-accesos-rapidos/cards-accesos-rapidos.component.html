@@ -1,0 +1,9 @@
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+    @for( accesoRapido of accesosRapidos(); track $index ){
+        <app-card-acceso-rapido
+            [accesoRapido]="accesoRapido"
+            >
+            
+        </app-card-acceso-rapido>
+    }
+</div>

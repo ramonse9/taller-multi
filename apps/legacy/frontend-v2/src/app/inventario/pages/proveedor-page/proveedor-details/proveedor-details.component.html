@@ -1,0 +1,107 @@
+<form [formGroup]="proveedorForm" (ngSubmit)="onSubmit()">
+
+  @if( mostrarHeader() ){
+    <app-page-form-header
+      [titleNew]="EnumPaginasTitulo.PROVEEDOR_NEW"
+      [titleUpdate]="EnumPaginasTitulo.PROVEEDOR_UPDATE"
+      [id]="proveedor()?.id ?? ''"
+      [detail]="proveedor()?.nombre ?? ''">
+    </app-page-form-header>
+  }
+
+  <app-page-form-body
+      [borderColor]="proveedorForm.valid ? EnumBorderColor.VALID : EnumBorderColor.INVALID">
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 w-full">
+
+      <!-- Nombre -->
+      <div>
+        <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Nombre</label>
+        <input type="text"
+               formControlName="nombre"
+               autocomplete="off"
+               class="custom-input-text"
+               [ngClass]="{ 'custom-input-text-error' : proveedorForm.get('nombre')?.errors }"
+               [attr.aria-invalid]="proveedorForm.get('nombre')?.invalid || null"/>
+        <app-form-error-label [control]="proveedorForm.get('nombre')!"></app-form-error-label>
+      </div>
+
+      <!-- Teléfono (sin onlyNumbers, con pattern validator) -->
+      <div>
+        <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Teléfono</label>
+        <input type="text"
+               formControlName="telefono"
+               maxlength="10"
+               inputmode="numeric"
+               pattern="[0-9]*"
+               autocomplete="off"
+               class="custom-input-text"
+               [ngClass]="{ 'custom-input-text-error' : proveedorForm.get('telefono')?.errors }"
+               [attr.aria-invalid]="proveedorForm.get('telefono')?.invalid || null"/>
+        <app-form-error-label [control]="proveedorForm.get('telefono')!"></app-form-error-label>
+      </div>
+
+      <!-- Email -->
+      <div>
+        <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Email</label>
+        <input type="text"
+               formControlName="email"
+               autocomplete="off"
+               class="custom-input-text"
+               [ngClass]="{ 'custom-input-text-error' : proveedorForm.get('email')?.errors }"
+               [attr.aria-invalid]="proveedorForm.get('email')?.invalid || null"/>
+        <app-form-error-label [control]="proveedorForm.get('email')!"></app-form-error-label>
+      </div>
+
+      <!-- Nombre del Contacto-->
+      <div>
+        <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Nombre del Contacto</label>
+        <input type="text"
+                formControlName="contacto"
+                autocomplete="off"
+                class="custom-input-text"
+                [ngClass]="{ 'custom-input-text-error' : proveedorForm.get('contacto')?.errors }"
+                [attr.aria-invalid]="proveedorForm.get('contacto')?.invalid || null"/>
+        <app-form-error-label [control]="proveedorForm.get('contacto')!"></app-form-error-label>
+      </div>
+
+      <!-- Direccion-->
+      <div>
+        <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Dirección</label>
+        <input type="text"
+                formControlName="direccion"
+                autocomplete="off"
+                class="custom-input-text"
+                [ngClass]="{ 'custom-input-text-error' : proveedorForm.get('direccion')?.errors }"
+                [attr.aria-invalid]="proveedorForm.get('direccion')?.invalid || null"/>
+        <app-form-error-label [control]="proveedorForm.get('direccion')!"></app-form-error-label>
+      </div>
+
+      <!-- RFC -->
+       <!--
+      <div>
+        <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">RFC</label>
+        <input type="text"
+                formControlName="rfc"
+                autocomplete="off"
+                class="custom-input-text"
+                [ngClass]="{ 'custom-input-text-error' : proveedorForm.get('rfc')?.errors }"
+                [attr.aria-invalid]="proveedorForm.get('rfc')?.invalid || null"/>
+        <app-form-error-label [control]="proveedorForm.get('rfc')!"></app-form-error-label>
+      </div>-->
+
+    </div>
+
+  </app-page-form-body>
+
+</form>
+
+
+@if(mostrarEspacioInferior()){
+  <div class="h-24"></div>
+}
+
+<!--
+<app-voice-button class="block md:hidden" [durationSeconds]="15" [entidadVoice]="EnumEntidadesVoice.CLIENTE" (datosJsonEmit)="voiceDatosCliente($event)" ></app-voice-button>
+-->
+

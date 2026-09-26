@@ -1,0 +1,16 @@
+<!--<div>-->
+    <!--<div class="grid grid-cols-1 md:grid-cols-2 xxl:grid-cols-3 gap-4">-->
+<!--<div class="grid grid-cols-1 md:grid-cols-2 gap-4">-->
+  @for (producto of productosListado(); track producto.id) {
+    <app-card-producto
+      class="cursor-pointer"
+      [producto]="producto"
+      (click)="seleccionarEmit(producto.id)"
+      [seleccionado]="producto.id === idSeleccionado()"
+      >
+    </app-card-producto>
+  }
+  @if( productosListado().length === 0){
+    <app-badge-message [message]="EnumCeroRegistros.COMPRAS"></app-badge-message>
+  }
+<!--</div>-->

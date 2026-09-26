@@ -1,0 +1,8 @@
+
+@if( modeloRXResource.isLoading()){
+  <app-spinner></app-spinner>
+}
+
+@if( modeloRXResource.hasValue() ){
+  <app-modelo-details [modelo]="modeloRXResource.value()" ></app-modelo-details>
+}

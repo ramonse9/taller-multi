@@ -1,0 +1,52 @@
+<!--
+<form class="p-4 min-h-[600px]" [formGroup]="gastoConceptoForm" (ngSubmit)="onSubmit()">
+
+  <app-page-form-header [titleNew]="EnumPaginasTitulo.GASTO_NEW" [titleUpdate]="EnumPaginasTitulo.GASTO_UPDATE" [id]="gastoConcepto()?.id ?? ''" [detail]="`${gastoConcepto()?.nombre}`" ></app-page-form-header>
+
+  <app-page-form-body>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 w-full">
+
+      <div>
+        <app-page-form-control-search-table-generica-simple
+          #pageFormControlSearchTableGenerica
+          label="Gasto Categoría"
+          optionPlaceholder="Seleccione el Gasto Categoría"
+          (searchText)="filtrarGastoCategoria($event)"
+          [optionSelectedValue]="optionSelectedGastoCategoriaValue()"
+          >
+            <app-gastos-categorias-table [gastosCategorias]="gastoCategoriaRXResource.value()?.gastosCategorias ?? [] " (gastoCategoriaSelected)="optionSelectedGastoCategoria($event)" ></app-gastos-categorias-table>
+        </app-page-form-control-search-table-generica-simple>
+      </div>
+
+      <div>
+        <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Nombre</label>
+        <input type="text" formControlName="nombre"  autocomplete="off" class="custom-input-text"
+          [ngClass]="{ 'custom-input-text-error' : gastoConceptoForm.controls.nombre.errors }"
+        />
+        <app-form-error-label [control]="gastoConceptoForm.controls.nombre"></app-form-error-label>
+      </div>
+
+      <div>
+           <label class="inline-flex items-center cursor-pointer">
+              <input type="checkbox" formControlName="recurrente" class="sr-only peer">
+              <div class="relative w-9 h-5
+                        bg-yellow-500
+                        bg-neutral-quaternary
+                        peer-focus:outline-none
+                        rounded-full
+                        peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full
+                        peer-checked:after:border-buffer
+                        after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all
+                        peer-checked:bg-green-500
+                        "></div>
+              <span class="select-none ms-3 text-sm font-medium text-heading dark:text-white">Recurrente</span>
+            </label>
+      </div>
+
+    </div>
+
+  </app-page-form-body>
+
+</form>
+-->

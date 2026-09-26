@@ -1,0 +1,49 @@
+  <div class="inline-block align-middle">
+    <table class="min-w-full divide-y table-auto divide-gray-200 dark:divide-gray-600">
+      <thead class="bg-gray-100 dark:bg-gray-700">
+        <tr>
+          <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+            ID
+          </th>
+          <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+            Monto
+          </th>
+          <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+            Fecha
+          </th>
+          <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+            Concepto
+          </th>
+          <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+            Categoría
+          </th>
+          <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+            Tipo Pago
+          </th>
+          <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+            Referencia
+          </th>
+        </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+        @for( gastoMovimiento of gastosMovimientosListado(); track gastoMovimiento.id ){
+          <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
+            <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{ gastoMovimiento.id}}</td>
+            <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{ gastoMovimiento.monto}}</td>
+            <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{ gastoMovimiento.fecha | date: 'dd/MM/yyyy' }}</td>
+            <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{ gastoMovimiento.gasto.nombre}}</td>
+            <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{ gastoMovimiento.gasto.gastoCategoria.nombre}}</td>
+            <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{ gastoMovimiento.tipoPago}}</td>
+            <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{ gastoMovimiento.referencia}}</td>
+          </tr>
+        }
+        @empty{
+        <tr>
+          <td colspan="15" class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+            No hay Movimientos de Gastos registrados
+          </td>
+        </tr>
+      }
+    </tbody>
+    </table>
+  </div>

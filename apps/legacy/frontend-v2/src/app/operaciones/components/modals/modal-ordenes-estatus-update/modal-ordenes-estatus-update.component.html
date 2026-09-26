@@ -1,0 +1,59 @@
+
+<div class="flex items-center cursor-pointer">
+  <app-estatus-badge (click)="showModal()" [categoria]="EnumCategoria.ORDENES" [clave]="estatus()"></app-estatus-badge>
+</div>
+
+@if(isVisible()){
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-gray-900/80 backdrop-blur-sm" (click)="closeModal()"></div>
+
+    <div class="z-50 bg-gray-50 dark:bg-gray-800 rounded-lg shadow-xl w-full md:w-1/2 max-w-3xl relative overflow-hidden">
+
+      <div class="bg-white dark:bg-gray-800">
+        <div class="flex items-start justify-between p-5 border-b dark:border-gray-700">
+          <div class="flex flex-col gap-1">
+            <h3 class="text-lg md:text-xl font-semibold dark:text-white flex flex-wrap items-center gap-2">
+              Estatus de la Orden | {{ orden().id | uppercase }} |
+              <app-estatus-badge [categoria]="EnumCategoria.ORDENES" [clave]="orden().estatus"></app-estatus-badge>
+            </h3>
+            <h4 class="text-sm md:text-base text-gray-600 dark:text-gray-400">
+              {{ orden().vehiculo?.modelo?.marca?.nombre | uppercase }}
+              {{ orden().vehiculo?.modelo?.nombre | uppercase }}
+              {{ orden().vehiculo?.anio }} |
+              <span class="font-mono">{{ orden().vehiculo?.numeroSerie | uppercase }}</span>
+            </h4>
+            <h4 class="text-sm md:text-base font-medium text-gray-700 dark:text-gray-300">
+              {{ orden().cliente?.nombre | titlecase }}
+            </h4>
+          </div>
+        </div>
+
+        <form [formGroup]="estatusForm" (ngSubmit)="onSubmit()">
+
+          <div class="p-6 md:p-10">
+            <div class="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 items-center p-6 rounded-2xl border dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/20">
+              <label class="block text-sm font-medium text-gray-700 dark:text-white">
+                Cambiar Estatus
+              </label>
+              <app-page-form-select-estatus
+                [categoria]="EnumCategoria.ORDENES"
+                [clave]="estatusForm.get('estatus')?.value ?? ''"
+                (estatusSeleccionadoEmit)="setFormValueEstatus($event)">
+              </app-page-form-select-estatus>
+            </div>
+          </div>
+
+          <div class="flex flex-col sm:flex-row justify-end items-center p-6 border-t border-gray-200 dark:border-gray-700 gap-3">
+            <button (click)="closeModal()" type="button" class="order-2 sm:order-1 text-gray-700 bg-white border border-gray-300 hover:bg-gray-100 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600 cursor-pointer transition-colors">
+              Cancelar
+            </button>
+            <button type="submit" class="order-1 sm:order-2 text-white bg-lightblue-600 hover:bg-lightblue-500 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-darkblue-600 dark:hover:bg-darkblue-500 cursor-pointer transition-colors">
+              Actualizar
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+  </div>
+}

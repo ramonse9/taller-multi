@@ -1,0 +1,117 @@
+<div class="min-h-screen flex flex-col items-center bg-white-3 dark:bg-gray-950 font-display text-slate-900 dark:text-slate-100">
+
+  <h1 class="text-3xl font-bold text-center mb-2 text-gray-900 dark:text-gray-100">Cambiar contraseña</h1>
+
+  <div class="w-full max-w-sm p-4 bg-gray-100 border border-gray-200 rounded-lg shadow-sm sm:p-6 md:p-8 dark:bg-gray-800 dark:border-gray-700">
+    <form class="space-y-6" [formGroup]="changePassForm" (ngSubmit)="onSubmit()">
+        <div>
+            <label for="currentPassword" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Password actual</label>
+            <input type="password" name="currentPassword" id="currentPassword" autocomplete="off" formControlName="currentPassword" placeholder="Contraseña actual" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white"/>
+        </div>
+        <div>
+            <label for="nuevoPassword" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Password nuevo</label>
+            <input type="password" name="nuevoPassword" id="nuevoPassword" autocomplete="off" formControlName="newPassword" placeholder="Nueva contraseña" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white"/>
+        </div>
+        <div>
+            <label for="confirmarPassword" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Confirmar password</label>
+            <input type="password" name="confirmarPassword" id="confirmarPassword" autocomplete="off" formControlName="confirmPassword" placeholder="Confirmar contraseña" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white"/>
+        </div>
+        <!-- Error de match -->
+        @if (changePassForm.errors?.['passwordMismatch']) {
+          <p class="text-red-500 text-sm">
+            Las contraseñas no coinciden
+          </p>
+        }
+        <div class="flex">
+          <app-page-button-inicio></app-page-button-inicio>
+          
+          <button type="submit" class="w-full text-white bg-lightblue-600 hover:bg-lightblue-500 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-darkblue-600 dark:hover:bg-darkblue-500 dark:focus:ring-blue-800 disabled:opacity-50"
+                [disabled]="isLoading | async">
+              {{ (isLoading | async) ? 'Actualizando...' : 'Cambiar contraseña' }}
+          </button>
+        </div>
+    </form>
+  </div>
+
+  @if( hasError() ){
+    <div class="fixed top-10 right-10" [@fadeAnimation]>
+      <app-badge-message [message]="authService.hasErrorMessage()!" [estatus]="EnumEstatusToast.DANGER" ></app-badge-message>
+    </div>
+  }
+
+
+
+
+
+  
+  
+  
+  <!--
+  <div class="w-full max-w-sm p-4 bg-gray-100 border border-gray-200 rounded-lg shadow-sm sm:p-6 md:p-8 dark:bg-gray-800 dark:border-gray-700">
+
+    <form class="space-y-6" [formGroup]="changePassForm" (ngSubmit)="onSubmit()">
+
+      <h5 class="text-xl font-medium text-gray-900 dark:text-white">
+        Cambiar contraseña
+      </h5>
+
+      
+      <div>
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+          Contraseña actual
+        </label>
+        <input type="password"
+          formControlName="currentPassword"
+          class="input-style"
+          placeholder="Ingresa tu contraseña actual" />
+      </div>
+
+      
+      <div>
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+          Nueva contraseña
+        </label>
+        <input type="password"
+          formControlName="newPassword"
+          class="input-style"
+          placeholder="Nueva contraseña" />
+      </div>
+
+      
+      <div>
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+          Confirmar contraseña
+        </label>
+        <input type="password"
+          formControlName="confirmPassword"
+          class="input-style"
+          placeholder="Confirma la contraseña" />
+      </div>
+
+      
+      @if (changePassForm.errors?.['passwordMismatch']) {
+        <p class="text-red-500 text-sm">
+          Las contraseñas no coinciden
+        </p>
+      }
+
+      
+      <button type="submit"
+        class="w-full text-white bg-lightblue-600 hover:bg-lightblue-500 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center disabled:opacity-50"
+        [disabled]="isLoading | async">
+
+        {{ (isLoading | async) ? 'Actualizando...' : 'Cambiar contraseña' }}
+
+      </button>
+
+    </form>
+  </div>
+  -->
+
+  @if( hasError() ){
+    <div class="fixed top-10 right-10" [@fadeAnimation]>
+      <app-badge-message [message]="authService.hasErrorMessage()!" [estatus]="EnumEstatusToast.DANGER" ></app-badge-message>
+    </div>
+  }
+
+</div>

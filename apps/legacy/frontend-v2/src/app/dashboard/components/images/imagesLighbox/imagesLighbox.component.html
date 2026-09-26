@@ -1,0 +1,24 @@
+<div class="flex gap-6">
+  @for(imagen of imagenes(); track imagen.url){
+
+    <div class="relative transition-transform duration-200 ease-out hover:scale-125 hover:z-40 ">
+
+      <img [src]="imagen.url" (click)="verImagen(imagen.url)" class="w-30 h-30 object-cover rounded cursor-pointer" >
+
+    </div>
+  }
+</div>
+
+<!-- Lightbox -->
+@if(imagenSeleccionada){
+  <div
+    class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50"
+    (click)="cerrarImagen()"
+  >
+}
+<img
+  [src]="imagenSeleccionada"
+  class="max-h-[90vh] max-w-[90vw] rounded shadow-lg"
+  (click)="$event.stopPropagation()"
+/>
+</div>

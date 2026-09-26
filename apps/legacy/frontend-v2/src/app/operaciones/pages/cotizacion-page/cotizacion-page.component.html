@@ -1,0 +1,13 @@
+@if( cotizacionRXResource.isLoading()){
+  <app-spinner></app-spinner>
+}
+
+@if( cotizacionRXResource.hasValue() ){
+  @if( modo() === 'informacion' ){
+    <app-cotizacion-informacion-page [cotizacion]="cotizacionRXResource.value()!"></app-cotizacion-informacion-page>
+  }
+  @else{
+    <app-cotizacion-details [cotizacion]="cotizacionRXResource.value()" ></app-cotizacion-details>
+  }
+
+}

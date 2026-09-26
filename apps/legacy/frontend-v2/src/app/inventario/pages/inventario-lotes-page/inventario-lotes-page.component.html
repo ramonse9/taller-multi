@@ -1,0 +1,32 @@
+<div class="p-4 bg-white-2 border-b border-gray-200 dark:bg-gray-900 dark:border-gray-700">
+  <div class="flex items-center justify-between w-full">
+
+    <div class="flex-shrink-0">
+      <app-page-button-inicio></app-page-button-inicio>
+    </div>
+
+    <div class="flex-grow text-center">
+      <h1 class="text-xl font-semibold text-gray-900 sm:text-2xl dark:text-white">
+        INVENTARIO | Lotes: {{ inventarioLotesRXResource.value()?.totalItems }}
+      </h1>
+    </div>
+
+  </div>
+
+  <div class="mt-4">
+    <app-busqueda-general
+      placeholder="Buscar Lotes"
+      [opcionNuevaEntidad]="false"
+      nuevaEntidad="Nuevo Lote"
+      (filtrarBusquedaEmit)="filtrar($event)"
+    ></app-busqueda-general>
+  </div>
+</div>
+
+@if( inventarioLotesRXResource.value() ){
+  <div class="overflow-x-auto" [@fadeAnimation]>
+    <app-inventario-lotes-table [inventarioLotes]="inventarioLotesRXResource.value()?.inventarioLotes!" ></app-inventario-lotes-table>
+  </div>
+}
+
+<app-pagination [pages]="inventarioLotesRXResource.value()?.totalPages ?? 0" [currentPage]="paginationService.currentPage()" (itemsPerPageSelected)="selectPerPageChange($event)"></app-pagination>

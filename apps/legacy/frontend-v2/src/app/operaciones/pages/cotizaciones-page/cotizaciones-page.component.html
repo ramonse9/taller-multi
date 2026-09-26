@@ -1,0 +1,48 @@
+<div class="p-4 bg-white-2 border-b border-gray-200 dark:bg-gray-900 dark:border-gray-700">
+  <div class="flex items-center justify-between w-full">
+
+    <div class="flex-shrink-0">
+      <app-page-button-inicio></app-page-button-inicio>
+    </div>
+
+    <div class="flex-grow text-center">
+      <h1 class="text-xl font-semibold text-gray-900 sm:text-2xl dark:text-white">
+        OPERACIONES | Cotizaciones: {{ cotizacionesRXResource.value()?.totalItems }}
+      </h1>
+    </div>
+
+  </div>
+
+  <div class="mt-4">
+    <app-busqueda-general
+      placeholder="Buscar por Modelo, Marca o Cliente..."
+      nuevaEntidad="Nueva Cotizacion"
+      nuevaEntidadPagina="/operaciones/cotizaciones/new"
+      (filtrarBusquedaEmit)="filtrar($event)"
+      [opcionCards]="true"
+      (mostrarCardsEmit)="mostrarCards($event)">
+    </app-busqueda-general>
+  </div>
+</div>
+
+  @if( cotizacionesRXResource.value() ){
+
+    <div class="relative">
+      @if (soloCards()) {
+        <div class="relative" [@fadeAnimation]>
+          <app-cards-cotizaciones
+            [cotizaciones]="cotizacionesRXResource.value()?.cotizaciones ?? []">
+          </app-cards-cotizaciones>
+        </div>
+      } @else {
+        <div class="relative overflow-x-auto" [@fadeAnimation]>
+          <app-cotizaciones-table
+            [cotizaciones]="cotizacionesRXResource.value()?.cotizaciones ?? []">
+          </app-cotizaciones-table>
+        </div>
+      }
+    </div>
+
+  }
+
+<app-pagination [pages]="cotizacionesRXResource.value()?.totalPages ?? 0" [currentPage]="paginationService.currentPage()" (itemsPerPageSelected)="selectPerPageChange($event)"></app-pagination>

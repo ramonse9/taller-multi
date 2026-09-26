@@ -1,0 +1,7 @@
+@if( proveedorRXResource.isLoading() ){
+  <app-spinner></app-spinner>
+}
+
+@if( proveedorRXResource.hasValue() ){
+  <app-proveedor-details [proveedor]="proveedorRXResource.value()" [mostrarEspacioInferior]="true"></app-proveedor-details>
+}

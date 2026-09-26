@@ -1,0 +1,19 @@
+<div class="bg-gray-50 dark:bg-gray-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm"
+    [ngClass]="bgColor">
+    <h3 class="text-[10px] font-bold text-slate-400 uppercase mb-3">{{tipo() === 'cliente' ? 'Cliente' : 'Empresa'}}</h3>
+    <div class="flex items-center gap-3">
+        <app-card-component-icon-fondo [iconName]="tipo() === 'cliente' ? 'tablerUser' : 'tablerBuilding'"></app-card-component-icon-fondo>
+        <div class="flex flex-col">
+            <span class="text-sm font-bold text-slate-600 dark:text-slate-100 truncate">{{ nombreCompleto | titlecase}}</span>
+            <p class="text-[10px] text-slate-500 dark:text-slate-400">{{clienteEmpresa().id | uppercase}}</p>
+        </div>
+    </div>
+    <div class="flex items-center text-sm text-gray-600 dark:text-gray-400 mt-2 gap-3">
+        <app-card-component-icon-fondo iconName="tablerMail" textColor="text-blue-500"></app-card-component-icon-fondo>
+        <span class="truncate">{{ clienteEmpresa().email | uppercase }}</span>
+    </div>
+    <div class="flex items-center text-sm text-gray-600 dark:text-gray-400 mt-2 gap-3">
+        <app-card-component-icon-fondo iconName="tablerPhone" textColor="text-green-500"></app-card-component-icon-fondo>
+        <span>{{ clienteEmpresa().telefono }}</span>
+    </div>
+</div>

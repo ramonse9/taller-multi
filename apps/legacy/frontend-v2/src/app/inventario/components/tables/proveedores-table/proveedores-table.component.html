@@ -1,0 +1,75 @@
+<div class="inline-block align-middle">
+  <table class="min-w-full divide-y table-auto divide-gray-200 dark:divide-gray-600">
+    <thead class="bg-gray-100 dark:bg-gray-700">
+      <tr>
+        <th scope="col" class="min-w-[100px] p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          Acciones
+        </th>
+        <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          ID
+        </th>
+        <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          Nombre
+        </th>
+        <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          Teléfono
+        </th>
+        <th scope="col" class="min-w-30 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          Email
+        </th>
+        <th scope="col" class="min-w-20 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          Dirección
+        </th>
+        <th scope="col" class="min-w-20 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          Contacto
+        </th>
+        <th scope="col" class="min-w-20 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          Activo
+        </th>
+      </tr>
+    </thead>
+    <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+      @for( proveedor of proveedoresListado(); track proveedor.id ){
+        <tr class="hover:bg-gray-100 dark:hover:bg-gray-700 align-top">
+         <td class="pl-6 py-3 align-top">
+            <div class="flex items-start justify-end gap-5">
+              <a [routerLink]="['/inventario/proveedores', proveedor.id, 'informacion']"
+                title="Ver completo"
+                class="flex items-start text-blue-600 hover:text-blue-500">
+                <ng-icon class="animate-pulse" name="tablerEye" size="2rem"></ng-icon>
+              </a>
+            </div>
+          </td>
+          <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+            {{proveedor.id | uppercase }}
+          </td>
+          <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+            {{ proveedor.nombre }}
+          </td>
+          <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+            {{ proveedor.telefono }}
+          </td>
+          <td class="p-4 text-base font-medium text-gray-900 whitespace-normal break-words max-h-2 overflow-y-auto dark:text-white">
+            {{proveedor.email}}
+          </td>
+          <td class="p-4 text-base font-medium text-gray-900 whitespace-normal break-words max-h-2 overflow-y-auto dark:text-white">
+            {{proveedor.direccion}}
+          </td>
+          <td class="p-4 text-base font-medium text-gray-900 whitespace-normal break-words max-h-2 overflow-y-auto dark:text-white">
+            {{proveedor.contacto}}
+          </td>
+          <td class="p-4 text-base font-medium text-gray-900 whitespace-normal break-words max-h-2 overflow-y-auto dark:text-white">
+            <app-badge-si-no [siNo]="proveedor.activo"  ></app-badge-si-no>
+          </td>
+        </tr>
+      }
+      @empty{
+      <tr>
+        <td colspan="15" class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+          <app-badge-message [message]="EnumCeroRegistros.PROVEEDORES"></app-badge-message>
+        </td>
+      </tr>
+    }
+  </tbody>
+</table>
+</div>

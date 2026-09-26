@@ -1,0 +1,305 @@
+<form class="p-2 sm:p-4 min-h-[600px] w-full" [formGroup]="cotizacionForm" (ngSubmit)="onSubmit()">
+
+  <div class="mb-4 w-full overflow-hidden">
+    <app-page-form-header [titleNew]="EnumPaginasTitulo.COTIZACION_NEW" [titleUpdate]="EnumPaginasTitulo.COTIZACION_UPDATE" [id]="cotizacion()?.id ?? ''" [detail]="`${cotizacion()?.vehiculo?.modelo?.marca?.nombre ?? ''} ${cotizacion()?.vehiculo?.modelo?.nombre ?? ''} ${cotizacion()?.vehiculo?.anio ?? ''} - Número de Serie: ${cotizacion()?.vehiculo?.numeroSerie ?? ''} `" [subdetail]="`${cotizacion()?.cliente?.id ?? ''}: ${cotizacion()?.cliente?.nombre ?? ''} | ${cotizacion()?.cliente?.telefono ?? ''}`"  ></app-page-form-header>
+  </div>
+
+  <app-page-form-body>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 w-full">
+
+      <div class="col-span-1">
+        <div class="bg-white-3 dark:bg-gray-950 p-2 rounded-2xl min-h-64">
+            <div class="col-span-2">
+              <div class="inline-flex rounded-2xl shadow-xs -space-x-px mb-2" role="group">
+                <button type="button" (click)="setMostrarCliente(true)" class="cursor-pointer border border-default rounded-l-2xl font-medium leading-5 text-sm px-3 py-2" [ngClass]="{'bg-lightblue-600 dark:bg-lightblue-600 text-white dark:text-white': mostrarCliente(), 'bg-white-2 dark:bg-gray-800 text-slate-800 dark:text-white': !mostrarCliente()}">
+                  Seleccionar Cliente
+                </button>
+                <button type="button" (click)="setMostrarCliente(false)" class="cursor-pointer bg-white-2 dark:bg-gray-800 text-slate-800 dark:text-white border border-default rounded-r-2xl font-medium leading-5 text-sm px-3 py-2" [ngClass]="{'bg-lightblue-600 dark:bg-lightblue-600 text-white dark:text-white': !mostrarCliente(), 'bg-white-2 dark:bg-gray-800 text-slate-800 dark:text-white': mostrarCliente()}">
+                  Seleccionar Empresa
+                </button>
+              </div>
+            </div>
+
+          @if( mostrarCliente()){
+            <div>
+                <div class="flex justify-between pb-4">
+
+                  <div class="flex items-center gap-2">
+                    <h2 class="text-xl font-semibold text-slate-800 dark:text-white">Cliente</h2>
+
+                    <app-page-form-control-search-table-generica-simple
+                      #pageFormControlSearchTableGenericaNewCliente
+                      label="Cliente"
+                      optionPlaceholder="Agregar"
+                      [plusButton]="true"
+                      [plusButtonMostrar]="plusButtonMostrarCliente()"
+                      (searchText)="filtrarClientes($event)"
+                      >
+                      <app-clientes-busqueda-table [clientes]="clientesRXResource.value()?.clientes ?? [] " (clienteSelected)="optionSelectedCliente($event)" ></app-clientes-busqueda-table>
+                    </app-page-form-control-search-table-generica-simple>
+
+                    @if(cotizacionCliente){
+                      <div (click)="limpiarCliente()" class="flex items-center justify-center text-blue-600 dark:text-blue-500 cursor-pointer">
+                        <ng-icon name="tablerTrash"  class="animate-pulse" size="1.5rem"></ng-icon>
+                      </div>
+                    }
+                  </div>
+                </div>
+              <div class="mb-4">
+                @if(cotizacionCliente){
+                  <app-card-cliente [cliente]="cotizacionCliente"></app-card-cliente>
+                }
+              </div>
+            </div>
+          }@else{
+            <div>
+                <div class="flex justify-between pb-4">
+                  <div class="flex items-center gap-2">
+                    <h2 class="text-xl font-semibold text-slate-800 dark:text-white">Empresa</h2>
+                    <app-page-form-control-search-table-generica-simple
+                      #pageFormControlSearchTableGenericaNewEmpresa
+                      label="Empresa"
+                      optionPlaceholder="Agregar"
+                      [plusButton]="true"
+                      [plusButtonMostrar]="plusButtonMostrarEmpresa()"
+                      (searchText)="filtrarEmpresas($event)"
+                      >
+                      <app-empresas-busqueda-table [empresas]="empresasRXResource.value()?.empresas ?? [] " (empresaSelected)="optionSelectedEmpresa($event)" ></app-empresas-busqueda-table>
+                    </app-page-form-control-search-table-generica-simple>
+                    @if(cotizacionEmpresa){
+                      <div (click)="limpiarEmpresa()" class="flex items-center justify-center text-blue-600 dark:text-blue-500 cursor-pointer">
+                        <ng-icon name="tablerTrash"  class="animate-pulse" size="1.5rem"></ng-icon>
+                      </div>
+                    }
+                  </div>
+                </div>
+              <div class="mb-4">
+                @if(cotizacionEmpresa){
+                  <app-card-empresa [empresa]="cotizacionEmpresa"></app-card-empresa>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="col-span-1">
+        <div class="bg-white-3 dark:bg-gray-950 p-2 rounded-2xl min-h-64">
+            <div class="col-span-2">
+              <div class="inline-flex rounded-2xl shadow-xs -space-x-px mb-2" role="group">
+                <button type="button" (click)="setMostrarVehiculo(true)" class="cursor-pointer border border-default rounded-l-2xl font-medium leading-5 text-sm px-3 py-2" [ngClass]="{'bg-lightblue-600 dark:bg-lightblue-600 text-white dark:text-white': mostrarVehiculo(), 'bg-white-2 dark:bg-gray-800 text-slate-800 dark:text-white': !mostrarVehiculo()}">
+                  Seleccionar Vehículo
+                </button>
+                <button type="button" (click)="setMostrarVehiculo(false)" class="cursor-pointer bg-white-2 dark:bg-gray-800 text-slate-800 dark:text-white border border-default rounded-r-2xl font-medium leading-5 text-sm px-3 py-2" [ngClass]="{'bg-lightblue-600 dark:bg-lightblue-600 text-white dark:text-white': !mostrarVehiculo(), 'bg-white-2 dark:bg-gray-800 text-slate-800 dark:text-white': mostrarVehiculo()}">
+                  Seleccionar Marca, Modelo y Año
+                </button>
+              </div>
+            </div>
+
+          @if( mostrarVehiculo()){
+            <div>
+                <div class="flex justify-between pb-4">
+
+                  <div class="flex items-center gap-2">
+                    <h2 class="text-xl font-semibold text-slate-800 dark:text-white">Vehículo</h2>
+
+                    <app-page-form-control-search-table-generica-simple
+                      #pageFormControlSearchTableGenericaNewVehiculo
+                      label="Vehículo"
+                      optionPlaceholder="Agregar"
+                      [plusButton]="true"
+                      [plusButtonMostrar]="plusButtonMostrarVehiculo()"
+                      (searchText)="filtrarVehiculos($event)"
+                      >
+                      <app-vehiculos-busqueda-table [vehiculos]="vehiculosRXResource.value()?.vehiculos ?? [] " (vehiculoSelected)="optionSelectedVehiculo($event)" ></app-vehiculos-busqueda-table>
+                    </app-page-form-control-search-table-generica-simple>
+
+                    @if(cotizacionVehiculo){
+                      <div (click)="limpiarVehiculo()" class="flex items-center justify-center text-blue-600 dark:text-blue-500 cursor-pointer">
+                        <ng-icon name="tablerTrash"  class="animate-pulse" size="1.5rem"></ng-icon>
+                      </div>
+                    }
+                  </div>
+                </div>
+              <div class="mb-4">
+                @if(cotizacionVehiculo){
+                  <app-card-vehiculo [vehiculo]="cotizacionVehiculo"></app-card-vehiculo>
+                }
+              </div>
+            </div>
+          }@else{
+            <div>
+              <div class="mb-2">
+                <app-page-form-control-search-list label="Marca"
+                  newOption="Seleccione la Marca"
+                  [options]="marcasRXResource.value()?.marcas ?? []"
+                  [id]="marcaSelected() || 'Nuevo Vehiculo'"
+                  (optionSelected)="optionSelectedMarca($event)"
+                  >
+                </app-page-form-control-search-list>
+              </div>
+              <div class="mb-2">
+                @if( modelosByMarca.length! > 0 ){
+                  <app-page-form-control-search-list label="Modelo"
+                    newOption="Seleccione el Modelo"
+                    [options]="modelosByMarca"
+                    [id]="cotizacion()?.modelo?.id || ''"
+                    (optionSelected)="optionSelectedModelo($event)"
+                    [controlForm]="cotizacionForm.get('id_modelo')!"
+                    >
+                  </app-page-form-control-search-list>
+                }
+                @else{
+                  <label class="block mb-2 text-sm font-medium text-slate-800 dark:text-white">Modelo</label>
+                  <h3 class="dark:text-white text-white bg-lightblue-600 hover:bg-lightblue-500 rounded-lg px-5 py-2.5 text-center inline-flex items-center dark:bg-darkblue-600 dark:hover:bg-darkblue-500">Selecciona una marca para continuar</h3>
+                }
+              </div>
+              <div>
+                <label class="mb-2 text-sm font-medium text-slate-800 dark:text-white">Año</label>
+                <input type="text" formControlName="anio"  autocomplete="off" class="custom-input-text w-20"
+                  [ngClass]="{ 'custom-input-text-error' : cotizacionForm.controls.anio.errors }"
+                />
+                <app-form-error-label [control]="cotizacionForm.controls.anio"></app-form-error-label>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!--
+      <div class="col-span-1">
+        <div class="bg-white-3 dark:bg-gray-950 p-2 rounded-2xl">
+            <div class="col-span-2">
+              <div class="text-white inline-flex rounded-2xl shadow-xs -space-x-px dark:bg-gray-800 mb-2" role="group">
+                  <button type="button" (click)="setMostrarVehiculo(true)" class="cursor-pointer border border-default rounded-l-2xl font-medium leading-5 text-sm px-3 py-2" [ngClass]="{'bg-lightblue-600 dark:bg-lightblue-600 text-white dark:text-white': mostrarVehiculo(), 'bg-white-2 dark:bg-gray-800 text-slate-800 dark:text-white': !mostrarVehiculo()}">
+                    Seleccionar Vehículo
+                  </button>
+                  <button type="button" (click)="setMostrarVehiculo(false)" class="cursor-pointer border border-default rounded-r-2xl font-medium leading-5 text-sm px-3 py-2" [ngClass]="{'bg-lightblue-600 dark:bg-lightblue-600 text-white dark:text-white': !mostrarVehiculo(), 'bg-white-2 dark:bg-gray-800 text-slate-800 dark:text-white': mostrarVehiculo()}">
+                    Seleccionar Marca, Modelo y Año
+                  </button>
+              </div>
+            </div>
+            @if( mostrarVehiculo()){
+              <div>
+                <div class="flex justify-between pb-4">
+                  <div class="flex items-center gap-2">
+                    <h2 class="text-xl font-semibold text-slate-800 dark:text-white">Vehículo</h2>
+                    <app-page-form-control-search-table-generica-simple
+                      #pageFormControlSearchTableGenericaNewVehiculo
+                      label="Vehiculo"
+                      optionPlaceholder="Agregar"
+                      [plusButton]="true"
+                      [plusButtonMostrar]="plusButtonMostrarVehiculo()"
+                      (searchText)="filtrarVehiculos($event)"
+                      >
+                      <app-vehiculos-busqueda-table [vehiculos]="vehiculosRXResource.value()?.vehiculos ?? [] " (vehiculoSelected)="optionSelectedVehiculo($event)" ></app-vehiculos-busqueda-table>
+                    </app-page-form-control-search-table-generica-simple>
+                    @if(cotizacionVehiculo){
+                        <div (click)="limpiarVehiculo()" class="flex items-center justify-center text-blue-600 dark:text-blue-500 cursor-pointer">
+                          <ng-icon name="tablerTrash"  class="animate-pulse" size="1.5rem"></ng-icon>
+                        </div>
+                    }
+                  </div>
+                </div>
+                <div class="mb-2">
+                  @if(cotizacionVehiculo){
+                    <app-card-vehiculo [vehiculo]="cotizacionVehiculo" ></app-card-vehiculo>
+                  }
+                </div>
+              </div>
+            }@else{
+              <div>
+                <div class="mb-2">
+                  <app-page-form-control-search-list label="Marca"
+                    newOption="Seleccione la Marca"
+                    [options]="marcasRXResource.value()?.marcas ?? []"
+                    [id]="marcaSelected() || 'Nuevo Vehiculo'"
+                    (optionSelected)="optionSelectedMarca($event)"
+                    >
+                  </app-page-form-control-search-list>
+                </div>
+                <div class="mb-2">
+                  @if( modelosByMarca.length! > 0 ){
+                    <app-page-form-control-search-list label="Modelo"
+                      newOption="Seleccione el Modelo"
+                      [options]="modelosByMarca"
+                      [id]="cotizacion()?.modelo?.id || ''"
+                      (optionSelected)="optionSelectedModelo($event)"
+                      [controlForm]="cotizacionForm.get('id_modelo')!"
+                      >
+                    </app-page-form-control-search-list>
+                  }
+                  @else{
+                    <label class="block mb-2 text-sm font-medium text-slate-800 dark:text-white">Modelo</label>
+                    <h3 class="dark:text-white text-white bg-lightblue-600 hover:bg-lightblue-500 rounded-lg px-5 py-2.5 text-center inline-flex items-center dark:bg-darkblue-600 dark:hover:bg-darkblue-500">Selecciona una marca para continuar</h3>
+                  }
+                </div>
+                <div>
+                  <label class="block mb-2 text-sm font-medium text-slate-800 dark:text-white">Año</label>
+                  <input type="text" formControlName="anio"  autocomplete="off" class="custom-input-text"
+                    [ngClass]="{ 'custom-input-text-error' : cotizacionForm.controls.anio.errors }"
+                  />
+                  <app-form-error-label [control]="cotizacionForm.controls.anio"></app-form-error-label>
+                </div>
+
+              </div>
+            }
+        </div>
+      </div>
+      -->
+
+
+    </div>
+
+    <section class="col-span-1 lg:col-span-2 my-3">
+
+      <div class="flex justify-between pb-2">
+        <div class="flex items-center">
+          <h2 class="text-xl font-semibold text-slate-800 dark:text-white pr-2">Conceptos</h2>
+
+          <app-page-form-control-search-table-generica-simple
+            #pageFormControlSearchTableGenericaNewConceptos
+            label="Producto ó Servicio"
+            optionPlaceholder="Agregar"
+            [plusButton]="true"
+            (searchText)="filtrarProductoServicio($event)"
+            >
+            <app-productos-servicios-busqueda-table [productosServicios]="productosServiciosRXResource.value()?.productosServicios ?? [] " (productoServicioSelected)="optionSelectedProductoServicio($event)" ></app-productos-servicios-busqueda-table>
+          </app-page-form-control-search-table-generica-simple>
+        </div>
+
+        @if( cotizacion() ){
+          <div>
+            <button type="button" (click)="onUpdateConceptos()" class="text-white bg-lightblue-600 hover:bg-lightblue-500 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-darkblue-600 dark:hover:bg-darkblue-500 cursor-pointer ">
+              Guardar Conceptos
+            </button>
+          </div>
+        }
+
+      </div>
+
+      <div>
+        <app-conceptos-table
+          [conceptos]="conceptosFormArray"
+          (removeConcepto)="removeConcepto($event)">
+        </app-conceptos-table>
+      </div>
+
+    </section>
+
+    <div class="col-span-1 lg:col-span-2">
+
+      <div>
+        <label class="block mb-2 text-sm font-medium text-slate-800 dark:text-white">Descripción</label>
+        <textarea id="descripcion" formControlName="descripcion" rows="4" class="custom-input-text"
+          [ngClass]="{ 'custom-input-text-error' : cotizacionForm.controls.descripcion.errors }"
+        ></textarea>
+        <app-form-error-label [control]="cotizacionForm.controls.descripcion"></app-form-error-label>
+      </div>
+
+    </div>
+
+  </app-page-form-body>
+
+</form>

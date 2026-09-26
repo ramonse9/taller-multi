@@ -1,0 +1,77 @@
+<div class="relative z-50" [class.pointer-events-none]="!isOpen()">
+
+  <div
+    class="fixed inset-0 bg-black/50 transition-opacity duration-300 ease-in-out"
+    [class.opacity-100]="isOpen()"
+    [class.opacity-0]="!isOpen()"
+    [class.pointer-events-none]="!isOpen()"
+    (click)="onClose()">
+  </div>
+
+    <div
+      class=" fixed right-0 bg-white dark:bg-gray-900 shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out border-gray-200 dark:border-gray-700"
+      [ngClass]="{
+        'inset-y-0  w-full md:max-w-md  border-l ': drawerDirection() === EnumDrawerDirection.RIGHT,
+        'bottom-0 left-0 h-screen md:h-[90vh]  border-t  rounded-t-2xl md:rounded-t-3xl': drawerDirection() === EnumDrawerDirection.BOTTOM,
+        'translate-x-0':    isOpen()  && drawerDirection() === EnumDrawerDirection.RIGHT,
+        'translate-x-full': !isOpen() && drawerDirection() === EnumDrawerDirection.RIGHT,
+        'translate-y-0':    isOpen()  && drawerDirection() === EnumDrawerDirection.BOTTOM,
+        'translate-y-full': !isOpen() && drawerDirection() === EnumDrawerDirection.BOTTOM,
+      }">
+
+    
+      <div class="flex items-center p-4 gap-2">
+        
+        <div class="relative flex-1">
+          <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
+            <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 20 20">
+              <path stroke="currentColor" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
+            </svg>
+          </div>
+          <input #inputSearch (input)="onInput(inputSearch)" type="text" placeholder="Buscar..." autocomplete="off"
+                class="block w-full p-2.5 ps-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-blue-500">
+        </div>
+        
+        <button type="button" (click)="refresh(inputSearch)" class="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-lg flex items-center">
+          <ng-icon name="tablerTrash" size="1.2rem"></ng-icon>
+        </button>
+
+        <button type="button" (click)="onClose()" class=" hidden md:flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-white">
+          <ng-icon name="tablerX" size="1.25rem"></ng-icon>
+        </button>
+
+
+      </div>
+    
+    <!--
+    <div class="p-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+      <h2 class="text-lg font-bold text-gray-900 dark:text-white">
+        {{ title() }}
+      </h2>
+      <button
+        type="button"
+        (click)="onClose()"
+        class="p-3 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 transition-colors">
+        <ng-icon name="tablerX" size="1.25rem"></ng-icon>
+      </button>
+    </div>
+    -->
+
+    <div class="flex-1 overflow-y-auto">
+
+      <ng-content></ng-content>
+    </div>
+
+    <div class="p-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-850 flex justify-end gap-3">
+      <ng-content select="[drawer-footer]">
+        <button
+          type="button"
+          (click)="onClose()"
+          class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600">
+          Cerrar
+        </button>
+      </ng-content>
+    </div>
+  </div>
+
+</div>

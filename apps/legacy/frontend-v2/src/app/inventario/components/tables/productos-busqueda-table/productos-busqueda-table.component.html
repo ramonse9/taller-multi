@@ -1,0 +1,99 @@
+<div class="gap-4 py-4 flex flex-col">
+  @for (producto of productos(); track producto.id) {
+      <!--<ng-container *ngTemplateOutlet="cardTemplate(); context: { $implicit: item, seleccionado: item.id === idSeleccionado() }"></ng-container>-->
+
+      <app-card-producto
+        class="h-full"
+        [producto]="producto"
+        (click)="seleccionar(producto)"
+      >
+      </app-card-producto>
+      <!--[seleccionado]="idSeleccionado"-->
+
+
+  }@empty{
+    <div class="col-span-full">
+      <slot name="empty-message">
+        <p class="text-gray-500 text-center py-4">No se encontraron registros.</p>
+      </slot>
+    </div>
+  }
+</div>
+
+
+
+
+<!--
+<div class="w-full @container">
+  <div class="hidden @md:grid @md:grid-cols-[80px_130px_1fr_90px_110px_60px_60px] bg-gray-100 dark:bg-gray-700 p-2 text-[10px] font-bold uppercase text-gray-500 gap-2">
+    <div class="px-2">ID</div>
+    <div class="px-2">Código de Barras</div>
+    <div class="px-2">Descripción</div>
+    <div>Tipo</div>
+    <div class="text-left px-2">Precio de Venta</div>
+    <div>Stock Actual</div>
+    <div>Stock Mínimo</div>
+  </div>
+
+  <div class="divide-y divide-gray-100 dark:divide-gray-600">
+    @for( producto of productos(); track producto.id ){
+      <div (click)="selectProducto(producto)"
+          class="p-4 @md:p-2 @md:grid @md:grid-cols-[80px_130px_1fr_90px_110px_60px_60px] items-center hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer transition-colors gap-2">
+
+        <div class="mb-2 @md:mb-0">
+          {{ producto.id | uppercase }}
+        </div>
+
+        <div class="mb-2 @md:mb-0">
+          @if( producto.codigoBarras){
+            <app-badge-codigo-barras [codigoBarras]="producto.codigoBarras"></app-badge-codigo-barras>
+          }
+        </div>
+
+        <div class="mb-3 @md:mb-0">
+          <p class="text-sm font-semibold text-gray-900 dark:text-white leading-tight">
+            {{producto.descripcion | uppercase}}
+          </p>
+        </div>
+
+        <div class="mb-2 @md:mb-0 text-xs text-gray-500 dark:text-gray-400">
+          <span class="@md:hidden font-medium">Tipo: </span>
+          <app-badge-simple class="uppercase"
+              [description]="producto.satProductoServicio.satTipoProductoServicio.tipo"
+              [color]="calcularBadgeSimpleColor(producto.satProductoServicio.satTipoProductoServicio.tipo)">
+          </app-badge-simple>
+        </div>
+
+        <div class="relative @md:static">
+          <div class="absolute right-0 bottom-0 mb-1 @md:static">
+            <app-badge-precio-venta [precioVenta]="producto.precioVenta"></app-badge-precio-venta>
+          </div>
+        </div>
+
+        <div class="text-sm text-gray-600 dark:text-gray-300 mt-2 @md:mt-0 text-left">
+          <span class="@md:hidden font-medium">Stock Actual: </span>
+          <span class="font-black text-sm sm:text-sm text-slate-100 dark:text-slate-100 mt-1 px-2.5 py-0.5 rounded-sm"
+            [ngClass]="{
+                'bg-green-600 dark:bg-green-600': (producto.stockMinimo === 0 && producto.stockActual > 0) || ( producto.stockMinimo > 0 && producto.stockActual > producto.stockMinimo ),
+                'bg-yellow-600 dark:bg-yellow-600': producto.stockMinimo > 0 && producto.stockActual > 0 && producto.stockMinimo > producto.stockActual,
+                'bg-red-600 dark:bg-red-600':     producto.stockActual == 0,
+          }">
+            {{ producto.stockActual }}
+          </span>
+        </div>
+
+        <div class="text-sm text-gray-600 dark:text-gray-300 mt-2 @md:mt-0 text-left">
+          <span class="@md:hidden font-medium">Stock Mínimo: </span>
+          <span class="font-black text-sm sm:text-sm text-slate-100 dark:text-slate-100 mt-1 px-2.5 py-0.5 rounded-sm">
+            {{ producto.stockMinimo }}
+          </span>
+        </div>
+
+      </div>
+    } @empty {
+      <div class="p-8 text-center text-gray-500 text-sm">
+        No hay productos registrados
+      </div>
+    }
+  </div>
+</div>-->

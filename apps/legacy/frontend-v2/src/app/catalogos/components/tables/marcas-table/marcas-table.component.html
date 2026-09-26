@@ -1,0 +1,40 @@
+<div class="w-full border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+  <div class="hidden md:grid grid-cols-6 bg-gray-100 dark:bg-gray-700 p-3 text-[10px] font-bold uppercase text-gray-500">
+    <div class="px-2">ID</div>
+    <div class="col-span-4 px-2">Nombre</div>
+  </div>
+
+  <div class="divide-y divide-gray-200 dark:divide-gray-600">
+    @for( marca of marcas(); track marca.id ){
+      <div
+          class="p-4 md:p-2 md:grid md:grid-cols-6 items-center bg-white dark:bg-gray-800  transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
+          [ngClass]="{
+            'border-blue-500': idSeleccionado() === marca.id,
+            'border-gray-200 dark:border-gray-700': idSeleccionado() !== marca.id
+          }"
+          (click)="seleccionarEmit(marca.id)"
+          >
+
+        <div class="flex justify-between md:block mb-1 md:mb-0 px-2">
+          <span class="md:hidden text-xs font-bold text-gray-400 uppercase">ID:</span>
+          <span class="text-sm font-medium">
+            {{marca.id | uppercase }}
+          </span>
+        </div>
+
+        <div class="flex justify-between md:block md:col-span-4 px-2">
+          <span class="md:hidden text-xs font-bold text-gray-400 uppercase">Nombre:</span>
+          <div class="text-sm font-semibold text-gray-900 dark:text-white">
+            {{marca.nombre | uppercase }}
+          </div>
+        </div>
+
+      </div>
+    }
+    @empty {
+      <div class="p-8 text-center bg-white dark:bg-gray-800">
+        <app-badge-message [message]="EnumCeroRegistros.MARCAS"></app-badge-message>
+      </div>
+    }
+  </div>
+</div>

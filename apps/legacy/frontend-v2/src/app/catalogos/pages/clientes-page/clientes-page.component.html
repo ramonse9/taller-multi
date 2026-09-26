@@ -1,0 +1,93 @@
+<div class="p-4 bg-white-2 border-b border-gray-200 dark:bg-gray-900 dark:border-gray-700">
+  <div class="flex items-center justify-between w-full">
+
+    <div class="flex-shrink-0">
+      <app-page-button-inicio></app-page-button-inicio>
+    </div>
+
+    <div class="flex-grow text-center">
+      <h1 class="text-xl font-semibold text-gray-900 sm:text-2xl dark:text-white">
+        CATÁLOGOS | Clientes: {{ clientesRXResource.value()?.totalItems }}
+      </h1>
+    </div>
+
+  </div>
+
+  <div class="mt-4">
+    <app-busqueda-general
+      placeholder="Buscar Clientes"
+      nuevaEntidad="Nuevo Cliente"
+      (idNuevoEmit)="idNuevo()"
+      (filtrarBusquedaEmit)="filtrar($event)"
+      [opcionCards]="true"
+      (mostrarCardsEmit)="mostrarCards($event)"
+    ></app-busqueda-general>
+  </div>
+
+</div>
+
+  @if(clientesRXResource.value()){
+
+    <div class="relative">
+
+      @if (soloCards()) {
+        <div class="relative" [@fadeAnimation]>
+          <app-cards-container
+            [listado]="clientesRXResource.value()?.clientes ?? []"
+            [idSeleccionado]="idSeleccionado()"
+            [cardTemplate]="card"
+            [listMode]="true"
+          >
+            <app-badge-message slot="empty-message" [message]="EnumCeroRegistros.CLIENTES" ></app-badge-message>
+          </app-cards-container>
+        </div>
+      } @else {
+        <div class="relative overflow-x-auto" [@fadeAnimation]>
+          <app-clientes-table
+            [clientes]="clientesRXResource.value()?.clientes ?? []"
+            (idSeleccionarEmit)="idSeleccionar($event)"
+            [idSeleccionado]="idSeleccionado()"
+            >
+          </app-clientes-table>
+        </div>
+      }
+
+      <ng-template #card let-cliente let-idSeleccionado="seleccionado">
+        <app-card-cliente
+          class="h-full"
+          [cliente]="cliente"
+          [seleccionado]="idSeleccionado"
+          (click)="idSeleccionar(cliente.id)"
+        >
+        </app-card-cliente>
+      </ng-template>
+
+    </div>
+  }
+
+<app-pagination
+  [pages]="clientesRXResource.value()?.totalPages ?? 0"
+  [currentPage]="paginationService.currentPage()"
+  (itemsPerPageSelected)="selectPerPageChange($event)">
+</app-pagination>
+
+<app-drawer-form-container
+  [isOpen]="isOpenDrawer()"
+  [idSeleccionado]="idSeleccionado()"
+
+  [resource]="clienteRXResource"
+
+  titleNuevo="Nuevo Cliente"
+  titleEditar="Editar Cliente"
+  [formTemplateNuevo]="nuevo"
+  (closeDrawerEmit)="idDeseleccionar()"
+  labelId="Cliente"
+>
+</app-drawer-form-container>
+<ng-template #nuevo let-cliente>
+  <app-drawer-cliente-nuevo-editar
+    [cliente]="cliente"
+    (guardadoCorrectoEmit)="reload()"
+  >
+  </app-drawer-cliente-nuevo-editar>
+</ng-template>

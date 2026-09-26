@@ -1,0 +1,7 @@
+@if( productoServicioRXResource.isLoading() ){
+  <app-spinner></app-spinner>
+}
+
+@if( productoServicioRXResource.hasValue() ){
+  <app-producto-servicio-details [productoServicio]="productoServicioRXResource.value()" ></app-producto-servicio-details>
+}

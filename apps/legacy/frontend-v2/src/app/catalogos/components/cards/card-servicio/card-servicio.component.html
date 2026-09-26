@@ -1,0 +1,37 @@
+<div
+    class="bg-gray-50 dark:bg-gray-800 relative border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300
+    flex flex-col lg:flex-row overflow-hidden"
+      [ngClass]="{
+        'border-blue-500': seleccionado(),
+        'border-gray-200 dark:border-gray-700': !seleccionado()
+      }"
+    >
+
+    <div class="flex justify-between p-4 border-b border-gray-100 dark:border-gray-700 flex-1">
+
+      <app-card-component-id [entidad]="servicioLinked()" [label]="EnumEntidad.SERVICIO" ></app-card-component-id>
+
+      <div class="flex flex-col items-center gap-2">
+        <p class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase leading-none">Precio Venta</p>
+        <app-badge-precio-venta [precioVenta]="servicioLinked().precioVenta" ></app-badge-precio-venta>
+      </div>
+
+    </div>
+
+    <div class="flex justify-between p-4 border-b border-gray-100 dark:border-gray-700 flex-1">
+
+      <div class="flex flex-col">
+        <span class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase leading-none mb-1">{{servicioLinked().satProductoServicio.descripcion}}</span>
+        <span class="font-black text-lg sm:text-lg text-slate-600 dark:text-slate-100">
+          {{ servicioLinked().descripcion }}
+        </span>
+      </div>
+
+      <div class="flex flex-col items-center gap-2">
+        <p class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase leading-none">¿Activo?</p>
+        <app-badge-si-no [siNo]="servicioLinked().activo"></app-badge-si-no>
+      </div>
+
+    </div>
+
+</div>

@@ -1,0 +1,17 @@
+<div
+  class="gap-4 py-4"
+  [ngClass]="{
+    'grid grid-cols-1 sm:grid-cols-2 xxl:grid-cols-3': !listMode(),
+    'flex flex-col': listMode()
+  }"
+>
+  @for (item of listado(); track item.id) {
+    <ng-container *ngTemplateOutlet="cardTemplate(); context: { $implicit: item, seleccionado: item.id === idSeleccionado() }"></ng-container>
+  }@empty{
+    <div class="col-span-full">
+      <slot name="empty-message">
+        <p class="text-gray-500 text-center py-4">No se encontraron registros.</p>
+      </slot>
+    </div>
+  }
+</div>

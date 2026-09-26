@@ -1,0 +1,94 @@
+
+<div class="p-4 bg-white-2 border-b border-gray-200 dark:bg-gray-900 dark:border-gray-700">
+  <div class="flex items-center justify-between w-full">
+
+    <div class="flex-shrink-0">
+      <app-page-button-inicio></app-page-button-inicio>
+    </div>
+
+    <div class="flex-grow text-center">
+      <h1 class="text-xl font-semibold text-gray-900 sm:text-2xl dark:text-white">
+       INVENTARIO | Proveedores: {{ proveedoresRXResource.value()?.totalItems }}
+      </h1>
+    </div>
+
+  </div>
+
+  <div class="mt-4">
+    <app-busqueda-general
+      placeholder="Buscar Proveedores"
+      nuevaEntidad="Nuevo Proveedor"
+      (idNuevoEmit)="idNuevo()"
+      (filtrarBusquedaEmit)="filtrar($event)"
+    ></app-busqueda-general>
+  </div>
+</div>
+
+<!--
+@if( proveedoresRXResource.value() ){
+    <div class="overflow-x-auto" [@fadeAnimation]>
+      <app-proveedores-table
+        [proveedores]="proveedoresRXResource.value()?.proveedores ?? []"
+        (idSeleccionarEmit)="idSeleccionar($event)"
+        [idSeleccionado]="idSeleccionado()"
+      ></app-proveedores-table>
+    </div>
+}-->
+
+@if(proveedoresRXResource.value()){
+
+  <div class="relative" [@fadeAnimation]>
+    <app-cards-container
+      [listado]="proveedoresRXResource.value()?.proveedores ?? []"
+      [idSeleccionado]="idSeleccionado()"
+      [cardTemplate]="card"
+      [listMode]="true"
+    >
+      <app-badge-message slot="empty-message" [message]="EnumCeroRegistros.PROVEEDORES" ></app-badge-message>
+    </app-cards-container>
+  </div>
+
+  <ng-template #card let-proveedor let-idSeleccionado="seleccionado">
+    <app-card-proveedor
+      class="h-full"
+      [proveedor]="proveedor"
+      [seleccionado]="idSeleccionado"
+      (click)="idSeleccionar(proveedor.id)"
+    >
+    </app-card-proveedor>
+  </ng-template>
+
+}
+
+<app-pagination [pages]="proveedoresRXResource.value()?.totalPages ?? 0" [currentPage]="paginationService.currentPage()" (itemsPerPageSelected)="selectPerPageChange($event)" ></app-pagination>
+
+<app-drawer-base-bottom
+  [isOpen]="isOpenDrawer()"
+  [title]="idSeleccionado() ? 'Editar Proveedor': 'Nuevo Proveedor'"
+  (closeDrawerEmit)="idDeseleccionar()"
+  >
+
+  @if( isOpenDrawer() ){
+
+    @if( idSeleccionado() ){
+
+      @if( proveedorRXResource.isLoading() ){
+
+        <app-cargando-detalles></app-cargando-detalles>
+
+      } @else if( proveedorRXResource.value() ){
+
+        <app-drawer-id-created [entidad]="proveedorRXResource.value()!" label="Proveedor" ></app-drawer-id-created>
+
+        <app-drawer-proveedor-nuevo-editar [proveedor]="proveedorRXResource.value()!" (guardadoCorrectoEmit)="reload()"></app-drawer-proveedor-nuevo-editar>
+
+      } @else{
+        <p class="text-gray-500 text-center py-8">No se pudo cargar la información.</p>
+      }
+    }@else{
+      <app-drawer-proveedor-nuevo-editar [proveedor]="null" (guardadoCorrectoEmit)="reload()"></app-drawer-proveedor-nuevo-editar>
+    }
+
+  }
+
+</app-drawer-base-bottom>

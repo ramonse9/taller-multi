@@ -1,0 +1,23 @@
+<div class="relative w-full">
+
+  @if(orden().pagada){
+    <div class="flex bg-blue-600 text-blue-200 text-sm font-medium me-2 px-2.5 py-0.5 rounded-sm dark:bg-blue-800 dark:text-blue-200 cursor-pointer">
+      <ng-icon name="tablerCurrencyDollar" size="1.2rem"></ng-icon>
+      <div
+        (click)="pagar()"
+        class="bg-blue-600 text-blue-200 text-sm font-medium me-2 px-2.5 py-0.5 rounded-sm dark:bg-blue-800 dark:text-blue-200 cursor-pointer">Pagada</div>
+    </div>
+    <div
+      (click)="pagar()"
+      class="mt-2 bg-blue-600 text-blue-200 text-sm font-medium me-2 px-2.5 py-0.5 rounded-sm dark:bg-blue-800 dark:text-blue-200 cursor-pointer">{{orden().fechaPago | date:'dd/MMM/yyyy'}}</div>
+  }
+  @else{
+    <div class="flex bg-yellow-600 text-yellow-200 text-sm font-medium me-2 px-2.5 py-0.5 rounded-sm dark:bg-yellow-800 dark:text-yellow-200 cursor-pointer" >
+      <ng-icon name="tablerCurrencyDollarOff" size="1.2rem"></ng-icon>
+      <div
+        (click)="pagar()"
+        class="bg-yellow-600 text-yellow-200 text-sm font-medium me-2 px-2.5 py-0.5 rounded-sm dark:bg-yellow-800 dark:text-yellow-200 cursor-pointer">No Pagada</div>
+    </div>
+  }
+</div>
+

@@ -1,0 +1,48 @@
+<div class="relative w-full">
+  @if( !plusButton() ){
+    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{label()}}</label>
+    <button type="button" (click)="showDrawer()" class=" gap-1 cursor-pointer text-white  font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center"
+      [ngClass]="{
+        'bg-lightblue-600 hover:bg-lightblue-500 dark:bg-darkblue-600 dark:hover:bg-darkblue-500': optionSelectedValue(),
+        'bg-lightyellow-600 dark:bg-darkyellow-600 hover:bg-yellow-500 dark:hover:bg-yellow-500': !optionSelectedValue(),
+      }">
+      {{ (optionSelectedValue() | uppercase) || optionPlaceholder()}}
+      <ng-icon name="tablerSearch" size="1.2rem"></ng-icon>
+
+    </button>
+  } @else {
+    @if( plusButtonMostrar() ){
+      <button type="button" (click)="showDrawer()" class="cursor-pointer text-white bg-lightblue-600 hover:bg-lightblue-500 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-full text-sm p-2 text-center inline-flex items-center me-2 dark:bg-darkblue-600 dark:hover:bg-darkblue-500 dark:focus:ring-blue-800"
+        [ngClass]="{
+          'bg-lightblue-600 hover:bg-lightblue-500 dark:bg-darkblue-600 dark:hover:bg-darkblue-500': optionSelectedValue(),
+          'bg-lightyellow-600 dark:bg-darkyellow-600 hover:bg-yellow-500 dark:hover:bg-yellow-500': !optionSelectedValue(),
+        }">
+        <!--
+        <svg class="w-4 h-4" aria-hidden="true" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+        </svg>-->
+        <ng-icon name="tablerPlus" size="1rem" ></ng-icon>
+      </button>
+    }
+  }
+</div>
+
+<app-drawer-base-bottom
+  [isOpen]="isDrawerVisible()"
+  [title]="'Elige ' + label()"
+  (searchTextEmit)="searchText($event)"
+  (closeDrawerEmit)="hideDrawer()"
+  [drawerDirection]="EnumDrawerDirection.BOTTOM"
+  >
+
+  @if( isDrawerVisible() ){
+
+    <div class="flex-1 overflow-y-auto overflow-x-auto p-4">
+      <div class="min-w-full inline-block align-middle">
+        <ng-content></ng-content>
+      </div>
+    </div>
+
+  }
+
+</app-drawer-base-bottom>

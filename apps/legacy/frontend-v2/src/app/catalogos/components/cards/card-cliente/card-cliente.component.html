@@ -1,0 +1,87 @@
+<div
+    class="bg-gray-50 dark:bg-gray-800 relative border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300
+    flex flex-col lg:flex-row overflow-hidden
+    "
+      [ngClass]="{
+        'border-blue-500': seleccionado(),
+        'border-gray-200 dark:border-gray-700': !seleccionado()
+      }"
+    >
+
+    <div class="flex justify-between gap-2 p-4 border-b border-gray-100 dark:border-gray-700 flex-2">
+
+      <app-card-component-id [entidad]="cliente()" [label]="EnumEntidad.CLIENTE" ></app-card-component-id>
+
+      <div class="flex flex-col">
+
+        <h3 class="text-md font-bold text-gray-800 dark:text-gray-100 uppercase">
+          {{clienteLinked().nombre}}
+        </h3>
+
+      </div>
+
+    </div>
+
+    <div class="flex lg:flex-col justify-between lg:justify-start gap-2 p-4 border-b border-gray-100 dark:border-gray-700 flex-1">
+
+      <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
+        <div class="w-8 h-8 rounded text-blue-500 bg-gray-50 dark:bg-gray-700 flex items-center justify-center mr-3">
+            <ng-icon name="tablerMail" size="1rem"></ng-icon>
+        </div>
+        @if( clienteLinked().email ){
+          <span class="truncate">{{ clienteLinked().email | uppercase }}</span>
+        } @else {
+          <p class="text-xs font-semibold text-gray-400 dark:text-gray-500 line-clamp-1 italic mb-2">
+            *No hay correo registrado
+          </p>
+        }
+      </div>
+      <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
+        <div class="w-8 h-8 rounded text-green-500 bg-gray-50 dark:bg-gray-700 flex items-center justify-center mr-3">
+            <ng-icon name="tablerPhone" size="1.1rem"></ng-icon>
+        </div>
+        <span>{{ clienteLinked().telefono }}</span>
+      </div>
+
+    </div>
+
+    <div class="gap-2 p-4 border-b border-gray-100 dark:border-gray-700 flex-2">
+
+       @if( !tieneDatosFiscales ){
+        <div class="flex lg:flex-col justify-between lg:justify-start mb-1">
+            <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase">Datos Fiscales</span>
+            <p class="text-xs font-semibold text-gray-400 dark:text-gray-500 line-clamp-1 italic mb-2">
+              *No hay datos registrados
+            </p>
+        </div>
+      }
+      @else{
+        <div class="flex justify-between items-center mb-1">
+            <span class="text-[10px] font-bold text-gray-400 uppercase">Datos Fiscales</span>
+            <span class="text-[10px] px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded font-bold uppercase">
+                {{ clienteLinked().rfc || '' }}
+            </span>
+        </div>
+
+        <div class="flex justify-between">
+          <p class="text-xs font-semibold text-gray-800 dark:text-gray-200 line-clamp-1 uppercase mb-2">
+            {{ clienteLinked().razonSocial || '' }}
+          </p>
+          <span class="font-bold text-[10px] text-gray-500 dark:text-gray-400">CP: {{ clienteLinked().codigoPostal || '' }}</span>
+        </div>
+
+        <div class="mt-2 pt-3 border-t border-gray-100 dark:border-gray-700 flex justify-between items-center">
+          <div class="flex flex-col">
+            <span class="px-2 py-1 text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded">
+                {{ getRegimenFiscalLabel( clienteLinked() ) }}
+            </span>
+            <span class="px-2 py-1 text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded">
+                {{ getUsoCFDILabel( clienteLinked() ) }}
+            </span>
+          </div>
+        </div>
+      }
+
+    </div>
+
+</div>

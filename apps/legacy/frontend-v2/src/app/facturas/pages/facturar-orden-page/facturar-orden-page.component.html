@@ -1,0 +1,7 @@
+@if( ordenRXResource.isLoading() ){
+  <app-spinner></app-spinner>
+}
+
+@if( ordenRXResource.hasValue() ){
+  <app-facturar-orden-details [orden]="ordenRXResource.value()" ></app-facturar-orden-details>
+}

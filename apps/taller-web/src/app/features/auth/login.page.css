@@ -1,0 +1,21 @@
+:host { display: block; min-height: 100vh; }
+.login-shell { min-height: 100vh; display: grid; grid-template-columns: minmax(320px, 1.05fr) minmax(420px, .95fr); }
+.brand-panel { background: var(--ink); color: var(--cream); padding: clamp(2rem, 6vw, 6rem); display: flex; flex-direction: column; justify-content: center; position: relative; overflow: hidden; }
+.brand-panel::after { content: ''; position: absolute; width: 32rem; height: 32rem; border: 1px solid rgba(232, 106, 51, .24); border-radius: 50%; right: -18rem; bottom: -11rem; box-shadow: 0 0 0 5rem rgba(232, 106, 51, .03), 0 0 0 10rem rgba(232, 106, 51, .03); }
+.brand-mark { width: 3.3rem; height: 3.3rem; display: grid; place-items: center; background: var(--orange); color: white; font-weight: 800; letter-spacing: -.05em; margin-bottom: auto; }
+.eyebrow { color: var(--orange); font-size: .75rem; font-weight: 800; letter-spacing: .16em; margin: 0 0 1rem; }
+h1 { font: 500 clamp(3rem, 6vw, 6.2rem)/.9 var(--display); letter-spacing: -.055em; margin: 0; max-width: 760px; }
+h1 em { color: var(--orange); font-weight: 500; }
+.brand-copy { color: #b8c2bb; max-width: 31rem; font-size: 1.05rem; line-height: 1.7; margin: 2rem 0 3rem; }
+.detail-line { color: #dce2dd; font-size: .85rem; display: flex; align-items: center; gap: .75rem; }
+.detail-line span { width: 2.4rem; height: 1px; background: var(--orange); }
+.form-panel { background: var(--paper); display: grid; place-items: center; padding: 2rem; }
+form { width: min(100%, 26rem); }
+h2 { font: 600 2.7rem/1 var(--display); color: var(--ink); letter-spacing: -.035em; margin: 0; }
+.muted { color: var(--muted); margin: .8rem 0 2.4rem; }
+label { display: block; font-size: .8rem; font-weight: 750; margin: 1.1rem 0 .45rem; color: var(--ink); }
+input { width: 100%; }
+small { display: block; color: var(--danger); margin-top: .4rem; }
+.form-error { padding: .8rem 1rem; background: #fff0ea; color: #8e3214; border-left: 3px solid var(--orange); margin-top: 1.2rem; font-size: .88rem; }
+button { width: 100%; margin-top: 1.5rem; }
+@media (max-width: 760px) { .login-shell { grid-template-columns: 1fr; } .brand-panel { min-height: 38vh; padding: 2rem; } .brand-mark { margin-bottom: 4rem; } .detail-line { display: none; } .form-panel { min-height: 62vh; padding: 2.5rem 1.25rem; } h1 { font-size: 3.2rem; } }

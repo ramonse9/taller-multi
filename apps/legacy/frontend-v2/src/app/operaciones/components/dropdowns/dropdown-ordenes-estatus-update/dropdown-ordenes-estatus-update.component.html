@@ -1,0 +1,26 @@
+<div class="relative w-full">
+  <div class="flex items-center cursor-pointer hover:scale-110 transition-transform transition-colors duration-200">
+    <app-estatus-badge (click)="showDropdown()" [categoria]="EnumCategoria.ORDENES" [clave]="orden().estatus"></app-estatus-badge>
+  </div>
+  @if( isDropdownVisible() ){
+     <div class="absolute top-full right-0 mt-1 z-50 bg-white rounded-lg shadow-sm w-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600">
+      <ul class="h-40 px-3 pb-3 overflow-y-auto text-sm text-gray-700 dark:text-gray-200" >
+        @for( estatus of estatusList; track estatus ){
+          <li
+            (click)="onSubmit(estatus.clave)"
+            class="flex items-center w-full px-4 py-2 border-b border-gray-200 dark:border-gray-600 cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-500 "
+            >
+            <app-estatus-indicator [categoria]="EnumCategoria.ORDENES" [clave]="estatus.clave" ></app-estatus-indicator>
+            {{estatus.nombre | uppercase}}
+          </li>
+        }
+      </ul>
+      <div class="flex justify-center">
+        <button type="button" (click)="hideDropDown()" class="cursor-pointer text-red-500 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 inline-flex items-center dark:hover:bg-gray-700 dark:hover:text-white">
+          <ng-icon name="tablerXboxX" size="1.5rem"></ng-icon>
+        </button>
+      </div>
+    </div>
+  }
+</div>
+

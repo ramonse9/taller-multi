@@ -1,0 +1,33 @@
+<div class="p-4 bg-white-2 border-b border-gray-200 dark:bg-gray-900 dark:border-gray-700">
+  <div class="flex items-center justify-between w-full">
+
+    <div class="flex-shrink-0">
+      <app-page-button-inicio></app-page-button-inicio>
+    </div>
+
+    <div class="flex-grow text-center">
+      <h1 class="text-xl font-semibold text-gray-900 sm:text-2xl dark:text-white">
+        Productos y Servicios: {{ productosServiciosRXResource.value()?.totalItems }}
+      </h1>
+    </div>
+
+  </div>
+
+  <div class="mt-4">
+    <app-busqueda-general
+      placeholder="Buscar Productos y Servicios"
+      nuevaEntidad="Nuevo Producto ó Servicio"
+      nuevaEntidadPagina="/catalogos/productosservicios/new"
+      (filtrarBusquedaEmit)="filtrar($event)"
+    ></app-busqueda-general>
+  </div>
+</div>
+
+
+@if( productosServiciosRXResource.value() ){
+    <div class="overflow-x-auto" [@fadeAnimation]>
+      <app-productos-servicios-table [productosServicios]="productosServiciosRXResource.value()?.productosServicios ?? []" ></app-productos-servicios-table>
+    </div>
+}
+
+<app-pagination [pages]="productosServiciosRXResource.value()?.totalPages ?? 0" [currentPage]="paginationService.currentPage()" (itemsPerPageSelected)="selectPerPageChange($event)"></app-pagination>

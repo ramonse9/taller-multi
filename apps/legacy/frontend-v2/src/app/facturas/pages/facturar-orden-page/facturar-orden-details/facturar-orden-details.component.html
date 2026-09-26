@@ -1,0 +1,214 @@
+<form class="p-2 sm:p-6 min-h-[600px] max-w-7xl mx-auto" [formGroup]="facturaForm" (ngSubmit)="onSubmit()">
+
+  <app-page-form-header
+    [titleNew]="EnumPaginasTitulo.FACTURA_NEW"
+    [titleUpdate]="EnumPaginasTitulo.FACTURA_UPDATE"
+    [id]="''" [emitir]=true detail="" [subtitle]="false">
+  </app-page-form-header>
+
+  <app-page-form-body>
+
+    <section class="mt-4 sm:mt-8">
+      <h2 class="text-lg sm:text-xl font-bold mb-4 text-gray-800 dark:text-white border-b pb-2 border-gray-100 dark:border-gray-700">
+        Datos del Receptor
+      </h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+        <div class="md:col-span-2 mb-2">
+          <div class="flex flex-col sm:flex-row w-full shadow-sm" role="group">
+            <button type="button" (click)="seleccionarReceptor(EnumSatTipoPersona.MORAL)"
+                class="inline-flex items-center justify-center px-4 py-3 text-sm border cursor-pointer w-full transition-colors
+                rounded-t-lg sm:rounded-tr-none sm:rounded-s-lg"
+                [ngClass]="{
+                  'bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400 border-blue-400 dark:border-blue-500 z-10 font-bold': receptorSatTipoPersona() === 'moral',
+                  'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-gray-200 dark:border-gray-600': receptorSatTipoPersona() !== 'moral'
+                }">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-5 h-5 mr-2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 21h18M9 8h6M9 12h6M9 16h6M4 21V5a1 1 0 011-1h3a1 1 0 011 1v16M15 21V3a1 1 0 011-1h3a1 1 0 011 1v18"/>
+              </svg>
+              Empresa (Persona Moral)
+            </button>
+            <button type="button" (click)="seleccionarReceptor(EnumSatTipoPersona.FISICA)"
+                class="inline-flex items-center justify-center px-4 py-3 text-sm border cursor-pointer w-full transition-colors
+                rounded-b-lg sm:rounded-bl-none sm:rounded-e-lg -mt-px sm:mt-0 sm:-ml-px"
+                [ngClass]="{
+                  'bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400 border-blue-400 dark:border-blue-500 z-10 font-bold': receptorSatTipoPersona() === 'fisica',
+                  'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-gray-200 dark:border-gray-600': receptorSatTipoPersona() !== 'fisica'
+                }">
+              <svg class="w-5 h-5 mr-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <path stroke="currentColor" stroke-width="2" d="M7 17v1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1a3 3 0 0 0-3-3h-4a3 3 0 0 0-3 3Zm8-9a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
+              </svg>
+              Cliente (Persona Física)
+            </button>
+          </div>
+        </div>
+
+        @if( receptorSatTipoPersona() == EnumSatTipoPersona.MORAL ){
+          @if( orden()?.empresa ){
+            <app-card-empresa [empresa]="orden()!.empresa!" ></app-card-empresa>
+          }@else{
+            <div class="mt-2">
+              <app-badge-message [message]="`No hay una Empresa asignada a esta Orden`" [estatus]="EnumEstatusToast.WARNING" ></app-badge-message>
+            </div>
+          }
+        }
+        @else{
+          @if( orden()?.cliente ){
+            <app-card-cliente [cliente]="orden()!.cliente!" ></app-card-cliente>
+          }@else{
+            <div class="mt-2">
+              <app-badge-message [message]="`No hay un Cliente asignado a esta Orden`" [estatus]="EnumEstatusToast.WARNING" ></app-badge-message>
+            </div>
+          }
+        }
+
+        <!--
+        <div class="space-y-1">
+          <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">RFC</label>
+          <p class="text-sm font-medium text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2.5 rounded-lg border border-gray-100 dark:border-gray-700 break-all">
+            {{ getReceptorValidarCampo(receptor()?.rfc, 'Sin RFC') }}
+          </p>
+        </div>
+
+        <div class="space-y-1">
+          <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Email</label>
+          <p class="text-sm font-medium text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2.5 rounded-lg border border-gray-100 dark:border-gray-700 break-words">
+            {{ getReceptorValidarCampo(receptor()?.email, 'Sin Email') }}
+          </p>
+        </div>
+
+        <div class="md:col-span-2 space-y-1">
+          <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Razón Social</label>
+          <p class="text-sm font-medium text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2.5 rounded-lg border border-gray-100 dark:border-gray-700 break-words">
+            {{ getReceptorValidarCampo(receptor()?.razonSocial, 'Sin Razón Social') }}
+          </p>
+        </div>
+
+        <div class="md:col-span-2 lg:col-span-1 space-y-1">
+          <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Régimen Fiscal</label>
+          <p class="text-sm font-medium text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2.5 rounded-lg border border-gray-100 dark:border-gray-700 break-words">
+            @if( receptor()?.satRegimenFiscal){
+              <span class="text-blue-600 dark:text-blue-400 font-bold">{{ receptor()?.satRegimenFiscal?.clave}}</span> - {{ receptor()?.satRegimenFiscal?.descripcion }}
+            }@else{
+              <span class="text-gray-400 italic">Sin Régimen Fiscal</span>
+            }
+          </p>
+        </div>
+
+        <div class="md:col-span-2 lg:col-span-1 space-y-1">
+          <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Uso CFDI</label>
+          <p class="text-sm font-medium text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2.5 rounded-lg border border-gray-100 dark:border-gray-700 break-words">
+            @if( receptor()?.satUsoCFDI){
+              <span class="text-blue-600 dark:text-blue-400 font-bold">{{ receptor()?.satUsoCFDI?.clave}}</span> - {{ receptor()?.satUsoCFDI?.descripcion }}
+            }@else{
+              <span class="text-gray-400 italic">Sin Uso de CFDI</span>
+            }
+          </p>
+        </div>
+      -->
+
+        <div class="md:col-span-2 mt-2">
+          @if(receptorObtenerMensajeObjeto().estatus != EnumEstatusToast.SUCCESS ){
+              <app-badge-message [message]="receptorObtenerMensajeObjeto().mensaje" [estatus]="receptorObtenerMensajeObjeto().estatus" ></app-badge-message>
+          }
+          @if( !receptor() ){
+              <div class="mt-2">
+                <app-badge-message [message]="`No tienes ${receptorSatTipoPersona() === EnumSatTipoPersona.FISICA ? 'un Cliente' : 'una Empresa' } en la Orden`" [estatus]="EnumEstatusToast.DANGER" ></app-badge-message>
+              </div>
+          }
+        </div>
+      </div>
+    </section>
+
+    <section class="mt-8">
+      <h2 class="text-lg sm:text-xl font-bold mb-4 text-gray-800 dark:text-white border-b pb-2 border-gray-100 dark:border-gray-700">
+        Información de la Factura
+      </h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+        <div class="space-y-1">
+          <label class="block text-sm font-medium text-gray-700 dark:text-white">Tipo de Comprobante</label>
+          <div class="text-sm font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-gray-800 px-3 py-2 rounded-lg border border-blue-100 dark:border-blue-900/30">
+            INGRESO
+          </div>
+        </div>
+
+        <div class="space-y-1">
+          <label class="block text-sm font-medium text-gray-700 dark:text-white">Fecha Emisión</label>
+          <input #dateInputEmision type="text" placeholder="Selecciona una fecha"
+              class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+          <app-form-error-label [control]="facturaForm.controls.fechaEmision"></app-form-error-label>
+        </div>
+
+        <app-page-form-control-list
+          label="Método Pago"
+          newOption="Seleccione el Método de Pago"
+          [options]="satMetodosPagosRXResource.value()?.satMetodosPagos ?? []"
+          (optionSelected)="optionSelectedMetodoPago($event)"
+          [controlForm]="facturaForm.get('claveSatMetodoPago')!">
+        </app-page-form-control-list>
+
+        <div class="space-y-1">
+          <label class="block text-sm font-medium text-gray-700 dark:text-white">Condiciones Pago</label>
+          <input type="text" formControlName="condicionesPago" class="custom-input-text w-full rounded-lg"
+            [ngClass]="{ 'border-red-500' : facturaForm.controls.condicionesPago.errors }" />
+          <app-form-error-label [control]="facturaForm.controls.condicionesPago"></app-form-error-label>
+        </div>
+
+        <app-page-form-control-list
+          label="Forma Pago"
+          newOption="Seleccione la Forma de Pago"
+          [options]="satFormasPagosRXResource.value()?.satFormasPagos ?? []"
+          (optionSelected)="optionSelectedFormaPago($event)"
+          [controlForm]="facturaForm.get('claveSatFormaPago')!">
+        </app-page-form-control-list>
+
+        <div class="space-y-1">
+          <label class="block text-sm font-medium text-gray-700 dark:text-white">Lugar de Expedición (CP)</label>
+          <input type="text" formControlName="lugarExpedicion" class="custom-input-text w-full rounded-lg"
+            [ngClass]="{ 'border-red-500' : facturaForm.controls.lugarExpedicion.errors }" />
+          <app-form-error-label [control]="facturaForm.controls.lugarExpedicion"></app-form-error-label>
+        </div>
+
+        <div class="md:col-span-2 space-y-1">
+          <label class="block text-sm font-medium text-gray-700 dark:text-white">Observaciones</label>
+          <textarea formControlName="observaciones" rows="3" class="custom-input-text w-full rounded-lg"
+            [ngClass]="{ 'border-red-500' : facturaForm.controls.observaciones.errors }"></textarea>
+          <app-form-error-label [control]="facturaForm.controls.observaciones"></app-form-error-label>
+        </div>
+      </div>
+    </section>
+
+    <section class="mt-8 mb-8">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4 border-b pb-2 border-gray-100 dark:border-gray-700">
+        <h2 class="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Datos del Emisor</h2>
+        @if( !validarEmisor() ){
+          <div class="w-full md:w-auto">
+            <app-badge-message [message]="'Emisor incompleto'" [estatus]="EnumEstatusToast.DANGER"></app-badge-message>
+          </div>
+        }
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 dark:bg-gray-800/30 p-4 rounded-xl">
+        <div class="space-y-1">
+          <label class="block text-xs font-semibold uppercase text-gray-500 uppercase">RFC</label>
+          <p class="text-sm font-bold dark:text-white truncate">{{ emisor()?.rfc?.toUpperCase() }}</p>
+        </div>
+        <div class="md:col-span-2 space-y-1">
+          <label class="block text-xs font-semibold uppercase text-gray-500 uppercase">Razón Social</label>
+          <p class="text-sm font-bold dark:text-white break-words">{{ emisor()?.razonSocial?.toUpperCase() }}</p>
+        </div>
+        <div class="space-y-1">
+          <label class="block text-xs font-semibold uppercase text-gray-500 uppercase">C.P.</label>
+          <p class="text-sm font-bold dark:text-white">{{ emisor()?.codigoPostal }}</p>
+        </div>
+        <div class="md:col-span-2 space-y-1">
+          <label class="block text-xs font-semibold uppercase text-gray-500 uppercase">Régimen Fiscal</label>
+          <p class="text-sm font-bold dark:text-white">{{ emisor()?.satRegimenFiscal?.clave }} - {{ emisor()?.satRegimenFiscal?.descripcion }}</p>
+        </div>
+      </div>
+    </section>
+
+  </app-page-form-body>
+</form>

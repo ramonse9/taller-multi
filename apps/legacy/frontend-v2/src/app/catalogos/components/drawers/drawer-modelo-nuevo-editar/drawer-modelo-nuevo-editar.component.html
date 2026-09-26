@@ -1,0 +1,39 @@
+<form [formGroup]="modeloForm" (ngSubmit)="onSubmit()" class="flex flex-col gap-4">
+
+  <div>
+    <app-page-form-control-search-list label="Marca"
+    newOption="Seleccione la Marca"
+    [options]="marcasRXResource.value()?.marcas ?? []"
+    [id]="modelo()?.marca?.id ?? ''"
+    (optionSelected)="optionSelectedMarca($event)"
+    [controlForm]="modeloForm.get('id_marca')!"
+    >
+    </app-page-form-control-search-list>
+  </div>
+
+  <div>
+    <app-page-form-control-input-list
+    label="Nombre del modelo"
+    [name]="modelo()?.nombre ?? ''"
+    [options]="modelosPorMarcaNombre() ?? []"
+    (inputText)="inputTextModelo($event)"
+    [controlForm]="modeloForm.get('nombre')!"
+    >
+    </app-page-form-control-input-list>
+  </div>
+
+  <div class="flex justify-center py-3">
+    <button type="submit" class="text-white bg-lightblue-600 hover:bg-lightblue-500 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-darkblue-600 dark:hover:bg-darkblue-500 cursor-pointer disabled:opacity-50 transition-all duration-500 ease-in-out"
+        [disabled]="isLoading | async"
+        [ngClass]="{
+          'opacity-100 scale-100 pointer-events-auto': modeloForm.valid,
+          'opacity-0 scale-95 pointer-events-none': !modeloForm.valid
+        }">
+        Guardar
+    </button>
+  </div>
+
+
+
+
+</form>

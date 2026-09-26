@@ -1,0 +1,75 @@
+<form [formGroup]="servicioForm" (ngSubmit)="onSubmit()" class="flex flex-col gap-4">
+
+  <!--
+  <div>
+    <app-page-form-control-search-table-generica-simple
+      #pageFormControlSearchTableGenerica
+      label="Servicio Base"
+      optionPlaceholder="Seleccione el Servicio Base"
+      (searchText)="filtrarSatProductoServicio($event)"
+      [optionSelectedValue]="optionSelectedSatProductoServicioValue()"
+      >
+        <app-sat-productos-servicios-table [satProductosServicios]="satProductoServicioRXResource.value()?.satProductosServicios ?? [] " (satProductoServicioSelected)="optionSelectedSatProductoServicio($event)" ></app-sat-productos-servicios-table>
+    </app-page-form-control-search-table-generica-simple>
+  </div>-->
+  <div>
+
+    <app-page-form-control-search-table-generica-simple-drawer
+      #pageFormControlSearchTableGenericaSimpleDrawer
+      label="Servicio Base"
+      optionPlaceholder="Seleccione el Servicio Base"
+      (searchTextEmit)="filtrarSatProductoServicio($event)"
+      [optionSelectedValue]="optionSelectedSatProductoServicioValue()"
+      >
+        <app-sat-productos-servicios-table [satProductosServicios]="satProductoServicioRXResource.value()?.satProductosServicios ?? [] " (satProductoServicioSelected)="optionSelectedSatProductoServicio($event)" ></app-sat-productos-servicios-table>
+    </app-page-form-control-search-table-generica-simple-drawer>
+
+  </div>
+
+  <div>
+    <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Descripción</label>
+    <textarea id="descripcion" formControlName="descripcion" rows="4" class="custom-input-text"
+    [ngClass]="{ 'custom-input-text-error' : servicioForm.controls.descripcion.errors }"
+    ></textarea>
+    <app-form-error-label [control]="servicioForm.controls.descripcion"></app-form-error-label>
+  </div>
+
+  <div>
+    <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Precio Venta</label>
+    <input type="text" formControlName="precioVenta"  autocomplete="off" class="custom-input-text"
+      [ngClass]="{ 'custom-input-text-error' : servicioForm.controls.precioVenta.errors }"
+    />
+    <app-form-error-label [control]="servicioForm.controls.precioVenta"></app-form-error-label>
+  </div>
+
+  @if(servicio()){
+    <div class="flex flex-col gap-4">
+
+      <label class="inline-flex items-center cursor-pointer">
+        <input type="checkbox"
+              formControlName="activo"
+              [checked]="servicioForm.get('activo')?.value"
+              class="peer sr-only"> <div class="relative w-9 h-5 rounded-full bg-gray-200 dark:bg-gray-700
+                    peer-focus:outline-none
+                    peer-checked:bg-green-500
+                    after:content-[''] after:absolute after:top-[2px] after:start-[2px]
+                    after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all
+                    peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full"></div>
+        <span class="select-none ms-3 text-sm font-medium text-heading dark:text-white">Activo</span>
+      </label>
+
+    </div>
+  }
+
+  <div class="flex justify-center py-3">
+    <button type="submit" class="text-white bg-lightblue-600 hover:bg-lightblue-500 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-darkblue-600 dark:hover:bg-darkblue-500 cursor-pointer disabled:opacity-50 transition-all duration-500 ease-in-out"
+        [disabled]="isLoading | async"
+        [ngClass]="{
+          'opacity-100 scale-100 pointer-events-auto': servicioForm.valid,
+          'opacity-0 scale-95 pointer-events-none': !servicioForm.valid
+        }">
+        Guardar
+    </button>
+  </div>
+
+</form>

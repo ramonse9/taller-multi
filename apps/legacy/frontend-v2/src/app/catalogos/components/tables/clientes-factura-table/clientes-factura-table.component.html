@@ -1,0 +1,45 @@
+<div class="inline-block align-middle">
+  <table class="min-w-full divide-y table-auto divide-gray-200 dark:divide-gray-600">
+      <thead class="bg-gray-100 dark:bg-gray-700">
+          <tr>
+              <th scope="col" class="min-w-28 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                ID
+              </th>
+              <th scope="col" class="min-w-60 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                Email
+              </th>
+              <th scope="col" class="min-w-40 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                RFC
+              </th>
+              <th scope="col" class="min-w-60 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                Razón Social
+              </th>
+          </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+
+          @for( cliente of clientes(); track cliente.id ){
+            <tr class="hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer group transition-colors duration-300" (click)="selectCliente(cliente)">
+              <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white group-dark:hover:text-blue-600 group-hover:text-blue-600">
+                <!--<a class="dark:hover:text-blue-600 hover:text-blue-600 transition-colors duration-300 cursor-pointer">
+                  {{cliente.id | uppercase }}
+                </a>-->
+                {{cliente.id | uppercase }}
+              </td>
+              <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white group-dark:hover:text-blue-600 group-hover:text-blue-600">{{cliente.email | uppercase}}</td>
+              <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white group-dark:hover:text-blue-600 group-hover:text-blue-600">{{cliente.rfc | uppercase}}</td>
+              <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white group-dark:hover:text-blue-600 group-hover:text-blue-600">{{cliente.razonSocial | uppercase}}</td>
+          </tr>
+          }
+
+          <!--@empty{
+            <div  class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+              No hay clientes registrados
+            </div>
+          }-->
+      </tbody>
+  </table>
+</div>
+
+
+

@@ -1,0 +1,14 @@
+<div class="grid grid-cols-1 gap-4 px-4 mt-8 sm:grid-cols-6 sm:px-8 max-w-4xl justify-center mx-auto dark:text-gray-300 text-gray-700">
+
+  @for( item of items; track item.label ){
+
+    <div class="flex flex-col items-center dark:bg-gray-800 bg-white border dark:border-gray-100 rounded-xl overflow-hidden shadow py-7 px-4">
+
+        <h1 [countUp]="getCount(item.key)" class="text-4xl dark:text-blue-500 text-gray-700 mb-3">0</h1>
+        <h2 [routerLink]="item.route" class="tracking-wider cursor-pointer text-center">Total de {{item.label}}</h2>
+
+    </div>
+
+  }
+
+</div>

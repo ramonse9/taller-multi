@@ -1,0 +1,144 @@
+<div class="inline-block align-middle">
+  <table class="min-w-full divide-y table-auto divide-gray-200 dark:divide-gray-600">
+      <thead class="bg-gray-100 dark:bg-gray-700">
+          <tr>
+              <th scope="col" class="min-w-60 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                Acciones
+              </th>
+              <th scope="col" class="min-w-28 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                  ID
+              </th>
+              <th scope="col" class="min-w-28 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                Estatus
+              </th>
+              <th scope="col" class="min-w-40 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                Fecha Emision
+              </th>
+              <th scope="col" class="min-w-40 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                Fecha Timbrado
+              </th>
+              <th scope="col" class="min-w-40 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                Orden
+              </th>
+              <th scope="col" class="min-w-40 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                Tipo Comprobante
+              </th>
+              <th scope="col" class="min-w-40 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                Método Pago
+              </th>
+              <th scope="col" class="min-w-40 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                Pagos
+              </th>
+              <th scope="col" class="min-w-20 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                Forma Pago
+              </th>
+              <th scope="col" class="min-w-28 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                Serie
+              </th>
+              <th scope="col" class="min-w-20 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                Folio
+              </th>
+              <th scope="col" class="min-w-20 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                Condiciones Pago
+              </th>
+              <th scope="col" class="min-w-40 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                UUID
+              </th>
+              <th scope="col" class="min-w-20 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                Emisor RFC
+              </th>
+              <th scope="col" class="min-w-28 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                Emisor Razón Social
+              </th>
+              <th scope="col" class="min-w-20 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                Receptor RFC
+              </th>
+              <th scope="col" class="min-w-28 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                Receptor Razón Social
+              </th>
+              <th scope="col" class="max-w-4xl p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                Receptor Regimen Fiscal
+              </th>
+              <th scope="col" class="min-w-32 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                Receptor Codigo Postal
+              </th>
+          </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+          @for( factura of facturas(); track factura.id ){
+            <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
+              <td class="pl-6 py-4">
+                <div class="flex gap-2 dark:text-white">
+                  @if( factura.estatus == EnumEstatusCFDI.VIGENTE ){
+                    <a [routerLink]="['/facturas/facturacancelar', factura.id]" title="Cancelar esta Factura">
+                      <button type="button" class="px-3 py-2 text-sm font-medium text-center text-white bg-red-700 rounded-lg hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-800 cursor-pointer">Cancelar</button>
+                    </a>
+                  }
+                </div>
+              </td>
+              <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{factura.id.toUpperCase() }}</td>
+              <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                <app-estatus-badge [categoria]="EnumCategoria.FACTURAS" [clave]="factura.estatus"></app-estatus-badge>
+              </td>
+              <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{factura.fechaEmision | date: 'dd/MM/yyyy HH:MM'}}</td>
+              <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{factura.fechaEmision | date: 'dd/MM/yyyy HH:MM'}}</td>
+              <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{ factura.orden.id | uppercase }} </td>
+              <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                <h3>
+                  @if( factura.satTipoComprobante.clave === EnumSatTipoComprobante.INGRESO ){
+                    <app-badge-simple [description]="factura.satTipoComprobante.clave + ' - ' + (factura.satTipoComprobante.descripcion | uppercase)" [color]="EnumBadgeSimpleColor.GREEN" ></app-badge-simple>
+                  }
+                  @if( factura.satTipoComprobante.clave === EnumSatTipoComprobante.PAGO ){
+                    <app-badge-simple [description]="factura.satTipoComprobante.clave + ' - ' + (factura.satTipoComprobante.descripcion | uppercase)" [color]="EnumBadgeSimpleColor.YELLOW" ></app-badge-simple>
+                  }
+                  @if( factura.satTipoComprobante.clave === EnumSatTipoComprobante.EGRESO ){
+                    <app-badge-simple [description]="factura.satTipoComprobante.clave + ' - ' + (factura.satTipoComprobante.descripcion | uppercase)" [color]="EnumBadgeSimpleColor.RED" ></app-badge-simple>
+                  }
+                </h3>
+              </td>
+              <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                <h3>
+                  @if( factura.satMetodoPago.clave == EnumSatMetodoPago.PUE_PAGO_EN_UNA_SOLA_EXHIBICION ){
+                    <app-badge-simple [description]="(factura.satMetodoPago.clave | uppercase) + ' ' + factura.satMetodoPago.descripcion" [color]="EnumBadgeSimpleColor.GREEN" ></app-badge-simple>
+                  }
+                  @if( factura.satMetodoPago.clave == EnumSatMetodoPago.PPD_PAGO_EN_PARCIALIDADES_O_DIFERIDO ){
+                    <app-badge-simple [description]="(factura.satMetodoPago.clave | uppercase) + ' ' + factura.satMetodoPago.descripcion" [color]="EnumBadgeSimpleColor.YELLOW" ></app-badge-simple>
+                  }
+                </h3>
+              </td>
+              <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                <h3>
+                    @if( factura.satMetodoPago.clave == EnumSatMetodoPago.PUE_PAGO_EN_UNA_SOLA_EXHIBICION ){
+                      <app-badge-simple description="N/A" [color]="EnumBadgeSimpleColor.GREEN" ></app-badge-simple>
+                    }
+                    @if( factura.satMetodoPago.clave == EnumSatMetodoPago.PPD_PAGO_EN_PARCIALIDADES_O_DIFERIDO ){
+                      <app-list-pagos [pagos]="factura.pagos" ></app-list-pagos>
+                    }
+                </h3>
+              </td>
+              <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{factura.satFormaPago.clave}} - {{ factura.satFormaPago.descripcion | uppercase}}</td>
+              <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{factura.serie | uppercase}}</td>
+              <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{factura.folio}}</td>
+              <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{factura.condicionesPago | uppercase}}</td>
+              <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{factura.uuid | uppercase}}</td>
+              <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{factura.emisorRFC | uppercase}}</td>
+              <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{factura.emisorRazonSocial | uppercase}}</td>
+              <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white bg-gray-700">{{factura.receptorRFC | uppercase}}</td>
+              <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white bg-gray-700">{{factura.receptorRazonSocial | uppercase}}</td>
+              <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white bg-gray-700">{{factura.receptorSatRegimenFiscal.clave}} - {{factura.receptorSatRegimenFiscal.descripcion | uppercase}}</td>
+              <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white bg-gray-700">{{factura.receptorCodigoPostal | uppercase}}</td>
+          </tr>
+          }
+          @empty{
+            <tr>
+              <td colspan="20" class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                <app-badge-message [message]="EnumCeroRegistros.FACTURAS"  ></app-badge-message>
+              </td>
+            </tr>
+          }
+      </tbody>
+  </table>
+</div>
+
+
+

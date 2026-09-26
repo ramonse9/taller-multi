@@ -1,0 +1,146 @@
+<!--
+<div class="inline-block align-middle">
+
+  <table class="min-w-full divide-y table-auto divide-gray-200 dark:divide-gray-600">
+    <thead class="bg-gray-100 dark:bg-gray-700">
+      <tr>
+        <th scope="col" class="min-w-10 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          Acciones
+        </th>
+        <th scope="col" class="min-w-10 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          ID
+        </th>
+        <th scope="col" class="min-w-60 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          Descripcion
+        </th>
+        <th scope="col" class="min-w-14 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          Valor
+        </th>
+        <th scope="col" class="min-w-10 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          Tipo
+        </th>
+        <th scope="col" class="min-w-60 p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+          Descripcion
+        </th>
+      </tr>
+
+    </thead>
+    <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+
+      @for( productoServicio of productosServicios(); track productoServicio.id ){
+
+      <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
+
+        <td class="pl-6 py-4">
+          <div class="flex gap-2">
+
+            <a [routerLink]="['/productosservicios/', productoServicio.id]" title="Editar"
+              class="inline-flex items-center font-bold text-gray-400 dark:text-white hover:text-blue-400 dark:hover:text-blue-600 transition-colors duration-300">
+              <svg class="w-6 h-6 text-gray-800 dark:text-white dark:hover:text-blue-600 transition-colors duration-300"
+                aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
+                viewBox="0 0 24 24">
+                <path fill-rule="evenodd"
+                  d="M14 4.182A4.136 4.136 0 0 1 16.9 3c1.087 0 2.13.425 2.899 1.182A4.01 4.01 0 0 1 21 7.037c0 1.068-.43 2.092-1.194 2.849L18.5 11.214l-5.8-5.71 1.287-1.31.012-.012Zm-2.717 2.763L6.186 12.13l2.175 2.141 5.063-5.218-2.141-2.108Zm-6.25 6.886-1.98 5.849a.992.992 0 0 0 .245 1.026 1.03 1.03 0 0 0 1.043.242L10.282 19l-5.25-5.168Zm6.954 4.01 5.096-5.186-2.218-2.183-5.063 5.218 2.185 2.15Z"
+                  clip-rule="evenodd" />
+              </svg>
+            </a>
+
+          </div>
+        </td>
+
+        <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+          {{ productoServicio.id | uppercase }}
+        </td>
+        <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{
+          productoServicio.descripcion | uppercase }}</td>
+
+        <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white"> {{
+          productoServicio.costoUnitario | currency : '$ ':'symbol':'1.2-2':'en' }} </td>
+
+        <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white"> {{
+          productoServicio.satProductoServicio.satTipoProductoServicio.tipo | uppercase}} </td>
+
+        <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white"> {{
+          productoServicio.satProductoServicio.descripcion}} </td>
+
+      </tr>
+      }
+      @empty{
+      <tr>
+        <td colspan="6" class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+          <app-badge-message [message]="EnumCeroRegistros.PRODUCTOSSERVICIOS"></app-badge-message>
+        </td>
+      </tr>
+      }
+    </tbody>
+  </table>
+
+</div>
+-->
+
+<div class="w-full border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+  <div class="hidden md:grid grid-cols-12 bg-gray-100 dark:bg-gray-700 p-3 text-[10px] font-bold uppercase text-gray-500">
+    <div class="col-span-1 px-2">Acciones</div>
+    <div class="col-span-1 px-2">ID</div>
+    <div class="col-span-4 px-2">Descripción</div>
+    <div class="col-span-2 px-2">Valor</div>
+    <div class="col-span-1 px-2">Tipo</div>
+    <div class="col-span-3 px-2">Desc. SAT</div>
+  </div>
+
+  <div class="divide-y divide-gray-200 dark:divide-gray-600">
+    @for( productoServicio of productosServicios(); track productoServicio.id ){
+      <div class="p-4 md:p-2 md:grid md:grid-cols-12 items-center bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+
+        <div class="flex items-center justify-between mb-3 md:mb-0 md:col-span-2">
+          <div class="flex items-center gap-2">
+            <span class="md:hidden text-[10px] font-bold text-gray-400 uppercase">ID: {{productoServicio.id}}</span>
+            <a [routerLink]="['/catalogos/productosservicios/', productoServicio.id]"
+               title="Editar"
+               class="text-gray-400 dark:text-white hover:text-blue-600 transition-colors">
+              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <path fill-rule="evenodd" d="M14 4.182A4.136 4.136 0 0 1 16.9 3c1.087 0 2.13.425 2.899 1.182A4.01 4.01 0 0 1 21 7.037c0 1.068-.43 2.092-1.194 2.849L18.5 11.214l-5.8-5.71 1.287-1.31.012-.012Zm-2.717 2.763L6.186 12.13l2.175 2.141 5.063-5.218-2.141-2.108Zm-6.25 6.886-1.98 5.849a.992.992 0 0 0 .245 1.026 1.03 1.03 0 0 0 1.043.242L10.282 19l-5.25-5.168Zm6.954 4.01 5.096-5.186-2.218-2.183-5.063 5.218 2.185 2.15Z" clip-rule="evenodd"/>
+              </svg>
+            </a>
+          </div>
+          <span class="hidden md:block text-sm text-gray-500 px-2">{{ productoServicio.id }}</span>
+        </div>
+
+        <div class="mb-2 md:mb-0 md:col-span-4 px-2">
+          <p class="text-sm font-bold text-gray-900 dark:text-white leading-tight">
+            {{ productoServicio.descripcion | uppercase }}
+          </p>
+        </div>
+
+        <div class="flex justify-between md:block md:col-span-2 mb-2 md:mb-0 px-2">
+          <span class="md:hidden text-xs font-bold text-gray-400 uppercase">Valor:</span>
+          <div class="text-sm font-bold text-blue-600 dark:text-blue-400">
+            {{ productoServicio.costoUnitario | currency : '$ ':'symbol':'1.2-2':'en' }}
+          </div>
+        </div>
+
+        <div class="flex justify-between md:block md:col-span-1 mb-2 md:mb-0 px-2">
+          <span class="md:hidden text-xs font-bold text-gray-400 uppercase">Tipo:</span>
+          <app-badge-simple class="uppercase"
+              [description]="productoServicio.satProductoServicio.satTipoProductoServicio.tipo"
+              [color]="calcularBadgeSimpleColor(productoServicio.satProductoServicio.satTipoProductoServicio.tipo)"
+            >
+          </app-badge-simple>
+        </div>
+
+        <div class="flex flex-col md:block md:col-span-3 px-2 border-t md:border-t-0 border-gray-100 dark:border-gray-700 pt-2 md:pt-0">
+          <span class="md:hidden text-[10px] font-bold text-gray-400 uppercase mb-1">Descripción SAT:</span>
+          <p class="text-xs text-gray-500 dark:text-gray-400 italic">
+            {{ productoServicio.satProductoServicio.descripcion }}
+          </p>
+        </div>
+
+      </div>
+    }
+    @empty {
+      <div class="p-8 text-center bg-white dark:bg-gray-800">
+        <app-badge-message [message]="EnumCeroRegistros.PRODUCTOSSERVICIOS"></app-badge-message>
+      </div>
+    }
+  </div>
+</div>

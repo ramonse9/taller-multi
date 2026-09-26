@@ -1,0 +1,7 @@
+@if( clienteRXResource.isLoading() ){
+  <app-spinner></app-spinner>
+}
+
+@if( clienteRXResource.hasValue() ){
+  <app-cliente-details [cliente]="clienteRXResource.value()" [mostrarEspacioInferior]="true"></app-cliente-details>
+}

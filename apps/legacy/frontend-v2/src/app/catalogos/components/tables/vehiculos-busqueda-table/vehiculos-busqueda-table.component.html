@@ -1,0 +1,59 @@
+<div class="w-full border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+  <div class="hidden md:grid grid-cols-12 bg-gray-100 dark:bg-gray-700 p-3 text-[10px] font-bold uppercase text-gray-500 border-b dark:border-gray-600">
+    <div class="col-span-1 px-2">ID</div>
+    <div class="col-span-2 px-2">Marca</div>
+    <div class="col-span-3 px-2">Modelo</div>
+    <div class="col-span-1 px-2">Año</div>
+    <div class="col-span-2 px-2">Color</div>
+    <div class="col-span-3 px-2">Numero de Serie</div>
+  </div>
+
+  <div class="divide-y divide-gray-200 dark:divide-gray-600">
+    @for( vehiculo of vehiculos(); track vehiculo.id ){
+      <div (click)="selectVehiculo(vehiculo)"
+           class="p-4 md:p-3 md:grid md:grid-cols-12 items-center bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer transition-all group">
+
+        <div class="flex justify-between md:block md:col-span-1 mb-2 md:mb-0 px-2">
+          <span class="md:hidden text-[10px] font-bold text-gray-400 uppercase">ID:</span>
+          <span class="text-xs font-mono text-gray-500">{{vehiculo.id}}</span>
+          <span class="md:hidden bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded text-xs font-bold">
+            {{vehiculo.anio}}
+          </span>
+        </div>
+
+        <div class="flex justify-between md:block md:col-span-2 mb-2 md:mb-0 px-2">
+          <span class="md:hidden text-xs font-bold text-gray-400 uppercase">Marca:</span>
+          <div class="text-sm text-gray-600 dark:text-gray-300">
+            {{vehiculo.modelo.marca.nombre | uppercase}}
+          </div>
+        </div>
+
+        <div class="flex justify-between md:block md:col-span-3 mb-2 md:mb-0 px-2">
+          <span class="md:hidden text-xs font-bold text-gray-400 uppercase">Modelo:</span>
+          <div class="text-sm font-bold text-gray-900 dark:text-white group-hover:text-blue-600">
+            {{vehiculo.modelo.nombre | uppercase}}
+          </div>
+        </div>
+
+        <div class="hidden md:block md:col-span-1 px-2 text-sm text-gray-900 dark:text-white">
+          {{vehiculo.anio}}
+        </div>
+
+        <div class="flex justify-between md:block md:col-span-2 mb-2 md:mb-0 px-2">
+          <span class="md:hidden text-xs font-bold text-gray-400 uppercase">Color:</span>
+          <div class="text-sm text-gray-700 dark:text-gray-300">
+            {{vehiculo.color | uppercase}}
+          </div>
+        </div>
+
+        <div class="flex justify-between md:block md:col-span-3 px-2 pt-2 md:pt-0 border-t md:border-0 border-gray-100 dark:border-gray-700">
+          <span class="md:hidden text-xs font-bold text-gray-400 uppercase">Número de Serie:</span>
+          <div class="text-sm font-mono text-blue-700 dark:text-blue-400">
+            {{vehiculo.numeroSerie | uppercase}}
+          </div>
+        </div>
+
+      </div>
+    }
+  </div>
+</div>

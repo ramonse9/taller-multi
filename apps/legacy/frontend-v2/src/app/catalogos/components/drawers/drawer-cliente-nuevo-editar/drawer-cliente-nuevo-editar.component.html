@@ -1,0 +1,164 @@
+<form [formGroup]="clienteForm" (ngSubmit)="onSubmit()" class="flex flex-col gap-4">
+
+  <!--
+  @if( mostrarHeader() ){
+    <app-page-form-header
+      [titleNew]="EnumPaginasTitulo.CLIENTE_NEW"
+      [titleUpdate]="EnumPaginasTitulo.CLIENTE_UPDATE"
+      [id]="cliente()?.id ?? ''"
+      [detail]="cliente()?.nombre ?? ''">
+    </app-page-form-header>
+  }-->
+
+  <!--
+  <app-page-form-body
+      [borderColor]="clienteForm.valid ? EnumBorderColor.VALID : EnumBorderColor.INVALID">-->
+
+
+
+      <!-- Nombre -->
+      <div>
+        <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Nombre</label>
+        <input type="text"
+               formControlName="nombre"
+               autocomplete="off"
+               class="custom-input-text"
+               [ngClass]="{ 'custom-input-text-error' : clienteForm.get('nombre')?.errors }"
+               [attr.aria-invalid]="clienteForm.get('nombre')?.invalid || null"/>
+        <app-form-error-label [control]="clienteForm.get('nombre')!"></app-form-error-label>
+      </div>
+
+      <!-- Teléfono (sin onlyNumbers, con pattern validator) -->
+      <div>
+        <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Teléfono</label>
+        <input type="text"
+               formControlName="telefono"
+               maxlength="10"
+               inputmode="numeric"
+               pattern="[0-9]*"
+               autocomplete="off"
+               class="custom-input-text"
+               [ngClass]="{ 'custom-input-text-error' : clienteForm.get('telefono')?.errors }"
+               [attr.aria-invalid]="clienteForm.get('telefono')?.invalid || null"/>
+        <app-form-error-label [control]="clienteForm.get('telefono')!"></app-form-error-label>
+      </div>
+
+      <!-- Email -->
+      <div>
+        <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Email</label>
+        <input type="text"
+               formControlName="email"
+               autocomplete="off"
+               class="custom-input-text"
+               [ngClass]="{ 'custom-input-text-error' : clienteForm.get('email')?.errors }"
+               [attr.aria-invalid]="clienteForm.get('email')?.invalid || null"/>
+        <app-form-error-label [control]="clienteForm.get('email')!"></app-form-error-label>
+      </div>
+
+
+
+    <!-- Datos Fiscales -->
+    <div class="mt-6 border rounded-lg overflow-hidden border-gray-700">
+      <button type="button"
+              class="w-full flex justify-between items-center px-4 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-white font-medium"
+              (click)="isFiscalOpen = !isFiscalOpen">
+        Datos Fiscales (opcional)
+        <span [class.rotate-180]="isFiscalOpen" class="transition-transform duration-300">
+          ▼
+        </span>
+      </button>
+
+      <!-- Usar *ngIf en lugar de maxHeight fijo -->
+      <div class="transition-all duration-500 ease-in-out overflow-hidden"
+          [style.maxHeight]="isFiscalOpen ? '1000px' : '0px'">
+        <div class="p-4 grid grid-cols-1 gap-4">
+
+          <div>
+            <app-page-form-control-list
+              label="Regimen Fiscal"
+              newOption="Seleccione el Régimen Fiscal"
+              [options]="satRegimenFiscalRxResource.value()?.satRegimenesFiscales || []"
+              (optionSelected)="optionSelectedRegimenFiscal($event)"
+              [controlForm]="clienteForm.get('claveSatRegimenFiscal')!">
+            </app-page-form-control-list>
+          </div>
+
+          <div>
+
+              <app-page-form-control-list
+                label="Uso CFDI"
+                [newOption]="(clienteForm.get('claveSatRegimenFiscal')?.value ?? '') !== ''
+                              ? 'Seleccione el Uso de CFDI'
+                              : 'Primero seleccione el Regimen Fiscal'"
+                [options]="satUsoCfdiRxResource.value()?.satUsosCFDIs || []"
+                (optionSelected)="optionSelectedUsoCFDI($event)"
+                [controlForm]="clienteForm.get('claveSatUsoCFDI')!">
+              </app-page-form-control-list>
+
+          </div>
+
+          <!-- RFC -->
+          <div>
+            <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">RFC</label>
+            <input type="text"
+                   formControlName="rfc"
+                   autocomplete="off"
+                   class="custom-input-text"
+                   [ngClass]="{ 'custom-input-text-error' : clienteForm.get('rfc')?.errors }"
+                   [attr.aria-invalid]="clienteForm.get('rfc')?.invalid || null"/>
+            <app-form-error-label [control]="clienteForm.get('rfc')!"></app-form-error-label>
+          </div>
+
+          <!-- Razón Social -->
+          <div>
+            <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Razón Social</label>
+            <input type="text"
+                   formControlName="razonSocial"
+                   autocomplete="off"
+                   class="custom-input-text"
+                   [ngClass]="{ 'custom-input-text-error' : clienteForm.get('razonSocial')?.errors }"
+                   [attr.aria-invalid]="clienteForm.get('razonSocial')?.invalid || null"/>
+            <app-form-error-label [control]="clienteForm.get('razonSocial')!"></app-form-error-label>
+          </div>
+
+          <!-- Código Postal -->
+          <div>
+            <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Código Postal</label>
+            <input type="text"
+                   formControlName="codigoPostal"
+                   autocomplete="off"
+                   class="custom-input-text"
+                   [ngClass]="{ 'custom-input-text-error' : clienteForm.get('codigoPostal')?.errors }"
+                   [attr.aria-invalid]="clienteForm.get('codigoPostal')?.invalid || null"/>
+            <app-form-error-label [control]="clienteForm.get('codigoPostal')!"></app-form-error-label>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="flex justify-center py-3">
+      <button type="submit" class="text-white bg-lightblue-600 hover:bg-lightblue-500 font-medium rounded-lg text-sm w-full  px-5 py-2.5 text-center dark:bg-darkblue-600 dark:hover:bg-darkblue-500 cursor-pointer disabled:opacity-50 transition-all duration-500 ease-in-out"
+          [disabled]="isLoading | async"
+          [ngClass]="{
+            'opacity-100 scale-100 pointer-events-auto': clienteForm.valid,
+            'opacity-0 scale-95 pointer-events-none': !clienteForm.valid
+          }">
+          Guardar
+      </button>
+    </div>
+
+  <!--
+  </app-page-form-body>
+  -->
+
+</form>
+
+
+<!--
+@if(mostrarEspacioInferior()){
+  <div class="h-24"></div>
+}-->
+
+<app-voice-button class="block" [durationSeconds]="15" [entidadVoice]="EnumEntidadesVoice.CLIENTE" (datosJsonEmit)="voiceDatosCliente($event)" ></app-voice-button>
+

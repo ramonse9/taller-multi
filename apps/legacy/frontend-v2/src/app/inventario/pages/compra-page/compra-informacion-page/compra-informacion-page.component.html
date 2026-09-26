@@ -1,0 +1,174 @@
+<div class="min-h-screen bg-white-3 dark:bg-gray-950 font-display text-slate-900 dark:text-slate-100">
+
+  <header class="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800">
+    <div class="max-w-[1440px] mx-auto px-4 sm:px-6 h-auto py-3 sm:h-16 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+
+      <div class="flex justify-between sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
+        <div class="flex gap-2">
+          <button [routerLink]="'/inventario/compras'" class="p-2 bg-blue-600 hover:bg-blue-500 dark:bg-blue-600 dark:hover:bg-blue-500 rounded-full flex items-center shrink-0 cursor-pointer transition-colors text-white">
+            <ng-icon name="tablerArrowBackUp" size="1.2rem"></ng-icon>
+          </button>
+          <div class="flex flex-col min-w-0">
+            <h1 class="text-base sm:text-lg font-bold leading-tight truncate dark:text-white">
+              Compra #{{ compraLinked().id | uppercase }}
+            </h1>
+            <span class="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium">
+              Creado el <span class="uppercase">{{ compraLinked().createdAt | date: 'dd/MMM/yyyy • HH:mm' }}</span>
+            </span>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </header>
+
+  <main class="max-w-[1440px] mx-auto sm:px-6 py-6 sm:py-8">
+    <div class="flex flex-col lg:flex-row gap-6 items-start">
+
+      <aside class="w-full lg:w-1/3 space-y-4 sm:space-y-6">
+
+        <!--
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+          <app-card-component-description [description]="compraLinked().observaciones" [observaciones]="true" ></app-card-component-description>
+        </div>
+        -->
+
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div class="space-y-2">
+            <p class="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest">Estatus</p>
+          </div>
+
+          <div class="flex flex-col items-center gap-1 mb-2 ">
+            <app-estatus-badge [categoria]="EnumCategoria.COMPRAS" [clave]="compraLinked().estatus" ></app-estatus-badge>
+            @if(compraLinked().estatus === EnumEstatusCompra.CONFIRMADA){
+              <p class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase leading-none">{{compraLinked().usuarioConfirmacion.fullName}}</p>
+            }@else if(compraLinked().estatus === EnumEstatusCompra.BORRADOR){
+              <p class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase leading-none">{{compraLinked().usuarioBorrador.fullName}}</p>
+            }@else if(compraLinked().estatus === EnumEstatusCompra.CANCELADA){
+              <p class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase leading-none">{{compraLinked().usuarioCancelacion.fullName}}</p>
+            }
+          </div>
+
+          <div class="flex flex-col sm:flex-row gap-1">
+
+            <!-- Botón Cancelar -->
+            @if( compraLinked().estatus === EnumEstatusCompra.BORRADOR ) {
+              <button
+                type="button"
+                (click)="onCancelarCompra()"
+                class="flex items-center justify-center gap-1 px-4 py-2 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow-md transition-colors">
+                <ng-icon name="tablerX" size="1rem"></ng-icon>
+                Cancelar Compra
+              </button>
+
+              <!-- Botón Confirmar -->
+              <button
+                type="button"
+                (click)="onConfirmarCompra()"
+                class="flex items-center justify-center gap-1 px-4 py-2 text-sm font-bold text-white bg-green-600 hover:bg-green-700 rounded-lg shadow-md transition-colors">
+                <ng-icon name="tablerCheck" size="1rem"></ng-icon>
+                Confirmar Compra
+              </button>
+            }
+
+          </div>
+
+          <!--
+          <div>
+            <button>
+              Cancelar Compra
+            </button>
+            <button>
+              Confirmar Compra
+            </button>
+            <div class="w-full md:w-auto flex justify-end">
+              <a
+                [routerLink]="nuevaEntidadPagina()"
+                class="inline-flex items-center justify-center w-full md:w-auto px-5 py-2.5 text-sm font-medium text-white bg-lightblue-600 dark:bg-darkblue-600 rounded-lg hover:bg-lightblue-700 dark:hover:bg-darkblue-700 shadow-md transition-all">
+                <svg class="w-5 h-5 mr-2 -ml-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"></path></svg>
+                {{ nuevaEntidad() }}
+              </a>
+            </div>
+          </div>-->
+
+        </div>
+
+      </aside>
+
+      <div class="flex-1 w-full space-y-6">
+
+        <section class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+          <div class="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-3 text-blue-600">
+              <ng-icon name="tablerListCheck" size="1.3rem"></ng-icon>
+              <h3 class="font-bold text-base sm:text-lg uppercase tracking-tight dark:text-white">Productos</h3>
+            </div>
+
+            <div class="flex items-center bg-slate-50 dark:bg-slate-800/50 p-1.5 rounded-full px-4 self-start sm:self-auto">
+              <span class="text-[10px] sm:text-xs font-bold uppercase">
+                {{ compraLinked().detalles.length }} Items
+              </span>
+            </div>
+          </div>
+
+          <div class="block sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
+            @for( detalle of compraLinked().detalles; track detalle.producto.id ){
+              <div class="p-4 space-y-3">
+                <div class="flex justify-between items-start gap-4">
+                  <div>
+                    <p class="text-xs font-bold dark:text-slate-200">{{detalle.producto.descripcion}}</p>
+                    <!--<p class="text-[10px] text-slate-500 uppercase">{{detalle.producto.satProductoServicio.satTipoProductoServicio.tipo}}</p>-->
+                  </div>
+                  <span class="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-bold px-2 py-1 rounded">
+                    x{{detalle.cantidad | number:'1.0-0'}}
+                  </span>
+                </div>
+                <div class="flex justify-end">
+                  <p class="text-sm font-black text-slate-900 dark:text-white">
+                    {{(detalle.cantidad * detalle.costoUnitario) | currency:'$ '}}
+                  </p>
+                </div>
+              </div>
+            }
+          </div>
+
+          <div class="hidden sm:block overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead class="bg-slate-50 dark:bg-slate-800/50">
+                <tr>
+                  <th class="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Descripción</th>
+                  <th class="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Cant.</th>
+                  <th class="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Total</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                @for( detalle of compraLinked().detalles; track detalle.producto.id ){
+                  <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                    <td class="px-6 py-4">
+                      <p class="text-sm font-bold dark:text-slate-200">{{detalle.producto.descripcion}}</p>
+                      <!--<p class="text-[10px] text-slate-500">{{detalle.producto.satProductoServicio.satTipoProductoServicio.tipo}}</p>-->
+                      <!--<p class="text-[10px] text-slate-500">'PRODUCTO</p>-->
+                    </td>
+                    <td class="px-6 py-4 text-sm font-bold text-right dark:text-slate-200">{{detalle.cantidad | number:'1.0-0'}}</td>
+                    <td class="px-6 py-4 text-sm font-bold text-right dark:text-slate-200">{{(detalle.cantidad * detalle.costoUnitario) | currency:'$ '}}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <div class="bg-slate-50 dark:bg-slate-800/50 px-4 sm:px-6 py-4 flex justify-between items-center border-t border-slate-100 dark:border-slate-800">
+            <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Importe</span>
+            <span class="text-lg sm:text-xl font-black text-blue-600 dark:text-blue-400">
+              {{ subtotalCotizacion | currency:'$ ' }}
+            </span>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </main>
+</div>
+@if(modalOpen()){
+  <app-modal-compra-estatus-update [idCompra]="compraLinked().id" [estatus]="compraLinked().estatus" [nuevoEstatus]="nuevoEstatus()" (onCloseEmit)="cerrarModal($event)" ></app-modal-compra-estatus-update>
+}

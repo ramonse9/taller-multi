@@ -1,0 +1,25 @@
+<form [formGroup]="marcaForm" (ngSubmit)="onSubmit()" class="flex flex-col gap-4">
+
+  <div>
+    <app-page-form-control-input-list
+      label="Nombre de la marca"
+      [name]="marca()?.nombre ?? ''"
+      [options]="marcasNombre ?? []"
+      (inputText)="inputTextModelo($event)"
+      [controlForm]="marcaForm.get('nombre')!"
+      >
+    </app-page-form-control-input-list>
+  </div>
+
+  <div class="flex justify-center py-3">
+    <button type="submit" class="text-white bg-lightblue-600 hover:bg-lightblue-500 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-darkblue-600 dark:hover:bg-darkblue-500 cursor-pointer disabled:opacity-50 transition-all duration-500 ease-in-out"
+        [disabled]="isLoading | async"
+        [ngClass]="{
+          'opacity-100 scale-100 pointer-events-auto': marcaForm.valid,
+          'opacity-0 scale-95 pointer-events-none': !marcaForm.valid
+        }">
+        Guardar
+    </button>
+  </div>
+
+</form>

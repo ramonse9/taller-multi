@@ -1,0 +1,61 @@
+
+<table class="min-w-full divide-y table-fized divide-gray-200 dark:divide-gray-600">
+    <thead class="bg-gray-100 dark:bg-gray-700">
+      <tr>
+        <th scope="col" class="w-32 p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Fecha Pago</th>
+        <th scope="col" class="w-32 p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Fecha Emision</th>
+        <th scope="col" class="p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Forma Pago</th>
+        <th scope="col" class="p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">#</th>
+        <th scope="col" class="p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Saldo Anterior</th>
+        <th scope="col" class="p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Monto</th>
+        <th scope="col" class="p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Saldo Insoluto</th>
+      </tr>
+    </thead>
+    <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+      @for (pago of pagos(); track pago.id) {
+        <tr class="hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer group transition-colors duration-300">
+           <td class="p-2 text-base font-medium text-gray-900 whitespace-normal dark:text-white group-dark:hover:text-blue-600 group-hover:text-blue-600">
+            {{ fechaToLocale( pago.complemento.fechaPago )  }}
+          </td>
+          <td class="p-2 text-base font-medium text-gray-900 whitespace-normal dark:text-white group-dark:hover:text-blue-600 group-hover:text-blue-600">
+            {{ fechaToLocale( pago.complemento.fechaEmision )}}
+          </td>
+          <td class="p-2 text-base font-medium text-gray-900 whitespace-normal dark:text-white group-dark:hover:text-blue-600 group-hover:text-blue-600 truncate overflow-hidden">
+            {{ pago.complemento.satFormaPago.clave }} - {{ pago.complemento.satFormaPago.descripcion }}
+          </td>
+          <td class="p-2 text-base font-medium text-gray-900 whitespace-normal dark:text-white group-dark:hover:text-blue-600 group-hover:text-blue-600 truncate overflow-hidden">
+            {{ pago.numeroParcialidad }}
+          </td>
+          <td class="p-2 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white group-dark:hover:text-blue-600 group-hover:text-blue-600">
+            {{ pago.saldoAnterior | currency:'$ ':'symbol':'1.2-2':'en' }}
+          </td>
+          <td class="p-2 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white group-dark:hover:text-blue-600 group-hover:text-blue-600">
+            {{ pago.monto | currency:'$ ':'symbol':'1.2-2':'en' }}
+          </td>
+          <td class="p-2 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white group-dark:hover:text-blue-600 group-hover:text-blue-600">
+            <!--
+            @if($last){
+            -->
+              <label [ngClass]="{ 'bg-yellow-700 text-white text-sm font-medium me-2 px-2.5 py-0.5 rounded-sm dark:bg-yellow-700 dark:text-white': $last}">
+                {{ pago.saldoInsoluto | currency:'$ ':'symbol':'1.2-2':'en' }}
+              </label>
+              <!--
+            }
+            -->
+            <!--
+            @else{
+              <label>
+                {{ pago.saldoInsoluto | currency:'$ ':'symbol':'1.2-2':'en' }}
+              </label>
+            }-->
+          </td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="7" class="p-4 text-sm font-medium text-gray-900 whitespace-nowrap dark:text-red-400 group-dark:hover:text-blue-600 group-hover:text-blue-600">
+             Aún no hay complementos de pagos registrados.
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>

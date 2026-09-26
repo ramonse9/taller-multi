@@ -1,0 +1,7 @@
+@if( facturaRXResource.isLoading() ){
+  <app-spinner></app-spinner>
+}
+
+@if( facturaRXResource.hasValue() ){
+  <app-complemento-pago-orden-details [factura]="facturaRXResource.value()" ></app-complemento-pago-orden-details>
+}

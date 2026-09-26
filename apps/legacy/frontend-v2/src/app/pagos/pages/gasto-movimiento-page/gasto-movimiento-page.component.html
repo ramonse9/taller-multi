@@ -1,0 +1,7 @@
+@if( gastoMovimientoRXResource.isLoading() ){
+  <app-spinner></app-spinner>
+}
+
+@if( gastoMovimientoRXResource.hasValue() ){
+  <app-gasto-movimiento-details [gastoMovimiento]="gastoMovimientoRXResource.value()!" ></app-gasto-movimiento-details>
+}

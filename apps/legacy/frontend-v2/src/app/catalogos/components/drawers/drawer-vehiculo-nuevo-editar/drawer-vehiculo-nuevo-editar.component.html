@@ -1,0 +1,91 @@
+<form [formGroup]="vehiculoForm" (ngSubmit)="onSubmit()" class="flex flex-col gap-4">
+
+  <div>
+    <app-page-form-control-search-list label="Marca"
+    newOption="Seleccione la Marca"
+    [options]="marcasRXResource.value()?.marcas ?? []"
+    [id]="vehiculoForm.get('id_marca')?.value || 'Nuevo Vehiculo'"
+    (optionSelected)="optionSelectedMarca($event)"
+    [controlForm]="vehiculoForm.get('id_marca')!"
+    >
+    </app-page-form-control-search-list>
+  </div>
+
+  <div>
+    @if( modelosByMarca().length! > 0 ){
+      <app-page-form-control-search-list label="Modelo"
+      newOption="Seleccione el Modelo"
+      [options]="modelosByMarca()"
+      [id]="vehiculoForm.get('id_modelo')?.value || ''"
+      (optionSelected)="optionSelectedModelo($event)"
+      [controlForm]="vehiculoForm.get('id_modelo')!"
+      >
+      </app-page-form-control-search-list>
+    }
+    @else{
+      <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Modelo</label>
+      <h3 class="dark:text-white text-white bg-lightblue-600 hover:bg-lightblue-500 rounded-lg px-5 py-2.5 text-center inline-flex items-center dark:bg-darkblue-600 dark:hover:bg-darkblue-500">Selecciona una marca para continuar</h3>
+    }
+  </div>
+
+  <div>
+    <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Color</label>
+    <input type="text" formControlName="color"  autocomplete="off" class="custom-input-text uppercase"
+      [ngClass]="{ 'custom-input-text-error' : vehiculoForm.controls.color.errors }"
+    />
+    <app-form-error-label [control]="vehiculoForm.controls.color"></app-form-error-label>
+  </div>
+
+  <div>
+    <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Año</label>
+    <input type="text" formControlName="anio"  autocomplete="off" class="custom-input-text"
+      [ngClass]="{ 'custom-input-text-error' : vehiculoForm.controls.anio.errors }"
+    />
+    <app-form-error-label [control]="vehiculoForm.controls.anio"></app-form-error-label>
+  </div>
+
+  <div>
+    <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">
+      Número de Serie (últimos 10)
+    </label>
+
+    <div class="flex gap-2">
+      <input
+        type="text"
+        formControlName="numeroSerie"
+        maxlength="10"
+        autocomplete="off"
+        class="custom-input-text flex-1 uppercase"
+        [ngClass]="{ 'custom-input-text-error' : vehiculoForm.controls.numeroSerie.errors }"
+      />
+      <app-modal-vehiculos-vin-canva (vinDetectadoEmit)="setNumeroSerie($event)" ></app-modal-vehiculos-vin-canva>
+    </div>
+
+    <app-form-error-label [control]="vehiculoForm.controls.numeroSerie"></app-form-error-label>
+  </div>
+
+  <div>
+    <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Placa</label>
+    <input type="text" formControlName="placa"  autocomplete="off" class="custom-input-text uppercase"
+      [ngClass]="{ 'custom-input-text-error' : vehiculoForm.controls.placa.errors }"
+    />
+    <app-form-error-label [control]="vehiculoForm.controls.placa"></app-form-error-label>
+  </div>
+
+  <div class="flex justify-center py-3">
+    <button type="submit" class="text-white bg-lightblue-600 hover:bg-lightblue-500 font-medium rounded-lg text-sm w-full  px-5 py-2.5 text-center dark:bg-darkblue-600 dark:hover:bg-darkblue-500 cursor-pointer disabled:opacity-50 transition-all duration-500 ease-in-out"
+        [disabled]="isLoading | async"
+        [ngClass]="{
+          'opacity-100 scale-100 pointer-events-auto': vehiculoForm.valid,
+          'opacity-0 scale-95 pointer-events-none': !vehiculoForm.valid
+        }">
+        Guardar
+    </button>
+  </div>
+
+</form>
+
+
+<!-- TODO
+  <app-voice-button class="block" [durationSeconds]="15" [entidadVoice]="EnumEntidadesVoice.VEHICULO" (datosJsonEmit)="voiceDatosVehiculo($event)" ></app-voice-button>
+-->

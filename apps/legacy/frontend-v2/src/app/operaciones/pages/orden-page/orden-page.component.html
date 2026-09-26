@@ -1,0 +1,18 @@
+@if( ordenRXResource.isLoading()){
+  <app-spinner></app-spinner>
+}
+
+@if( ordenRXResource.hasValue() ){
+  @if( modo() === 'informacion' ){
+    <app-orden-informacion-page [orden]="ordenRXResource.value()!" (refrescarInformacionEmit)="refrescarInformacion()"></app-orden-informacion-page>
+  }
+  @else{
+    <!--<app-orden-details [orden]="ordenRXResource.value()" ></app-orden-details>-->
+    <app-orden-details [orden]="ordenRXResource.value()"
+            (limpiarOrdenVehiculoEmit)="onLimpiarVehiculo()"
+            (limpiarOrdenClienteEmit)="onLimpiarCliente()"
+            (limpiarOrdenEmpresaEmit)="onLimpiarEmpresa()"
+          ></app-orden-details>
+  }
+
+}

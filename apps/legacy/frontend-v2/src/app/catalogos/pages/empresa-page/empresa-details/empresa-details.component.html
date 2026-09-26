@@ -1,0 +1,109 @@
+<form class="" [formGroup]="empresaForm" (ngSubmit)="onSubmit()">
+
+  @if( mostrarHeader() ){
+    <app-page-form-header
+      [titleNew]="EnumPaginasTitulo.EMPRESA_NEW"
+      [titleUpdate]="EnumPaginasTitulo.EMPRESA_UPDATE"
+      [id]="empresa()?.id ?? ''"
+      [detail]="`${empresa()?.nombre}`">
+    </app-page-form-header>
+  }
+
+  <app-page-form-body
+    [borderColor]="empresaForm.valid ? EnumBorderColor.VALID : EnumBorderColor.INVALID">
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 w-full">
+
+      <div>
+        <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Nombre</label>
+        <input type="text" formControlName="nombre" autocomplete="off" class="custom-input-text"
+          [ngClass]="{ 'custom-input-text-error' : empresaForm.controls.nombre.errors }"/>
+        <app-form-error-label [control]="empresaForm.controls.nombre"></app-form-error-label>
+      </div>
+
+      <div>
+        <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Teléfono</label>
+        <input type="text" formControlName="telefono" maxlength="10" inputmode="numeric" pattern="[0-9]*" autocomplete="off" class="custom-input-text"
+          [ngClass]="{ 'custom-input-text-error' : empresaForm.controls.telefono.errors }"/>
+        <app-form-error-label [control]="empresaForm.controls.telefono"></app-form-error-label>
+      </div>
+
+      <div>
+        <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Email</label>
+        <input type="text" formControlName="email" autocomplete="off" class="custom-input-text"
+          [ngClass]="{ 'custom-input-text-error' : empresaForm.controls.email.errors }"/>
+        <app-form-error-label [control]="empresaForm.controls.email"></app-form-error-label>
+      </div>
+
+    </div>
+
+    <div class="mt-6 border rounded-lg overflow-hidden border-gray-700">
+      <button type="button"
+              class="w-full flex justify-between items-center px-4 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-white font-medium"
+              (click)="isFiscalOpenEmpresa = !isFiscalOpenEmpresa">
+        Datos Fiscales (opcional)
+        <span [class.rotate-180]="isFiscalOpenEmpresa" class="transition-transform duration-300">
+          ▼
+        </span>
+      </button>
+
+      <div class="transition-all duration-500 ease-in-out overflow-hidden"
+           [style.maxHeight]="isFiscalOpenEmpresa ? '1000px' : '0px'">
+        <div class="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+
+          <div>
+            <app-page-form-control-list
+              label="Regimen Fiscal"
+              newOption="Seleccione el Régimen Fiscal"
+              [options]="satRegimenFiscalRxResource.value()?.satRegimenesFiscales || []"
+              (optionSelected)="optionSelectedRegimenFiscal($event)"
+              [controlForm]="empresaForm.get('claveSatRegimenFiscal')!">
+            </app-page-form-control-list>
+          </div>
+
+          <div>
+            
+              <app-page-form-control-list
+                label="Uso CFDI"
+                [newOption]= "empresaForm.value.claveSatRegimenFiscal != '' ? 'Seleccione el Uso de CFDI' : 'Primero seleccione el Regimen Fiscal'"
+                [options]="satUsoCfdiRxResource.value()?.satUsosCFDIs || []"
+                (optionSelected)="optionSelectedUsoCFDI($event)"
+                [controlForm]="empresaForm.get('claveSatUsoCFDI')!">
+              </app-page-form-control-list>
+            
+          </div>
+
+          <div>
+            <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">RFC</label>
+            <input type="text" formControlName="rfc" autocomplete="off" class="custom-input-text"
+              [ngClass]="{ 'custom-input-text-error' : empresaForm.controls.rfc.errors }"/>
+            <app-form-error-label [control]="empresaForm.controls.rfc"></app-form-error-label>
+          </div>
+
+          <div>
+            <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Razón Social</label>
+            <input type="text" formControlName="razonSocial" autocomplete="off" class="custom-input-text"
+              [ngClass]="{ 'custom-input-text-error' : empresaForm.controls.razonSocial.errors }"/>
+            <app-form-error-label [control]="empresaForm.controls.razonSocial"></app-form-error-label>
+          </div>
+
+          <div>
+            <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Código Postal</label>
+            <input type="text" formControlName="codigoPostal" autocomplete="off" class="custom-input-text"
+              [ngClass]="{ 'custom-input-text-error' : empresaForm.controls.codigoPostal.errors }"/>
+            <app-form-error-label [control]="empresaForm.controls.codigoPostal"></app-form-error-label>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </app-page-form-body>
+
+</form>
+
+@if(mostrarEspacioInferior()){
+  <div class="h-24"></div>
+}
+
+<app-voice-button class="block md:hidden" [durationSeconds]="15" [entidadVoice]="EnumEntidadesVoice.EMPRESA" (datosJsonEmit)="voiceDatosEmpresa($event)" ></app-voice-button>

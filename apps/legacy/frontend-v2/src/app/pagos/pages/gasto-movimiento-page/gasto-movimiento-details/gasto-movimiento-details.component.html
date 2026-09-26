@@ -1,0 +1,41 @@
+<form class="p-4 min-h-[600px]" [formGroup]="gastoMovimientoForm" (ngSubmit)="onSubmit()">
+
+  <app-page-form-header [titleNew]="EnumPaginasTitulo.GASTO_NEW" [titleUpdate]="EnumPaginasTitulo.GASTO_UPDATE" [id]="gastoMovimiento().id" [detail]="`${gastoMovimiento().gasto.nombre}`" ></app-page-form-header>
+
+  <app-page-form-body>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 w-full">
+
+      <!--
+
+      <div>
+        <app-page-form-control-search-table-generica-simple
+          #pageFormControlSearchTableGenerica
+          label="Gasto Concepto"
+          optionPlaceholder="Seleccione el Gasto Concepto"
+          (searchText)="filtrarGastoConcepto($event)"
+          [optionSelectedValue]="optionSelectedGastoConceptoValue()"
+          >
+            <app-gastos-conceptos-table [gastosConceptos]="gastoConceptoRXResource.value()?.gastosConceptos ?? [] " (gastoConceptoSelected)="optionSelectedGastoConcepto($event)" ></app-gastos-conceptos-table>
+        </app-page-form-control-search-table-generica-simple>
+      </div>-->
+
+      <div>
+        <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Monto</label>
+        <input type="text" formControlName="monto"  autocomplete="off" class="custom-input-text"
+          [ngClass]="{ 'custom-input-text-error' : gastoMovimientoForm.controls.monto.errors }"
+        />
+        <app-form-error-label [control]="gastoMovimientoForm.controls.monto"></app-form-error-label>
+      </div>
+
+      <div>
+        <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Fecha</label>
+        <input #dateInputFecha type="text" placeholder="Selecciona fecha" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:text-white">
+        <app-form-error-label [control]="gastoMovimientoForm.controls.fecha"></app-form-error-label>
+      </div>
+
+    </div>
+
+  </app-page-form-body>
+
+</form>

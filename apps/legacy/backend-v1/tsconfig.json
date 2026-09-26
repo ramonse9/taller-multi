@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "types": ["node", "express", "multer"],
+    "module": "commonjs",
+    "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2021",
+    "sourceMap": true,
+    "outDir": "dist",
+    "incremental": false,
+    "skipLibCheck": true,
+    "strictNullChecks": false,
+    "noImplicitAny": false,
+    "strictBindCallApply": false,
+    //"forceConsistentCasingInFileNames": false,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": false,
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    //"strict": true,
+    //"noUnusedLocals": true,
+    //"noUnusedParameters": true,
+
+    "rootDir": "./src",
+    "ignoreDeprecations": "5.0",
+  },  
+  "exclude": ["node_modules", "dist"],
+  "include": ["src/**/*"]
+}

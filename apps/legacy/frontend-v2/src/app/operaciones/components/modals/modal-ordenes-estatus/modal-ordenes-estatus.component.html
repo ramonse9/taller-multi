@@ -1,0 +1,36 @@
+
+
+@if(orden()){
+
+  <div  class="fixed inset-0 z-50 flex items-center justify-center" >
+    <div class="absolute inset-0 bg-gray-900 opacity-80 backdrop-blur-sm"></div>
+
+    <div class="z-50 p-6 bg-gray-50 text-medium text-gray-500 dark:text-gray-400 dark:bg-gray-800 rounded-lg w-[800px] relative">
+      <div class="bg-white rounded-lg shadow dark:bg-gray-800">
+        <div class="flex items-start justify-between p-5 border-b rounded-t dark:border-gray-700">
+          <div class="flex flex-col">
+            <h3 class="text-xl font-semibold dark:text-white">
+              Estatus de la Orden | {{ orden().id | uppercase }}
+            </h3>
+            <h4>
+              {{ orden().vehiculo?.modelo?.marca?.nombre | uppercase }}
+              {{ orden().vehiculo?.modelo?.nombre | uppercase }}
+              {{ orden().vehiculo?.anio }}
+              {{ orden().vehiculo?.numeroSerie | uppercase }}
+            </h4>
+            <h4>
+              {{ orden().cliente?.nombre | titlecase }}
+            </h4>
+          </div>
+        </div>
+
+        <div class="mt-4 items-center p-6 border-t border-gray-200 rounded-b dark:border-gray-700">
+          <button (click)="closeModal()" type="button" class="text-white ml-2 bg-lightblue-600 hover:bg-lightblue-500 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-darkblue-600 dark:hover:bg-darkblue-500 focus:outline-none dark:focus:ring-blue-800">
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+}

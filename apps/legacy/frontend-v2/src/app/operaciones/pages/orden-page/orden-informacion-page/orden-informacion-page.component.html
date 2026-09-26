@@ -1,0 +1,420 @@
+<div class="min-h-screen dark:bg-gray-950 font-display text-slate-900 dark:text-slate-100">
+
+  <header class="sticky top-0 z-40 bg-gray-50 dark:bg-slate-900 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800">
+    <div class="max-w-[1440px] mx-auto px-4 sm:px-6 h-auto min-h-[64px] py-3 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3 sm:gap-4">
+        <button [routerLink]="'/operaciones/ordenes'" class="p-2 bg-lightblue-600 hover:bg-lightblue-500 dark:bg-darkblue-600 dark:hover:bg-darkblue-500 text-white rounded-full flex items-center cursor-pointer transition-colors shadow-md">
+          <ng-icon name="tablerArrowBackUp" size="1.2rem"></ng-icon>
+        </button>
+        <div class="flex flex-col">
+          @if(orden().folioNota){
+            <p class="font-bold text-lg sm:text-lg text-slate-600 dark:text-slate-100 underline">{{ orden().folioNota | uppercase }}</p>
+          }
+          <h2 class=" font-bold leading-none tracking-tight text-slate-600 dark:text-slate-100 truncate max-w-[180px] sm:max-w-none">
+            Orden #{{orden().id | uppercase}}
+          </h2>
+          <span class="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium">
+            Ingresó el <span class="uppercase">{{ orden().fechaIngreso | date: 'dd/MMM/yyyy • HH:mm' }}</span>
+          </span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        @if( orden().estatusFactura !== EnumEstatusOrdenFactura.TIMBRADA ){
+          <button [routerLink]="['/operaciones/ordenes/', orden().id]" class="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-white bg-lightblue-600 hover:bg-lightblue-500 rounded-lg transition-all shadow-lg shadow-blue-600/20 cursor-pointer">
+            <ng-icon name="tablerPencil" size="1.2rem"></ng-icon>
+            <span class="hidden sm:inline">Editar Orden</span>
+          </button>
+        }
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-[1440px] mx-auto px-0 py-6">
+    <div class="flex flex-col lg:flex-row gap-6 items-start">
+
+      <aside class="w-full lg:w-1/3 space-y-4 sm:space-y-6">
+
+        <div class="bg-gray-50 dark:bg-slate-900 rounded-2xl p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+          <h3 class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4">Detalles de Orden</h3>
+          <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-3 sm:gap-4">
+              <div class="w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
+                <ng-icon name="tablerTool" size="1.3rem"></ng-icon>
+              </div>
+              <div>
+                @if(orden().folioNota){
+                  <p class="font-bold text-lg sm:text-lg text-slate-900 dark:text-white underline">{{ orden().folioNota | uppercase }}</p>
+                }
+                <p class="font-bold text-sm sm:text-base text-slate-900 dark:text-white">{{ orden().id | uppercase }}</p>
+                <p class="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 uppercase">{{ orden().fechaIngreso | date: 'dd/MMM/yyyy' }}</p>
+              </div>
+            </div>
+            <div class="flex flex-col items-center gap-3">
+              <div class="flex items-center">
+                <app-estatus-indicator [categoria]="EnumCategoria.ORDENES" [clave]="orden().estatus"></app-estatus-indicator>
+                <!--<app-modal-ordenes-estatus-update [orden]="orden()!" (ordenEstatusActualizadaEmit)="refrescarInformacion()" ></app-modal-ordenes-estatus-update>-->
+                <app-dropdown-ordenes-estatus-update [orden]="orden()!" (ordenEstatusActualizadaEmit)="refrescarInformacion()" ></app-dropdown-ordenes-estatus-update>
+              </div>
+              <div>
+                <app-dropdown-ordenes-pagada-update [orden]="ordenLinked()!" (ordenEstatusActualizadaEmit)="ordenPagoActualizada($event)" ></app-dropdown-ordenes-pagada-update>
+
+              </div>
+
+            </div>
+          </div>
+
+          <app-card-component-description [description]="orden().descripcion" ></app-card-component-description>
+
+          <!--
+          <div class="flex items-start gap-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl text-slate-400">
+            <div class="flex items-center">
+              <ng-icon name="tablerClipboardText" size="1.2rem"></ng-icon>
+            </div>
+            <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{{ orden().descripcion }}</p>
+          </div>-->
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
+
+          <app-card-component-vehiculo [vehiculo]="orden().vehiculo!" ></app-card-component-vehiculo>
+
+          @if(orden().cliente){
+            <app-card-component-cliente-empresa tipo="cliente" [clienteEmpresa]="orden().cliente!"></app-card-component-cliente-empresa>
+          }
+
+          @if(orden().empresa){
+            <app-card-component-cliente-empresa tipo="empresa" [clienteEmpresa]="orden().empresa!"></app-card-component-cliente-empresa>
+          }
+
+        </div>
+      </aside>
+
+      <div class="flex-1 w-full space-y-6">
+
+        <section class="bg-gray-50 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+          <div class="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-3 text-blue-600">
+              <ng-icon name="tablerListCheck" size="1.3rem"></ng-icon>
+              <h3 class="font-bold text-base sm:text-lg uppercase tracking-tight dark:text-white">Servicios y Productos</h3>
+            </div>
+
+            <div class="flex items-center bg-slate-50 dark:bg-slate-800/50 p-1.5 rounded-full px-4 self-start sm:self-auto">
+              <span class="text-[10px] sm:text-xs font-bold uppercase" [ngClass]="orden().liquidacionFactura ? 'text-green-600' : 'text-yellow-600'">
+                {{ orden().estatusFactura == EnumEstatusOrdenFactura.TIMBRADA ? (orden().liquidacionFactura ? 'Factura Pagada' : 'Pendiente de Pago') : 'Sin Facturar' }}
+              </span>
+            </div>
+          </div>
+
+          <div class="block sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
+            @if( orden().estatusFactura != EnumEstatusOrdenFactura.TIMBRADA ){
+              @for( concepto of orden().conceptos; track concepto.id ){
+               <div class="p-4 space-y-3">
+                  <div class="flex justify-between items-start gap-4">
+                    <div>
+                      <p class="text-xs font-bold dark:text-slate-200">{{concepto.productoServicio.descripcion}}</p>
+                      <p class="text-[10px] text-slate-500 uppercase">{{concepto.productoServicio.satProductoServicio.satTipoProductoServicio.tipo}}</p>
+                    </div>
+                    <span class="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-bold px-2 py-1 rounded">
+                      x{{concepto.cantidad}}
+                    </span>
+                  </div>
+                  <div class="flex justify-end">
+                    <p class="text-sm font-black text-slate-900 dark:text-white">
+                      {{(concepto.cantidad * concepto.costoUnitario) | currency:'$ '}}
+                    </p>
+                  </div>
+              </div>
+              }
+            } @else {
+              @for( concepto of primerFacturaVigenteConceptos; track concepto.id ){
+                <div class="p-4 space-y-3">
+                  <div class="flex justify-between items-start gap-4">
+                    <div>
+                      <p class="text-xs font-bold dark:text-slate-200">{{concepto.productoServicio.descripcion}}</p>
+                      <p class="text-[10px] text-slate-500 uppercase">{{concepto.productoServicio.satProductoServicio.satTipoProductoServicio.tipo}}</p>
+                    </div>
+                    <span class="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-bold px-2 py-1 rounded">
+                      x{{concepto.cantidad}}
+                    </span>
+                  </div>
+                  <div class="flex justify-end">
+                    <p class="text-sm font-black text-slate-900 dark:text-white">
+                      {{concepto.subtotal | currency:'$ '}}
+                    </p>
+                  </div>
+                </div>
+              }
+            }
+          </div>
+
+          <div class="hidden sm:block overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead class="bg-slate-50 dark:bg-slate-800/50">
+                <tr>
+                  <th class="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Descripción</th>
+                  <th class="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Cant.</th>
+                  <th class="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Total</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                @if( orden().estatusFactura != EnumEstatusOrdenFactura.TIMBRADA ){
+                  @for( concepto of orden().conceptos; track concepto.id ){
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                      <td class="px-6 py-4">
+                        <p class="text-sm font-bold dark:text-slate-200">{{concepto.productoServicio.descripcion}}</p>
+                        <p class="text-[10px] text-slate-500">{{concepto.productoServicio.satProductoServicio.satTipoProductoServicio.tipo}}</p>
+                      </td>
+                      <td class="px-6 py-4 text-sm font-bold text-right dark:text-slate-200">{{concepto.cantidad}}</td>
+                      <td class="px-6 py-4 text-sm font-bold text-right dark:text-slate-200">{{(concepto.cantidad * concepto.costoUnitario) | currency:'$ '}}</td>
+                    </tr>
+                  }
+                } @else {
+                  @for( concepto of primerFacturaVigenteConceptos; track concepto.id ){
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                      <td class="px-6 py-4 font-bold text-sm">{{concepto.productoServicio.descripcion}}</td>
+                      <td class="px-6 py-4 text-right text-sm">{{concepto.cantidad}}</td>
+                      <td class="px-6 py-4 text-right font-bold text-sm">{{concepto.subtotal | currency:'$ '}}</td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <div class="bg-slate-50 dark:bg-slate-800/50 px-4 sm:px-6 py-4 flex justify-between items-center border-t border-slate-100 dark:border-slate-800">
+            <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Total Orden</span>
+            <span class="text-lg sm:text-xl font-black text-blue-600 dark:text-blue-400">
+              {{ (orden().estatusFactura != EnumEstatusOrdenFactura.TIMBRADA ? subtotalOrden : totalFactura) | currency:'$ ' }}
+            </span>
+          </div>
+        </section>
+
+        <section class="bg-gray-50 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 sm:p-6">
+          <div class="flex items-center gap-3 mb-6 sm:mb-8 text-blue-600">
+            <ng-icon name="tablerClock" size="1.3rem"></ng-icon>
+            <h3 class="font-bold text-base sm:text-lg uppercase tracking-tight dark:text-white">Seguimiento Temporal</h3>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-y-8 gap-x-4 relative pb-4 sm:pb-0">
+
+            <div class="text-center">
+              <div class="relative mx-auto">
+                <div class="w-9 h-9 sm:w-12 sm:h-12 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mx-auto mb-3 border-4 border-white dark:border-slate-900 ring-2 ring-green-500/10">
+                  <div class="sm:hidden flex items-center">
+                    <ng-icon name="tablerCheck" size="1rem"></ng-icon>
+                  </div>
+                  <div class="hidden sm:block items-center">
+                    <ng-icon name="tablerCheck" size="1.5rem"></ng-icon>
+                  </div>
+                </div>
+                <p class="text-[9px] font-bold text-slate-400 uppercase">Ingreso</p>
+                <p class="text-xs font-bold dark:text-slate-200">{{orden().fechaIngreso | date: 'dd MMM'}}</p>
+              </div>
+            </div>
+
+            @for( fecha of fechasCronograma; track fecha.id){
+              <div class="text-center">
+                <div
+                  class="w-9 h-9 sm:w-12 sm:h-12 rounded-full flex items-center justify-center mx-auto mb-3 border-4 border-white dark:border-slate-900 ring-2 shadow-sm"
+                  [ngClass]="{
+                      'bg-red-600/50 ring-red-600/30 text-white-3': fecha.estatus ==  EnumEstatusOrden.PAUSADO,
+                      'bg-lightblue-600/50 ring-blue-600/30 text-white-3': fecha.estatus == EnumEstatusOrden.PROCESO,
+                      'bg-green-600/50 ring-green-600/30 text-white-3': fecha.estatus == EnumEstatusOrden.FINALIZADO,
+                      'bg-purple-600/50 ring-purple-600/30 text-white-3': fecha.estatus == EnumEstatusOrden.CANCELADO,
+                    }">
+                  <div class="flex items-center sm:hidden">
+                    <ng-icon name="tablerExclamationMark" size="1rem"></ng-icon>
+                  </div>
+                  <div class="items-center hidden sm:block">
+                    <ng-icon name="tablerExclamationMark" size="1.5rem"></ng-icon>
+                  </div>
+                </div>
+                <p class="text-[9px] font-bold text-slate-500 uppercase truncate px-1">{{fecha.estatus}}</p>
+                <p class="text-xs font-bold dark:text-slate-200">{{fecha.fecha | date: 'dd MMM'}}</p>
+              </div>
+            }
+
+            <!--
+            <div class="text-center">
+              <div class="w-9 h-9 sm:w-12 sm:h-12 bg-slate-100 dark:bg-slate-800 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-3 border-4 border-white dark:border-slate-900 ring-2 ring-blue-500/10">
+                <div class="flex items-center sm:hidden">
+                  <ng-icon name="tablerCalendarCheck" size="1rem"></ng-icon>
+                </div>
+                <div class="hidden sm:block items-center">
+                  <ng-icon name="tablerCalendarCheck" size="1.5rem"></ng-icon>
+                </div>
+              </div>
+              <p class="text-[9px] font-bold text-slate-400 uppercase">Estimada</p>
+              <p class="text-xs font-bold dark:text-slate-200">{{orden().fechaEntregaEstimada | date: 'dd MMM'}}</p>
+            </div>-->
+          </div>
+        </section>
+
+        <section class="bg-gray-50 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+          <div class="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <div class="flex items-center gap-3 text-blue-600">
+              <ng-icon name="tablerHistory" size="1.3rem"></ng-icon>
+              <h3 class="font-bold text-base sm:text-lg uppercase tracking-tight dark:text-white">Notas de Seguimiento</h3>
+            </div>
+            <app-modal-ordenes-notas-add [orden]="ordenLinked()" [formatoTexto]=true (ordenNotasActualizada)="ordenNotasActualizada($event)"></app-modal-ordenes-notas-add>
+          </div>
+          <div class="p-5 sm:p-6">
+            <div class="relative space-y-6 before:absolute before:inset-0 before:ml-4 sm:before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-slate-200 dark:before:bg-slate-800">
+              @for( nota of ordenLinked().notas; track nota.id ){
+                <div class="relative flex items-start group">
+                  <div class="absolute left-0 mt-1 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-blue-50 dark:bg-blue-900/30 border-2 border-white dark:border-slate-900 flex items-center justify-center z-10 text-blue-600">
+                    <ng-icon name="tablerCalendarPlus" size="0.9rem"></ng-icon>
+                  </div>
+                  <div class="flex-1 ml-10 sm:ml-12 bg-gray-200 dark:bg-slate-800/40 p-3 sm:p-4 rounded-xl border border-slate-100 dark:border-slate-700/50">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                      <span class="text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider">{{ nota.createdAt | date: 'dd MMM yyyy • HH:mm' }}</span>
+                      @if (nota.estatus) {
+                        <div class="self-start sm:self-auto scale-90 sm:scale-100 origin-left">
+                           <app-estatus-badge [categoria]="EnumCategoria.ORDENES" [clave]="nota.estatus"></app-estatus-badge>
+                        </div>
+                      }
+                    </div>
+                    <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{{ nota.nota }}</p>
+                    <div class="mt-3">
+                      <app-images-lighbox [imagenes]="nota.imagenes"></app-images-lighbox>
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </section>
+
+        <!-- FACTURACION -->
+        <section class="bg-gray-100 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+          <div class="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center gap-3">
+            <div class="relative text-center">
+              <div class="w-12 h-12 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full flex items-center justify-center mx-auto border-4 border-white dark:border-slate-900 ring-4 ring-slate-500/10">
+                @if( orden().estatusFactura != EnumEstatusOrdenFactura.TIMBRADA ){
+                  <div class="flex items-center gap-1.5 text-gray-400">
+                    <ng-icon name="tablerReceiptOff" size="1.5rem"></ng-icon>
+                  </div>
+                }@else{
+                  @if( orden().liquidacionFactura ){
+                    <div class="flex items-center gap-1.5 text-green-600">
+                      <ng-icon name="tablerChecklist" size="1.5rem"></ng-icon>
+                    </div>
+                  }@else{
+                    <div class="flex items-center gap-1.5 text-yellow-600">
+                      <ng-icon name="tablerFileAlert" size="1.5rem"></ng-icon>
+                    </div>
+                  }
+                }
+              </div>
+            </div>
+            <h3 class="font-bold text-base sm:text-lg uppercase tracking-tight text-blue-600 dark:text-white">Facturación</h3>
+          </div>
+          @if( orden().estatusFactura != EnumEstatusOrdenFactura.TIMBRADA ){
+
+            <div class="text-center py-4">
+              <p class="text-xs text-slate-500 mb-4">Esta orden aún no ha sido facturada.</p>
+              <a [routerLink]="['/facturas/facturarorden', orden().id]">
+                <button type="button" class="w-auto px-6 py-2.5 text-sm font-bold text-white bg-lightblue-600 rounded-xl hover:bg-lightblue-500 transition-colors shadow-lg shadow-blue-500/20">
+                  Generar Factura
+                </button>
+              </a>
+            </div>
+
+          }@else{
+             <div class="gap-2 rounded-lg p-2 m-2"
+              [ngClass]="{
+                'bg-green-600/25': orden().liquidacionFactura,
+                'bg-yellow-600/25': !orden().liquidacionFactura && orden().estatusFactura === EnumEstatusOrdenFactura.TIMBRADA
+              }">
+                <h4 class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase p-2">Facturas</h4>
+
+                  @for( factura of orden().facturas; track factura.id ){
+
+                    <div class="p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                      <div class="flex justify-between items-start mb-3">
+                        <div>
+                          <p class="text-xs font-black text-blue-600 dark:text-blue-400">{{factura.id.toUpperCase()}}</p>
+                          <p class="text-lg font-bold">{{ factura.total | currency:'$ ' }}</p>
+                        </div>
+                        <app-badge-simple
+                          [description]="factura.estatus | uppercase"
+                          [color]="factura.estatus === EnumEstatusCFDI.VIGENTE ? EnumBadgeSimpleColor.GREEN : EnumBadgeSimpleColor.RED">
+                        </app-badge-simple>
+                      </div>
+
+                      <div class="grid grid-cols-2 gap-2 text-[10px] text-slate-500 uppercase font-bold mb-4">
+                        <div class="bg-slate-50 dark:bg-slate-900 p-2 rounded-lg">Emitida: 15/Ene/26</div>
+                        <div class="bg-slate-50 dark:bg-slate-900 p-2 rounded-lg">Timbrada: 15/Ene/26</div>
+                      </div>
+
+                      @if(factura.estatus === EnumEstatusCFDI.VIGENTE){
+                        <a [routerLink]="['/facturas/cancelarfactura', factura.id]" class="text-xs text-red-500 font-bold hover:underline">Solicitar Cancelación</a>
+                      }
+                    </div>
+
+                      @if( orden().satMetodoPago.clave === EnumSatMetodoPago.PPD_PAGO_EN_PARCIALIDADES_O_DIFERIDO ){
+                        <hr class="text-slate-400 dark:text-slate-400 border-1 my-1">
+                        <h4 class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase p-2">Pagos TEST</h4>
+
+                        @if(factura.pagos.length === 0){
+                          <p class="text-xs font-bold text-slate-400 dark:text-slate-500 p-2">*No hay pagos registrados.</p>
+                        }
+
+                        @for(pago of factura.pagos; track pago.id){
+                          <div class="flex items-center justify-between p-2 m-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                            <div class="flex items-center gap-4">
+                              <p class="text-xs font-bold"
+                                  [ngClass]="{
+                                    'text-green-600': pago.complemento.estatus === EnumEstatusCFDI.VIGENTE,
+                                    'text-red-600': pago.complemento.estatus !== EnumEstatusCFDI.VIGENTE,
+                                  }">{{pago.numeroParcialidad}}</p>
+                              <p class="text-xs font-bold"
+                                  [ngClass]="{
+                                    'text-green-600': pago.complemento.estatus === EnumEstatusCFDI.VIGENTE,
+                                    'text-red-600': pago.complemento.estatus !== EnumEstatusCFDI.VIGENTE,
+                                  }">{{ pago.monto | currency:'$ ':'symbol':'1.2-2':'en' }}</p>
+                              <p class="text-xs font-bold"
+                                  [ngClass]="{
+                                    'text-green-600': factura.estatus === EnumEstatusCFDI.VIGENTE,
+                                    'text-red-600': factura.estatus !== EnumEstatusCFDI.VIGENTE,
+                                  }">{{pago.complemento.id.toUpperCase()}}</p>
+                              <div>
+                                <p class="text-xs font-bold text-slate-400 dark:text-slate-500">15/Ene/2026 15:35</p>
+                                <p class="text-[9px] text-slate-400">Emitida</p>
+                              </div>
+                              <div>
+                                <p class="text-xs font-bold text-slate-400 dark:text-slate-500">15/Ene/2026 15:35</p>
+                                <p class="text-[9px] text-slate-400">Timbrada</p>
+                              </div>
+                            </div>
+
+                            @if(pago.complemento.estatus === EnumEstatusCFDI.VIGENTE){
+                              <a [routerLink]="['/facturas/cancelarfactura', factura.id]" title="Cancelar esta Factura">
+                                <app-badge-simple [description]="EnumEstatusCFDI.VIGENTE | uppercase" [color]="EnumBadgeSimpleColor.GREEN" ></app-badge-simple>
+                              </a>
+                            }@else{
+                              <app-badge-simple [description]="EnumEstatusCFDI.CANCELADA | uppercase" [color]="EnumBadgeSimpleColor.RED" ></app-badge-simple>
+                            }
+
+                          </div>
+                        }
+                        <!-- si no esta liquidada, mostrar complemento de pagos-->
+                        @if( orden().liquidacionFactura == false ){
+                          <div class="p-2">
+                            <a [routerLink]="['/facturas/complementopagoorden', orden().facturas[orden().facturas.length - 1].id]" title="Complemento de Pago para esta Orden">
+                              <button type="button" class="px-3 py-2 text-sm font-medium text-center text-white bg-lightblue-600 rounded-lg hover:bg-lightblue-500 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-darkblue-600 dark:hover:bg-darkblue-500 dark:focus:ring-blue-800 cursor-pointer">Complemento de Pago</button>
+                            </a>
+                          </div>
+                        }
+
+                      }
+                  }
+            </div>
+          }
+        </section>
+
+      </div>
+    </div>
+  </main>
+</div>

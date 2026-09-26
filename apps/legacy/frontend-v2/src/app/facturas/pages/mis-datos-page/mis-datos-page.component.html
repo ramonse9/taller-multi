@@ -1,0 +1,43 @@
+@if( misdatosRXResource.isLoading() ){
+  <app-spinner></app-spinner>
+}
+
+
+  <!--
+  @if( misdatosRXResource.hasValue() && misdatosRXResource.value() !== null ){
+    <app-mis-datos-details [emisor]="misdatosRXResource.value()!" (emisorActualizado)="refrescarDatos()" ></app-mis-datos-details>
+  }@else{
+      <div class="flex justify-center mt-28">
+          <app-badge-message message="No hay un emisor activo, favor de comunicarse con el Administrador."  ></app-badge-message>
+      </div>
+  }-->
+
+
+<div class="relative min-h-screen">
+  
+  @if( misdatosRXResource.hasValue() && misdatosRXResource.value() !== null ){
+    <div [@fadeAnimation]>
+      <app-mis-datos-details [emisor]="misdatosRXResource.value()!" (emisorActualizado)="refrescarDatos()" ></app-mis-datos-details>
+    </div>
+  }@else{
+    <div [@fadeAnimation]>
+      <div class="flex justify-center mt-28">
+          <app-badge-message message="No hay un emisor activo, favor de comunicarse con el Administrador."  ></app-badge-message>
+      </div>
+    </div>
+  }
+
+</div>
+
+
+
+<!--
+<div class="relative min-h-screen">
+
+  @if( clientesRXResource.value() ){
+      <div class="absolute inset-0" [@fadeAnimation]>
+        <app-clientes-table [clientes]="clientesRXResource.value()?.clientes ?? []" ></app-clientes-table>
+      </div>
+  }
+
+</div>-->

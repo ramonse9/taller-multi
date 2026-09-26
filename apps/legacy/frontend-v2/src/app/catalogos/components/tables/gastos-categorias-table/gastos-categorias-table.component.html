@@ -1,0 +1,72 @@
+<!--
+<div class="inline-block align-middle">
+  <table class="min-w-full divide-y table-auto divide-gray-200 dark:divide-gray-600">
+      <thead class="bg-gray-100 dark:bg-gray-700">
+          <tr>
+              <th scope="col" class="min-w-10 p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                  Id
+              </th>
+              <th scope="col" class="min-w-96 p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                  Nombre
+              </th>
+              <th scope="col" class="min-w-96 p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                  Descripcion
+              </th>
+          </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+          @for( gastoCategoria of gastosCategorias(); track gastoCategoria.id ){
+            <tr class="hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"  (click)="selectGastoCategoria(gastoCategoria)">
+              <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white"> {{ gastoCategoria.id | uppercase }} </td>
+              <td class="p-4 text-base font-medium text-gray-900 break-words dark:text-white"> {{ gastoCategoria.nombre | uppercase}} </td>
+              <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">{{gastoCategoria.descripcion | uppercase}} </td>
+          </tr>
+          }
+          @empty{
+            <tr>
+              <td colspan="5" class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                No hay gastos categorias registradas
+              </td>
+            </tr>
+          }
+      </tbody>
+  </table>
+</div>
+-->
+
+<div class="w-full">
+  <div class="hidden md:grid grid-cols-4 bg-gray-100 dark:bg-gray-700 p-2 text-[10px] font-bold uppercase text-gray-500">
+    <div class="col-span-2 px-2">Nombre</div>
+    <div>Descripción</div>
+    <div class="text-right px-2">ID</div>
+  </div>
+
+  <div class="divide-y divide-gray-100 dark:divide-gray-600">
+    @for( gastoCategoria of gastosCategorias(); track gastoCategoria.id ){
+      <div (click)="selectGastoCategoria(gastoCategoria)"
+           class="p-4 md:p-2 md:grid md:grid-cols-4 items-center hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer transition-colors">
+
+        <div class="col-span-2">
+          <p class="text-sm font-semibold text-gray-900 dark:text-white leading-tight">
+            {{gastoCategoria.nombre | uppercase}}
+          </p>
+        </div>
+
+        <div class="flex justify-between md:contents mt-2 md:mt-0">
+          <div class="text-xs text-gray-500 dark:text-gray-400">
+            <span class="md:hidden">Tipo: </span>
+            {{gastoCategoria.descripcion | uppercase}}
+          </div>
+          <div class="text-sm font-bold text-blue-600 dark:text-blue-400 md:text-right md:px-2">
+            {{gastoCategoria.id}}
+          </div>
+        </div>
+      </div>
+    }
+    @empty {
+      <div class="p-8 text-center text-gray-500 text-sm">
+        No hay categorías de gastos registradas
+      </div>
+    }
+  </div>
+</div>

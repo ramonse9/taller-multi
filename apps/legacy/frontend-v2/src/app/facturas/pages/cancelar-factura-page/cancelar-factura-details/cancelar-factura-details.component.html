@@ -1,0 +1,237 @@
+<form class="p-4 min-h-[600]" [formGroup]="cancelarForm" (ngSubmit)="onSubmit()">
+
+  <app-page-form-header [titleNew]="EnumPaginasTitulo.CANCELAR_FACTURA" [titleUpdate]="EnumPaginasTitulo.CANCELAR_FACTURA" [id]="''" [emitir]=true detail="" [subtitle]="false"></app-page-form-header>
+
+  <app-page-form-body>
+
+    <section class="col-span-2 mt-6">
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <app-page-form-control-list
+            label="Motivo de Cancelación"
+            newOption="Seleccione el Motivo de Cancelación"
+            [options]="satCancelacionesMotivosRXResource.value()?.satCancelacionesMotivos ?? []"
+            (optionSelected)="optionSelectedCancelacionMotivo($event)"
+            [controlForm]="cancelarForm.get('claveSatCancelacionMotivo')!"
+          >
+          <!-- [controlForm]="cancelarForm.get('claveSatCancelacionMotivo')!" -->
+          </app-page-form-control-list>
+        </div>
+      </div>
+    </section>
+
+    <section class="col-span-2 min-w-full mt-20" [ngClass]="{ 'invisible' : seccion === EnumSeccion.NINGUNA }">
+
+      <div class="flex items-center">
+        <h2 class="text-xl font-semibold text-gray-800 dark:text-white">Datos para la nueva Factura de sustitución</h2>
+        <button type="button" (click)="setFormValueRestaurar()" class="cursor-pointer text-blue-500 dark:bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 inline-flex items-center dark:hover:bg-gray-700 dark:hover:text-white">
+            <!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M21 12C21 16.9706 16.9706 21 12 21C9.69494 21 7.59227 20.1334 6 18.7083L3 16M3 12C3 7.02944 7.02944 3 12 3C14.3051 3 16.4077 3.86656 18 5.29168L21 8M3 21V16M3 16H8M21 3V8M21 8H16" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </button>
+      </div>
+
+      <ol class="flex items-center mt-4">
+          <li class="relative w-full mb-6">
+              <div class="flex items-center">
+                  <div (click)="elegirSeccion(EnumSeccion.CONCEPTOS)" class="z-10 flex items-center justify-center w-6 h-6 bg-lightblue-600 rounded-full ring-0 ring-white dark:bg-blue-500 sm:ring-8 dark:ring-gray-900 shrink-0 cursor-pointer">
+                      <svg class="w-2.5 h-2.5 text-gray-900 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 12">
+                          <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 5.917 5.724 10.5 15 1.5"/>
+                      </svg>
+                  </div>
+                  <div class="flex w-full bg-gray-200 h-0.5 dark:bg-gray-700"></div>
+              </div>
+              <div class="mt-3">
+                  <h3 class="font-medium text-gray-900 dark:text-white">Conceptos</h3>
+              </div>
+          </li>
+          <li class="relative w-full mb-6">
+              <div class="flex items-center">
+                  <div (click)="elegirSeccion(EnumSeccion.DETALLES)" class="z-10 flex items-center justify-center w-6 h-6 bg-gray-200 rounded-full ring-0 ring-white dark:bg-gray-700 sm:ring-8 dark:ring-gray-900 shrink-0 cursor-pointer" [ngClass]="{ 'bg-lightblue-600! dark:bg-darkblue-600!': seccion === EnumSeccion.DETALLES || seccion === EnumSeccion.PREVISUALIZACION}">
+                      <svg class="w-2.5 h-2.5 text-gray-900 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 12">
+                          <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 5.917 5.724 10.5 15 1.5"/>
+                      </svg>
+                  </div>
+                  <div class="flex w-full bg-gray-200 h-0.5 dark:bg-gray-700"></div>
+              </div>
+              <div class="mt-3">
+                  <h3 class="font-medium text-gray-900 dark:text-white">Detalles</h3>
+              </div>
+          </li>
+          <li class="relative w-full mb-6">
+              <div class="flex items-center">
+                  <div (click)="elegirSeccion(EnumSeccion.PREVISUALIZACION)" class="z-10 flex items-center justify-center w-6 h-6 bg-gray-200 rounded-full ring-0 ring-white dark:bg-gray-700 sm:ring-8 dark:ring-gray-900 shrink-0 cursor-pointer" [ngClass]="{ 'bg-lightblue-600! dark:bg-darkblue-600!': seccion === EnumSeccion.PREVISUALIZACION}">
+                      <svg class="w-2.5 h-2.5 text-gray-900 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 12">
+                          <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 5.917 5.724 10.5 15 1.5"/>
+                      </svg>
+                  </div>
+              </div>
+              <div class="mt-3">
+                  <h3 class="font-medium text-gray-900 dark:text-white">Previsualización</h3>
+              </div>
+          </li>
+      </ol>
+
+
+    </section>
+
+    <section class="col-span-2 min-w-full min-h-[400px]" [ngClass]="{ 'hidden': seccion !== EnumSeccion.CONCEPTOS }">
+
+      <div class="flex justify-between pb-2">
+
+        <div class="flex items-center">
+          <h2 class="text-xl font-semibold text-gray-800 dark:text-white pr-2">Conceptos</h2>
+
+          <app-page-form-control-search-table-generica-simple
+            #pageFormControlSearchTableGenericaNew
+            label="Producto ó Servicio"
+            optionPlaceholder="Agregar"
+            [plusButton]="true"
+            (searchText)="filtrarProductoServicio($event)"
+            >
+            <app-productos-servicios-busqueda-table [productosServicios]="productosServiciosRXResource.value()?.productosServicios ?? [] " (productoServicioSelected)="optionSelectedProductoServicio($event)" ></app-productos-servicios-busqueda-table>
+          </app-page-form-control-search-table-generica-simple>
+        </div>
+
+      </div>
+
+      <app-conceptos-table
+        [conceptos]="conceptosFormArray"
+        (removeConcepto)="removeConcepto($event)">
+      </app-conceptos-table>
+
+    </section>
+
+    <section class="col-span-2" [ngClass]="{ 'hidden' : seccion !== EnumSeccion.DETALLES}">
+
+      <div class="grid grid-cols-2 gap-4">
+
+        <div>
+          <app-page-form-control-list
+            label="Método Pago"
+            newOption="Seleccione el Método de Pago"
+            [options]="satMetodosPagosRXResource.value()?.satMetodosPagos ?? []"
+            (optionSelected)="optionSelectedMetodoPago($event)"
+            [controlForm]="cancelarForm.get('claveSatMetodoPago')!"
+          >
+          </app-page-form-control-list>
+        </div>
+
+        <div>
+          <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Fecha Emisión</label>
+          <input #dateInputEmision type="text" placeholder="Selecciona una fecha"
+              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+          <app-form-error-label [control]="cancelarForm.get('fechaEmision')!"></app-form-error-label>
+        </div>
+
+        <div>
+          <app-page-form-control-list
+            label="Forma Pago"
+            newOption="Seleccione la Forma de Pago"
+            [options]="satFormasPagosRXResource.value()?.satFormasPagos ?? []"
+            (optionSelected)="optionSelectedFormaPago($event)"
+            [controlForm]="cancelarForm.get('claveSatFormaPago')!"
+          >
+          </app-page-form-control-list>
+        </div>
+
+        <div>
+          <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Condiciones Pago</label>
+          <input type="text" formControlName="condicionesPago"  autocomplete="off" class="custom-input-text"
+            [ngClass]="{ 'custom-input-text-error' : cancelarForm.get('condicionesPago')!.errors }"
+          />
+          <app-form-error-label [control]="cancelarForm.get('condicionesPago')!"></app-form-error-label>
+        </div>
+
+        <div>
+          <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Lugar de Expedición</label>
+          <input type="text" formControlName="lugarExpedicion"  autocomplete="off" class="custom-input-text"
+            [ngClass]="{ 'custom-input-text-error' : cancelarForm.get('lugarExpedicion')!.errors }"
+          />
+          <app-form-error-label [control]="cancelarForm.get('lugarExpedicion')!"></app-form-error-label>
+        </div>
+
+        <div>
+          <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Observaciones</label>
+          <textarea id="descripcion" formControlName="observaciones" rows="4" class="custom-input-text"
+            [ngClass]="{ 'custom-input-text-error' : cancelarForm.get('observaciones')!.errors }"
+          ></textarea>
+          <app-form-error-label [control]="cancelarForm.get('observaciones')!"></app-form-error-label>
+        </div>
+
+      </div>
+
+    </section>
+
+    <section class="col-span-2" [ngClass]="{ 'hidden' : seccion != EnumSeccion.PREVISUALIZACION }">
+
+      <app-conceptos-read-only-table [conceptos]="conceptosPlanoSignal()"></app-conceptos-read-only-table>
+
+      <br>
+      <!--
+      @if ( !loadingConceptos ) {
+
+          <div clasS="text-white">
+            {{conceptosPlanoSignal() | json}}
+          </div>
+
+        <br>
+      }
+      -->
+
+      <app-impuestos-read-only-table [conceptos]="conceptosPlanoSignal()" [receptorSatTipoPersona]="receptorSatTipoPersona()"></app-impuestos-read-only-table>
+
+      <div class="grid grid-cols-2 gap-4 mt-4">
+
+        <div>
+          <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Método de Pago</label>
+          <p class="text-sm text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-800 px-3 py-2 rounded">
+            {{ previsualizacion.metodoPagoDescripcion }}
+          </p>
+        </div>
+
+        <div>
+          <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Fecha de Emisión</label>
+          <p class="text-sm text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-800 px-3 py-2 rounded">
+            {{ previsualizacion.fechaEmision }}
+          </p>
+        </div>
+
+        <div>
+          <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Forma de Pago</label>
+          <p class="text-sm text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-800 px-3 py-2 rounded">
+            {{ previsualizacion.formaPagoDescripcion }}
+          </p>
+        </div>
+
+        <div>
+          <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Condiciones de Pago</label>
+          <p class="text-sm text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-800 px-3 py-2 rounded">
+            {{ previsualizacion.condicionesPago }}
+          </p>
+        </div>
+
+        <div>
+          <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Lugar de Expedición</label>
+          <p class="text-sm text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-800 px-3 py-2 rounded">
+            {{ previsualizacion.lugarExpedicion }}
+          </p>
+        </div>
+
+        <div>
+          <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-white">Observaciones</label>
+          <p class="text-sm text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-800 px-3 py-2 rounded">
+            {{ previsualizacion.observaciones }}
+          </p>
+        </div>
+
+      </div>
+
+    </section>
+
+  </app-page-form-body>
+
+</form>
+
+

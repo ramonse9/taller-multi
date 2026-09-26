@@ -1,0 +1,65 @@
+
+<div class="@container">
+  <div
+      class="bg-gray-50 dark:bg-gray-800 relative border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300
+      flex flex-col @lg:flex-row overflow-hidden
+      "
+        [ngClass]="{
+          'border-blue-500': seleccionado(),
+          'border-gray-200 dark:border-gray-700': !seleccionado()
+        }"
+      >
+
+      <div class="flex justify-between gap-2 p-4 border-b border-gray-100 dark:border-gray-700 flex-2">
+
+        <app-card-component-id [entidad]="productoLinked()" [label]="EnumEntidad.PRODUCTO" ></app-card-component-id>
+
+        <div class="flex flex-col items-center gap-1">
+          <p class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase leading-none">Precio Venta</p>
+          <app-badge-precio-venta [precioVenta]="productoLinked().precioVenta" ></app-badge-precio-venta>
+        </div>
+
+      </div>
+
+      <div class="flex justify-between p-4 text-white border-b border-gray-100 dark:border-gray-700 flex-4">
+
+          <div>
+            <p class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase leading-none mb-1">{{productoLinked().satProductoServicio.descripcion}}</p>
+            @if(productoLinked().codigoBarras){
+              <app-badge-codigo-barras [codigoBarras]="productoLinked().codigoBarras" ></app-badge-codigo-barras>
+            }
+            <p class="font-black text-lg @sm:text-lg text-slate-600 dark:text-slate-100">
+              {{ productoLinked().descripcion }}
+            </p>
+          </div>
+
+          <div class="flex flex-col items-center justity-center text-center">
+            <p class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase leading-none">Stock Actual</p>
+            <p class="font-black text-lg @sm:text-3xl text-slate-100 dark:text-slate-100 mt-1 px-2.5 py-0.5 rounded-sm"
+              [ngClass]="{
+                  'bg-green-600 dark:bg-green-600': (productoLinked().stockMinimo === 0 && productoLinked().stockActual > 0) || ( productoLinked().stockMinimo > 0 && productoLinked().stockActual > productoLinked().stockMinimo ),
+                  'bg-yellow-600 dark:bg-yellow-600': productoLinked().stockMinimo > 0 && productoLinked().stockActual > 0 && productoLinked().stockMinimo > productoLinked().stockActual,
+                  'bg-red-600 dark:bg-red-600':     productoLinked().stockActual == 0,
+            }">
+              {{ productoLinked().stockActual }}
+            </p>
+          </div>
+      </div>
+
+      <div class="flex justify-between gap-2 p-4 border-gray-100 dark:border-gray-700 flex-1">
+
+        <div class="flex flex-col items-center gap-2">
+          <p class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase leading-none">¿Venta sin Stock?</p>
+          <app-badge-si-no [siNo]="productoLinked().permiteVentaSinStock"></app-badge-si-no>
+        </div>
+
+        <div class="flex flex-col items-center gap-2">
+          <p class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase leading-none">Stock Mínimo</p>
+          <p class="font-black text-lg sm:text-lg text-slate-600 dark:text-slate-100">{{ productoLinked().stockMinimo }}</p>
+        </div>
+
+      </div>
+
+  </div>
+
+</div>
