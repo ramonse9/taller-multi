@@ -18,7 +18,9 @@
           <span>01</span>
           <div>
             <h3>Cambiar contraseña</h3>
-            <p>Usa una frase distinta de al menos 12 caracteres.</p>
+            <p>
+              Usa entre 6 y 10 caracteres, con al menos una letra y un número.
+            </p>
           </div>
         </header>
         <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
@@ -51,7 +53,8 @@
               autocomplete="new-password"
             />@if (form.controls.newPassword.touched &&
             form.controls.newPassword.invalid) {
-            <small>Debe contener entre 12 y 128 caracteres.</small> }
+            <small>Usa de 6 a 10 caracteres, con una letra y un número.</small>
+            }
           </div>
           <div class="field">
             <label for="confirmation">Confirmar contraseña <b>*</b></label
@@ -72,7 +75,7 @@
         <p class="breadcrumb">SESIÓN ACTUAL</p>
         <div class="avatar">{{ auth.user()?.fullName?.charAt(0) }}</div>
         <h3>{{ auth.user()?.fullName }}</h3>
-        <p>{{ auth.user()?.email }}</p>
+        <p>{{ auth.user()?.loginName }}</p>
         <dl>
           <div>
             <dt>Rol</dt>

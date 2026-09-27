@@ -74,18 +74,26 @@ export class CompaniesPage implements OnInit {
       }),
       email: new FormControl("", {
         nonNullable: true,
+        validators: [Validators.email, Validators.maxLength(254)],
+      }),
+      username: new FormControl("", {
+        nonNullable: true,
         validators: [
           Validators.required,
-          Validators.email,
-          Validators.maxLength(254),
+          Validators.pattern(/^[a-z][a-z0-9._-]{1,29}$/),
         ],
+      }),
+      phone: new FormControl("", {
+        nonNullable: true,
+        validators: [Validators.pattern(/^\+[1-9]\d{7,14}$/)],
       }),
       password: new FormControl("", {
         nonNullable: true,
         validators: [
           Validators.required,
-          Validators.minLength(8),
+          Validators.minLength(6),
           Validators.maxLength(10),
+          Validators.pattern(/^(?=.*[A-Za-z])(?=.*\d).+$/),
         ],
       }),
       confirmPassword: new FormControl("", {
@@ -151,7 +159,9 @@ export class CompaniesPage implements OnInit {
       withholdsIva: raw.withholdsIva,
       admin: {
         fullName: raw.admin.fullName.trim(),
-        email: raw.admin.email.trim().toLowerCase(),
+        username: raw.admin.username.trim().toLowerCase(),
+        email: raw.admin.email.trim().toLowerCase() || null,
+        phone: raw.admin.phone.trim() || null,
         password: raw.admin.password,
         timezoneCode: raw.admin.timezoneCode,
       },
@@ -192,7 +202,9 @@ export class CompaniesPage implements OnInit {
       withholdsIva: false,
       admin: {
         fullName: "",
+        username: "",
         email: "",
+        phone: "",
         password: "",
         confirmPassword: "",
         timezoneCode: "America/Mazatlan",

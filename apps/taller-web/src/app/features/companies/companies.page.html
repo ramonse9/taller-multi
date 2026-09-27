@@ -24,7 +24,8 @@
         <h2>{{ company.name }}</h2>
         <p>
           Schema <code>{{ company.schemaName }}</code> y administrador
-          <strong>{{ company.admin.email }}</strong> listos.
+          <strong>{{ company.admin.loginName }}</strong> listos. Código público
+          <code>{{ company.loginCode }}</code>.
         </p>
       </div>
       <button type="button" (click)="dismissSuccess()">Registrar otra</button>
@@ -110,8 +111,36 @@
               form.controls.admin.controls.fullName.invalid) {
               <small>Escribe un nombre válido.</small> }
             </div>
+            <div class="field">
+              <label for="admin-username">Usuario <b>*</b></label>
+              <input
+                id="admin-username"
+                formControlName="username"
+                autocomplete="off"
+                placeholder="maria"
+              />
+              @if (form.controls.admin.controls.username.touched &&
+              form.controls.admin.controls.username.invalid) {
+              <small>Usa letras, números, punto, guion o guion bajo.</small> }
+            </div>
+            <div class="field">
+              <label for="admin-phone">Celular (opcional)</label>
+              <input
+                id="admin-phone"
+                type="tel"
+                formControlName="phone"
+                autocomplete="tel"
+                placeholder="+526671234567"
+              />
+              @if (form.controls.admin.controls.phone.touched &&
+              form.controls.admin.controls.phone.invalid) {
+              <small
+                >Usa formato internacional, por ejemplo +526671234567.</small
+              >
+              }
+            </div>
             <div class="field full">
-              <label for="admin-email">Correo <b>*</b></label>
+              <label for="admin-email">Correo (opcional)</label>
               <input
                 id="admin-email"
                 type="email"
@@ -130,11 +159,14 @@
                 type="password"
                 formControlName="password"
                 autocomplete="new-password"
-                placeholder="Entre 8 y 10 caracteres"
+                placeholder="Entre 6 y 10 caracteres"
               />
               @if (form.controls.admin.controls.password.touched &&
               form.controls.admin.controls.password.invalid) {
-              <small>Debe contener entre 8 y 10 caracteres.</small> }
+              <small
+                >Usa de 6 a 10 caracteres, con una letra y un número.</small
+              >
+              }
             </div>
             <div class="field">
               <label for="confirm-password"
@@ -175,7 +207,8 @@
           <div>
             <dt>Administrador</dt>
             <dd>
-              {{ form.controls.admin.controls.email.value || 'por definir' }}
+              {{ form.controls.admin.controls.username.value || 'por definir'
+              }}&#64;[código de compañía]
             </dd>
           </div>
           <div>

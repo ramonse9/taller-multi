@@ -39,7 +39,7 @@ export class AccountPage {
       nonNullable: true,
       validators: [
         Validators.required,
-        Validators.minLength(8),
+        Validators.minLength(6),
         Validators.maxLength(128),
       ],
     }),
@@ -47,8 +47,9 @@ export class AccountPage {
       nonNullable: true,
       validators: [
         Validators.required,
-        Validators.minLength(12),
-        Validators.maxLength(128),
+        Validators.minLength(6),
+        Validators.maxLength(10),
+        Validators.pattern(/^(?=.*[A-Za-z])(?=.*\d).+$/),
       ],
     }),
     confirmation: new FormControl("", {

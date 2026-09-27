@@ -27,13 +27,16 @@ export class LoginPage {
   readonly submitting = signal(false);
   readonly error = signal("");
   readonly form = new FormGroup({
-    email: new FormControl("", {
+    identifier: new FormControl("", {
       nonNullable: true,
-      validators: [Validators.required, Validators.email],
+      validators: [
+        Validators.required,
+        Validators.pattern(/^[a-z0-9._-]+@[a-z0-9._-]+$/i),
+      ],
     }),
     password: new FormControl("", {
       nonNullable: true,
-      validators: [Validators.required, Validators.minLength(8)],
+      validators: [Validators.required, Validators.minLength(6)],
     }),
   });
 
@@ -44,9 +47,9 @@ export class LoginPage {
     }
     this.submitting.set(true);
     this.error.set("");
-    const { email, password } = this.form.getRawValue();
+    const { identifier, password } = this.form.getRawValue();
     this.auth
-      .login(email, password)
+      .login(identifier, password)
       .pipe(finalize(() => this.submitting.set(false)))
       .subscribe({
         next: ({ user }) =>

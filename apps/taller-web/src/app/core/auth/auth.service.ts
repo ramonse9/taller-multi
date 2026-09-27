@@ -31,10 +31,10 @@ export class AuthService {
     return sessionStorage.getItem(TOKEN_KEY);
   }
 
-  login(email: string, password: string): Observable<LoginResponse> {
+  login(identifier: string, password: string): Observable<LoginResponse> {
     return this.http
       .post<LoginResponse>(`${environment.apiUrl}/auth/login`, {
-        email: email.trim().toLowerCase(),
+        identifier: identifier.trim().toLowerCase(),
         password,
       })
       .pipe(
@@ -43,6 +43,10 @@ export class AuthService {
           this.userState.set(user);
         }),
       );
+  }
+
+  refreshToken(token: string): void {
+    sessionStorage.setItem(TOKEN_KEY, token);
   }
 
   restoreSession(): Observable<SessionUser> {

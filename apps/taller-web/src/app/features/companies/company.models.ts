@@ -8,7 +8,9 @@ export interface CreateCompanyInput {
   withholdsIva: boolean;
   admin: {
     fullName: string;
-    email: string;
+    username: string;
+    email: string | null;
+    phone: string | null;
     password: string;
     timezoneCode: string;
   };
@@ -18,6 +20,7 @@ export interface CompanyResponse {
   id: string;
   name: string;
   schemaName: string;
+  loginCode: string;
   companyTypeCode: string;
   personTypeCode: string;
   isActive: boolean;

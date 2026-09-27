@@ -71,11 +71,18 @@ export class UsersPage implements OnInit {
     }),
     email: new FormControl("", {
       nonNullable: true,
+      validators: [Validators.email, Validators.maxLength(254)],
+    }),
+    username: new FormControl("", {
+      nonNullable: true,
       validators: [
         Validators.required,
-        Validators.email,
-        Validators.maxLength(254),
+        Validators.pattern(/^[a-z][a-z0-9._-]{1,29}$/),
       ],
+    }),
+    phone: new FormControl("", {
+      nonNullable: true,
+      validators: [Validators.pattern(/^\+[1-9]\d{7,14}$/)],
     }),
     role: new FormControl<TenantRole>("user", {
       nonNullable: true,
@@ -93,8 +100,9 @@ export class UsersPage implements OnInit {
       nonNullable: true,
       validators: [
         Validators.required,
-        Validators.minLength(8),
+        Validators.minLength(6),
         Validators.maxLength(10),
+        Validators.pattern(/^(?=.*[A-Za-z])(?=.*\d).+$/),
       ],
     }),
     confirmation: new FormControl("", {
@@ -159,13 +167,16 @@ export class UsersPage implements OnInit {
     this.form.controls.isActive.enable();
     this.form.controls.password.setValidators([
       Validators.required,
-      Validators.minLength(8),
+      Validators.minLength(6),
       Validators.maxLength(10),
+      Validators.pattern(/^(?=.*[A-Za-z])(?=.*\d).+$/),
     ]);
     this.form.controls.password.updateValueAndValidity();
     this.form.reset({
       fullName: "",
+      username: "",
       email: "",
+      phone: "",
       role: "user",
       timezoneCode: "America/Mazatlan",
       password: "",
@@ -187,7 +198,9 @@ export class UsersPage implements OnInit {
     this.form.controls.password.updateValueAndValidity();
     this.form.reset({
       fullName: user.fullName,
-      email: user.email,
+      username: user.username,
+      email: user.email ?? "",
+      phone: user.phone ?? "",
       role: user.role,
       timezoneCode: user.timezoneCode,
       password: "",
@@ -212,14 +225,18 @@ export class UsersPage implements OnInit {
     const request = current
       ? this.users.update(current.id, {
           fullName: raw.fullName.trim(),
-          email: raw.email.trim().toLowerCase(),
+          username: raw.username.trim().toLowerCase(),
+          email: raw.email.trim().toLowerCase() || null,
+          phone: raw.phone.trim() || null,
           role: raw.role,
           timezoneCode: raw.timezoneCode,
           isActive: raw.isActive,
         } satisfies UpdateUserInput)
       : this.users.create({
           fullName: raw.fullName.trim(),
-          email: raw.email.trim().toLowerCase(),
+          username: raw.username.trim().toLowerCase(),
+          email: raw.email.trim().toLowerCase() || null,
+          phone: raw.phone.trim() || null,
           role: raw.role,
           timezoneCode: raw.timezoneCode,
           password: raw.password,

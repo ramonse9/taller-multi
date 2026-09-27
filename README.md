@@ -37,6 +37,8 @@ Los detalles de configuración y bootstrap están en los README de [taller-api](
 
 Los schemas tenant se asignan automáticamente con el formato `_<consecutivo>_<tipo>_<nombre_comercial>`; no se capturan manualmente desde el frontend.
 
+Los usuarios de compañía no necesitan correo: ingresan con un identificador como `yovany@melkars`. El celular y correo son opcionales, y las sesiones se renuevan con actividad hasta un máximo de 14 días sin uso.
+
 ## Historial anterior
 
 Los repositorios Git que existían dentro de `apps/` fueron convertidos en directorios normales. Antes de la conversión se generaron bundles completos y verificados en `.local-backups/git-history/`; esa carpeta es local y está ignorada por Git. Los repositorios remotos originales no fueron modificados.

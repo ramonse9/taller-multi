@@ -2,7 +2,10 @@ export type TenantRole = "company_admin" | "user";
 
 export interface TenantUser {
   id: string;
-  email: string;
+  email: string | null;
+  username: string;
+  loginName: string;
+  phone: string | null;
   fullName: string;
   role: TenantRole;
   companyId: string;
@@ -24,7 +27,9 @@ export interface PaginatedUsers {
 
 export interface CreateUserInput {
   fullName: string;
-  email: string;
+  username: string;
+  email: string | null;
+  phone: string | null;
   password: string;
   timezoneCode: string;
   role: TenantRole;
@@ -32,7 +37,9 @@ export interface CreateUserInput {
 
 export interface UpdateUserInput {
   fullName?: string;
-  email?: string;
+  username?: string;
+  email?: string | null;
+  phone?: string | null;
   timezoneCode?: string;
   role?: TenantRole;
   isActive?: boolean;
