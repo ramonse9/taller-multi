@@ -188,6 +188,7 @@ export class UserResponseDto {
   @ApiProperty() username!: string;
   @ApiProperty() loginName!: string;
   @ApiProperty({ nullable: true, type: String }) phone!: string | null;
+  @ApiProperty({ nullable: true, type: Date }) phoneVerifiedAt!: Date | null;
   @ApiProperty() fullName!: string;
   @ApiProperty({ enum: TENANT_ROLES }) role!: PlatformRole;
   @ApiProperty({ format: 'uuid' }) companyId!: string;

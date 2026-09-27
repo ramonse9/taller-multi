@@ -26,6 +26,7 @@ interface UserRow {
   email: string | null;
   username: string;
   phone: string | null;
+  phone_verified_at: Date | null;
   login_code: string;
   full_name: string;
   role: PlatformRole;
@@ -66,7 +67,7 @@ export class UsersService {
     );
     const totalItems = Number(countRows[0]?.total ?? 0);
     const rows = await this.dataSource.query<UserRow[]>(
-      `SELECT id, email, username, phone, full_name, role, company_id, timezone_code,
+      `SELECT id, email, username, phone, phone_verified_at, full_name, role, company_id, timezone_code,
               (SELECT login_code FROM public.companies WHERE id = company_id) AS login_code,
               is_active, must_change_password, created_at, updated_at
        FROM public.users
@@ -89,7 +90,7 @@ export class UsersService {
   async getOne(user: AuthenticatedUser, id: string): Promise<UserResponseDto> {
     const companyId = this.companyIdForAdmin(user);
     const rows = await this.dataSource.query<UserRow[]>(
-      `SELECT id, email, username, phone, full_name, role, company_id, timezone_code,
+      `SELECT id, email, username, phone, phone_verified_at, full_name, role, company_id, timezone_code,
               (SELECT login_code FROM public.companies WHERE id = company_id) AS login_code,
               is_active, must_change_password, created_at, updated_at
        FROM public.users WHERE id = $1 AND company_id = $2`,
@@ -112,7 +113,7 @@ export class UsersService {
            email, username, phone, password_hash, full_name, role, company_id,
            timezone_code, must_change_password
          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true)
-         RETURNING id, email, username, phone, full_name, role, company_id, timezone_code,
+         RETURNING id, email, username, phone, phone_verified_at, full_name, role, company_id, timezone_code,
                    (SELECT login_code FROM public.companies WHERE id = company_id) AS login_code,
                    is_active, must_change_password, created_at, updated_at`,
         [
@@ -170,7 +171,10 @@ export class UsersService {
       if (input.fullName !== undefined) add('full_name', input.fullName);
       if (input.email !== undefined) add('email', input.email);
       if (input.username !== undefined) add('username', input.username);
-      if (input.phone !== undefined) add('phone', input.phone);
+      if (input.phone !== undefined) {
+        add('phone', input.phone);
+        assignments.push('phone_verified_at = NULL');
+      }
       if (input.role !== undefined) add('role', input.role);
       if (input.timezoneCode !== undefined) add('timezone_code', input.timezoneCode);
       if (input.isActive !== undefined) add('is_active', input.isActive);
@@ -181,7 +185,7 @@ export class UsersService {
         `UPDATE public.users
          SET ${assignments.join(', ')}, updated_at = NOW()
          WHERE id = $${values.length - 1} AND company_id = $${values.length}
-         RETURNING id, email, username, phone, full_name, role, company_id, timezone_code,
+         RETURNING id, email, username, phone, phone_verified_at, full_name, role, company_id, timezone_code,
                    (SELECT login_code FROM public.companies WHERE id = company_id) AS login_code,
                    is_active, must_change_password, created_at, updated_at`,
         values,
@@ -208,7 +212,7 @@ export class UsersService {
   async changeOwnPassword(user: AuthenticatedUser, input: ChangePasswordDto): Promise<void> {
     const companyId = this.companyIdForTenant(user);
     const rows = await this.dataSource.query<PasswordRow[]>(
-      `SELECT id, email, username, phone, full_name, role, company_id, timezone_code,
+      `SELECT id, email, username, phone, phone_verified_at, full_name, role, company_id, timezone_code,
               (SELECT login_code FROM public.companies WHERE id = company_id) AS login_code, is_active,
               must_change_password, created_at, updated_at, password_hash
        FROM public.users
@@ -264,7 +268,7 @@ export class UsersService {
 
   private async lockUser(runner: QueryRunner, companyId: string, id: string): Promise<UserRow> {
     const rows = (await runner.query(
-      `SELECT id, email, username, phone, full_name, role, company_id, timezone_code,
+      `SELECT id, email, username, phone, phone_verified_at, full_name, role, company_id, timezone_code,
               (SELECT login_code FROM public.companies WHERE id = company_id) AS login_code,
               is_active, must_change_password, created_at, updated_at
        FROM public.users
@@ -324,6 +328,7 @@ export class UsersService {
       username: row.username,
       loginName: tenantLoginName(row.username, row.login_code),
       phone: row.phone,
+      phoneVerifiedAt: row.phone_verified_at,
       fullName: row.full_name,
       role: row.role,
       companyId: row.company_id,

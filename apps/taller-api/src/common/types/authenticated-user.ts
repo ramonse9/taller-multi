@@ -6,6 +6,7 @@ export interface AuthenticatedUser {
   username: string | null;
   loginName: string;
   phone: string | null;
+  phoneVerifiedAt: Date | null;
   fullName: string;
   role: PlatformRole;
   companyId: string | null;

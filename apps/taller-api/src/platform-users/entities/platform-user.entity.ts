@@ -28,6 +28,9 @@ export class PlatformUser {
   @Column({ type: 'varchar', length: 16, nullable: true })
   phone!: string | null;
 
+  @Column({ name: 'phone_verified_at', type: 'timestamptz', nullable: true })
+  phoneVerifiedAt!: Date | null;
+
   @Column({ name: 'password_hash', type: 'text', select: false })
   passwordHash!: string;
 

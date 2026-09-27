@@ -6,6 +6,7 @@ export interface TenantUser {
   username: string;
   loginName: string;
   phone: string | null;
+  phoneVerifiedAt: string | null;
   fullName: string;
   role: TenantRole;
   companyId: string;

@@ -78,7 +78,11 @@
                 <div>
                   <strong>{{ user.fullName }}</strong
                   ><small>{{ user.loginName }}</small> @if (user.phone) {
-                  <small>{{ user.phone }}</small> }
+                  <small
+                    >{{ user.phone }} · {{ user.phoneVerifiedAt ? 'Verificado' :
+                    'Sin verificar' }}</small
+                  >
+                  }
                 </div>
               </div>
             </td>

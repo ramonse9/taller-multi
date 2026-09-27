@@ -108,6 +108,7 @@ export class CompaniesService {
         username: admin.username,
         loginName: tenantLoginName(admin.username, saved.loginCode),
         phone: admin.phone,
+        phoneVerifiedAt: null,
         fullName: admin.full_name,
         role: admin.role,
         companyId: admin.company_id,

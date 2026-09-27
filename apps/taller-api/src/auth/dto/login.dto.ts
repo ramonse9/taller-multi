@@ -25,6 +25,7 @@ export class LoginUserResponseDto {
   @ApiProperty({ nullable: true, type: String }) username!: string | null;
   @ApiProperty() loginName!: string;
   @ApiProperty({ nullable: true, type: String }) phone!: string | null;
+  @ApiProperty({ nullable: true, type: Date }) phoneVerifiedAt!: Date | null;
   @ApiProperty() fullName!: string;
   @ApiProperty() role!: string;
   @ApiProperty({ nullable: true, type: String }) companyId!: string | null;

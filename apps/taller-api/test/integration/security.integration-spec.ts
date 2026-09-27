@@ -11,6 +11,7 @@ import { PublicBaseline1700000000000 } from '../../src/database/migrations/publi
 import { GeneratedSchemasAndTemporaryPasswords1700000001000 } from '../../src/database/migrations/public/1700000001000-generated-schemas-and-temporary-passwords';
 import { TenantLoginIdentities1700000002000 } from '../../src/database/migrations/public/1700000002000-tenant-identities-and-sessions';
 import { AuthSessions1700000003000 } from '../../src/database/migrations/public/1700000003000-auth-sessions';
+import { MobilePasswordRecovery1700000004000 } from '../../src/database/migrations/public/1700000004000-mobile-password-recovery';
 import { quoteIdentifier } from '../../src/database/schema-name';
 import { seedPublicCatalogs } from '../../src/database/seeds/public-catalogs.seed';
 
@@ -79,6 +80,16 @@ interface PoolStats {
   waitingCount: number;
 }
 
+interface RecoveryRequestResponse {
+  accepted: boolean;
+  developmentCode?: string;
+}
+
+interface RecoveryVerifyResponse {
+  resetToken: string;
+  expiresInSeconds: number;
+}
+
 describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
   let app: INestApplication;
   let control: DataSource;
@@ -105,6 +116,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         GeneratedSchemasAndTemporaryPasswords1700000001000,
         TenantLoginIdentities1700000002000,
         AuthSessions1700000003000,
+        MobilePasswordRecovery1700000004000,
       ],
       migrationsTableName: 'public_schema_migrations',
       synchronize: false,
@@ -388,6 +400,113 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       fullName: 'Cliente del flujo completo',
       updatedByUserId: createdUser.body.id,
     });
+  });
+
+  it('recupera la contraseña por OTP móvil y verifica el teléfono', async () => {
+    const tenant = await provisionAndLogin('Recovery Integration', 'recovery.admin@test.local');
+    const createdUser = await request<UserResponse>('POST', '/users', {
+      token: tenant.accessToken,
+      body: {
+        fullName: 'Usuario Recuperación',
+        username: 'movil',
+        phone: '+526671112244',
+        password: USER_PASSWORD,
+        timezoneCode: 'America/Mazatlan',
+        role: 'user',
+      },
+    });
+    expect(createdUser.status).toBe(201);
+    const identifier = `movil@${tenant.company.loginCode}`;
+    const previousSession = await login(identifier, USER_PASSWORD);
+    expect(previousSession.status).toBe(200);
+
+    const requested = await request<RecoveryRequestResponse>(
+      'POST',
+      '/auth/password-recovery/request',
+      { body: { identifier, channel: 'sms' } },
+    );
+    expect(requested.status).toBe(202);
+    expect(requested.body.developmentCode).toMatch(/^\d{6}$/);
+
+    const earlyResend = await request<unknown>('POST', '/auth/password-recovery/request', {
+      body: { identifier, channel: 'whatsapp' },
+    });
+    expect(earlyResend.status).toBe(429);
+
+    await control.query(
+      `UPDATE public.password_recovery_challenges
+       SET last_sent_at = NOW() - interval '61 seconds'
+       WHERE user_id = $1`,
+      [createdUser.body.id],
+    );
+    const secondSend = await request<RecoveryRequestResponse>(
+      'POST',
+      '/auth/password-recovery/request',
+      { body: { identifier, channel: 'whatsapp' } },
+    );
+    expect(secondSend.status).toBe(202);
+    await control.query(
+      `UPDATE public.password_recovery_challenges
+       SET last_sent_at = NOW() - interval '61 seconds'
+       WHERE user_id = $1`,
+      [createdUser.body.id],
+    );
+    const thirdSend = await request<RecoveryRequestResponse>(
+      'POST',
+      '/auth/password-recovery/request',
+      { body: { identifier, channel: 'sms' } },
+    );
+    expect(thirdSend.status).toBe(202);
+    await control.query(
+      `UPDATE public.password_recovery_challenges
+       SET last_sent_at = NOW() - interval '61 seconds'
+       WHERE user_id = $1`,
+      [createdUser.body.id],
+    );
+    expect(
+      (
+        await request<unknown>('POST', '/auth/password-recovery/request', {
+          body: { identifier, channel: 'sms' },
+        })
+      ).status,
+    ).toBe(429);
+
+    const invalid = await request<unknown>('POST', '/auth/password-recovery/verify', {
+      body: {
+        identifier,
+        code: thirdSend.body.developmentCode === '000000' ? '000001' : '000000',
+      },
+    });
+    expect(invalid.status).toBe(400);
+
+    const verified = await request<RecoveryVerifyResponse>(
+      'POST',
+      '/auth/password-recovery/verify',
+      { body: { identifier, code: thirdSend.body.developmentCode } },
+    );
+    expect(verified.status).toBe(200);
+    expect(verified.body.resetToken).toBeTruthy();
+    expect(verified.body.expiresInSeconds).toBe(600);
+
+    const completed = await request<unknown>('POST', '/auth/password-recovery/complete', {
+      body: { resetToken: verified.body.resetToken, password: 'Nueva28c' },
+    });
+    expect(completed.status).toBe(204);
+    expect(
+      (
+        await request<unknown>('GET', '/auth/me', {
+          token: previousSession.body.accessToken,
+        })
+      ).status,
+    ).toBe(401);
+    expect((await login(identifier, USER_PASSWORD)).status).toBe(401);
+    expect((await login(identifier, 'Nueva28c')).status).toBe(200);
+
+    const rows = await control.query<Array<{ phone_verified_at: Date | null }>>(
+      'SELECT phone_verified_at FROM public.users WHERE id = $1',
+      [createdUser.body.id],
+    );
+    expect(rows[0]?.phone_verified_at).toBeTruthy();
   });
 
   async function createCompany(

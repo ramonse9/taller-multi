@@ -18,4 +18,5 @@ input { width: 100%; }
 small { display: block; color: var(--danger); margin-top: .4rem; }
 .form-error { padding: .8rem 1rem; background: #fff0ea; color: #8e3214; border-left: 3px solid var(--orange); margin-top: 1.2rem; font-size: .88rem; }
 button { width: 100%; margin-top: 1.5rem; }
+.recovery-link { display: block; margin-top: 1.35rem; color: var(--orange-dark); text-align: center; font-size: .9rem; font-weight: 700; }
 @media (max-width: 760px) { .login-shell { grid-template-columns: 1fr; } .brand-panel { min-height: 38vh; padding: 2rem; } .brand-mark { margin-bottom: 4rem; } .detail-line { display: none; } .form-panel { min-height: 62vh; padding: 2.5rem 1.25rem; } h1 { font-size: 3.2rem; } }

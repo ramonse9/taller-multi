@@ -3,7 +3,12 @@ import { computed, inject, Injectable, signal } from "@angular/core";
 import { Router } from "@angular/router";
 import { Observable, tap } from "rxjs";
 import { environment } from "../../../environments/environment";
-import { LoginResponse, SessionUser } from "./auth.models";
+import {
+  LoginResponse,
+  PasswordRecoveryRequestResponse,
+  PasswordRecoveryVerifyResponse,
+  SessionUser,
+} from "./auth.models";
 
 const TOKEN_KEY = "taller_access_token";
 
@@ -43,6 +48,39 @@ export class AuthService {
           this.userState.set(user);
         }),
       );
+  }
+
+  requestPasswordRecovery(
+    identifier: string,
+    channel: "sms" | "whatsapp",
+  ): Observable<PasswordRecoveryRequestResponse> {
+    return this.http.post<PasswordRecoveryRequestResponse>(
+      `${environment.apiUrl}/auth/password-recovery/request`,
+      { identifier: identifier.trim().toLowerCase(), channel },
+    );
+  }
+
+  verifyPasswordRecovery(
+    identifier: string,
+    code: string,
+  ): Observable<PasswordRecoveryVerifyResponse> {
+    return this.http.post<PasswordRecoveryVerifyResponse>(
+      `${environment.apiUrl}/auth/password-recovery/verify`,
+      { identifier: identifier.trim().toLowerCase(), code },
+    );
+  }
+
+  completePasswordRecovery(
+    resetToken: string,
+    password: string,
+  ): Observable<void> {
+    return this.http.post<void>(
+      `${environment.apiUrl}/auth/password-recovery/complete`,
+      {
+        resetToken,
+        password,
+      },
+    );
   }
 
   refreshToken(token: string): void {

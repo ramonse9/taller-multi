@@ -71,6 +71,7 @@ export class AuthService {
             ? user.email!
             : `${user.username}@${(await this.companies.findOneByOrFail({ id: user.companyId! })).loginCode}`,
         phone: user.phone,
+        phoneVerifiedAt: user.phoneVerifiedAt,
         fullName: user.fullName,
         role: user.role,
         companyId: user.companyId,

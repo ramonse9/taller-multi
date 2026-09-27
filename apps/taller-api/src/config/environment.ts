@@ -3,6 +3,7 @@ import {
   IsBoolean,
   IsEmail,
   IsEnum,
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -52,7 +53,31 @@ class EnvironmentVariables {
   JWT_AUDIENCE!: string;
 
   @IsString()
-  JWT_EXPIRES_IN = '15m';
+  JWT_EXPIRES_IN = '14d';
+
+  @IsOptional()
+  @IsString()
+  @Length(32, 512)
+  OTP_SECRET?: string;
+
+  @IsIn(['console', 'twilio'])
+  MOBILE_PROVIDER = 'console';
+
+  @IsOptional()
+  @IsString()
+  TWILIO_ACCOUNT_SID?: string;
+
+  @IsOptional()
+  @IsString()
+  TWILIO_AUTH_TOKEN?: string;
+
+  @IsOptional()
+  @IsString()
+  TWILIO_SMS_FROM?: string;
+
+  @IsOptional()
+  @IsString()
+  TWILIO_WHATSAPP_FROM?: string;
 
   @Transform(({ value }) => Number(value))
   @IsInt()
@@ -91,6 +116,22 @@ export function validateEnvironment(config: Record<string, unknown>): Record<str
   if (errors.length > 0) {
     throw new Error(
       `Invalid environment configuration: ${errors.map((e) => Object.values(e.constraints ?? {}).join(', ')).join('; ')}`,
+    );
+  }
+  if (validated.NODE_ENV === Environment.Production && !validated.OTP_SECRET) {
+    throw new Error('Invalid environment configuration: OTP_SECRET is required in production');
+  }
+  if (validated.NODE_ENV === Environment.Production && validated.MOBILE_PROVIDER === 'console') {
+    throw new Error(
+      'Invalid environment configuration: MOBILE_PROVIDER=console is not allowed in production',
+    );
+  }
+  if (
+    validated.MOBILE_PROVIDER === 'twilio' &&
+    (!validated.TWILIO_ACCOUNT_SID || !validated.TWILIO_AUTH_TOKEN)
+  ) {
+    throw new Error(
+      'Invalid environment configuration: Twilio account SID and auth token are required',
     );
   }
   return validated as unknown as Record<string, unknown>;

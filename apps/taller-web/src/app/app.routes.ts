@@ -14,6 +14,14 @@ export const routes: Routes = [
       import("./features/auth/login.page").then((m) => m.LoginPage),
   },
   {
+    path: "recuperar-contrasena",
+    canActivate: [guestGuard],
+    loadComponent: () =>
+      import("./features/auth/password-recovery.page").then(
+        (m) => m.PasswordRecoveryPage,
+      ),
+  },
+  {
     path: "",
     canActivate: [authGuard],
     loadComponent: () =>

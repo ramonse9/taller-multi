@@ -6,6 +6,7 @@ export interface SessionUser {
   username: string | null;
   loginName: string;
   phone: string | null;
+  phoneVerifiedAt: string | null;
   fullName: string;
   role: UserRole;
   companyId: string | null;
@@ -15,4 +16,15 @@ export interface SessionUser {
 export interface LoginResponse {
   accessToken: string;
   user: SessionUser;
+}
+
+export interface PasswordRecoveryRequestResponse {
+  accepted: boolean;
+  message: string;
+  developmentCode?: string;
+}
+
+export interface PasswordRecoveryVerifyResponse {
+  resetToken: string;
+  expiresInSeconds: number;
 }

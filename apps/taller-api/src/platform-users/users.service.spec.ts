@@ -11,6 +11,7 @@ const admin: AuthenticatedUser = {
   username: 'maria',
   loginName: 'maria@taller_norte',
   phone: null,
+  phoneVerifiedAt: null,
   fullName: 'María López',
   role: PlatformRole.CompanyAdmin,
   companyId,

@@ -88,6 +88,15 @@
             <dt>Almacenamiento</dt>
             <dd>Sesión del navegador</dd>
           </div>
+          @if (auth.user()?.phone) {
+          <div>
+            <dt>Teléfono</dt>
+            <dd>
+              {{ auth.user()?.phoneVerifiedAt ? 'Verificado' : 'Sin verificar'
+              }}
+            </dd>
+          </div>
+          }
         </dl>
         <button type="button" class="logout" (click)="auth.logout()">
           Cerrar sesión
