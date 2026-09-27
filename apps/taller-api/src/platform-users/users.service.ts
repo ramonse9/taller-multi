@@ -19,10 +19,14 @@ import {
   UserResponseDto,
 } from './dto/user.dto';
 import { PlatformRole } from './entities/platform-user.entity';
+import { tenantLoginName } from '../database/login-name';
 
 interface UserRow {
   id: string;
-  email: string;
+  email: string | null;
+  username: string;
+  phone: string | null;
+  login_code: string;
   full_name: string;
   role: PlatformRole;
   company_id: string;
@@ -51,7 +55,10 @@ export class UsersService {
     const parameters = [companyId, activeFilter, filter];
     const where = `company_id = $1
       AND ($2::boolean IS NULL OR is_active = $2)
-      AND ($3 = '%%' OR full_name ILIKE $3 ESCAPE '\\' OR email ILIKE $3 ESCAPE '\\')`;
+      AND ($3 = '%%' OR full_name ILIKE $3 ESCAPE '\\'
+        OR COALESCE(email::text, '') ILIKE $3 ESCAPE '\\'
+        OR username::text ILIKE $3 ESCAPE '\\'
+        OR COALESCE(phone, '') ILIKE $3 ESCAPE '\\')`;
 
     const countRows = await this.dataSource.query<Array<{ total: string }>>(
       `SELECT COUNT(*) AS total FROM public.users WHERE ${where}`,
@@ -59,7 +66,8 @@ export class UsersService {
     );
     const totalItems = Number(countRows[0]?.total ?? 0);
     const rows = await this.dataSource.query<UserRow[]>(
-      `SELECT id, email, full_name, role, company_id, timezone_code,
+      `SELECT id, email, username, phone, full_name, role, company_id, timezone_code,
+              (SELECT login_code FROM public.companies WHERE id = company_id) AS login_code,
               is_active, must_change_password, created_at, updated_at
        FROM public.users
        WHERE ${where}
@@ -81,7 +89,8 @@ export class UsersService {
   async getOne(user: AuthenticatedUser, id: string): Promise<UserResponseDto> {
     const companyId = this.companyIdForAdmin(user);
     const rows = await this.dataSource.query<UserRow[]>(
-      `SELECT id, email, full_name, role, company_id, timezone_code,
+      `SELECT id, email, username, phone, full_name, role, company_id, timezone_code,
+              (SELECT login_code FROM public.companies WHERE id = company_id) AS login_code,
               is_active, must_change_password, created_at, updated_at
        FROM public.users WHERE id = $1 AND company_id = $2`,
       [id, companyId],
@@ -100,12 +109,22 @@ export class UsersService {
       await this.validateTimezone(runner, input.timezoneCode);
       const rows = (await runner.query(
         `INSERT INTO public.users(
-           email, password_hash, full_name, role, company_id, timezone_code,
-           must_change_password
-         ) VALUES ($1, $2, $3, $4, $5, $6, true)
-         RETURNING id, email, full_name, role, company_id, timezone_code,
+           email, username, phone, password_hash, full_name, role, company_id,
+           timezone_code, must_change_password
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true)
+         RETURNING id, email, username, phone, full_name, role, company_id, timezone_code,
+                   (SELECT login_code FROM public.companies WHERE id = company_id) AS login_code,
                    is_active, must_change_password, created_at, updated_at`,
-        [input.email, passwordHash, input.fullName, input.role, companyId, input.timezoneCode],
+        [
+          input.email ?? null,
+          input.username,
+          input.phone ?? null,
+          passwordHash,
+          input.fullName,
+          input.role,
+          companyId,
+          input.timezoneCode,
+        ],
       )) as UserRow[];
       const created = rows[0];
       if (!created) throw new Error('No se pudo crear el usuario');
@@ -150,6 +169,8 @@ export class UsersService {
       };
       if (input.fullName !== undefined) add('full_name', input.fullName);
       if (input.email !== undefined) add('email', input.email);
+      if (input.username !== undefined) add('username', input.username);
+      if (input.phone !== undefined) add('phone', input.phone);
       if (input.role !== undefined) add('role', input.role);
       if (input.timezoneCode !== undefined) add('timezone_code', input.timezoneCode);
       if (input.isActive !== undefined) add('is_active', input.isActive);
@@ -160,7 +181,8 @@ export class UsersService {
         `UPDATE public.users
          SET ${assignments.join(', ')}, updated_at = NOW()
          WHERE id = $${values.length - 1} AND company_id = $${values.length}
-         RETURNING id, email, full_name, role, company_id, timezone_code,
+         RETURNING id, email, username, phone, full_name, role, company_id, timezone_code,
+                   (SELECT login_code FROM public.companies WHERE id = company_id) AS login_code,
                    is_active, must_change_password, created_at, updated_at`,
         values,
       )) as [UserRow[], number];
@@ -186,7 +208,8 @@ export class UsersService {
   async changeOwnPassword(user: AuthenticatedUser, input: ChangePasswordDto): Promise<void> {
     const companyId = this.companyIdForTenant(user);
     const rows = await this.dataSource.query<PasswordRow[]>(
-      `SELECT id, email, full_name, role, company_id, timezone_code, is_active,
+      `SELECT id, email, username, phone, full_name, role, company_id, timezone_code,
+              (SELECT login_code FROM public.companies WHERE id = company_id) AS login_code, is_active,
               must_change_password, created_at, updated_at, password_hash
        FROM public.users
        WHERE id = $1 AND company_id = $2 AND is_active = TRUE`,
@@ -241,7 +264,8 @@ export class UsersService {
 
   private async lockUser(runner: QueryRunner, companyId: string, id: string): Promise<UserRow> {
     const rows = (await runner.query(
-      `SELECT id, email, full_name, role, company_id, timezone_code,
+      `SELECT id, email, username, phone, full_name, role, company_id, timezone_code,
+              (SELECT login_code FROM public.companies WHERE id = company_id) AS login_code,
               is_active, must_change_password, created_at, updated_at
        FROM public.users
        WHERE id = $1 AND company_id = $2
@@ -289,7 +313,7 @@ export class UsersService {
       error instanceof QueryFailedError &&
       (error.driverError as { code?: string }).code === '23505'
     ) {
-      throw new ConflictException('El correo ya está registrado');
+      throw new ConflictException('El usuario o correo ya está registrado');
     }
   }
 
@@ -297,6 +321,9 @@ export class UsersService {
     return {
       id: row.id,
       email: row.email,
+      username: row.username,
+      loginName: tenantLoginName(row.username, row.login_code),
+      phone: row.phone,
       fullName: row.full_name,
       role: row.role,
       companyId: row.company_id,

@@ -23,7 +23,9 @@ export class CompaniesController {
   @Post()
   @ApiOperation({ summary: 'Registrar compañía, schema y primer administrador tenant' })
   @ApiCreatedResponse({ type: CompanyResponseDto })
-  @ApiConflictResponse({ description: 'Compañía, schema o correo ya registrado' })
+  @ApiConflictResponse({
+    description: 'Compañía, schema, código público, usuario o correo ya registrado',
+  })
   @ApiForbiddenResponse({ description: 'Se requiere administrador de plataforma' })
   @ApiUnprocessableEntityResponse({ description: 'Catálogo global inválido' })
   create(@Body() input: CreateCompanyDto): Promise<CompanyResponseDto> {

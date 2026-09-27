@@ -37,6 +37,7 @@ export class CompanyResponseDto {
   @ApiProperty() id!: string;
   @ApiProperty() name!: string;
   @ApiProperty() schemaName!: string;
+  @ApiProperty() loginCode!: string;
   @ApiProperty() companyTypeCode!: string;
   @ApiProperty() personTypeCode!: string;
   @ApiProperty() isActive!: boolean;

@@ -19,8 +19,14 @@ export class PlatformUser {
   id!: string;
 
   @Index({ unique: true })
-  @Column({ type: 'citext', unique: true })
-  email!: string;
+  @Column({ type: 'citext', unique: true, nullable: true })
+  email!: string | null;
+
+  @Column({ type: 'citext', nullable: true })
+  username!: string | null;
+
+  @Column({ type: 'varchar', length: 16, nullable: true })
+  phone!: string | null;
 
   @Column({ name: 'password_hash', type: 'text', select: false })
   passwordHash!: string;

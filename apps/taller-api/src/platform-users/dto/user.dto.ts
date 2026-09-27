@@ -8,13 +8,24 @@ import {
   IsOptional,
   IsString,
   Length,
+  Matches,
   Max,
   Min,
 } from 'class-validator';
 import { PlatformRole } from '../entities/platform-user.entity';
 
-const normalizeEmail = ({ value }: { value: unknown }): unknown =>
+const normalizeNullableEmail = ({ value }: { value: unknown }): unknown =>
+  typeof value === 'string' ? value.trim().toLowerCase() || null : value;
+
+const normalizeUsername = ({ value }: { value: unknown }): unknown =>
   typeof value === 'string' ? value.trim().toLowerCase() : value;
+
+const normalizeNullablePhone = ({ value }: { value: unknown }): unknown =>
+  typeof value === 'string' ? value.replace(/[\s()-]/g, '') || null : value;
+
+const PASSWORD_PATTERN = /^(?=.*[A-Za-z])(?=.*\d).+$/;
+const USERNAME_PATTERN = /^[a-z][a-z0-9._-]{1,29}$/;
+const PHONE_PATTERN = /^\+[1-9]\d{7,14}$/;
 
 const trimString = ({ value }: { value: unknown }): unknown =>
   typeof value === 'string' ? value.trim() : value;
@@ -28,15 +39,31 @@ export class CreateTenantAdminDto {
   @Length(2, 150)
   fullName!: string;
 
-  @ApiProperty({ example: 'admin@tallernorte.mx' })
-  @Transform(normalizeEmail)
+  @ApiProperty({ example: 'maria' })
+  @Transform(normalizeUsername)
+  @IsString()
+  @Matches(USERNAME_PATTERN)
+  username!: string;
+
+  @ApiPropertyOptional({ example: 'admin@tallernorte.mx', nullable: true })
+  @Transform(normalizeNullableEmail)
+  @IsOptional()
   @IsEmail()
   @Length(3, 254)
-  email!: string;
+  email?: string | null;
 
-  @ApiProperty({ minLength: 8, maxLength: 10, writeOnly: true })
+  @ApiPropertyOptional({ example: '+526671234567', nullable: true })
+  @Transform(normalizeNullablePhone)
+  @IsOptional()
+  @Matches(PHONE_PATTERN)
+  phone?: string | null;
+
+  @ApiProperty({ minLength: 6, maxLength: 10, writeOnly: true })
   @IsString()
-  @Length(8, 10)
+  @Length(6, 10)
+  @Matches(PASSWORD_PATTERN, {
+    message: 'La contraseña debe incluir al menos una letra y un número',
+  })
   password!: string;
 
   @ApiPropertyOptional({ default: 'America/Mazatlan' })
@@ -63,11 +90,23 @@ export class UpdateUserDto {
   fullName?: string;
 
   @ApiPropertyOptional({ example: 'maria@tallernorte.mx' })
-  @Transform(normalizeEmail)
+  @Transform(normalizeNullableEmail)
   @IsOptional()
   @IsEmail()
   @Length(3, 254)
-  email?: string;
+  email?: string | null;
+
+  @ApiPropertyOptional({ example: 'maria' })
+  @Transform(normalizeUsername)
+  @IsOptional()
+  @Matches(USERNAME_PATTERN)
+  username?: string;
+
+  @ApiPropertyOptional({ example: '+526671234567', nullable: true })
+  @Transform(normalizeNullablePhone)
+  @IsOptional()
+  @Matches(PHONE_PATTERN)
+  phone?: string | null;
 
   @ApiPropertyOptional({ enum: TENANT_ROLES })
   @IsOptional()
@@ -87,21 +126,27 @@ export class UpdateUserDto {
 }
 
 export class ChangePasswordDto {
-  @ApiProperty({ minLength: 8, maxLength: 128, writeOnly: true })
+  @ApiProperty({ minLength: 6, maxLength: 128, writeOnly: true })
   @IsString()
-  @Length(8, 128)
+  @Length(6, 128)
   currentPassword!: string;
 
-  @ApiProperty({ minLength: 12, maxLength: 128, writeOnly: true })
+  @ApiProperty({ minLength: 6, maxLength: 10, writeOnly: true })
   @IsString()
-  @Length(12, 128)
+  @Length(6, 10)
+  @Matches(PASSWORD_PATTERN, {
+    message: 'La contraseña debe incluir al menos una letra y un número',
+  })
   newPassword!: string;
 }
 
 export class ResetPasswordDto {
-  @ApiProperty({ minLength: 8, maxLength: 10, writeOnly: true })
+  @ApiProperty({ minLength: 6, maxLength: 10, writeOnly: true })
   @IsString()
-  @Length(8, 10)
+  @Length(6, 10)
+  @Matches(PASSWORD_PATTERN, {
+    message: 'La contraseña debe incluir al menos una letra y un número',
+  })
   password!: string;
 }
 
@@ -139,7 +184,10 @@ export class UserQueryDto {
 
 export class UserResponseDto {
   @ApiProperty({ format: 'uuid' }) id!: string;
-  @ApiProperty() email!: string;
+  @ApiProperty({ nullable: true, type: String }) email!: string | null;
+  @ApiProperty() username!: string;
+  @ApiProperty() loginName!: string;
+  @ApiProperty({ nullable: true, type: String }) phone!: string | null;
   @ApiProperty() fullName!: string;
   @ApiProperty({ enum: TENANT_ROLES }) role!: PlatformRole;
   @ApiProperty({ format: 'uuid' }) companyId!: string;

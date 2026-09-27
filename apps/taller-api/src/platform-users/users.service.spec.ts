@@ -8,15 +8,23 @@ const companyId = '15f9b365-87b8-47e9-8704-f984de0c980b';
 const admin: AuthenticatedUser = {
   id: '02356ea5-21c1-42a3-8ba1-009ada74b7a9',
   email: 'admin@tallernorte.mx',
+  username: 'maria',
+  loginName: 'maria@taller_norte',
+  phone: null,
   fullName: 'María López',
   role: PlatformRole.CompanyAdmin,
   companyId,
   companySchema: 'taller_norte',
+  companyLoginCode: 'taller_norte',
   mustChangePassword: false,
+  sessionId: '76fbd920-c8c7-4bc4-83e7-b6557382a53a',
 };
 const row = {
   id: admin.id,
   email: admin.email,
+  username: admin.username,
+  phone: admin.phone,
+  login_code: admin.companyLoginCode,
   full_name: admin.fullName,
   role: PlatformRole.CompanyAdmin,
   company_id: companyId,

@@ -7,11 +7,16 @@ import { ClientsService } from './clients.service';
 const user = {
   id: 'b9853a5f-c3f2-4096-a379-973b8ed43fea',
   email: 'user@example.com',
+  username: 'user',
+  loginName: 'user@alpha',
+  phone: null,
   fullName: 'Test User',
   role: PlatformRole.User,
   companyId: '05b8405a-d628-4a6f-bdc1-414ac4ef025a',
   companySchema: 'tenant_alpha',
+  companyLoginCode: 'alpha',
   mustChangePassword: false,
+  sessionId: '76fbd920-c8c7-4bc4-83e7-b6557382a53a',
 };
 
 const row = {

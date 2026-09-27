@@ -20,6 +20,6 @@ process.env.CORS_ORIGINS = 'http://127.0.0.1:4200';
 process.env.JWT_SECRET = 'integration-test-secret-at-least-32-characters';
 process.env.JWT_ISSUER = 'taller-api-integration';
 process.env.JWT_AUDIENCE = 'taller-integration-clients';
-process.env.JWT_EXPIRES_IN = '15m';
+process.env.JWT_EXPIRES_IN = '14d';
 process.env.RATE_LIMIT_TTL_MS = '60000';
 process.env.RATE_LIMIT_MAX = '1000';

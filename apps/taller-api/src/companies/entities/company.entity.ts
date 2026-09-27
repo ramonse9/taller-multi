@@ -19,6 +19,9 @@ export class Company {
   @Column({ name: 'schema_name', type: 'varchar', length: 63, unique: true })
   schemaName!: string;
 
+  @Column({ name: 'login_code', type: 'varchar', length: 40, unique: true })
+  loginCode!: string;
+
   @Column({ name: 'company_type_code', type: 'varchar', length: 30 })
   companyTypeCode!: string;
 

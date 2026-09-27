@@ -22,7 +22,7 @@ Los pasos internos también pueden ejecutarse por separado con `npm run db:migra
 
 ## Onboarding y usuarios
 
-`POST /api/companies` recibe los datos de la compañía y un objeto `admin` con `fullName`, `email`, `password` y `timezoneCode`. El cliente no elige el schema: el servidor lo genera como `_<consecutivo>_<tipo>_<nombre_comercial>`, por ejemplo `_0003_mul_melkars_diagnostico_automotriz`. Los tipos vigentes son `mul`, `car` y `mec`; el nombre se normaliza sin acentos, con guiones bajos y dentro del límite de 63 caracteres de PostgreSQL.
+`POST /api/companies` recibe los datos de la compañía y un objeto `admin` con `fullName`, `username`, `password`, `timezoneCode` y, opcionalmente, `email` y `phone`. El cliente no elige el schema: el servidor lo genera como `_<consecutivo>_<tipo>_<nombre_comercial>`, por ejemplo `_0003_mul_melkars_diagnostico_automotriz`. Los tipos vigentes son `mul`, `car` y `mec`; el nombre se normaliza sin acentos, con guiones bajos y dentro del límite de 63 caracteres de PostgreSQL.
 
 En una sola transacción registra la compañía, crea y migra su schema, registra la versión tenant y crea el primer `company_admin`. Un fallo en cualquiera de esos pasos revierte todo el onboarding. El consecutivo proviene de una secuencia PostgreSQL para impedir colisiones concurrentes, por lo que puede contener saltos cuando una transacción falla.
 
@@ -30,12 +30,16 @@ Los administradores tenant disponen de:
 
 - `GET /api/users` y `GET /api/users/:id`: listado paginado y detalle, siempre limitados a su compañía.
 - `POST /api/users`: creación con rol `user` o `company_admin`.
-- `PATCH /api/users/:id`: nombre, correo, zona horaria, rol y activación.
+- `PATCH /api/users/:id`: usuario, nombre, celular, correo opcional, zona horaria, rol y activación.
 - `DELETE /api/users/:id`: baja lógica para conservar referencias de auditoría.
 - `PATCH /api/users/:id/password`: restablecimiento de contraseña por otro administrador.
 - `PATCH /api/users/me/password`: cambio personal que exige la contraseña actual.
 
-La API impide que un administrador se desactive o pierda su propio rol y garantiza que cada compañía conserve al menos un administrador activo. Las contraseñas nunca forman parte de una respuesta y se almacenan con Argon2id. Las contraseñas temporales de administradores y usuarios deben tener entre 8 y 10 caracteres. Al iniciar sesión con una de ellas, la sesión sólo permite consultar la identidad y establecer una contraseña definitiva de 12 a 128 caracteres.
+Cada compañía recibe también un código público único derivado de su nombre comercial. Los usuarios tenant inician sesión como `usuario@codigo`, por ejemplo `yovany@melkars`; el correo ya no es obligatorio. Los códigos repetidos reciben un sufijo numérico. Los usuarios existentes conservan su correo como acceso compatible y reciben un `username` durante la migración. El celular usa formato internacional E.164, por ejemplo `+526671234567`, y queda preparado para recuperación por OTP.
+
+La API impide que un administrador se desactive o pierda su propio rol y garantiza que cada compañía conserve al menos un administrador activo. Las contraseñas nunca forman parte de una respuesta y se almacenan con Argon2id. Las contraseñas tenant, temporales o definitivas, deben tener entre 6 y 10 caracteres e incluir al menos una letra y un número. Al iniciar sesión con una contraseña temporal, la sesión sólo permite consultar la identidad y establecer una nueva contraseña válida.
+
+Cada login crea una sesión servidor identificada por el `jti` del JWT. Las respuestas autenticadas renuevan el token mediante `X-Session-Token`; el frontend lo guarda automáticamente. Tanto el JWT como la actividad registrada vencen después de 14 días sin uso.
 
 `synchronize` está deshabilitado y no forma parte de ningún comando.
 

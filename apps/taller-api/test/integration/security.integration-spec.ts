@@ -9,20 +9,24 @@ import { HttpExceptionFilter } from '../../src/common/filters/http-exception.fil
 import { PUBLIC_ENTITIES } from '../../src/database/database-options';
 import { PublicBaseline1700000000000 } from '../../src/database/migrations/public/1700000000000-public-baseline';
 import { GeneratedSchemasAndTemporaryPasswords1700000001000 } from '../../src/database/migrations/public/1700000001000-generated-schemas-and-temporary-passwords';
+import { TenantLoginIdentities1700000002000 } from '../../src/database/migrations/public/1700000002000-tenant-identities-and-sessions';
+import { AuthSessions1700000003000 } from '../../src/database/migrations/public/1700000003000-auth-sessions';
 import { quoteIdentifier } from '../../src/database/schema-name';
 import { seedPublicCatalogs } from '../../src/database/seeds/public-catalogs.seed';
 
 const PLATFORM_EMAIL = 'platform.integration@test.local';
 const PLATFORM_PASSWORD = 'PlatformIntegration-2026!';
-const TENANT_PASSWORD = 'Temp2026!';
-const USER_PASSWORD = 'User2026!';
-const PERMANENT_PASSWORD = 'PermanentUser-2026!';
+const TENANT_PASSWORD = 'Temp26a';
+const USER_PASSWORD = 'User26a';
+const PERMANENT_PASSWORD = 'Clave27b';
 
 interface LoginResponse {
   accessToken: string;
   user: {
     id: string;
-    email: string;
+    email: string | null;
+    username: string | null;
+    loginName: string;
     role: string;
     companyId: string | null;
     mustChangePassword: boolean;
@@ -37,12 +41,16 @@ interface CompanyResponse {
   id: string;
   name: string;
   schemaName: string;
-  admin: { id: string; email: string };
+  loginCode: string;
+  admin: { id: string; email: string | null; loginName: string };
 }
 
 interface UserResponse {
   id: string;
-  email: string;
+  email: string | null;
+  username: string;
+  loginName: string;
+  phone: string | null;
   companyId: string;
   isActive: boolean;
 }
@@ -62,6 +70,7 @@ interface PaginatedClients {
 interface HttpResult<T> {
   status: number;
   body: T;
+  sessionToken: string | null;
 }
 
 interface PoolStats {
@@ -91,7 +100,12 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       type: 'postgres',
       url: testDatabaseUrl,
       entities: PUBLIC_ENTITIES,
-      migrations: [PublicBaseline1700000000000, GeneratedSchemasAndTemporaryPasswords1700000001000],
+      migrations: [
+        PublicBaseline1700000000000,
+        GeneratedSchemasAndTemporaryPasswords1700000001000,
+        TenantLoginIdentities1700000002000,
+        AuthSessions1700000003000,
+      ],
       migrationsTableName: 'public_schema_migrations',
       synchronize: false,
     });
@@ -244,12 +258,30 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(pool.idleCount).toBe(pool.totalCount);
   });
 
+  it('renueva el token al usarlo y rechaza sesiones inactivas por más de 14 días', async () => {
+    const tenant = await provisionAndLogin('Session Integration', 'session.admin@test.local');
+    const active = await listClients(tenant.accessToken);
+    expect(active.status).toBe(200);
+    expect(active.sessionToken).toBeTruthy();
+
+    await control.query(
+      `UPDATE public.auth_sessions SET last_used_at = now() - interval '15 days'
+       WHERE id = (
+         SELECT id FROM public.auth_sessions WHERE user_id = $1
+         ORDER BY created_at DESC LIMIT 1
+       )`,
+      [tenant.user.id],
+    );
+    expect((await listClients(tenant.accessToken)).status).toBe(401);
+  });
+
   it('invalida sesiones y logins de usuarios o compañías desactivadas', async () => {
     const tenant = await provisionAndLogin('Disabled Integration', 'disabled.admin@test.local');
     const createdUser = await request<UserResponse>('POST', '/users', {
       token: tenant.accessToken,
       body: {
         fullName: 'Usuario Desactivable',
+        username: 'desactivable',
         email: 'disabled.user@test.local',
         password: USER_PASSWORD,
         timezoneCode: 'America/Mazatlan',
@@ -257,7 +289,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       },
     });
     expect(createdUser.status).toBe(201);
-    const userLogin = await login('disabled.user@test.local', USER_PASSWORD);
+    const userLogin = await login(`desactivable@${tenant.company.loginCode}`, USER_PASSWORD);
     expect(userLogin.status).toBe(200);
 
     const disabledUser = await request<UserResponse>('PATCH', `/users/${createdUser.body.id}`, {
@@ -266,7 +298,9 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     });
     expect(disabledUser.status).toBe(200);
     expect(disabledUser.body).toMatchObject({ isActive: false });
-    expect((await login('disabled.user@test.local', USER_PASSWORD)).status).toBe(401);
+    expect((await login(`desactivable@${tenant.company.loginCode}`, USER_PASSWORD)).status).toBe(
+      401,
+    );
     expect(
       (await request<unknown>('GET', '/auth/me', { token: userLogin.body.accessToken })).status,
     ).toBe(401);
@@ -274,27 +308,42 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     await control.query('UPDATE public.companies SET is_active = false WHERE id = $1', [
       tenant.user.companyId,
     ]);
-    expect((await login('disabled.admin@test.local', TENANT_PASSWORD)).status).toBe(401);
+    expect((await login(tenant.user.loginName, PERMANENT_PASSWORD)).status).toBe(401);
     expect((await listClients(tenant.accessToken)).status).toBe(401);
   });
 
   it('completa compañía → usuario → login → clientes con identidad de auditoría', async () => {
     const tenant = await provisionAndLogin('Full Flow Integration', 'flow.admin@test.local');
+    const invalidPassword = await request<unknown>('POST', '/users', {
+      token: tenant.accessToken,
+      body: {
+        fullName: 'Usuario Inválido',
+        username: 'invalido',
+        password: 'abcdef',
+        timezoneCode: 'America/Mazatlan',
+        role: 'user',
+      },
+    });
+    expect(invalidPassword.status).toBe(400);
     const createdUser = await request<UserResponse>('POST', '/users', {
       token: tenant.accessToken,
       body: {
         fullName: 'Operador Flujo',
-        email: 'flow.user@test.local',
+        username: 'operador',
+        phone: '+526671112233',
         password: USER_PASSWORD,
         timezoneCode: 'America/Mazatlan',
         role: 'user',
       },
     });
     expect(createdUser.status).toBe(201);
+    expect(createdUser.body.email).toBeNull();
+    expect(createdUser.body.phone).toBe('+526671112233');
 
-    const userLogin = await login('flow.user@test.local', USER_PASSWORD);
+    const userLogin = await login(`operador@${tenant.company.loginCode}`, USER_PASSWORD);
     expect(userLogin.status).toBe(200);
     expect(userLogin.body.user.mustChangePassword).toBe(true);
+    expect(userLogin.body.user.loginName).toBe(`operador@${tenant.company.loginCode}`);
     expect(userLogin.body.user.companyId).toBe(tenant.user.companyId);
     expect((await listClients(userLogin.body.accessToken)).status).toBe(403);
     const passwordChanged = await request<unknown>('PATCH', '/users/me/password', {
@@ -302,7 +351,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       body: { currentPassword: USER_PASSWORD, newPassword: PERMANENT_PASSWORD },
     });
     expect(passwordChanged.status).toBe(204);
-    const permanentLogin = await login('flow.user@test.local', PERMANENT_PASSWORD);
+    const permanentLogin = await login(`operador@${tenant.company.loginCode}`, PERMANENT_PASSWORD);
     expect(permanentLogin.status).toBe(200);
     expect(permanentLogin.body.user.mustChangePassword).toBe(false);
 
@@ -355,7 +404,9 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         withholdsIva: false,
         admin: {
           fullName: `Administrador ${name}`,
+          username: adminEmail.split('@')[0]!.replaceAll('.', '_'),
           email: adminEmail,
+          phone: '+526671234567',
           password: TENANT_PASSWORD,
           timezoneCode: 'America/Mazatlan',
         },
@@ -366,7 +417,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
   async function provisionAndLogin(name: string, email: string): Promise<ProvisionedTenant> {
     const company = await createCompany(name, email);
     expect(company.status).toBe(201);
-    const authenticated = await login(email, TENANT_PASSWORD);
+    const authenticated = await login(company.body.admin.loginName, TENANT_PASSWORD);
     expect(authenticated.status).toBe(200);
     expect(authenticated.body.user.mustChangePassword).toBe(true);
     expect(authenticated.body.user.companyId).toBe(company.body.id);
@@ -375,7 +426,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       body: { currentPassword: TENANT_PASSWORD, newPassword: PERMANENT_PASSWORD },
     });
     expect(changed.status).toBe(204);
-    const permanent = await login(email, PERMANENT_PASSWORD);
+    const permanent = await login(company.body.admin.loginName, PERMANENT_PASSWORD);
     expect(permanent.status).toBe(200);
     expect(permanent.body.user.mustChangePassword).toBe(false);
     return { ...permanent.body, company: company.body };
@@ -388,8 +439,8 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     return rows.map(({ nspname }) => nspname);
   }
 
-  function login(email: string, password: string): Promise<HttpResult<LoginResponse>> {
-    return request<LoginResponse>('POST', '/auth/login', { body: { email, password } });
+  function login(identifier: string, password: string): Promise<HttpResult<LoginResponse>> {
+    return request<LoginResponse>('POST', '/auth/login', { body: { identifier, password } });
   }
 
   function listClients(token: string): Promise<HttpResult<PaginatedClients>> {
@@ -414,6 +465,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     return {
       status: response.status,
       body: (text ? JSON.parse(text) : undefined) as T,
+      sessionToken: response.headers.get('x-session-token'),
     };
   }
 });

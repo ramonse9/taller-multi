@@ -13,6 +13,7 @@ describe('CompaniesService', () => {
       id: companyId,
       name: 'Taller Norte',
       schemaName: '_0001_mul_taller_norte',
+      loginCode: 'taller_norte',
       companyTypeCode: 'mul',
       personTypeCode: 'individual',
       isActive: true,
@@ -32,10 +33,14 @@ describe('CompaniesService', () => {
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([
         {
           id: adminId,
           email: 'admin@tallernorte.mx',
+          username: 'maria',
+          phone: '+526671234567',
           full_name: 'María López',
           role: PlatformRole.CompanyAdmin,
           company_id: companyId,
@@ -76,6 +81,8 @@ describe('CompaniesService', () => {
       withholdsIva: false,
       admin: {
         email: 'admin@tallernorte.mx',
+        username: 'maria',
+        phone: '+526671234567',
         fullName: 'María López',
         password: 'Temp2026!',
         timezoneCode: 'America/Mazatlan',
@@ -91,6 +98,6 @@ describe('CompaniesService', () => {
       role: PlatformRole.CompanyAdmin,
     });
     const adminInsert = query.mock.calls.find(([sql]) => sql.includes('INSERT INTO public.users'));
-    expect(adminInsert?.[1]?.[1]).toEqual(expect.stringMatching(/^\$argon2id\$/));
+    expect(adminInsert?.[1]?.[3]).toEqual(expect.stringMatching(/^\$argon2id\$/));
   });
 });

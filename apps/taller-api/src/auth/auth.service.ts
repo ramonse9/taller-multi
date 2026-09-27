@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as argon2 from 'argon2';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Company } from '../companies/entities/company.entity';
 import { PlatformRole, PlatformUser } from '../platform-users/entities/platform-user.entity';
 import { LoginDto, LoginResponseDto } from './dto/login.dto';
@@ -20,14 +20,11 @@ export class AuthService {
     @InjectRepository(Company) private readonly companies: Repository<Company>,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async login(input: LoginDto): Promise<LoginResponseDto> {
-    const user = await this.users
-      .createQueryBuilder('user')
-      .addSelect('user.passwordHash')
-      .where('user.email = :email', { email: input.email })
-      .getOne();
+    const user = await this.findUser(input.identifier);
 
     const invalid =
       !user || !user.isActive || (user.lockedUntil !== null && user.lockedUntil > new Date());
@@ -48,8 +45,14 @@ export class AuthService {
     }
 
     await this.users.update(user.id, { failedLoginAttempts: 0, lockedUntil: null });
+    const sessionRows = await this.dataSource.query<Array<{ id: string }>>(
+      'INSERT INTO public.auth_sessions(user_id) VALUES ($1) RETURNING id',
+      [user.id],
+    );
+    const sessionId = sessionRows[0]?.id;
+    if (!sessionId) throw new Error('No se pudo iniciar la sesión');
     const accessToken = await this.jwt.signAsync(
-      { sub: user.id },
+      { sub: user.id, jti: sessionId },
       {
         secret: this.config.getOrThrow<string>('JWT_SECRET'),
         issuer: this.config.getOrThrow<string>('JWT_ISSUER'),
@@ -62,12 +65,52 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
+        username: user.username,
+        loginName:
+          user.role === PlatformRole.PlatformAdmin
+            ? user.email!
+            : `${user.username}@${(await this.companies.findOneByOrFail({ id: user.companyId! })).loginCode}`,
+        phone: user.phone,
         fullName: user.fullName,
         role: user.role,
         companyId: user.companyId,
         mustChangePassword: user.mustChangePassword,
       },
     };
+  }
+
+  private async findUser(identifier: string): Promise<PlatformUser | null> {
+    const platformUser = await this.users
+      .createQueryBuilder('user')
+      .addSelect('user.passwordHash')
+      .where('user.role = :role AND user.email = :identifier', {
+        role: PlatformRole.PlatformAdmin,
+        identifier,
+      })
+      .getOne();
+    if (platformUser) return platformUser;
+
+    const separator = identifier.lastIndexOf('@');
+    if (separator <= 0 || separator === identifier.length - 1) return null;
+    const tenantUser = await this.users
+      .createQueryBuilder('user')
+      .addSelect('user.passwordHash')
+      .innerJoin(Company, 'company', 'company.id = user.companyId')
+      .where('user.username = :username AND company.loginCode = :loginCode', {
+        username: identifier.slice(0, separator),
+        loginCode: identifier.slice(separator + 1),
+      })
+      .getOne();
+    if (tenantUser) return tenantUser;
+
+    return this.users
+      .createQueryBuilder('user')
+      .addSelect('user.passwordHash')
+      .where('user.role <> :role AND user.email = :identifier', {
+        role: PlatformRole.PlatformAdmin,
+        identifier,
+      })
+      .getOne();
   }
 
   private async recordFailedAttempt(user: PlatformUser): Promise<void> {
