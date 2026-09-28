@@ -20,6 +20,7 @@ import {
 } from "../../core/catalogs/catalog.models";
 import { CatalogsService } from "../../core/catalogs/catalogs.service";
 import { apiErrorMessage } from "../../core/http/api-error";
+import { ThemeService } from "../../core/theme/theme.service";
 import { CompaniesService } from "./companies.service";
 import { CompanyResponse, CreateCompanyInput } from "./company.models";
 
@@ -27,13 +28,13 @@ import { CompanyResponse, CreateCompanyInput } from "./company.models";
   selector: "app-companies-page",
   imports: [ReactiveFormsModule],
   templateUrl: "./companies.page.html",
-  styleUrl: "./companies.page.css",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CompaniesPage implements OnInit {
   private readonly companies = inject(CompaniesService);
   private readonly catalogs = inject(CatalogsService);
   private readonly destroyRef = inject(DestroyRef);
+  readonly theme = inject(ThemeService);
 
   readonly loadingCatalogs = signal(true);
   readonly saving = signal(false);
