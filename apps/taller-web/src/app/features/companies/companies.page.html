@@ -125,18 +125,32 @@
             </div>
             <div class="field">
               <label for="admin-phone">Celular (opcional)</label>
-              <input
-                id="admin-phone"
-                type="tel"
-                formControlName="phone"
-                autocomplete="tel"
-                placeholder="+526671234567"
-              />
-              @if (form.controls.admin.controls.phone.touched &&
-              form.controls.admin.controls.phone.invalid) {
-              <small
-                >Usa formato internacional, por ejemplo +526671234567.</small
-              >
+              <div class="phone-inputs">
+                <input
+                  class="country-code"
+                  aria-label="Código de país"
+                  type="tel"
+                  inputmode="tel"
+                  formControlName="phoneCountryCode"
+                  autocomplete="tel-country-code"
+                  maxlength="4"
+                />
+                <input
+                  id="admin-phone"
+                  type="tel"
+                  inputmode="numeric"
+                  formControlName="phone"
+                  autocomplete="tel-national"
+                  maxlength="13"
+                  placeholder="667 122 33 44"
+                  (input)="formatPhone()"
+                />
+              </div>
+              @if ((form.controls.admin.controls.phoneCountryCode.touched &&
+              form.controls.admin.controls.phoneCountryCode.invalid) ||
+              (form.controls.admin.controls.phone.touched &&
+              form.controls.admin.controls.phone.invalid)) {
+              <small>Usa un número como 667 104 32 81.</small>
               }
             </div>
             <div class="field full">

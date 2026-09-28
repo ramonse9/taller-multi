@@ -113,6 +113,15 @@ form {
 .field select {
   width: 100%;
 }
+.phone-inputs {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  gap: 0.45rem;
+}
+.phone-inputs .country-code {
+  text-align: center;
+  font-weight: 700;
+}
 .field small {
   display: block;
   color: var(--danger);

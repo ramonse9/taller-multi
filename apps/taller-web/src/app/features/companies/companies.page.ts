@@ -83,9 +83,16 @@ export class CompaniesPage implements OnInit {
           Validators.pattern(/^[a-z][a-z0-9._-]{1,29}$/),
         ],
       }),
+      phoneCountryCode: new FormControl("+52", {
+        nonNullable: true,
+        validators: [
+          Validators.required,
+          Validators.pattern(/^\+[1-9]\d{0,2}$/),
+        ],
+      }),
       phone: new FormControl("", {
         nonNullable: true,
-        validators: [Validators.pattern(/^\+[1-9]\d{7,14}$/)],
+        validators: [Validators.pattern(/^\d{3} \d{3} \d{2} \d{2}$/)],
       }),
       password: new FormControl("", {
         nonNullable: true,
@@ -161,7 +168,10 @@ export class CompaniesPage implements OnInit {
         fullName: raw.admin.fullName.trim(),
         username: raw.admin.username.trim().toLowerCase(),
         email: raw.admin.email.trim().toLowerCase() || null,
-        phone: raw.admin.phone.trim() || null,
+        phone: this.internationalPhone(
+          raw.admin.phoneCountryCode,
+          raw.admin.phone,
+        ),
         password: raw.admin.password,
         timezoneCode: raw.admin.timezoneCode,
       },
@@ -189,6 +199,18 @@ export class CompaniesPage implements OnInit {
     return admin.password.value === admin.confirmPassword.value;
   }
 
+  formatPhone(): void {
+    const control = this.form.controls.admin.controls.phone;
+    const digits = control.value.replace(/\D/g, "").slice(0, 10);
+    const sections = [
+      digits.slice(0, 3),
+      digits.slice(3, 6),
+      digits.slice(6, 8),
+      digits.slice(8, 10),
+    ];
+    control.setValue(sections.filter(Boolean).join(" "), { emitEvent: false });
+  }
+
   dismissSuccess(): void {
     this.created.set(null);
   }
@@ -204,11 +226,21 @@ export class CompaniesPage implements OnInit {
         fullName: "",
         username: "",
         email: "",
+        phoneCountryCode: "+52",
         phone: "",
         password: "",
         confirmPassword: "",
         timezoneCode: "America/Mazatlan",
       },
     });
+  }
+
+  private internationalPhone(
+    countryCode: string,
+    nationalPhone: string,
+  ): string | null {
+    const phoneDigits = nationalPhone.replace(/\D/g, "");
+    if (!phoneDigits) return null;
+    return `${countryCode.trim()}${phoneDigits}`;
   }
 }
