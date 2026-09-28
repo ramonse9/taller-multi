@@ -1,0 +1,360 @@
+<main>
+  <header class="topbar">
+    <div>
+      <p class="breadcrumb">CATÁLOGOS / VEHÍCULOS</p>
+      <h1>Marcas y modelos</h1>
+    </div>
+    <button class="primary" type="button" (click)="openBrandEditor()">
+      <span>＋</span> Nueva marca
+    </button>
+  </header>
+
+  <section class="content">
+    <div class="intro-row">
+      <div>
+        <h2>Catálogo compartido</h2>
+        <p>Lo que registres aquí estará disponible para todas las compañías.</p>
+      </div>
+      <span class="catalog-note">SIN DATOS PRECARGADOS</span>
+    </div>
+
+    @if (notice()) {
+    <div class="notice" role="status">✓ {{ notice() }}</div>
+    } @if (error()) {
+    <div class="error-banner" role="alert">{{ error() }}</div>
+    }
+
+    <div class="catalog-grid">
+      <section class="catalog-panel">
+        <header class="panel-heading">
+          <div>
+            <span class="panel-number">01</span>
+            <div>
+              <h2>Marcas</h2>
+              <p>{{ brands().totalItems }} resultados</p>
+            </div>
+          </div>
+          <button
+            class="small-action"
+            type="button"
+            (click)="openBrandEditor()"
+          >
+            Agregar
+          </button>
+        </header>
+        <div class="panel-tools">
+          <label class="search">
+            <span>⌕</span>
+            <input
+              [formControl]="brandSearch"
+              type="search"
+              placeholder="Buscar marca"
+            />
+          </label>
+          <div class="segments" aria-label="Estado de marcas">
+            <button
+              type="button"
+              [class.selected]="brandActive()"
+              (click)="filterBrands(true)"
+            >
+              Activas
+            </button>
+            <button
+              type="button"
+              [class.selected]="!brandActive()"
+              (click)="filterBrands(false)"
+            >
+              Inactivas
+            </button>
+          </div>
+        </div>
+
+        <div class="item-list" [class.loading]="loadingBrands()">
+          @for (brand of brands().items; track brand.id) {
+          <article
+            class="catalog-item"
+            [class.selected]="selectedBrand()?.id === brand.id"
+            (click)="selectBrand(brand)"
+          >
+            <button class="item-main" type="button">
+              <span class="brand-mark"
+                >{{ brand.name.slice(0, 2).toUpperCase() }}</span
+              >
+              <span
+                ><strong>{{ brand.name }}</strong
+                ><small
+                  >{{ brand.isActive ? 'Activa' : 'Inactiva' }}</small
+                ></span
+              >
+            </button>
+            <div class="item-actions">
+              <button
+                type="button"
+                (click)="$event.stopPropagation(); openBrandEditor(brand)"
+              >
+                Editar
+              </button>
+              <button
+                type="button"
+                [class.danger]="brand.isActive"
+                (click)="$event.stopPropagation(); changeBrandStatus(brand)"
+              >
+                {{ brand.isActive ? 'Desactivar' : 'Reactivar' }}
+              </button>
+            </div>
+          </article>
+          } @empty { @if (!loadingBrands()) {
+          <div class="empty">
+            <span>◇</span>
+            <h3>
+              {{ brandActive() ? 'Aún no hay marcas' : 'No hay marcas inactivas'
+              }}
+            </h3>
+            @if (brandActive()) {
+            <p>Registra la primera cuando la necesites.</p>
+            <button class="secondary" type="button" (click)="openBrandEditor()">
+              Crear marca
+            </button>
+            }
+          </div>
+          } } @if (loadingBrands()) {
+          <div class="loader" aria-label="Cargando">
+            <span></span><span></span><span></span>
+          </div>
+          }
+        </div>
+        <footer class="pagination">
+          <span
+            >Página {{ brands().page }} de {{ brands().totalPages || 1 }}</span
+          >
+          <div>
+            <button
+              type="button"
+              [disabled]="brands().page <= 1"
+              (click)="loadBrands(brands().page - 1)"
+            >
+              ←
+            </button>
+            <button
+              type="button"
+              [disabled]="!brands().hasNextPage"
+              (click)="loadBrands(brands().page + 1)"
+            >
+              →
+            </button>
+          </div>
+        </footer>
+      </section>
+
+      <section class="catalog-panel models-panel">
+        <header class="panel-heading">
+          <div>
+            <span class="panel-number">02</span>
+            <div>
+              <h2>Modelos</h2>
+              <p>
+                @if (selectedBrand()) { {{ selectedBrand()?.name }} · {{
+                models().totalItems }} resultados } @else { Selecciona una marca
+                }
+              </p>
+            </div>
+          </div>
+          <button
+            class="small-action"
+            type="button"
+            [disabled]="!selectedBrand() || !selectedBrand()?.isActive"
+            (click)="openModelEditor()"
+          >
+            Agregar
+          </button>
+        </header>
+        <div class="panel-tools">
+          <label class="search">
+            <span>⌕</span>
+            <input
+              [formControl]="modelSearch"
+              type="search"
+              placeholder="Buscar modelo"
+              [disabled]="!selectedBrand()"
+            />
+          </label>
+          <div class="segments" aria-label="Estado de modelos">
+            <button
+              type="button"
+              [class.selected]="modelActive()"
+              (click)="filterModels(true)"
+              [disabled]="!selectedBrand()"
+            >
+              Activos
+            </button>
+            <button
+              type="button"
+              [class.selected]="!modelActive()"
+              (click)="filterModels(false)"
+              [disabled]="!selectedBrand()"
+            >
+              Inactivos
+            </button>
+          </div>
+        </div>
+
+        <div class="item-list" [class.loading]="loadingModels()">
+          @if (!selectedBrand()) {
+          <div class="empty directional">
+            <span>←</span>
+            <h3>Elige una marca</h3>
+            <p>Sus modelos aparecerán en este espacio.</p>
+          </div>
+          } @else { @for (model of models().items; track model.id) {
+          <article class="catalog-item model-item">
+            <div class="item-main">
+              <span class="model-mark"
+                >{{ model.name.slice(0, 1).toUpperCase() }}</span
+              >
+              <span
+                ><strong>{{ model.name }}</strong
+                ><small>{{ model.brandName }}</small></span
+              >
+            </div>
+            <div class="item-actions">
+              <button type="button" (click)="openModelEditor(model)">
+                Editar
+              </button>
+              <button
+                type="button"
+                [class.danger]="model.isActive"
+                (click)="changeModelStatus(model)"
+              >
+                {{ model.isActive ? 'Desactivar' : 'Reactivar' }}
+              </button>
+            </div>
+          </article>
+          } @empty { @if (!loadingModels()) {
+          <div class="empty">
+            <span>○</span>
+            <h3>
+              {{ modelActive() ? 'Aún no hay modelos' : 'No hay modelos
+              inactivos' }}
+            </h3>
+            @if (modelActive() && selectedBrand()?.isActive) {
+            <p>Agrega el primero para {{ selectedBrand()?.name }}.</p>
+            <button class="secondary" type="button" (click)="openModelEditor()">
+              Crear modelo
+            </button>
+            }
+          </div>
+          } } } @if (loadingModels()) {
+          <div class="loader" aria-label="Cargando">
+            <span></span><span></span><span></span>
+          </div>
+          }
+        </div>
+        <footer class="pagination">
+          <span
+            >Página {{ models().page }} de {{ models().totalPages || 1 }}</span
+          >
+          <div>
+            <button
+              type="button"
+              [disabled]="models().page <= 1"
+              (click)="loadModels(models().page - 1)"
+            >
+              ←
+            </button>
+            <button
+              type="button"
+              [disabled]="!models().hasNextPage"
+              (click)="loadModels(models().page + 1)"
+            >
+              →
+            </button>
+          </div>
+        </footer>
+      </section>
+    </div>
+  </section>
+</main>
+
+@if (brandEditorOpen()) {
+<div class="backdrop" (click)="closeBrandEditor()" role="presentation">
+  <section
+    class="dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="brand-dialog-title"
+    (click)="$event.stopPropagation()"
+  >
+    <p class="breadcrumb">
+      {{ editingBrand() ? 'EDITAR MARCA' : 'NUEVA MARCA' }}
+    </p>
+    <h2 id="brand-dialog-title">
+      {{ editingBrand() ? 'Actualizar marca' : 'Registrar marca' }}
+    </h2>
+    <p>El nombre estará disponible para todas las compañías.</p>
+    @if (error()) {
+    <div class="dialog-error" role="alert">{{ error() }}</div>
+    }
+    <form [formGroup]="brandForm" (ngSubmit)="saveBrand()" novalidate>
+      <label for="brand-name">Nombre <b>*</b></label>
+      <input
+        id="brand-name"
+        formControlName="name"
+        autocomplete="off"
+        placeholder="Toyota"
+      />
+      @if (brandForm.controls.name.touched && brandForm.controls.name.invalid) {
+      <small>Escribe un nombre de 2 a 100 caracteres.</small>
+      }
+      <footer>
+        <button class="ghost" type="button" (click)="closeBrandEditor()">
+          Cancelar
+        </button>
+        <button class="primary" type="submit" [disabled]="saving()">
+          {{ saving() ? 'Guardando…' : 'Guardar marca' }}
+        </button>
+      </footer>
+    </form>
+  </section>
+</div>
+} @if (modelEditorOpen()) {
+<div class="backdrop" (click)="closeModelEditor()" role="presentation">
+  <section
+    class="dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="model-dialog-title"
+    (click)="$event.stopPropagation()"
+  >
+    <p class="breadcrumb">
+      {{ editingModel() ? 'EDITAR MODELO' : 'NUEVO MODELO' }}
+    </p>
+    <h2 id="model-dialog-title">
+      {{ editingModel() ? 'Actualizar modelo' : 'Registrar modelo' }}
+    </h2>
+    <p>Marca: <strong>{{ selectedBrand()?.name }}</strong></p>
+    @if (error()) {
+    <div class="dialog-error" role="alert">{{ error() }}</div>
+    }
+    <form [formGroup]="modelForm" (ngSubmit)="saveModel()" novalidate>
+      <label for="model-name">Nombre <b>*</b></label>
+      <input
+        id="model-name"
+        formControlName="name"
+        autocomplete="off"
+        placeholder="Corolla"
+      />
+      @if (modelForm.controls.name.touched && modelForm.controls.name.invalid) {
+      <small>Escribe un nombre de hasta 100 caracteres.</small>
+      }
+      <footer>
+        <button class="ghost" type="button" (click)="closeModelEditor()">
+          Cancelar
+        </button>
+        <button class="primary" type="submit" [disabled]="saving()">
+          {{ saving() ? 'Guardando…' : 'Guardar modelo' }}
+        </button>
+      </footer>
+    </form>
+  </section>
+</div>
+}

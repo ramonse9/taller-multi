@@ -47,6 +47,15 @@ export const routes: Routes = [
           import("./features/clients/clients.page").then((m) => m.ClientsPage),
       },
       {
+        path: "vehicle-catalog",
+        canActivate: [roleGuard],
+        data: { roles: ["platform_admin", "company_admin"] },
+        loadComponent: () =>
+          import("./features/vehicle-catalog/vehicle-catalog.page").then(
+            (m) => m.VehicleCatalogPage,
+          ),
+      },
+      {
         path: "users",
         canActivate: [roleGuard],
         data: { roles: ["company_admin"] },

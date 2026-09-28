@@ -9,6 +9,8 @@ npm install
 npm start
 ```
 
-La configuración de desarrollo consume `http://localhost:3000/api`. La aplicación incluye login y restauración de sesión contra `/auth/me`, onboarding de compañías para el administrador de plataforma, administración de usuarios para el administrador tenant, seguridad de la cuenta y la vertical de clientes.
+La configuración de desarrollo consume `http://localhost:3000/api`. La aplicación incluye login y restauración de sesión contra `/auth/me`, onboarding de compañías para el administrador de plataforma, administración de usuarios para el administrador tenant, seguridad de la cuenta, la vertical de clientes y la administración global de marcas y modelos.
+
+La ruta `/vehicle-catalog` está disponible para administradores de plataforma y compañía. Permite buscar, paginar, crear, editar, desactivar y reactivar marcas y sus modelos dependientes. El catálogo comienza vacío y muestra claramente que sus cambios son compartidos entre compañías.
 
 El access token se guarda en `sessionStorage`, se adjunta mediante un interceptor y se descarta ante respuestas 401. Los datos del usuario se restauran siempre desde el servidor y no se consideran válidos únicamente por existir localmente. Las rutas y la navegación se limitan por rol: `platform_admin`, `company_admin` y `user`.

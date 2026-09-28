@@ -10,16 +10,30 @@
           <a class="nav-item" routerLink="/companies" routerLinkActive="active">
             <span>01</span> Compañías
           </a>
+          <a
+            class="nav-item"
+            routerLink="/vehicle-catalog"
+            routerLinkActive="active"
+          >
+            <span>02</span> Marcas y modelos
+          </a>
         }
         @case ("company_admin") {
           <a class="nav-item" routerLink="/clients" routerLinkActive="active">
             <span>01</span> Clientes
           </a>
+          <a
+            class="nav-item"
+            routerLink="/vehicle-catalog"
+            routerLinkActive="active"
+          >
+            <span>02</span> Marcas y modelos
+          </a>
           <a class="nav-item" routerLink="/users" routerLinkActive="active">
-            <span>02</span> Usuarios
+            <span>03</span> Usuarios
           </a>
           <a class="nav-item" routerLink="/account" routerLinkActive="active">
-            <span>03</span> Seguridad
+            <span>04</span> Seguridad
           </a>
         }
         @case ("user") {
