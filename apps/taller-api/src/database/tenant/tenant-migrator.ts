@@ -8,7 +8,7 @@ export interface TenantMigration {
   up(queryRunner: QueryRunner, schemaName: string): Promise<void>;
 }
 
-export const TENANT_BASE_VERSION = 1;
+export const TENANT_BASE_VERSION = 2;
 export const TENANT_BASE_NAME = 'tenant-base';
 
 /**
@@ -50,14 +50,18 @@ export class TenantMigrator {
       `CREATE TABLE ${s}.vehicles (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
         customer_id uuid NOT NULL REFERENCES ${s}.customers(id) ON DELETE RESTRICT,
-        brand_id uuid REFERENCES public.vehicle_brands(id), model_id uuid REFERENCES public.vehicle_models(id),
-        vin varchar(17), license_plate varchar(20), model_year smallint,
-        color varchar(50), odometer integer CHECK (odometer IS NULL OR odometer >= 0),
+        brand_id uuid NOT NULL REFERENCES public.vehicle_brands(id),
+        model_id uuid NOT NULL REFERENCES public.vehicle_models(id),
+        serial_number varchar(10), license_plate varchar(20), model_year smallint NOT NULL,
+        color varchar(50) NOT NULL,
         is_active boolean NOT NULL DEFAULT true,
         created_by_user_id uuid NOT NULL REFERENCES public.users(id),
+        updated_by_user_id uuid NOT NULL REFERENCES public.users(id),
         created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
-        UNIQUE (vin), UNIQUE (license_plate),
-        CHECK (model_year IS NULL OR model_year BETWEEN 1886 AND 2200)
+        UNIQUE (serial_number), UNIQUE (license_plate),
+        CHECK (serial_number IS NULL OR serial_number ~ '^[A-HJ-NPR-Z0-9]{10}$'),
+        CHECK (model_year BETWEEN 1886 AND 2200),
+        CHECK (char_length(trim(color)) BETWEEN 1 AND 50)
       )`,
       `CREATE TABLE ${s}.products_services (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

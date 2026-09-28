@@ -13,6 +13,7 @@ import { TenantLoginIdentities1700000002000 } from '../../src/database/migration
 import { AuthSessions1700000003000 } from '../../src/database/migrations/public/1700000003000-auth-sessions';
 import { MobilePasswordRecovery1700000004000 } from '../../src/database/migrations/public/1700000004000-mobile-password-recovery';
 import { VehicleCatalogAudit1700000005000 } from '../../src/database/migrations/public/1700000005000-vehicle-catalog-audit';
+import { TenantVehicleProfile1700000006000 } from '../../src/database/migrations/public/1700000006000-tenant-vehicle-profile';
 import { quoteIdentifier } from '../../src/database/schema-name';
 import { seedPublicCatalogs } from '../../src/database/seeds/public-catalogs.seed';
 
@@ -108,6 +109,19 @@ interface PaginatedCatalog<T> {
   items: T[];
 }
 
+interface VehicleResponse {
+  id: string;
+  customerId: string;
+  brandId: string;
+  brandName: string;
+  modelId: string;
+  modelName: string;
+  year: number;
+  color: string;
+  numeroSerie: string | null;
+  licensePlate: string | null;
+}
+
 describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
   let app: INestApplication;
   let control: DataSource;
@@ -136,6 +150,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         AuthSessions1700000003000,
         MobilePasswordRecovery1700000004000,
         VehicleCatalogAudit1700000005000,
+        TenantVehicleProfile1700000006000,
       ],
       migrationsTableName: 'public_schema_migrations',
       synchronize: false,
@@ -640,6 +655,64 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       { token: alpha.accessToken },
     );
     expect(activeModels.body.totalItems).toBe(0);
+  });
+
+  it('registra vehículos con los últimos 10 caracteres del VIN y campos obligatorios', async () => {
+    const tenant = await provisionAndLogin('Vehicles Integration', 'vehicles.admin@test.local');
+    const client = await request<ClientResponse>('POST', '/clients', {
+      token: tenant.accessToken,
+      body: { fullName: 'Cliente con vehículo' },
+    });
+    expect(client.status).toBe(201);
+
+    const brand = await request<VehicleBrandResponse>('POST', '/catalogs/vehicle-brands', {
+      token: tenant.accessToken,
+      body: { name: 'Mazda Integration' },
+    });
+    const model = await request<VehicleModelResponse>('POST', '/catalogs/vehicle-models', {
+      token: tenant.accessToken,
+      body: { brandId: brand.body.id, name: 'Mazda 3 Integration' },
+    });
+
+    const incomplete = await request<unknown>('POST', `/clients/${client.body.id}/vehicles`, {
+      token: tenant.accessToken,
+      body: { brandId: brand.body.id, modelId: model.body.id, year: 2025 },
+    });
+    expect(incomplete.status).toBe(400);
+
+    const fullVin = await request<unknown>('POST', `/clients/${client.body.id}/vehicles`, {
+      token: tenant.accessToken,
+      body: {
+        brandId: brand.body.id,
+        modelId: model.body.id,
+        year: 2025,
+        color: 'Rojo',
+        numeroSerie: '1HGBH41JXMN109186',
+      },
+    });
+    expect(fullVin.status).toBe(400);
+
+    const vehicle = await request<VehicleResponse>('POST', `/clients/${client.body.id}/vehicles`, {
+      token: tenant.accessToken,
+      body: {
+        brandId: brand.body.id,
+        modelId: model.body.id,
+        year: 2025,
+        color: 'Rojo',
+        numeroSerie: 'jxmn109186',
+      },
+    });
+    expect(vehicle.status).toBe(201);
+    expect(vehicle.body).toMatchObject({
+      customerId: client.body.id,
+      brandName: 'Mazda Integration',
+      modelName: 'Mazda 3 Integration',
+      year: 2025,
+      color: 'Rojo',
+      numeroSerie: 'JXMN109186',
+      licensePlate: null,
+    });
+    expect(vehicle.body).not.toHaveProperty('odometer');
   });
 
   async function createCompany(
