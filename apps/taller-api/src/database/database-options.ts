@@ -2,8 +2,10 @@ import { ConfigService } from '@nestjs/config';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { Company } from '../companies/entities/company.entity';
 import { PlatformUser } from '../platform-users/entities/platform-user.entity';
+import { VehicleBrand } from '../vehicle-catalog/entities/vehicle-brand.entity';
+import { VehicleModel } from '../vehicle-catalog/entities/vehicle-model.entity';
 
-export const PUBLIC_ENTITIES = [Company, PlatformUser];
+export const PUBLIC_ENTITIES = [Company, PlatformUser, VehicleBrand, VehicleModel];
 
 export function createDatabaseOptions(config: ConfigService): TypeOrmModuleOptions {
   return {

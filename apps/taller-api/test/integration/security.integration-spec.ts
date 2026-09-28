@@ -12,6 +12,7 @@ import { GeneratedSchemasAndTemporaryPasswords1700000001000 } from '../../src/da
 import { TenantLoginIdentities1700000002000 } from '../../src/database/migrations/public/1700000002000-tenant-identities-and-sessions';
 import { AuthSessions1700000003000 } from '../../src/database/migrations/public/1700000003000-auth-sessions';
 import { MobilePasswordRecovery1700000004000 } from '../../src/database/migrations/public/1700000004000-mobile-password-recovery';
+import { VehicleCatalogAudit1700000005000 } from '../../src/database/migrations/public/1700000005000-vehicle-catalog-audit';
 import { quoteIdentifier } from '../../src/database/schema-name';
 import { seedPublicCatalogs } from '../../src/database/seeds/public-catalogs.seed';
 
@@ -90,6 +91,23 @@ interface RecoveryVerifyResponse {
   expiresInSeconds: number;
 }
 
+interface VehicleBrandResponse {
+  id: string;
+  name: string;
+  isActive: boolean;
+  createdByUserId: string | null;
+}
+
+interface VehicleModelResponse extends VehicleBrandResponse {
+  brandId: string;
+  brandName: string;
+}
+
+interface PaginatedCatalog<T> {
+  totalItems: number;
+  items: T[];
+}
+
 describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
   let app: INestApplication;
   let control: DataSource;
@@ -117,6 +135,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         TenantLoginIdentities1700000002000,
         AuthSessions1700000003000,
         MobilePasswordRecovery1700000004000,
+        VehicleCatalogAudit1700000005000,
       ],
       migrationsTableName: 'public_schema_migrations',
       synchronize: false,
@@ -519,6 +538,108 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       [createdUser.body.id],
     );
     expect(rows[0]?.phone_verified_at).toBeTruthy();
+  });
+
+  it('administra un catálogo global de marcas y modelos sin duplicados', async () => {
+    const alpha = await provisionAndLogin('Catalog Alpha', 'catalog.alpha@test.local');
+    const brand = await request<VehicleBrandResponse>('POST', '/catalogs/vehicle-brands', {
+      token: alpha.accessToken,
+      body: { name: 'Toyota' },
+    });
+    expect(brand.status).toBe(201);
+    expect(brand.body).toMatchObject({ name: 'Toyota', isActive: true });
+    expect(brand.body.createdByUserId).toBe(alpha.user.id);
+
+    const duplicateBrand = await request<unknown>('POST', '/catalogs/vehicle-brands', {
+      token: alpha.accessToken,
+      body: { name: '  toyota  ' },
+    });
+    expect(duplicateBrand.status).toBe(409);
+
+    const model = await request<VehicleModelResponse>('POST', '/catalogs/vehicle-models', {
+      token: alpha.accessToken,
+      body: { brandId: brand.body.id, name: 'Corolla' },
+    });
+    expect(model.status).toBe(201);
+    expect(model.body).toMatchObject({
+      name: 'Corolla',
+      brandId: brand.body.id,
+      brandName: 'Toyota',
+    });
+    expect(
+      (
+        await request<unknown>('POST', '/catalogs/vehicle-models', {
+          token: alpha.accessToken,
+          body: { brandId: brand.body.id, name: 'corolla' },
+        })
+      ).status,
+    ).toBe(409);
+
+    const beta = await provisionAndLogin('Catalog Beta', 'catalog.beta@test.local');
+    const sharedBrands = await request<PaginatedCatalog<VehicleBrandResponse>>(
+      'GET',
+      '/catalogs/vehicle-brands?search=toy&isActive=true',
+      { token: beta.accessToken },
+    );
+    expect(sharedBrands.status).toBe(200);
+    expect(sharedBrands.body.items.map(({ id }) => id)).toContain(brand.body.id);
+    const sharedModels = await request<PaginatedCatalog<VehicleModelResponse>>(
+      'GET',
+      `/catalogs/vehicle-models?brandId=${brand.body.id}&isActive=true`,
+      { token: beta.accessToken },
+    );
+    expect(sharedModels.status).toBe(200);
+    expect(sharedModels.body.items.map(({ id }) => id)).toContain(model.body.id);
+
+    const ordinary = await request<UserResponse>('POST', '/users', {
+      token: beta.accessToken,
+      body: {
+        fullName: 'Consulta Catálogos',
+        username: 'catalogos',
+        phone: '+526671110099',
+        password: USER_PASSWORD,
+        timezoneCode: 'America/Mazatlan',
+        role: 'user',
+      },
+    });
+    expect(ordinary.status).toBe(201);
+    const ordinaryLogin = await login(`catalogos@${beta.company.loginCode}`, USER_PASSWORD);
+    expect(ordinaryLogin.status).toBe(200);
+    const passwordChanged = await request<unknown>('PATCH', '/users/me/password', {
+      token: ordinaryLogin.body.accessToken,
+      body: { currentPassword: USER_PASSWORD, newPassword: PERMANENT_PASSWORD },
+    });
+    expect(passwordChanged.status).toBe(204);
+    const ordinarySession = await login(`catalogos@${beta.company.loginCode}`, PERMANENT_PASSWORD);
+    expect(
+      (
+        await request<unknown>('GET', '/catalogs/vehicle-brands', {
+          token: ordinarySession.body.accessToken,
+        })
+      ).status,
+    ).toBe(200);
+    expect(
+      (
+        await request<unknown>('POST', '/catalogs/vehicle-brands', {
+          token: ordinarySession.body.accessToken,
+          body: { name: 'Sin permiso' },
+        })
+      ).status,
+    ).toBe(403);
+
+    const disabledModel = await request<VehicleModelResponse>(
+      'DELETE',
+      `/catalogs/vehicle-models/${model.body.id}`,
+      { token: alpha.accessToken },
+    );
+    expect(disabledModel.status).toBe(200);
+    expect(disabledModel.body.isActive).toBe(false);
+    const activeModels = await request<PaginatedCatalog<VehicleModelResponse>>(
+      'GET',
+      `/catalogs/vehicle-models?brandId=${brand.body.id}&isActive=true`,
+      { token: alpha.accessToken },
+    );
+    expect(activeModels.body.totalItems).toBe(0);
   });
 
   async function createCompany(

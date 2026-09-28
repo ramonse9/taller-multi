@@ -6,6 +6,7 @@ import { GeneratedSchemasAndTemporaryPasswords1700000001000 } from './migrations
 import { TenantLoginIdentities1700000002000 } from './migrations/public/1700000002000-tenant-identities-and-sessions';
 import { AuthSessions1700000003000 } from './migrations/public/1700000003000-auth-sessions';
 import { MobilePasswordRecovery1700000004000 } from './migrations/public/1700000004000-mobile-password-recovery';
+import { VehicleCatalogAudit1700000005000 } from './migrations/public/1700000005000-vehicle-catalog-audit';
 
 export default new DataSource({
   type: 'postgres',
@@ -18,6 +19,7 @@ export default new DataSource({
     TenantLoginIdentities1700000002000,
     AuthSessions1700000003000,
     MobilePasswordRecovery1700000004000,
+    VehicleCatalogAudit1700000005000,
   ],
   migrationsTableName: 'public_schema_migrations',
   synchronize: false,

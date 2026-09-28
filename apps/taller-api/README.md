@@ -49,6 +49,19 @@ Cada login crea una sesión servidor identificada por el `jti` del JWT. Las resp
 
 `synchronize` está deshabilitado y no forma parte de ningún comando.
 
+## Catálogo de vehículos
+
+Las marcas y modelos comienzan vacíos y se almacenan globalmente en `public`, por lo que una captura queda disponible para todas las compañías. Los nombres usan `citext`: no se pueden duplicar por diferencias de mayúsculas, y cada modelo es único dentro de su marca. Las bajas son lógicas para conservar vehículos históricos y cada alta o modificación registra al usuario responsable.
+
+- `GET /api/catalogs/vehicle-brands`: marcas paginadas, con búsqueda y filtro de estado.
+- `GET /api/catalogs/vehicle-brands/:id`: detalle de marca.
+- `POST`, `PATCH` y `DELETE /api/catalogs/vehicle-brands`: alta, edición/reactivación y desactivación.
+- `GET /api/catalogs/vehicle-models?brandId=<uuid>`: modelos paginados de una marca.
+- `GET /api/catalogs/vehicle-models/:id`: detalle de modelo.
+- `POST`, `PATCH` y `DELETE /api/catalogs/vehicle-models`: alta, edición/reactivación y desactivación.
+
+Todos los usuarios autenticados pueden consultar. Sólo `platform_admin` y `company_admin` pueden modificar. Una marca desactivada no acepta modelos nuevos ni permite reactivar sus modelos.
+
 ## Fronteras actuales
 
 La migración tenant base incluye clientes corporativos, clientes, vehículos, productos/servicios, órdenes, notas y conceptos, proveedores, compras, inventario FIFO, cotizaciones, gastos, empleados y nómina. Facturación electrónica, CFDI, PAC, emisores y pagos fiscales no están incluidos.
