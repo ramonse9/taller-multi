@@ -105,4 +105,41 @@ describe('VehiclesService', () => {
     );
     expect(query.mock.calls[0]?.[0]).toContain('vehicle.customer_id = $2');
   });
+
+  it('groups every client and order matching a serial number', async () => {
+    const secondVehicleId = '8e0e8dc5-17c3-4bdf-9654-bdf39f1a53c4';
+    const secondClientId = '1574568e-e623-445f-a601-54654854f519';
+    query.mockResolvedValueOnce([
+      {
+        ...row,
+        customer_name: 'Juan Pérez',
+        order_id: '0080e9f2-4d29-499b-bd17-70778bb9b08a',
+        order_folio: '10',
+        order_status: 'completed',
+        order_opened_at: new Date('2025-01-01T00:00:00Z'),
+        order_closed_at: new Date('2025-01-02T00:00:00Z'),
+      },
+      {
+        ...row,
+        id: secondVehicleId,
+        customer_id: secondClientId,
+        customer_name: 'Pedro García',
+        order_id: 'df346e74-2256-45d0-966f-1c1538b493ab',
+        order_folio: '42',
+        order_status: 'open',
+        order_opened_at: new Date('2026-01-01T00:00:00Z'),
+        order_closed_at: null,
+      },
+    ]);
+
+    const result = await service.history(user, { numeroSerie: 'A123456789' });
+
+    expect(result).toMatchObject({ totalClients: 2, totalVehicles: 2, totalOrders: 2 });
+    expect(result.matches.map(({ customerName }) => customerName)).toEqual([
+      'Juan Pérez',
+      'Pedro García',
+    ]);
+    expect(query.mock.calls[0]?.[0]).toContain('vehicle.serial_number = $1');
+    expect(query.mock.calls[0]?.[1]).toEqual(['A123456789', null]);
+  });
 });

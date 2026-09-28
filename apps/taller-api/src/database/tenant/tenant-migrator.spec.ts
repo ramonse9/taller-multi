@@ -21,6 +21,8 @@ describe('TenantMigrator', () => {
     expect(vehicles).toContain('model_year smallint NOT NULL');
     expect(vehicles).toContain('color varchar(50) NOT NULL');
     expect(vehicles).toContain('serial_number varchar(10)');
+    expect(vehicles).toContain('UNIQUE (customer_id, brand_id, serial_number)');
+    expect(vehicles).not.toContain('UNIQUE (license_plate)');
     expect(vehicles).not.toContain('vin ');
     expect(vehicles).not.toContain('odometer');
   });

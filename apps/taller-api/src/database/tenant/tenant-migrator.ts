@@ -58,11 +58,13 @@ export class TenantMigrator {
         created_by_user_id uuid NOT NULL REFERENCES public.users(id),
         updated_by_user_id uuid NOT NULL REFERENCES public.users(id),
         created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
-        UNIQUE (serial_number), UNIQUE (license_plate),
+        UNIQUE (customer_id, brand_id, serial_number),
         CHECK (serial_number IS NULL OR serial_number ~ '^[A-HJ-NPR-Z0-9]{10}$'),
         CHECK (model_year BETWEEN 1886 AND 2200),
         CHECK (char_length(trim(color)) BETWEEN 1 AND 50)
       )`,
+      `CREATE INDEX vehicles_serial_number_idx ON ${s}.vehicles (serial_number)
+       WHERE serial_number IS NOT NULL`,
       `CREATE TABLE ${s}.products_services (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
         kind varchar(10) NOT NULL CHECK (kind IN ('product','service')),

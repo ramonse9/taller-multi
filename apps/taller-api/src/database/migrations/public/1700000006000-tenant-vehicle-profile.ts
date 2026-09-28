@@ -17,6 +17,9 @@ export class TenantVehicleProfile1700000006000 implements MigrationInterface {
     for (const company of companies) {
       const vehicles = `${quoteIdentifier(company.schema_name)}.vehicles`;
       await queryRunner.query(`ALTER TABLE ${vehicles} DROP CONSTRAINT IF EXISTS vehicles_vin_key`);
+      await queryRunner.query(
+        `ALTER TABLE ${vehicles} DROP CONSTRAINT IF EXISTS vehicles_license_plate_key`,
+      );
       await queryRunner.query(`ALTER TABLE ${vehicles} RENAME COLUMN vin TO serial_number`);
       await queryRunner.query(`
         ALTER TABLE ${vehicles}
@@ -38,11 +41,16 @@ export class TenantVehicleProfile1700000006000 implements MigrationInterface {
       await queryRunner.query(`
         ALTER TABLE ${vehicles}
         ALTER COLUMN updated_by_user_id SET NOT NULL,
-        ADD CONSTRAINT vehicles_serial_number_key UNIQUE (serial_number),
+        ADD CONSTRAINT vehicles_customer_brand_serial_number_key
+          UNIQUE (customer_id, brand_id, serial_number),
         ADD CONSTRAINT vehicles_serial_number_format
           CHECK (serial_number IS NULL OR serial_number ~ '^[A-HJ-NPR-Z0-9]{10}$'),
         ADD CONSTRAINT vehicles_color_length CHECK (char_length(trim(color)) BETWEEN 1 AND 50)
       `);
+      await queryRunner.query(
+        `CREATE INDEX vehicles_serial_number_idx ON ${vehicles} (serial_number)
+         WHERE serial_number IS NOT NULL`,
+      );
       await queryRunner.query(
         `INSERT INTO public.tenant_schema_versions(company_id, version, migration_name)
          VALUES ($1, 2, $2) ON CONFLICT (company_id, version) DO NOTHING`,
@@ -58,11 +66,14 @@ export class TenantVehicleProfile1700000006000 implements MigrationInterface {
 
     for (const company of companies) {
       const vehicles = `${quoteIdentifier(company.schema_name)}.vehicles`;
+      await queryRunner.query(
+        `DROP INDEX IF EXISTS ${quoteIdentifier(company.schema_name)}.vehicles_serial_number_idx`,
+      );
       await queryRunner.query(`
         ALTER TABLE ${vehicles}
         DROP CONSTRAINT IF EXISTS vehicles_color_length,
         DROP CONSTRAINT IF EXISTS vehicles_serial_number_format,
-        DROP CONSTRAINT IF EXISTS vehicles_serial_number_key,
+        DROP CONSTRAINT IF EXISTS vehicles_customer_brand_serial_number_key,
         DROP COLUMN IF EXISTS updated_by_user_id,
         ADD COLUMN odometer integer CHECK (odometer IS NULL OR odometer >= 0),
         ALTER COLUMN brand_id DROP NOT NULL,
@@ -74,6 +85,9 @@ export class TenantVehicleProfile1700000006000 implements MigrationInterface {
       await queryRunner.query(`ALTER TABLE ${vehicles} RENAME COLUMN serial_number TO vin`);
       await queryRunner.query(
         `ALTER TABLE ${vehicles} ADD CONSTRAINT vehicles_vin_key UNIQUE (vin)`,
+      );
+      await queryRunner.query(
+        `ALTER TABLE ${vehicles} ADD CONSTRAINT vehicles_license_plate_key UNIQUE (license_plate)`,
       );
       await queryRunner.query(
         'DELETE FROM public.tenant_schema_versions WHERE company_id = $1 AND version = 2',

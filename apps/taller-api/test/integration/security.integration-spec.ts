@@ -122,6 +122,19 @@ interface VehicleResponse {
   licensePlate: string | null;
 }
 
+interface VehicleHistoryResponse {
+  numeroSerie: string;
+  totalClients: number;
+  totalVehicles: number;
+  totalOrders: number;
+  matches: Array<{
+    id: string;
+    customerId: string;
+    customerName: string;
+    orders: Array<{ id: string; folio: string; status: string }>;
+  }>;
+}
+
 describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
   let app: INestApplication;
   let control: DataSource;
@@ -713,6 +726,56 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       licensePlate: null,
     });
     expect(vehicle.body).not.toHaveProperty('odometer');
+
+    const secondClient = await request<ClientResponse>('POST', '/clients', {
+      token: tenant.accessToken,
+      body: { fullName: 'Segundo cliente con el mismo vehículo' },
+    });
+    const secondVehicle = await request<VehicleResponse>(
+      'POST',
+      `/clients/${secondClient.body.id}/vehicles`,
+      {
+        token: tenant.accessToken,
+        body: {
+          brandId: brand.body.id,
+          modelId: model.body.id,
+          year: 2025,
+          color: 'Rojo',
+          numeroSerie: 'JXMN109186',
+          licensePlate: 'ABC-123-D',
+        },
+      },
+    );
+    expect(secondVehicle.status).toBe(201);
+
+    const schema = quoteIdentifier(tenant.company.schemaName);
+    await control.query(
+      `INSERT INTO ${schema}.orders(customer_id, vehicle_id, status, created_by_user_id)
+       VALUES ($1, $2, 'completed', $3), ($4, $5, 'open', $3)`,
+      [
+        client.body.id,
+        vehicle.body.id,
+        tenant.user.id,
+        secondClient.body.id,
+        secondVehicle.body.id,
+      ],
+    );
+
+    const history = await request<VehicleHistoryResponse>(
+      'GET',
+      `/vehicles/history?numeroSerie=JXMN109186&brandId=${brand.body.id}`,
+      { token: tenant.accessToken },
+    );
+    expect(history.status).toBe(200);
+    expect(history.body).toMatchObject({
+      numeroSerie: 'JXMN109186',
+      totalClients: 2,
+      totalVehicles: 2,
+      totalOrders: 2,
+    });
+    expect(history.body.matches.map(({ customerId }) => customerId)).toEqual(
+      expect.arrayContaining([client.body.id, secondClient.body.id]),
+    );
   });
 
   async function createCompany(

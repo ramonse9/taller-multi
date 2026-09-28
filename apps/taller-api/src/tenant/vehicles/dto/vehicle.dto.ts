@@ -86,3 +86,46 @@ export class VehicleResponseDto {
   @ApiProperty() createdAt!: Date;
   @ApiProperty() updatedAt!: Date;
 }
+
+export class VehicleHistoryQueryDto {
+  @ApiProperty({ example: 'A123456789', minLength: 10, maxLength: 10 })
+  @Transform(normalizeNullableUppercase)
+  @IsString()
+  @Matches(/^[A-HJ-NPR-Z0-9]{10}$/, {
+    message: 'numeroSerie debe contener exactamente los últimos 10 caracteres válidos del VIN',
+  })
+  numeroSerie!: string;
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Permite limitar coincidencias a una marca específica',
+  })
+  @IsOptional()
+  @IsUUID()
+  brandId?: string;
+}
+
+export class VehicleHistoryOrderDto {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty({ description: 'Folio de la orden; se entrega como texto por ser bigint' })
+  folio!: string;
+  @ApiProperty() status!: string;
+  @ApiProperty() openedAt!: Date;
+  @ApiProperty({ nullable: true, type: Date }) closedAt!: Date | null;
+}
+
+export class VehicleHistoryMatchDto extends VehicleResponseDto {
+  @ApiProperty() customerName!: string;
+  @ApiProperty({ type: VehicleHistoryOrderDto, isArray: true })
+  orders!: VehicleHistoryOrderDto[];
+}
+
+export class VehicleHistoryResponseDto {
+  @ApiProperty() numeroSerie!: string;
+  @ApiProperty({ nullable: true, type: String }) brandId!: string | null;
+  @ApiProperty() totalClients!: number;
+  @ApiProperty() totalVehicles!: number;
+  @ApiProperty() totalOrders!: number;
+  @ApiProperty({ type: VehicleHistoryMatchDto, isArray: true })
+  matches!: VehicleHistoryMatchDto[];
+}

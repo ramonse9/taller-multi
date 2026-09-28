@@ -6,13 +6,20 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/roles';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../../common/types/authenticated-user';
-import { CreateVehicleDto, UpdateVehicleDto, VehicleResponseDto } from './dto/vehicle.dto';
+import {
+  CreateVehicleDto,
+  UpdateVehicleDto,
+  VehicleHistoryQueryDto,
+  VehicleHistoryResponseDto,
+  VehicleResponseDto,
+} from './dto/vehicle.dto';
 import { VehiclesService } from './vehicles.service';
 
 @ApiTags('vehicles')
@@ -60,5 +67,22 @@ export class VehiclesController {
     @Body() input: UpdateVehicleDto,
   ): Promise<VehicleResponseDto> {
     return this.vehicles.update(user, clientId, id, input);
+  }
+}
+
+@ApiTags('vehicles')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
+@Controller('vehicles')
+export class VehicleHistoryController {
+  constructor(private readonly vehicles: VehiclesService) {}
+
+  @Get('history')
+  @ApiOkResponse({ type: VehicleHistoryResponseDto })
+  history(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: VehicleHistoryQueryDto,
+  ): Promise<VehicleHistoryResponseDto> {
+    return this.vehicles.history(user, query);
   }
 }

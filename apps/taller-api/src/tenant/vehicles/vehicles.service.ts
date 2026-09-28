@@ -8,7 +8,14 @@ import { QueryFailedError, QueryRunner } from 'typeorm';
 import { AuthenticatedUser } from '../../common/types/authenticated-user';
 import { quoteIdentifier } from '../../database/schema-name';
 import { TenantSessionService } from '../tenant-session.service';
-import { CreateVehicleDto, UpdateVehicleDto, VehicleResponseDto } from './dto/vehicle.dto';
+import {
+  CreateVehicleDto,
+  UpdateVehicleDto,
+  VehicleHistoryMatchDto,
+  VehicleHistoryQueryDto,
+  VehicleHistoryResponseDto,
+  VehicleResponseDto,
+} from './dto/vehicle.dto';
 
 interface VehicleRow {
   id: string;
@@ -26,6 +33,15 @@ interface VehicleRow {
   updated_by_user_id: string;
   created_at: Date;
   updated_at: Date;
+}
+
+interface VehicleHistoryRow extends VehicleRow {
+  customer_name: string;
+  order_id: string | null;
+  order_folio: string | null;
+  order_status: string | null;
+  order_opened_at: Date | null;
+  order_closed_at: Date | null;
 }
 
 const VEHICLE_COLUMNS = `vehicle.id, vehicle.customer_id, vehicle.brand_id,
@@ -47,6 +63,66 @@ export class VehiclesService {
         [clientId],
       )) as VehicleRow[];
       return rows.map((row) => this.toResponse(row));
+    });
+  }
+
+  history(
+    user: AuthenticatedUser,
+    query: VehicleHistoryQueryDto,
+  ): Promise<VehicleHistoryResponseDto> {
+    return this.tenant.run(user, async (runner, schema) => {
+      const rows = (await runner.query(
+        `SELECT ${VEHICLE_COLUMNS}, customer.full_name AS customer_name,
+                service_order.id AS order_id, service_order.folio::text AS order_folio,
+                service_order.status AS order_status,
+                service_order.opened_at AS order_opened_at,
+                service_order.closed_at AS order_closed_at
+         FROM ${quoteIdentifier(schema)}.vehicles vehicle
+         JOIN ${quoteIdentifier(schema)}.customers customer ON customer.id = vehicle.customer_id
+         JOIN public.vehicle_brands brand ON brand.id = vehicle.brand_id
+         JOIN public.vehicle_models model ON model.id = vehicle.model_id
+         LEFT JOIN ${quoteIdentifier(schema)}.orders service_order
+           ON service_order.vehicle_id = vehicle.id
+         WHERE vehicle.serial_number = $1
+           AND ($2::uuid IS NULL OR vehicle.brand_id = $2)
+         ORDER BY brand.name, model.name, customer.full_name, service_order.opened_at DESC`,
+        [query.numeroSerie, query.brandId ?? null],
+      )) as VehicleHistoryRow[];
+
+      const matches = new Map<string, VehicleHistoryMatchDto>();
+      const clientIds = new Set<string>();
+      let totalOrders = 0;
+      for (const row of rows) {
+        clientIds.add(row.customer_id);
+        let match = matches.get(row.id);
+        if (!match) {
+          match = {
+            ...this.toResponse(row),
+            customerName: row.customer_name,
+            orders: [],
+          };
+          matches.set(row.id, match);
+        }
+        if (row.order_id && row.order_folio && row.order_status && row.order_opened_at) {
+          match.orders.push({
+            id: row.order_id,
+            folio: row.order_folio,
+            status: row.order_status,
+            openedAt: row.order_opened_at,
+            closedAt: row.order_closed_at,
+          });
+          totalOrders += 1;
+        }
+      }
+
+      return {
+        numeroSerie: query.numeroSerie,
+        brandId: query.brandId ?? null,
+        totalClients: clientIds.size,
+        totalVehicles: matches.size,
+        totalOrders,
+        matches: [...matches.values()],
+      };
     });
   }
 
@@ -200,9 +276,9 @@ export class VehiclesService {
       const constraint = (error.driverError as { constraint?: string }).constraint;
       if (code === '23505') {
         if (constraint?.includes('serial_number'))
-          throw new ConflictException('El número de serie ya está registrado');
-        if (constraint?.includes('license_plate'))
-          throw new ConflictException('La placa ya está registrada');
+          throw new ConflictException(
+            'El número de serie ya está registrado para este cliente y marca',
+          );
         throw new ConflictException('Ya existe un vehículo con esos datos');
       }
       if (code === '23503') throw new BadRequestException('Cliente, marca o modelo inválido');
