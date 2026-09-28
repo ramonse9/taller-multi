@@ -15,6 +15,7 @@ import {
 } from "@angular/forms";
 import { debounceTime, distinctUntilChanged, finalize } from "rxjs";
 import { apiErrorMessage } from "../../core/http/api-error";
+import { ThemeService } from "../../core/theme/theme.service";
 import {
   PaginatedCatalog,
   VehicleBrand,
@@ -35,12 +36,16 @@ const emptyPage = <T>(): PaginatedCatalog<T> => ({
   selector: "app-vehicle-catalog-page",
   imports: [ReactiveFormsModule],
   templateUrl: "./vehicle-catalog.page.html",
-  styleUrl: "./vehicle-catalog.page.css",
+  host: {
+    class: "block min-h-screen",
+    "[class.dark]": "theme.isDark()",
+  },
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class VehicleCatalogPage implements OnInit {
   private readonly catalog = inject(VehicleCatalogService);
   private readonly destroyRef = inject(DestroyRef);
+  readonly theme = inject(ThemeService);
 
   readonly brands = signal<PaginatedCatalog<VehicleBrand>>(emptyPage());
   readonly models = signal<PaginatedCatalog<VehicleModel>>(emptyPage());
