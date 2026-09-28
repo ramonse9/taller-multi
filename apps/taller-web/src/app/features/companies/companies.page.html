@@ -61,6 +61,34 @@
               @if (form.controls.name.touched && form.controls.name.invalid) {
               <small>Escribe un nombre de 2 a 150 caracteres.</small> }
             </div>
+            <div class="field full">
+              <label for="company-login-code"
+                >Identificador de compañía <b>*</b></label
+              >
+              <div class="login-code-input">
+                <span aria-hidden="true">&#64;</span>
+                <input
+                  id="company-login-code"
+                  formControlName="loginCode"
+                  autocomplete="off"
+                  placeholder="compania"
+                  maxlength="40"
+                  (input)="formatLoginCode()"
+                />
+              </div>
+              @if (form.controls.loginCode.touched &&
+              form.controls.loginCode.invalid) {
+              <small
+                >Usa letras minúsculas, números o guion bajo; debe comenzar con
+                una letra.</small
+              >
+              } @else {
+              <span class="hint"
+                >El acceso será usuario&#64;{{ form.controls.loginCode.value ||
+                'compania' }}.</span
+              >
+              }
+            </div>
             <div class="field">
               <label for="company-type">Tipo de compañía <b>*</b></label>
               <select id="company-type" formControlName="companyTypeCode">
@@ -113,18 +141,23 @@
             </div>
             <div class="field">
               <label for="admin-username">Usuario <b>*</b></label>
-              <input
-                id="admin-username"
-                formControlName="username"
-                autocomplete="off"
-                placeholder="maria"
-              />
+              <div class="login-name-inputs">
+                <input
+                  id="admin-username"
+                  formControlName="username"
+                  autocomplete="off"
+                  placeholder="maria"
+                />
+                <span
+                  >&#64;{{ form.controls.loginCode.value || 'compania' }}</span
+                >
+              </div>
               @if (form.controls.admin.controls.username.touched &&
               form.controls.admin.controls.username.invalid) {
               <small>Usa letras, números, punto, guion o guion bajo.</small> }
             </div>
             <div class="field">
-              <label for="admin-phone">Celular (opcional)</label>
+              <label for="admin-phone">Celular <b>*</b></label>
               <div class="phone-inputs">
                 <input
                   class="country-code"
@@ -150,7 +183,10 @@
               form.controls.admin.controls.phoneCountryCode.invalid) ||
               (form.controls.admin.controls.phone.touched &&
               form.controls.admin.controls.phone.invalid)) {
-              <small>Usa un número como 667 104 32 81.</small>
+              <small
+                >El celular es obligatorio; usa un número como 667 104 32
+                81.</small
+              >
               }
             </div>
             <div class="field full">
@@ -221,8 +257,8 @@
           <div>
             <dt>Administrador</dt>
             <dd>
-              {{ form.controls.admin.controls.username.value || 'por definir'
-              }}&#64;[código de compañía]
+              {{ form.controls.admin.controls.username.value || 'usuario'
+              }}&#64;{{ form.controls.loginCode.value || 'compania' }}
             </dd>
           </div>
           <div>

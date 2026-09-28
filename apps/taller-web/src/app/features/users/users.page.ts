@@ -82,7 +82,10 @@ export class UsersPage implements OnInit {
     }),
     phone: new FormControl("", {
       nonNullable: true,
-      validators: [Validators.pattern(/^\+[1-9]\d{7,14}$/)],
+      validators: [
+        Validators.required,
+        Validators.pattern(/^\+[1-9]\d{7,14}$/),
+      ],
     }),
     role: new FormControl<TenantRole>("user", {
       nonNullable: true,
@@ -227,7 +230,7 @@ export class UsersPage implements OnInit {
           fullName: raw.fullName.trim(),
           username: raw.username.trim().toLowerCase(),
           email: raw.email.trim().toLowerCase() || null,
-          phone: raw.phone.trim() || null,
+          phone: raw.phone.trim(),
           role: raw.role,
           timezoneCode: raw.timezoneCode,
           isActive: raw.isActive,
@@ -236,7 +239,7 @@ export class UsersPage implements OnInit {
           fullName: raw.fullName.trim(),
           username: raw.username.trim().toLowerCase(),
           email: raw.email.trim().toLowerCase() || null,
-          phone: raw.phone.trim() || null,
+          phone: raw.phone.trim(),
           role: raw.role,
           timezoneCode: raw.timezoneCode,
           password: raw.password,
@@ -342,6 +345,12 @@ export class UsersPage implements OnInit {
 
   roleLabel(role: TenantRole): string {
     return role === "company_admin" ? "Administrador" : "Usuario";
+  }
+
+  companyLoginSuffix(): string {
+    const loginName = this.auth.user()?.loginName ?? "";
+    const separator = loginName.lastIndexOf("@");
+    return separator >= 0 ? loginName.slice(separator) : "@compania";
   }
 
   private showNotice(message: string): void {

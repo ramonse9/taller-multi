@@ -11,6 +11,7 @@ import {
   Matches,
   Max,
   Min,
+  ValidateIf,
 } from 'class-validator';
 import { PlatformRole } from '../entities/platform-user.entity';
 
@@ -52,11 +53,11 @@ export class CreateTenantAdminDto {
   @Length(3, 254)
   email?: string | null;
 
-  @ApiPropertyOptional({ example: '+526671234567', nullable: true })
+  @ApiProperty({ example: '+526671234567' })
   @Transform(normalizeNullablePhone)
-  @IsOptional()
+  @IsString()
   @Matches(PHONE_PATTERN)
-  phone?: string | null;
+  phone!: string;
 
   @ApiProperty({ minLength: 6, maxLength: 10, writeOnly: true })
   @IsString()
@@ -102,11 +103,12 @@ export class UpdateUserDto {
   @Matches(USERNAME_PATTERN)
   username?: string;
 
-  @ApiPropertyOptional({ example: '+526671234567', nullable: true })
+  @ApiPropertyOptional({ example: '+526671234567' })
   @Transform(normalizeNullablePhone)
-  @IsOptional()
+  @ValidateIf((_object, value: unknown) => value !== undefined)
+  @IsString()
   @Matches(PHONE_PATTERN)
-  phone?: string | null;
+  phone?: string;
 
   @ApiPropertyOptional({ enum: TENANT_ROLES })
   @IsOptional()

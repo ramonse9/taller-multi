@@ -295,6 +295,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         fullName: 'Usuario Desactivable',
         username: 'desactivable',
         email: 'disabled.user@test.local',
+        phone: '+526671112255',
         password: USER_PASSWORD,
         timezoneCode: 'America/Mazatlan',
         role: 'user',
@@ -326,6 +327,17 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
 
   it('completa compañía → usuario → login → clientes con identidad de auditoría', async () => {
     const tenant = await provisionAndLogin('Full Flow Integration', 'flow.admin@test.local');
+    const withoutPhone = await request<unknown>('POST', '/users', {
+      token: tenant.accessToken,
+      body: {
+        fullName: 'Usuario Sin Celular',
+        username: 'sin_celular',
+        password: USER_PASSWORD,
+        timezoneCode: 'America/Mazatlan',
+        role: 'user',
+      },
+    });
+    expect(withoutPhone.status).toBe(400);
     const invalidPassword = await request<unknown>('POST', '/users', {
       token: tenant.accessToken,
       body: {
@@ -517,6 +529,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       token: platformToken,
       body: {
         name,
+        loginCode: name.toLowerCase().replace(/[^a-z0-9]+/g, '_'),
         companyTypeCode: 'mul',
         personTypeCode: 'individual',
         withholdsIsr: false,

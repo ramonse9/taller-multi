@@ -195,16 +195,20 @@
         { <small>Escribe un nombre válido.</small> }
       </div>
       <div class="field">
-        <label for="user-username">Usuario <b>*</b></label
-        ><input
-          id="user-username"
-          formControlName="username"
-          autocomplete="off"
-        />@if (form.controls.username.touched && form.controls.username.invalid)
-        { <small>Usa letras, números, punto, guion o guion bajo.</small> }
+        <label for="user-username">Usuario <b>*</b></label>
+        <div class="login-name-inputs">
+          <input
+            id="user-username"
+            formControlName="username"
+            autocomplete="off"
+          />
+          <span>{{ companyLoginSuffix() }}</span>
+        </div>
+        @if (form.controls.username.touched && form.controls.username.invalid) {
+        <small>Usa letras, números, punto, guion o guion bajo.</small> }
       </div>
       <div class="field">
-        <label for="user-phone">Celular (opcional)</label
+        <label for="user-phone">Celular <b>*</b></label
         ><input
           id="user-phone"
           type="tel"
@@ -212,7 +216,11 @@
           autocomplete="tel"
           placeholder="+526671234567"
         />@if (form.controls.phone.touched && form.controls.phone.invalid) {
-        <small>Usa formato internacional: +526671234567.</small> }
+        <small
+          >El celular es obligatorio. Usa formato internacional:
+          +526671234567.</small
+        >
+        }
       </div>
       <div class="field full">
         <label for="user-email">Correo (opcional)</label

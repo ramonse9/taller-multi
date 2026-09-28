@@ -7,7 +7,7 @@ import {
   TENANT_BASE_VERSION,
 } from '../database/tenant/tenant-migrator';
 import { buildTenantSchemaName, quoteIdentifier } from '../database/schema-name';
-import { companyLoginCodeBase, tenantLoginName } from '../database/login-name';
+import { tenantLoginName } from '../database/login-name';
 import { UserResponseDto } from '../platform-users/dto/user.dto';
 import { PlatformRole } from '../platform-users/entities/platform-user.entity';
 import { CreateCompanyDto, CompanyResponseDto } from './dto/create-company.dto';
@@ -40,7 +40,10 @@ export class CompaniesService {
       const sequenceNumber = sequenceRows[0]?.number;
       if (!sequenceNumber) throw new Error('No se pudo generar el consecutivo del schema');
       const schemaName = buildTenantSchemaName(sequenceNumber, input.companyTypeCode, input.name);
-      const loginCode = await this.nextLoginCode(runner, input.name);
+      const loginCode = input.loginCode;
+      await runner.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
+        `company-login-code:${loginCode}`,
+      ]);
       await runner.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
         `tenant-schema:${schemaName}`,
       ]);
@@ -79,7 +82,7 @@ export class CompaniesService {
         [
           input.admin.email ?? null,
           input.admin.username,
-          input.admin.phone ?? null,
+          input.admin.phone,
           passwordHash,
           input.admin.fullName,
           PlatformRole.CompanyAdmin,
@@ -162,29 +165,6 @@ export class CompaniesService {
     ) {
       throw new UnprocessableEntityException('Tipo de compañía, persona o zona horaria inválido');
     }
-  }
-
-  private async nextLoginCode(
-    runner: import('typeorm').QueryRunner,
-    commercialName: string,
-  ): Promise<string> {
-    const base = companyLoginCodeBase(commercialName);
-    await runner.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
-      `company-login-code:${base}`,
-    ]);
-    const rows = (await runner.query(
-      `SELECT login_code FROM public.companies
-       WHERE login_code = $1 OR login_code LIKE $1 || '%'
-       ORDER BY login_code`,
-      [base],
-    )) as Array<{ login_code: string }>;
-    const used = new Set(rows.map(({ login_code }) => login_code));
-    if (!used.has(base)) return base;
-    for (let suffix = 2; suffix < 1_000_000; suffix += 1) {
-      const candidate = `${base.slice(0, 40 - String(suffix).length)}${suffix}`;
-      if (!used.has(candidate)) return candidate;
-    }
-    throw new Error('No se pudo generar un código público de compañía');
   }
 
   private toResponse(company: Company, admin: UserResponseDto): CompanyResponseDto {

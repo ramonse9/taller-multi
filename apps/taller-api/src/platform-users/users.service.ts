@@ -119,7 +119,7 @@ export class UsersService {
         [
           input.email ?? null,
           input.username,
-          input.phone ?? null,
+          input.phone,
           passwordHash,
           input.fullName,
           input.role,

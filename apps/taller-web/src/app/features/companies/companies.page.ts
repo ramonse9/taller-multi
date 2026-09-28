@@ -53,6 +53,13 @@ export class CompaniesPage implements OnInit {
         Validators.maxLength(150),
       ],
     }),
+    loginCode: new FormControl("", {
+      nonNullable: true,
+      validators: [
+        Validators.required,
+        Validators.pattern(/^[a-z][a-z0-9_]{1,39}$/),
+      ],
+    }),
     companyTypeCode: new FormControl("", {
       nonNullable: true,
       validators: [Validators.required],
@@ -92,7 +99,10 @@ export class CompaniesPage implements OnInit {
       }),
       phone: new FormControl("", {
         nonNullable: true,
-        validators: [Validators.pattern(/^\d{3} \d{3} \d{2} \d{2}$/)],
+        validators: [
+          Validators.required,
+          Validators.pattern(/^\d{3} \d{3} \d{2} \d{2}$/),
+        ],
       }),
       password: new FormControl("", {
         nonNullable: true,
@@ -160,6 +170,7 @@ export class CompaniesPage implements OnInit {
     const raw = this.form.getRawValue();
     const input: CreateCompanyInput = {
       name: raw.name.trim(),
+      loginCode: raw.loginCode.trim().toLowerCase(),
       companyTypeCode: raw.companyTypeCode,
       personTypeCode: raw.personTypeCode,
       withholdsIsr: raw.withholdsIsr,
@@ -211,6 +222,19 @@ export class CompaniesPage implements OnInit {
     control.setValue(sections.filter(Boolean).join(" "), { emitEvent: false });
   }
 
+  formatLoginCode(): void {
+    const control = this.form.controls.loginCode;
+    const normalized = control.value
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/^@/, "")
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+/, "")
+      .slice(0, 40);
+    control.setValue(normalized, { emitEvent: false });
+  }
+
   dismissSuccess(): void {
     this.created.set(null);
   }
@@ -218,6 +242,7 @@ export class CompaniesPage implements OnInit {
   private resetForm(): void {
     this.form.reset({
       name: "",
+      loginCode: "",
       companyTypeCode: this.companyTypes()[0]?.code ?? "",
       personTypeCode: this.personTypes()[0]?.code ?? "",
       withholdsIsr: false,
@@ -238,9 +263,8 @@ export class CompaniesPage implements OnInit {
   private internationalPhone(
     countryCode: string,
     nationalPhone: string,
-  ): string | null {
+  ): string {
     const phoneDigits = nationalPhone.replace(/\D/g, "");
-    if (!phoneDigits) return null;
     return `${countryCode.trim()}${phoneDigits}`;
   }
 }

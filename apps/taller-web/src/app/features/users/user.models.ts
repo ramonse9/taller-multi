@@ -30,7 +30,7 @@ export interface CreateUserInput {
   fullName: string;
   username: string;
   email: string | null;
-  phone: string | null;
+  phone: string;
   password: string;
   timezoneCode: string;
   role: TenantRole;
@@ -40,7 +40,7 @@ export interface UpdateUserInput {
   fullName?: string;
   username?: string;
   email?: string | null;
-  phone?: string | null;
+  phone?: string;
   timezoneCode?: string;
   role?: TenantRole;
   isActive?: boolean;

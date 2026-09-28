@@ -333,6 +333,24 @@ form footer {
 .field select {
   width: 100%;
 }
+.login-name-inputs {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.login-name-inputs span {
+  display: flex;
+  align-items: center;
+  max-width: 12rem;
+  padding: 0 0.8rem;
+  overflow: hidden;
+  border: 1px solid #cbc9c0;
+  border-left: 0;
+  background: #f2f0e9;
+  color: var(--muted);
+  font: 500 0.72rem var(--mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .field small {
   color: var(--danger);
   display: block;

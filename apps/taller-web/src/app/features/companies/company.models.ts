@@ -2,6 +2,7 @@ import { SessionUser } from "../../core/auth/auth.models";
 
 export interface CreateCompanyInput {
   name: string;
+  loginCode: string;
   companyTypeCode: string;
   personTypeCode: string;
   withholdsIsr: boolean;
@@ -10,7 +11,7 @@ export interface CreateCompanyInput {
     fullName: string;
     username: string;
     email: string | null;
-    phone: string | null;
+    phone: string;
     password: string;
     timezoneCode: string;
   };

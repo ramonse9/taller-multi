@@ -34,7 +34,6 @@ describe('CompaniesService', () => {
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([
         {
           id: adminId,
@@ -75,6 +74,7 @@ describe('CompaniesService', () => {
 
     const result = await service.create({
       name: 'Taller Norte',
+      loginCode: 'taller_norte',
       companyTypeCode: 'mul',
       personTypeCode: 'individual',
       withholdsIsr: false,

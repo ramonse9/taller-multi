@@ -22,7 +22,7 @@ Los pasos internos también pueden ejecutarse por separado con `npm run db:migra
 
 ## Onboarding y usuarios
 
-`POST /api/companies` recibe los datos de la compañía y un objeto `admin` con `fullName`, `username`, `password`, `timezoneCode` y, opcionalmente, `email` y `phone`. El cliente no elige el schema: el servidor lo genera como `_<consecutivo>_<tipo>_<nombre_comercial>`, por ejemplo `_0003_mul_melkars_diagnostico_automotriz`. Los tipos vigentes son `mul`, `car` y `mec`; el nombre se normaliza sin acentos, con guiones bajos y dentro del límite de 63 caracteres de PostgreSQL.
+`POST /api/companies` recibe los datos de la compañía, el `loginCode` público y un objeto `admin` con `fullName`, `username`, `phone`, `password`, `timezoneCode` y correo opcional. El cliente no elige el schema: el servidor lo genera como `_<consecutivo>_<tipo>_<nombre_comercial>`, por ejemplo `_0003_mul_melkars_diagnostico_automotriz`. Los tipos vigentes son `mul`, `car` y `mec`; el nombre se normaliza sin acentos, con guiones bajos y dentro del límite de 63 caracteres de PostgreSQL.
 
 En una sola transacción registra la compañía, crea y migra su schema, registra la versión tenant y crea el primer `company_admin`. Un fallo en cualquiera de esos pasos revierte todo el onboarding. El consecutivo proviene de una secuencia PostgreSQL para impedir colisiones concurrentes, por lo que puede contener saltos cuando una transacción falla.
 
@@ -35,7 +35,7 @@ Los administradores tenant disponen de:
 - `PATCH /api/users/:id/password`: restablecimiento de contraseña por otro administrador.
 - `PATCH /api/users/me/password`: cambio personal que exige la contraseña actual.
 
-Cada compañía recibe también un código público único derivado de su nombre comercial. Los usuarios tenant inician sesión como `usuario@codigo`, por ejemplo `yovany@melkars`; el correo ya no es obligatorio. Los códigos repetidos reciben un sufijo numérico. Los usuarios existentes conservan su correo como acceso compatible y reciben un `username` durante la migración. El celular usa formato internacional E.164, por ejemplo `+526671234567`.
+El código público de compañía se captura durante el onboarding, debe ser único y forma el acceso `usuario@codigo`, por ejemplo `yovany@melkars`. El correo ya no es obligatorio. Los usuarios existentes conservan su correo como acceso compatible y recibieron un `username` durante la migración. El celular es obligatorio para usuarios nuevos y usa formato internacional E.164, por ejemplo `+526671234567`; los registros antiguos sin celular deben completarlo cuando se editen.
 
 La recuperación móvil está disponible en `POST /api/auth/password-recovery/request`, `verify` y `complete`. El usuario elige SMS o WhatsApp, recibe un OTP de seis dígitos válido durante 10 minutos y, al comprobarlo, el teléfono queda verificado. El token posterior para definir la contraseña también dura 10 minutos, sólo puede usarse una vez y revoca las sesiones anteriores.
 

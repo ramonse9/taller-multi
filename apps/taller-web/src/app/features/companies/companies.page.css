@@ -122,6 +122,37 @@ form {
   text-align: center;
   font-weight: 700;
 }
+.login-code-input {
+  display: grid;
+  grid-template-columns: 2.75rem minmax(0, 1fr);
+}
+.login-code-input span {
+  display: grid;
+  place-items: center;
+  border: 1px solid #cbc9c0;
+  border-right: 0;
+  background: #f2f0e9;
+  color: var(--muted);
+  font-family: var(--mono);
+}
+.login-name-inputs {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.login-name-inputs span {
+  display: flex;
+  align-items: center;
+  max-width: 12rem;
+  padding: 0 0.8rem;
+  overflow: hidden;
+  border: 1px solid #cbc9c0;
+  border-left: 0;
+  background: #f2f0e9;
+  color: var(--muted);
+  font: 500 0.72rem var(--mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .field small {
   display: block;
   color: var(--danger);
