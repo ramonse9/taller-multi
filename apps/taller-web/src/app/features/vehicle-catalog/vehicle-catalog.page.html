@@ -23,7 +23,12 @@
           <button class="small-action-tw" type="button" (click)="openBrandEditor()">Agregar</button>
         </header>
         <div class="catalog-tools">
-          <label class="catalog-search"><span>⌕</span><input class="field-control py-2.5 pl-9" [formControl]="brandSearch" type="search" placeholder="Buscar marca" /></label>
+          <label class="catalog-search">
+            <span aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4 4"></path></svg>
+            </span>
+            <input class="field-control py-2.5! pr-8! pl-11!" [formControl]="brandSearch" type="search" placeholder="Buscar por nombre de marca" aria-label="Buscar por nombre de marca" />
+          </label>
           <div class="segments-tw" aria-label="Estado de marcas">
             <button type="button" [class.segment-selected]="brandActive()" (click)="filterBrands(true)">Activas</button>
             <button type="button" [class.segment-selected]="!brandActive()" (click)="filterBrands(false)">Inactivas</button>
@@ -49,7 +54,12 @@
           <button class="small-action-tw" type="button" [disabled]="!selectedBrand() || !selectedBrand()?.isActive" (click)="openModelEditor()">Agregar</button>
         </header>
         <div class="catalog-tools">
-          <label class="catalog-search"><span>⌕</span><input class="field-control py-2.5 pl-9" [formControl]="modelSearch" type="search" placeholder="Buscar modelo" [disabled]="!selectedBrand()" /></label>
+          <label class="catalog-search">
+            <span aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4 4"></path></svg>
+            </span>
+            <input class="field-control py-2.5! pr-8! pl-11!" [formControl]="modelSearch" type="search" placeholder="Buscar por nombre de modelo" aria-label="Buscar por nombre de modelo" [disabled]="!selectedBrand()" />
+          </label>
           <div class="segments-tw" aria-label="Estado de modelos">
             <button type="button" [class.segment-selected]="modelActive()" (click)="filterModels(true)" [disabled]="!selectedBrand()">Activos</button>
             <button type="button" [class.segment-selected]="!modelActive()" (click)="filterModels(false)" [disabled]="!selectedBrand()">Inactivos</button>
