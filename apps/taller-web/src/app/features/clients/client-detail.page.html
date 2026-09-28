@@ -1,0 +1,472 @@
+<main
+  class="min-h-screen bg-[#f9f7f0] text-[#17251e] transition-colors dark:bg-[#101713] dark:text-[#edf3ef]"
+>
+  <header
+    class="flex min-h-36 items-center justify-between gap-4 border-b border-[#dcd9cf] bg-[#f9f7f0]/90 px-[clamp(1.5rem,5vw,5rem)] py-9 max-sm:min-h-0 max-sm:items-end max-sm:py-6 dark:border-[#34423a] dark:bg-[#151f19]/95"
+  >
+    <div>
+      <a
+        class="mb-3 inline-flex items-center gap-2 text-xs font-bold text-[#68746d] no-underline hover:text-[#e86a33] dark:text-[#aab7af]"
+        routerLink="/clients"
+        >← Volver a clientes</a
+      >
+      <p class="eyebrow">CLIENTE / VEHÍCULOS</p>
+      <h1
+        class="m-0 font-[var(--display)] text-[clamp(2.25rem,4vw,4rem)] font-semibold leading-[0.9] tracking-[-0.05em]"
+      >
+        {{ client()?.fullName || 'Detalle del cliente' }}
+      </h1>
+    </div>
+    <div class="flex items-center gap-2">
+      <button
+        type="button"
+        class="theme-toggle"
+        (click)="theme.toggle()"
+        [attr.aria-label]="theme.isDark() ? 'Usar tema claro' : 'Usar tema oscuro'"
+        [title]="theme.isDark() ? 'Usar tema claro' : 'Usar tema oscuro'"
+      >
+        {{ theme.isDark() ? '☀' : '◐' }}
+      </button>
+      <button
+        class="primary max-sm:px-3"
+        type="button"
+        [disabled]="!client()?.isActive"
+        (click)="openCreate()"
+      >
+        <span class="mr-1 text-xl">＋</span
+        ><span class="max-[480px]:hidden">Nuevo </span>vehículo
+      </button>
+    </div>
+  </header>
+
+  <section class="px-[clamp(1.5rem,5vw,5rem)] pb-16 pt-9 max-sm:pt-6">
+    @if (notice()) {
+    <div
+      class="mb-4 bg-[#e7f2eb] px-4 py-3 text-sm text-[#245b3b] dark:bg-[#203c2c] dark:text-[#9ed5b3]"
+      role="status"
+    >
+      ✓ {{ notice() }}
+    </div>
+    } @if (error()) {
+    <div
+      class="mb-4 flex items-center justify-between gap-4 bg-[#fff0ea] px-4 py-3 text-sm text-[#8e3214] dark:bg-[#4a241b] dark:text-[#ffb89d]"
+      role="alert"
+    >
+      <span>{{ error() }}</span
+      ><button
+        class="bg-transparent p-0 text-inherit underline"
+        type="button"
+        (click)="loadPage()"
+      >
+        Reintentar
+      </button>
+    </div>
+    } @if (client(); as currentClient) {
+    <section
+      class="mb-7 grid border border-[#dcd9cf] bg-white sm:grid-cols-2 lg:grid-cols-4 dark:border-[#3d4d44] dark:bg-[#1a251f]"
+    >
+      <div
+        class="border-b border-[#ece9df] p-5 sm:border-r lg:border-b-0 dark:border-[#35433b]"
+      >
+        <span class="detail-label">TELÉFONO</span
+        ><strong class="detail-value"
+          >{{ currentClient.phone || 'Sin teléfono' }}</strong
+        >
+      </div>
+      <div
+        class="border-b border-[#ece9df] p-5 lg:border-b-0 lg:border-r dark:border-[#35433b]"
+      >
+        <span class="detail-label">CORREO</span
+        ><strong class="detail-value break-all"
+          >{{ currentClient.email || 'Sin correo' }}</strong
+        >
+      </div>
+      <div
+        class="border-b border-[#ece9df] p-5 sm:border-r sm:border-b-0 dark:border-[#35433b]"
+      >
+        <span class="detail-label">RFC</span
+        ><strong class="detail-value font-[var(--mono)]"
+          >{{ currentClient.taxId || 'Sin RFC' }}</strong
+        >
+      </div>
+      <div class="p-5">
+        <span class="detail-label">ESTADO</span
+        ><strong
+          class="detail-value"
+          [class.status-active]="currentClient.isActive"
+          >{{ currentClient.isActive ? 'Cliente activo' : 'Cliente inactivo'
+          }}</strong
+        >
+      </div>
+    </section>
+    }
+
+    <div class="mb-5 flex items-end justify-between gap-5">
+      <div>
+        <p class="eyebrow">GARAGE DEL CLIENTE</p>
+        <h2 class="m-0 font-[var(--display)] text-[1.8rem] font-semibold">
+          Vehículos registrados
+        </h2>
+        <p class="mt-1 text-sm text-[#68746d] dark:text-[#aab7af]">
+          El historial se puede consultar cuando el vehículo tiene número de
+          serie.
+        </p>
+      </div>
+      <div class="text-right">
+        <strong class="block font-[var(--display)] text-3xl"
+          >{{ vehicles().length }}</strong
+        ><span
+          class="font-[var(--mono)] text-[0.58rem] font-bold tracking-[0.1em] text-[#68746d] dark:text-[#aab7af]"
+          >VEHÍCULOS</span
+        >
+      </div>
+    </div>
+
+    <div
+      class="relative grid min-h-64 gap-4 md:grid-cols-2 xl:grid-cols-3"
+      [class.opacity-50]="loading()"
+    >
+      @for (vehicle of vehicles(); track vehicle.id) {
+      <article
+        class="group border border-[#dcd9cf] bg-white transition hover:-translate-y-0.5 hover:border-[#b9b5a9] hover:shadow-[0_8px_20px_rgb(23_37_30/0.08)] dark:border-[#3d4d44] dark:bg-[#1a251f] dark:hover:border-[#637268]"
+      >
+        <header
+          class="flex items-start justify-between gap-4 border-b border-[#ece9df] bg-[#f2f0e9] p-5 dark:border-[#35433b] dark:bg-[#222f27]"
+        >
+          <div class="flex min-w-0 items-center gap-3">
+            <span
+              class="grid size-11 shrink-0 place-items-center bg-[#dfeae3] font-[var(--mono)] text-xs font-extrabold text-[#31513f] dark:bg-[#2b4938] dark:text-[#b8d8c5]"
+              >{{ vehicle.brandName.slice(0, 2).toUpperCase() }}</span
+            >
+            <div class="min-w-0">
+              <h3
+                class="m-0 truncate font-[var(--display)] text-xl font-semibold"
+              >
+                {{ vehicle.brandName }} {{ vehicle.modelName }}
+              </h3>
+              <p class="mt-1 text-xs text-[#68746d] dark:text-[#aab7af]">
+                {{ vehicle.year }} · {{ vehicle.color }}
+              </p>
+            </div>
+          </div>
+          <span
+            class="shrink-0 border px-2 py-1 font-[var(--mono)] text-[0.55rem] font-bold"
+            [class.border-[#9bc5ac]]="vehicle.isActive"
+            [class.text-[#2d7550]]="vehicle.isActive"
+            [class.border-[#d5afa5]]="!vehicle.isActive"
+            [class.text-[#a63725]]="!vehicle.isActive"
+            >{{ vehicle.isActive ? 'ACTIVO' : 'INACTIVO' }}</span
+          >
+        </header>
+        <div class="grid grid-cols-2 gap-x-4 gap-y-5 p-5">
+          <div>
+            <span class="detail-label">NÚMERO DE SERIE</span
+            ><strong class="detail-value font-[var(--mono)]"
+              >{{ vehicle.numeroSerie || 'No registrado' }}</strong
+            >
+          </div>
+          <div>
+            <span class="detail-label">PLACA</span
+            ><strong class="detail-value font-[var(--mono)]"
+              >{{ vehicle.licensePlate || 'No registrada' }}</strong
+            >
+          </div>
+        </div>
+        <footer
+          class="flex items-center justify-between gap-3 border-t border-[#ece9df] px-5 py-3 dark:border-[#35433b]"
+        >
+          @if (vehicle.numeroSerie) {
+          <button
+            class="bg-transparent p-0 text-xs font-bold text-[#b94718] underline underline-offset-4 dark:text-[#ff9a6f]"
+            type="button"
+            (click)="openHistory(vehicle)"
+          >
+            Ver historial
+          </button>
+          } @else {
+          <span class="text-[0.68rem] text-[#879089]"
+            >Identificación básica</span
+          >
+          }
+          <button
+            class="bg-transparent p-0 text-xs font-bold text-[#b94718] underline underline-offset-4 dark:text-[#ff9a6f]"
+            type="button"
+            (click)="openEdit(vehicle)"
+          >
+            Editar
+          </button>
+        </footer>
+      </article>
+      } @empty { @if (!loading()) {
+      <div
+        class="col-span-full grid min-h-72 place-items-center border border-dashed border-[#c9c5b9] bg-white/50 p-8 text-center dark:border-[#46554c] dark:bg-[#1a251f]/50"
+      >
+        <div>
+          <span class="text-4xl text-[#adb5af]">◇</span>
+          <h3 class="mt-3 font-[var(--display)] text-2xl font-semibold">
+            Este cliente todavía no tiene vehículos
+          </h3>
+          <p class="mb-5 mt-1 text-sm text-[#68746d] dark:text-[#aab7af]">
+            Registra el primero para comenzar su historial de servicio.
+          </p>
+          <button
+            class="secondary-tw"
+            type="button"
+            [disabled]="!client()?.isActive"
+            (click)="openCreate()"
+          >
+            Registrar vehículo
+          </button>
+        </div>
+      </div>
+      } } @if (loading()) {
+      <div class="loader-tw" aria-label="Cargando">
+        <span></span><span></span><span></span>
+      </div>
+      }
+    </div>
+  </section>
+</main>
+
+@if (editorOpen()) {
+<div
+  class="fixed inset-0 z-30 flex justify-end bg-[#0d1913]/65 backdrop-blur-[3px]"
+  (click)="closeEditor()"
+  role="presentation"
+>
+  <section
+    class="h-full w-full max-w-2xl overflow-y-auto bg-[#f9f7f0] text-[#17251e] shadow-[-20px_0_60px_rgb(0_0_0/0.18)] dark:bg-[#151f19] dark:text-[#edf3ef]"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="vehicle-editor-title"
+    (click)="$event.stopPropagation()"
+  >
+    <header
+      class="flex items-start justify-between border-b border-[#dcd9cf] px-6 py-7 sm:px-10 dark:border-[#3d4d44]"
+    >
+      <div>
+        <p class="eyebrow">
+          {{ editing() ? 'EDITAR VEHÍCULO' : 'NUEVO VEHÍCULO' }}
+        </p>
+        <h2
+          class="m-0 font-[var(--display)] text-3xl font-semibold"
+          id="vehicle-editor-title"
+        >
+          {{ editing() ? 'Actualizar vehículo' : 'Registrar vehículo' }}
+        </h2>
+        <p class="mt-2 text-sm text-[#68746d] dark:text-[#aab7af]">
+          {{ client()?.fullName }}
+        </p>
+      </div>
+      <button
+        class="bg-transparent p-0 text-3xl text-inherit"
+        type="button"
+        aria-label="Cerrar"
+        (click)="closeEditor()"
+      >
+        ×
+      </button>
+    </header>
+    <form
+      class="grid grid-cols-1 gap-5 p-6 sm:grid-cols-2 sm:p-10"
+      [formGroup]="form"
+      (ngSubmit)="save()"
+      novalidate
+    >
+      <div>
+        <label class="field-label" for="vehicle-brand">Marca <b>*</b></label
+        ><select
+          class="field-control"
+          id="vehicle-brand"
+          formControlName="brandId"
+          (change)="brandChanged()"
+        >
+          <option value="">Selecciona una marca</option>
+          @for (brand of brands(); track brand.id) {
+          <option [value]="brand.id">{{ brand.name }}</option>
+          }</select
+        >@if (form.controls.brandId.touched && form.controls.brandId.invalid) {
+        <small class="field-error">Selecciona una marca.</small> }
+      </div>
+      <div>
+        <label class="field-label" for="vehicle-model">Modelo <b>*</b></label
+        ><select
+          class="field-control"
+          id="vehicle-model"
+          formControlName="modelId"
+          [disabled]="!form.controls.brandId.value || loadingModels()"
+        >
+          <option value="">
+            {{ loadingModels() ? 'Cargando modelos…' : 'Selecciona un modelo' }}
+          </option>
+          @for (model of models(); track model.id) {
+          <option [value]="model.id">{{ model.name }}</option>
+          }</select
+        >@if (form.controls.modelId.touched && form.controls.modelId.invalid) {
+        <small class="field-error">Selecciona un modelo.</small> }
+      </div>
+      <div>
+        <label class="field-label" for="vehicle-year">Año <b>*</b></label
+        ><input
+          class="field-control"
+          id="vehicle-year"
+          type="number"
+          inputmode="numeric"
+          formControlName="year"
+          min="1886"
+          [max]="maxYear"
+          placeholder="2024"
+        />@if (form.controls.year.touched && form.controls.year.invalid) {
+        <small class="field-error"
+          >Usa un año entre 1886 y {{ maxYear }}.</small
+        >
+        }
+      </div>
+      <div>
+        <label class="field-label" for="vehicle-color">Color <b>*</b></label
+        ><input
+          class="field-control"
+          id="vehicle-color"
+          formControlName="color"
+          maxlength="50"
+          placeholder="Blanco"
+        />@if (form.controls.color.touched && form.controls.color.invalid) {
+        <small class="field-error">Escribe el color del vehículo.</small> }
+      </div>
+      <div>
+        <label class="field-label" for="vehicle-serial"
+          >Número de serie (opcional)</label
+        ><input
+          class="field-control font-[var(--mono)] uppercase"
+          id="vehicle-serial"
+          formControlName="numeroSerie"
+          maxlength="10"
+          autocomplete="off"
+          placeholder="Últimos 10 caracteres"
+          (input)="formatNumeroSerie()"
+        />@if (form.controls.numeroSerie.touched &&
+        form.controls.numeroSerie.invalid) {
+        <small class="field-error"
+          >Captura exactamente 10 caracteres válidos, sin I, O ni Q.</small
+        >
+        } @else {
+        <span class="field-hint"
+          >Permite consultar el historial con otros clientes.</span
+        >
+        }
+      </div>
+      <div>
+        <label class="field-label" for="vehicle-plate">Placa (opcional)</label
+        ><input
+          class="field-control uppercase"
+          id="vehicle-plate"
+          formControlName="licensePlate"
+          maxlength="20"
+          autocomplete="off"
+          placeholder="ABC-123-D"
+          (input)="formatPlate()"
+        />
+      </div>
+      @if (editing()) {
+      <label class="col-span-full flex items-center gap-3 text-sm"
+        ><input
+          class="size-auto accent-[#e86a33]"
+          type="checkbox"
+          formControlName="isActive"
+        />
+        Vehículo activo</label
+      >
+      }
+      <footer
+        class="col-span-full mt-3 flex justify-end gap-3 border-t border-[#dcd9cf] pt-6 dark:border-[#3d4d44]"
+      >
+        <button class="ghost-tw" type="button" (click)="closeEditor()">
+          Cancelar</button
+        ><button
+          class="primary"
+          type="submit"
+          [disabled]="saving() || loadingModels()"
+        >
+          {{ saving() ? 'Guardando…' : 'Guardar vehículo' }}
+        </button>
+      </footer>
+    </form>
+  </section>
+</div>
+} @if (history(); as vehicleHistory) {
+<div class="dialog-backdrop" (click)="closeHistory()" role="presentation">
+  <section
+    class="max-h-[90vh] w-full max-w-3xl overflow-y-auto bg-[#f9f7f0] p-6 text-[#17251e] shadow-[16px_16px_0_rgb(0_0_0/0.18)] sm:p-9 dark:bg-[#1a251f] dark:text-[#edf3ef]"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="history-title"
+    (click)="$event.stopPropagation()"
+  >
+    <header class="mb-6 flex items-start justify-between gap-5">
+      <div>
+        <p class="eyebrow">HISTORIAL COMPARTIDO</p>
+        <h2
+          class="m-0 font-[var(--display)] text-3xl font-semibold"
+          id="history-title"
+        >
+          Serie {{ vehicleHistory.numeroSerie }}
+        </h2>
+        <p class="mt-2 text-sm text-[#68746d] dark:text-[#aab7af]">
+          {{ vehicleHistory.totalClients }} clientes · {{
+          vehicleHistory.totalOrders }} órdenes
+        </p>
+      </div>
+      <button
+        class="bg-transparent p-0 text-3xl text-inherit"
+        type="button"
+        aria-label="Cerrar"
+        (click)="closeHistory()"
+      >
+        ×
+      </button>
+    </header>
+    <div class="grid gap-4">
+      @for (match of vehicleHistory.matches; track match.id) {
+      <article
+        class="border border-[#dcd9cf] bg-white dark:border-[#3d4d44] dark:bg-[#151f19]"
+      >
+        <header
+          class="flex flex-wrap items-center justify-between gap-3 border-b border-[#ece9df] bg-[#f2f0e9] px-5 py-4 dark:border-[#35433b] dark:bg-[#222f27]"
+        >
+          <div>
+            <strong class="block">{{ match.customerName }}</strong
+            ><span class="mt-1 block text-xs text-[#68746d] dark:text-[#aab7af]"
+              >{{ match.brandName }} {{ match.modelName }} · {{ match.year }} ·
+              {{ match.color }}</span
+            >
+          </div>
+          <span class="font-[var(--mono)] text-xs"
+            >{{ match.licensePlate || 'SIN PLACA' }}</span
+          >
+        </header>
+        <div class="divide-y divide-[#ece9df] dark:divide-[#35433b]">
+          @for (order of match.orders; track order.id) {
+          <div class="flex items-center justify-between gap-4 px-5 py-4">
+            <div>
+              <strong class="text-sm">Orden #{{ order.folio }}</strong
+              ><span class="ml-2 text-xs text-[#68746d] dark:text-[#aab7af]"
+                >{{ formatShortDate(order.openedAt) }}</span
+              >
+            </div>
+            <span
+              class="border border-[#dcd9cf] px-2 py-1 text-[0.65rem] font-bold dark:border-[#536259]"
+              >{{ statusName(order.status) }}</span
+            >
+          </div>
+          } @empty {
+          <p class="m-0 px-5 py-5 text-sm text-[#68746d] dark:text-[#aab7af]">
+            Este registro todavía no tiene órdenes.
+          </p>
+          }
+        </div>
+      </article>
+      }
+    </div>
+  </section>
+</div>
+}

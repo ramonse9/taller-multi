@@ -95,7 +95,7 @@
               >
             </td>
             <td><span class="timezone">{{ user.timezoneCode }}</span></td>
-            <td>{{ user.createdAt | date:'dd MMM yyyy' }}</td>
+            <td>{{ formatShortDate(user.createdAt) }}</td>
             <td>
               <div class="actions">
                 <button type="button" (click)="openEdit(user)">Editar</button

@@ -40,6 +40,15 @@ export const routes: Routes = [
           ),
       },
       {
+        path: "clients/:id",
+        canActivate: [roleGuard],
+        data: { roles: ["company_admin", "user"] },
+        loadComponent: () =>
+          import("./features/clients/client-detail.page").then(
+            (m) => m.ClientDetailPage,
+          ),
+      },
+      {
         path: "clients",
         canActivate: [roleGuard],
         data: { roles: ["company_admin", "user"] },

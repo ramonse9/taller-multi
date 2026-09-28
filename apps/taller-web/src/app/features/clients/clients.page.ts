@@ -12,23 +12,31 @@ import {
   ReactiveFormsModule,
   Validators,
 } from "@angular/forms";
-import { DatePipe } from "@angular/common";
+import { RouterLink } from "@angular/router";
 import { HttpErrorResponse } from "@angular/common/http";
 import { debounceTime, distinctUntilChanged, finalize } from "rxjs";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { Client, ClientInput, PaginatedClients } from "./client.models";
 import { ClientsService } from "./clients.service";
+import { ThemeService } from "../../core/theme/theme.service";
+import { apiErrorMessage } from "../../core/http/api-error";
+import { formatShortDate } from "../../core/dates/date-format";
 
 @Component({
   selector: "app-clients-page",
-  imports: [ReactiveFormsModule, DatePipe],
+  imports: [ReactiveFormsModule, RouterLink],
   templateUrl: "./clients.page.html",
-  styleUrl: "./clients.page.css",
+  host: {
+    class: "block min-h-screen",
+    "[class.dark]": "theme.isDark()",
+  },
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ClientsPage implements OnInit {
   private readonly clients = inject(ClientsService);
   private readonly destroyRef = inject(DestroyRef);
+  readonly theme = inject(ThemeService);
+  readonly formatShortDate = formatShortDate;
 
   readonly loading = signal(true);
   readonly saving = signal(false);
@@ -63,9 +71,13 @@ export class ClientsPage implements OnInit {
       nonNullable: true,
       validators: [Validators.email, Validators.maxLength(254)],
     }),
+    phoneCountryCode: new FormControl("+52", {
+      nonNullable: true,
+      validators: [Validators.required, Validators.pattern(/^\+[1-9]\d{0,2}$/)],
+    }),
     phone: new FormControl("", {
       nonNullable: true,
-      validators: [Validators.maxLength(30)],
+      validators: [Validators.pattern(/^\d{3} \d{3} \d{2} \d{2}$/)],
     }),
     notes: new FormControl("", {
       nonNullable: true,
@@ -118,6 +130,7 @@ export class ClientsPage implements OnInit {
       fullName: "",
       taxId: "",
       email: "",
+      phoneCountryCode: "+52",
       phone: "",
       notes: "",
       isActive: true,
@@ -126,12 +139,14 @@ export class ClientsPage implements OnInit {
   }
 
   openEdit(client: Client): void {
+    const phone = this.splitPhone(client.phone);
     this.editing.set(client);
     this.form.reset({
       fullName: client.fullName,
       taxId: client.taxId ?? "",
       email: client.email ?? "",
-      phone: client.phone ?? "",
+      phoneCountryCode: phone.countryCode,
+      phone: phone.national,
       notes: client.notes ?? "",
       isActive: client.isActive,
     });
@@ -154,13 +169,12 @@ export class ClientsPage implements OnInit {
       fullName: raw.fullName.trim(),
       taxId: raw.taxId.trim() || null,
       email: raw.email.trim() || null,
-      phone: raw.phone.trim() || null,
+      phone: this.internationalPhone(raw.phoneCountryCode, raw.phone),
       notes: raw.notes.trim() || null,
-      isActive: raw.isActive,
     };
     const current = this.editing();
     const request = current
-      ? this.clients.update(current.id, input)
+      ? this.clients.update(current.id, { ...input, isActive: raw.isActive })
       : this.clients.create(input);
     request
       .pipe(
@@ -193,11 +207,58 @@ export class ClientsPage implements OnInit {
       .join("");
   }
 
+  formatPhone(): void {
+    const control = this.form.controls.phone;
+    const digits = control.value.replace(/\D/g, "").slice(0, 10);
+    const sections = [
+      digits.slice(0, 3),
+      digits.slice(3, 6),
+      digits.slice(6, 8),
+      digits.slice(8, 10),
+    ];
+    control.setValue(sections.filter(Boolean).join(" "), { emitEvent: false });
+  }
+
+  private internationalPhone(
+    countryCode: string,
+    nationalPhone: string,
+  ): string | null {
+    const digits = nationalPhone.replace(/\D/g, "");
+    return digits ? `${countryCode.trim()}${digits}` : null;
+  }
+
+  private splitPhone(value: string | null): {
+    countryCode: string;
+    national: string;
+  } {
+    if (!value) return { countryCode: "+52", national: "" };
+    const normalized = value.trim();
+    const allDigits = normalized.replace(/\D/g, "");
+    const nationalDigits = allDigits.slice(-10);
+    const countryDigits = normalized.startsWith("+")
+      ? allDigits.slice(
+          0,
+          Math.max(0, allDigits.length - nationalDigits.length),
+        )
+      : "52";
+    const sections = [
+      nationalDigits.slice(0, 3),
+      nationalDigits.slice(3, 6),
+      nationalDigits.slice(6, 8),
+      nationalDigits.slice(8, 10),
+    ];
+    return {
+      countryCode: `+${countryDigits || "52"}`,
+      national: sections.filter(Boolean).join(" "),
+    };
+  }
+
   private apiMessage(error: unknown): string {
     if (error instanceof HttpErrorResponse && error.status === 409)
       return "Ya existe un cliente con ese RFC.";
-    if (error instanceof HttpErrorResponse && error.status === 400)
-      return "Revisa los datos capturados.";
-    return "No pudimos guardar el cliente. Intenta nuevamente.";
+    return apiErrorMessage(
+      error,
+      "No pudimos guardar el cliente. Intenta nuevamente.",
+    );
   }
 }

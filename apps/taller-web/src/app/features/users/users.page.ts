@@ -1,4 +1,3 @@
-import { DatePipe } from "@angular/common";
 import {
   ChangeDetectionStrategy,
   Component,
@@ -19,6 +18,7 @@ import { AuthService } from "../../core/auth/auth.service";
 import { TimezoneCatalogItem } from "../../core/catalogs/catalog.models";
 import { CatalogsService } from "../../core/catalogs/catalogs.service";
 import { apiErrorMessage } from "../../core/http/api-error";
+import { formatShortDate } from "../../core/dates/date-format";
 import {
   CreateUserInput,
   PaginatedUsers,
@@ -30,7 +30,7 @@ import { UsersService } from "./users.service";
 
 @Component({
   selector: "app-users-page",
-  imports: [ReactiveFormsModule, DatePipe],
+  imports: [ReactiveFormsModule],
   templateUrl: "./users.page.html",
   styleUrl: "./users.page.css",
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -40,6 +40,7 @@ export class UsersPage implements OnInit {
   private readonly users = inject(UsersService);
   private readonly catalogs = inject(CatalogsService);
   private readonly destroyRef = inject(DestroyRef);
+  readonly formatShortDate = formatShortDate;
 
   readonly loading = signal(true);
   readonly saving = signal(false);

@@ -115,7 +115,9 @@ textarea {
   font-size: 0.75rem;
   font-weight: 700;
 
-  & b { color: #e86a33; }
+  & b {
+    color: #e86a33;
+  }
 }
 
 @utility field-error {
@@ -124,7 +126,9 @@ textarea {
   font-size: 0.67rem;
   color: #a63725;
 
-  .dark & { color: #ff9e8c; }
+  .dark & {
+    color: #ff9e8c;
+  }
 }
 
 @utility field-hint {
@@ -133,7 +137,9 @@ textarea {
   font-size: 0.65rem;
   color: #68746d;
 
-  .dark & { color: #aab7af; }
+  .dark & {
+    color: #aab7af;
+  }
 }
 
 @utility eyebrow {
@@ -154,14 +160,20 @@ textarea {
   letter-spacing: 0.12em;
   color: #68746d;
 
-  .dark & { border-color: #46554c; color: #aab7af; }
+  .dark & {
+    border-color: #46554c;
+    color: #aab7af;
+  }
 }
 
 @utility form-card-tw {
   border: 1px solid #dcd9cf;
   background: white;
 
-  .dark & { border-color: #3d4d44; background: #1a251f; }
+  .dark & {
+    border-color: #3d4d44;
+    background: #1a251f;
+  }
 }
 
 @utility form-card-header {
@@ -172,7 +184,10 @@ textarea {
   background: #f2f0e9;
   padding: 1.25rem 1.5rem;
 
-  .dark & { border-color: #3d4d44; background: #222f27; }
+  .dark & {
+    border-color: #3d4d44;
+    background: #222f27;
+  }
 }
 
 @utility section-number {
@@ -187,7 +202,9 @@ textarea {
   font-size: 0.62rem;
   font-weight: 700;
 
-  .dark & { background: #e86a33; }
+  .dark & {
+    background: #e86a33;
+  }
 }
 
 @utility section-title {
@@ -202,7 +219,9 @@ textarea {
   color: #68746d;
   font-size: 0.76rem;
 
-  .dark & { color: #aab7af; }
+  .dark & {
+    color: #aab7af;
+  }
 }
 
 @utility fields-grid {
@@ -211,7 +230,10 @@ textarea {
   gap: 1.1rem;
   padding: 1.25rem;
 
-  @media (width >= 40rem) { grid-template-columns: 1fr 1fr; padding: 1.5rem; }
+  @media (width >= 40rem) {
+    grid-template-columns: 1fr 1fr;
+    padding: 1.5rem;
+  }
 }
 
 @utility input-addon {
@@ -224,7 +246,11 @@ textarea {
   font-family: var(--mono);
   font-size: 0.72rem;
 
-  .dark & { border-color: #536259; background: #26342b; color: #b7c2bb; }
+  .dark & {
+    border-color: #536259;
+    background: #26342b;
+    color: #b7c2bb;
+  }
 }
 
 @utility check-label {
@@ -234,18 +260,36 @@ textarea {
   color: #46534c;
   font-size: 0.78rem;
 
-  & input { width: auto; accent-color: #e86a33; }
-  .dark & { color: #c2cdc6; }
+  & input {
+    width: auto;
+    accent-color: #e86a33;
+  }
+  .dark & {
+    color: #c2cdc6;
+  }
 }
 
 @utility summary-row {
   border-bottom: 1px solid #ece9df;
   padding: 0.75rem 0;
 
-  & dt { color: #68746d; font: 700 0.56rem var(--mono); letter-spacing: 0.08em; text-transform: uppercase; }
-  & dd { margin: 0.25rem 0 0; overflow-wrap: anywhere; font-size: 0.76rem; }
-  .dark & { border-color: #35433b; }
-  .dark & dt { color: #aab7af; }
+  & dt {
+    color: #68746d;
+    font: 700 0.56rem var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  & dd {
+    margin: 0.25rem 0 0;
+    overflow-wrap: anywhere;
+    font-size: 0.76rem;
+  }
+  .dark & {
+    border-color: #35433b;
+  }
+  .dark & dt {
+    color: #aab7af;
+  }
 }
 
 @utility theme-toggle {
@@ -258,8 +302,15 @@ textarea {
   font-size: 1.125rem;
   transition: 150ms;
 
-  &:hover { border-color: #e86a33; color: #e86a33; }
-  .dark & { border-color: #46554c; background: #1d2922; color: #f4c4ae; }
+  &:hover {
+    border-color: #e86a33;
+    color: #e86a33;
+  }
+  .dark & {
+    border-color: #46554c;
+    background: #1d2922;
+    color: #f4c4ae;
+  }
 }
 
 @utility catalog-panel-tw {
@@ -267,7 +318,10 @@ textarea {
   border: 1px solid #dcd9cf;
   background: white;
 
-  .dark & { border-color: #3d4d44; background: #1a251f; }
+  .dark & {
+    border-color: #3d4d44;
+    background: #1a251f;
+  }
 }
 
 @utility catalog-heading {
@@ -280,7 +334,10 @@ textarea {
   background: #f2f0e9;
   padding: 1rem 1.2rem;
 
-  .dark & { border-color: #3d4d44; background: #222f27; }
+  .dark & {
+    border-color: #3d4d44;
+    background: #222f27;
+  }
 }
 
 @utility small-action-tw {
@@ -289,8 +346,14 @@ textarea {
   padding: 0.45rem 0.65rem;
   color: #b94718;
 
-  &:disabled { opacity: 0.45; }
-  .dark & { border-color: #536259; background: #17221b; color: #ff9a6f; }
+  &:disabled {
+    opacity: 0.45;
+  }
+  .dark & {
+    border-color: #536259;
+    background: #17221b;
+    color: #ff9a6f;
+  }
 }
 
 @utility catalog-tools {
@@ -299,8 +362,12 @@ textarea {
   border-bottom: 1px solid #dcd9cf;
   padding: 0.8rem;
 
-  .dark & { border-color: #3d4d44; }
-  @media (width < 40.625rem) { flex-direction: column; }
+  .dark & {
+    border-color: #3d4d44;
+  }
+  @media (width < 40.625rem) {
+    flex-direction: column;
+  }
 }
 
 @utility catalog-search {
@@ -321,13 +388,30 @@ textarea {
     pointer-events: none;
     transform: translateY(-50%);
   }
-  & svg { width: 1rem; height: 1rem; stroke-width: 1.8; }
-  & input { min-height: 2.55rem; }
-  & input::placeholder { color: #818b85; opacity: 1; }
-  & input:disabled::placeholder { color: #a9afab; }
-  .dark & > span { color: #aab7af; }
-  .dark & input::placeholder { color: #8f9c94; }
-  .dark & input:disabled::placeholder { color: #66736b; }
+  & svg {
+    width: 1rem;
+    height: 1rem;
+    stroke-width: 1.8;
+  }
+  & input {
+    min-height: 2.55rem;
+  }
+  & input::placeholder {
+    color: #818b85;
+    opacity: 1;
+  }
+  & input:disabled::placeholder {
+    color: #a9afab;
+  }
+  .dark & > span {
+    color: #aab7af;
+  }
+  .dark & input::placeholder {
+    color: #8f9c94;
+  }
+  .dark & input:disabled::placeholder {
+    color: #66736b;
+  }
 }
 
 @utility segments-tw {
@@ -336,12 +420,30 @@ textarea {
   background: #f9f7f0;
   padding: 0.15rem;
 
-  & button { background: transparent; padding: 0.45rem 0.6rem; color: #68746d; font-size: 0.67rem; }
-  & button:disabled { opacity: 0.4; }
-  & button.segment-selected { background: #17251e; color: white; }
-  .dark & { border-color: #536259; background: #121b16; }
-  .dark & button { color: #aab7af; }
-  .dark & button.segment-selected { background: #e86a33; color: white; }
+  & button {
+    background: transparent;
+    padding: 0.45rem 0.6rem;
+    color: #68746d;
+    font-size: 0.67rem;
+  }
+  & button:disabled {
+    opacity: 0.4;
+  }
+  & button.segment-selected {
+    background: #17251e;
+    color: white;
+  }
+  .dark & {
+    border-color: #536259;
+    background: #121b16;
+  }
+  .dark & button {
+    color: #aab7af;
+  }
+  .dark & button.segment-selected {
+    background: #e86a33;
+    color: white;
+  }
 }
 
 @utility catalog-list {
@@ -351,7 +453,9 @@ textarea {
   overflow-y: auto;
   transition: opacity 150ms;
 
-  @media (width < 65.625rem) { max-height: 30rem; }
+  @media (width < 65.625rem) {
+    max-height: 30rem;
+  }
 }
 
 @utility catalog-row {
@@ -363,19 +467,33 @@ textarea {
   border-bottom: 1px solid #e9e7df;
   padding: 0.75rem 0.9rem;
 
-  &:hover { background: #fcfbf7; }
-  .dark & { border-color: #34423a; }
-  .dark &:hover { background: #202d25; }
-  @media (width < 40.625rem) { align-items: flex-start; }
+  &:hover {
+    background: #fcfbf7;
+  }
+  .dark & {
+    border-color: #34423a;
+  }
+  .dark &:hover {
+    background: #202d25;
+  }
+  @media (width < 40.625rem) {
+    align-items: flex-start;
+  }
 }
 
 @utility catalog-row-selected {
   background: #edf3ef;
   box-shadow: inset 3px 0 #e86a33;
 
-  &:hover { background: #edf3ef; }
-  .dark & { background: #24372c; }
-  .dark &:hover { background: #24372c; }
+  &:hover {
+    background: #edf3ef;
+  }
+  .dark & {
+    background: #24372c;
+  }
+  .dark &:hover {
+    background: #24372c;
+  }
 }
 
 @utility catalog-item-main {
@@ -388,11 +506,27 @@ textarea {
   color: #17251e;
   text-align: left;
 
-  & strong, & small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  & strong { font-size: 0.82rem; }
-  & small { margin-top: 0.18rem; color: #68746d; font-size: 0.64rem; }
-  .dark & { color: #edf3ef; }
-  .dark & small { color: #aab7af; }
+  & strong,
+  & small {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  & strong {
+    font-size: 0.82rem;
+  }
+  & small {
+    margin-top: 0.18rem;
+    color: #68746d;
+    font-size: 0.64rem;
+  }
+  .dark & {
+    color: #edf3ef;
+  }
+  .dark & small {
+    color: #aab7af;
+  }
 }
 
 @utility brand-mark-tw {
@@ -405,7 +539,10 @@ textarea {
   color: #31513f;
   font: 800 0.66rem var(--mono);
 
-  .dark & { background: #2b4938; color: #b8d8c5; }
+  .dark & {
+    background: #2b4938;
+    color: #b8d8c5;
+  }
 }
 
 @utility model-mark-tw {
@@ -419,7 +556,10 @@ textarea {
   color: #9b421d;
   font: 800 0.66rem var(--mono);
 
-  .dark & { background: #4a2b20; color: #ffb294; }
+  .dark & {
+    background: #4a2b20;
+    color: #ffb294;
+  }
 }
 
 @utility catalog-actions {
@@ -427,11 +567,27 @@ textarea {
   flex: 0 0 auto;
   gap: 0.35rem;
 
-  & button { background: transparent; padding: 0.3rem; color: #b94718; font-size: 0.67rem; text-decoration: underline; text-underline-offset: 3px; }
-  & button.catalog-danger { color: #a63725; }
-  .dark & button { color: #ff9a6f; }
-  .dark & button.catalog-danger { color: #ff9e8c; }
-  @media (width < 40.625rem) { flex-direction: column; align-items: flex-end; }
+  & button {
+    background: transparent;
+    padding: 0.3rem;
+    color: #b94718;
+    font-size: 0.67rem;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  & button.catalog-danger {
+    color: #a63725;
+  }
+  .dark & button {
+    color: #ff9a6f;
+  }
+  .dark & button.catalog-danger {
+    color: #ff9e8c;
+  }
+  @media (width < 40.625rem) {
+    flex-direction: column;
+    align-items: flex-end;
+  }
 }
 
 @utility catalog-empty {
@@ -442,10 +598,22 @@ textarea {
   padding: 2rem;
   text-align: center;
 
-  & > span { color: #adb5af; font-size: 2.5rem; }
-  & h3 { margin: 0.5rem 0 0; font: 600 1.35rem var(--display); }
-  & p { margin: 0.35rem 0 1rem; color: #68746d; font-size: 0.78rem; }
-  .dark & p { color: #aab7af; }
+  & > span {
+    color: #adb5af;
+    font-size: 2.5rem;
+  }
+  & h3 {
+    margin: 0.5rem 0 0;
+    font: 600 1.35rem var(--display);
+  }
+  & p {
+    margin: 0.35rem 0 1rem;
+    color: #68746d;
+    font-size: 0.78rem;
+  }
+  .dark & p {
+    color: #aab7af;
+  }
 }
 
 @utility secondary-tw {
@@ -454,7 +622,11 @@ textarea {
   padding: 0.5rem 0.8rem;
   color: #17251e;
 
-  .dark & { border-color: #536259; background: #202d25; color: #edf3ef; }
+  .dark & {
+    border-color: #536259;
+    background: #202d25;
+    color: #edf3ef;
+  }
 }
 
 @utility pagination-tw {
@@ -467,10 +639,26 @@ textarea {
   color: #68746d;
   font-size: 0.68rem;
 
-  & div { display: flex; gap: 0.35rem; }
-  & button { width: 2rem; height: 2rem; border: 1px solid #dcd9cf; background: white; color: #17251e; }
-  .dark & { border-color: #3d4d44; color: #aab7af; }
-  .dark & button { border-color: #536259; background: #202d25; color: #edf3ef; }
+  & div {
+    display: flex;
+    gap: 0.35rem;
+  }
+  & button {
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid #dcd9cf;
+    background: white;
+    color: #17251e;
+  }
+  .dark & {
+    border-color: #3d4d44;
+    color: #aab7af;
+  }
+  .dark & button {
+    border-color: #536259;
+    background: #202d25;
+    color: #edf3ef;
+  }
 }
 
 @utility loader-tw {
@@ -482,9 +670,19 @@ textarea {
   gap: 0.35rem;
   pointer-events: none;
 
-  & span { width: 0.45rem; height: 0.45rem; border-radius: 9999px; background: #e86a33; animation: catalog-pulse 0.8s infinite alternate; }
-  & span:nth-child(2) { animation-delay: 0.2s; }
-  & span:nth-child(3) { animation-delay: 0.4s; }
+  & span {
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 9999px;
+    background: #e86a33;
+    animation: catalog-pulse 0.8s infinite alternate;
+  }
+  & span:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+  & span:nth-child(3) {
+    animation-delay: 0.4s;
+  }
 }
 
 @utility dialog-backdrop {
@@ -505,10 +703,23 @@ textarea {
   color: #17251e;
   box-shadow: 16px 16px 0 rgb(0 0 0 / 0.15);
 
-  & h2 { margin: 0; font: 600 2rem var(--display); }
-  & > p:not(.eyebrow) { margin: 0.65rem 0 1.6rem; color: #68746d; font-size: 0.8rem; }
-  .dark & { background: #1a251f; color: #edf3ef; box-shadow: 16px 16px 0 rgb(0 0 0 / 0.35); }
-  .dark & > p:not(.eyebrow) { color: #aab7af; }
+  & h2 {
+    margin: 0;
+    font: 600 2rem var(--display);
+  }
+  & > p:not(.eyebrow) {
+    margin: 0.65rem 0 1.6rem;
+    color: #68746d;
+    font-size: 0.8rem;
+  }
+  .dark & {
+    background: #1a251f;
+    color: #edf3ef;
+    box-shadow: 16px 16px 0 rgb(0 0 0 / 0.35);
+  }
+  .dark & > p:not(.eyebrow) {
+    color: #aab7af;
+  }
 }
 
 @utility dialog-error-tw {
@@ -519,7 +730,10 @@ textarea {
   color: #8e3214;
   font-size: 0.75rem;
 
-  .dark & { background: #4a241b; color: #ffb89d; }
+  .dark & {
+    background: #4a241b;
+    color: #ffb89d;
+  }
 }
 
 @utility dialog-footer {
@@ -534,9 +748,76 @@ textarea {
   padding: 0.7rem 0.9rem;
   color: #68746d;
 
-  .dark & { color: #aab7af; }
+  .dark & {
+    color: #aab7af;
+  }
+}
+
+@utility detail-label {
+  display: block;
+  color: #68746d;
+  font: 700 0.56rem var(--mono);
+  letter-spacing: 0.08em;
+
+  .dark & {
+    color: #aab7af;
+  }
+}
+
+@utility detail-value {
+  display: block;
+  margin-top: 0.35rem;
+  overflow-wrap: anywhere;
+  font-size: 0.8rem;
+}
+
+@utility status-active {
+  color: #2d7550;
+
+  .dark & {
+    color: #91d2ad;
+  }
+}
+
+@utility client-th {
+  padding: 1rem 1.2rem;
+  color: #68746d;
+  font: 700 0.62rem var(--mono);
+  letter-spacing: 0.1em;
+  text-align: left;
+  text-transform: uppercase;
+
+  .dark & {
+    color: #aab7af;
+  }
+}
+
+@utility client-td {
+  padding: 1rem 1.2rem;
+  color: #3a453f;
+
+  .dark & {
+    color: #d6ded9;
+  }
+}
+
+@utility client-action {
+  background: transparent;
+  padding: 0.4rem;
+  color: #b94718;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+
+  .dark & {
+    color: #ff9a6f;
+  }
 }
 
 @keyframes catalog-pulse {
-  to { transform: scale(1.65); opacity: 0.4; }
+  to {
+    transform: scale(1.65);
+    opacity: 0.4;
+  }
 }
