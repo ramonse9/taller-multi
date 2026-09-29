@@ -2,7 +2,12 @@ import { HttpClient, HttpParams } from "@angular/common/http";
 import { inject, Injectable } from "@angular/core";
 import { Observable } from "rxjs";
 import { environment } from "../../../environments/environment";
-import { Vehicle, VehicleHistory, VehicleInput } from "./vehicle.models";
+import {
+  CreateVehicleInput,
+  UpdateVehicleInput,
+  Vehicle,
+  VehicleHistory,
+} from "./vehicle.models";
 
 @Injectable({ providedIn: "root" })
 export class VehiclesService {
@@ -13,7 +18,7 @@ export class VehiclesService {
     return this.http.get<Vehicle[]>(`${this.endpoint}/${clientId}/vehicles`);
   }
 
-  create(clientId: string, input: VehicleInput): Observable<Vehicle> {
+  create(clientId: string, input: CreateVehicleInput): Observable<Vehicle> {
     return this.http.post<Vehicle>(
       `${this.endpoint}/${clientId}/vehicles`,
       input,
@@ -23,7 +28,7 @@ export class VehiclesService {
   update(
     clientId: string,
     id: string,
-    input: Partial<VehicleInput>,
+    input: UpdateVehicleInput,
   ): Observable<Vehicle> {
     return this.http.patch<Vehicle>(
       `${this.endpoint}/${clientId}/vehicles/${id}`,

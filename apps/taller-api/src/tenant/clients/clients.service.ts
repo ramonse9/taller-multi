@@ -10,17 +10,21 @@ import { quoteIdentifier } from '../../database/schema-name';
 import { TenantSessionService } from '../tenant-session.service';
 import {
   ClientQueryDto,
+  ClientListItemResponseDto,
   ClientResponseDto,
   ClientsTotalResponseDto,
   CreateClientDto,
+  CustomerType,
   PaginatedClientsResponseDto,
   UpdateClientDto,
 } from './dto/client.dto';
 
 interface ClientRow {
   id: string;
-  full_name: string;
-  corporate_customer_id: string | null;
+  customer_type: CustomerType;
+  display_name: string;
+  legal_name: string | null;
+  contact_name: string | null;
   tax_id: string | null;
   email: string | null;
   phone: string | null;
@@ -32,7 +36,12 @@ interface ClientRow {
   updated_at: Date;
 }
 
-const CLIENT_COLUMNS = `id, full_name, corporate_customer_id, tax_id, email, phone, notes,
+interface ClientListRow extends ClientRow {
+  vehicle_count: number;
+}
+
+const CLIENT_COLUMNS = `id, customer_type, display_name, legal_name, contact_name,
+  tax_id, email, phone, notes,
   is_active, created_by_user_id, updated_by_user_id, created_at, updated_at`;
 
 @Injectable()
@@ -45,7 +54,8 @@ export class ClientsService {
       const search = query.search.trim();
       const where = search
         ? `is_active = $1 AND (
-            full_name ILIKE $2 ESCAPE '\\' OR tax_id ILIKE $2 ESCAPE '\\' OR
+            display_name ILIKE $2 ESCAPE '\\' OR legal_name ILIKE $2 ESCAPE '\\' OR
+            contact_name ILIKE $2 ESCAPE '\\' OR tax_id ILIKE $2 ESCAPE '\\' OR
             email ILIKE $2 ESCAPE '\\' OR phone ILIKE $2 ESCAPE '\\'
           )`
         : 'is_active = $1';
@@ -59,11 +69,15 @@ export class ClientsService {
       const totalItems = countRows[0]?.total ?? 0;
       const offset = (query.page - 1) * query.limit;
       const rows = (await runner.query(
-        `SELECT ${CLIENT_COLUMNS} FROM ${table} WHERE ${where}
+        `SELECT ${CLIENT_COLUMNS},
+                (SELECT count(*)::int
+                 FROM ${quoteIdentifier(schema)}.vehicles vehicle
+                 WHERE vehicle.customer_id = customer.id) AS vehicle_count
+         FROM ${table} customer WHERE ${where}
          ORDER BY created_at DESC, id DESC
          LIMIT $${parameters.length + 1} OFFSET $${parameters.length + 2}`,
         [...parameters, query.limit, offset],
-      )) as ClientRow[];
+      )) as ClientListRow[];
       const totalPages = Math.ceil(totalItems / query.limit);
       return {
         page: query.page,
@@ -71,7 +85,7 @@ export class ClientsService {
         totalItems,
         totalPages,
         hasNextPage: query.page < totalPages,
-        items: rows.map((row) => this.toResponse(row)),
+        items: rows.map((row) => this.toListResponse(row)),
       };
     });
   }
@@ -98,13 +112,16 @@ export class ClientsService {
       try {
         const rows = (await runner.query(
           `INSERT INTO ${quoteIdentifier(schema)}.customers
-            (full_name, corporate_customer_id, tax_id, email, phone, notes,
+            (customer_type, display_name, legal_name, contact_name,
+             tax_id, email, phone, notes,
              created_by_user_id, updated_by_user_id)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $7)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9)
            RETURNING ${CLIENT_COLUMNS}`,
           [
-            input.fullName,
-            input.corporateCustomerId ?? null,
+            input.type,
+            input.displayName,
+            input.type === CustomerType.Company ? (input.legalName ?? null) : null,
+            input.type === CustomerType.Company ? (input.contactName ?? null) : null,
             this.normalizeTaxId(input.taxId),
             input.email ?? null,
             input.phone ?? null,
@@ -123,18 +140,28 @@ export class ClientsService {
     return this.tenant.run(user, async (runner, schema) => {
       const current = await this.findOne(runner, schema, id);
       if (!current) throw new NotFoundException('Cliente no encontrado');
+      const customerType = input.type ?? current.customer_type;
       try {
         const result = (await runner.query(
           `UPDATE ${quoteIdentifier(schema)}.customers SET
-             full_name = $2, corporate_customer_id = $3, tax_id = $4, email = $5,
-             phone = $6, notes = $7, is_active = $8, updated_by_user_id = $9, updated_at = now()
+             customer_type = $2, display_name = $3, legal_name = $4, contact_name = $5,
+             tax_id = $6, email = $7, phone = $8, notes = $9, is_active = $10,
+             updated_by_user_id = $11, updated_at = now()
            WHERE id = $1 RETURNING ${CLIENT_COLUMNS}`,
           [
             id,
-            input.fullName ?? current.full_name,
-            input.corporateCustomerId === undefined
-              ? current.corporate_customer_id
-              : input.corporateCustomerId,
+            customerType,
+            input.displayName ?? current.display_name,
+            customerType === CustomerType.Company
+              ? input.legalName === undefined
+                ? current.legal_name
+                : input.legalName
+              : null,
+            customerType === CustomerType.Company
+              ? input.contactName === undefined
+                ? current.contact_name
+                : input.contactName
+              : null,
             input.taxId === undefined ? current.tax_id : this.normalizeTaxId(input.taxId),
             input.email === undefined ? current.email : input.email,
             input.phone === undefined ? current.phone : input.phone,
@@ -174,7 +201,7 @@ export class ClientsService {
     if (error instanceof QueryFailedError) {
       const code = (error.driverError as { code?: string }).code;
       if (code === '23505') throw new ConflictException('Ya existe un cliente con esos datos');
-      if (code === '23503') throw new BadRequestException('La empresa asociada no existe');
+      if (code === '23503') throw new BadRequestException('Una referencia asociada no existe');
     }
     throw error;
   }
@@ -182,8 +209,10 @@ export class ClientsService {
   private toResponse(row: ClientRow): ClientResponseDto {
     return {
       id: row.id,
-      fullName: row.full_name,
-      corporateCustomerId: row.corporate_customer_id,
+      type: row.customer_type,
+      displayName: row.display_name,
+      legalName: row.legal_name,
+      contactName: row.contact_name,
       taxId: row.tax_id,
       email: row.email,
       phone: row.phone,
@@ -193,6 +222,13 @@ export class ClientsService {
       updatedByUserId: row.updated_by_user_id,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
+    };
+  }
+
+  private toListResponse(row: ClientListRow): ClientListItemResponseDto {
+    return {
+      ...this.toResponse(row),
+      vehicleCount: row.vehicle_count,
     };
   }
 }

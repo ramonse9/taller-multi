@@ -3,6 +3,7 @@ import { QueryRunner } from 'typeorm';
 import { PlatformRole } from '../../platform-users/entities/platform-user.entity';
 import { TenantSessionService } from '../tenant-session.service';
 import { ClientsService } from './clients.service';
+import { CustomerType } from './dto/client.dto';
 
 const user = {
   id: 'b9853a5f-c3f2-4096-a379-973b8ed43fea',
@@ -22,8 +23,10 @@ const user = {
 
 const row = {
   id: '983119b6-d8f4-4d6a-aa4c-c7086974b110',
-  full_name: 'Ana López',
-  corporate_customer_id: null,
+  customer_type: CustomerType.Person,
+  display_name: 'Ana López',
+  legal_name: null,
+  contact_name: null,
   tax_id: 'LOPA900101AB1',
   email: 'ana@example.com',
   phone: '6671234567',
@@ -33,6 +36,7 @@ const row = {
   updated_by_user_id: user.id,
   created_at: new Date('2026-01-01T00:00:00Z'),
   updated_at: new Date('2026-01-01T00:00:00Z'),
+  vehicle_count: 2,
 };
 
 describe('ClientsService', () => {
@@ -59,18 +63,30 @@ describe('ClientsService', () => {
     });
 
     expect(result).toMatchObject({ totalItems: 1, totalPages: 1, hasNextPage: false });
-    expect(result.items[0]).toMatchObject({ id: row.id, fullName: 'Ana López' });
+    expect(result.items[0]).toMatchObject({
+      id: row.id,
+      type: CustomerType.Person,
+      displayName: 'Ana López',
+      vehicleCount: 2,
+    });
     expect(query.mock.calls.every(([sql]) => sql.includes('"tenant_alpha".customers'))).toBe(true);
+    expect(query.mock.calls[1]?.[0]).toContain('"tenant_alpha".vehicles');
     expect(query.mock.calls[0]?.[1]).toEqual([true, '%Ana\\%\\_%']);
   });
 
   it('creates with server-controlled audit users and normalizes RFC', async () => {
     query.mockResolvedValueOnce([row]);
 
-    await service.create(user, { fullName: 'Ana López', taxId: 'lopa900101ab1' });
+    await service.create(user, {
+      type: CustomerType.Person,
+      displayName: 'Ana López',
+      taxId: 'lopa900101ab1',
+    });
 
     expect(query.mock.calls[0]?.[1]).toEqual([
+      CustomerType.Person,
       'Ana López',
+      null,
       null,
       'LOPA900101AB1',
       null,

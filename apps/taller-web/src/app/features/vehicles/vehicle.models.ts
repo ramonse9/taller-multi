@@ -16,13 +16,16 @@ export interface Vehicle {
   updatedAt: string;
 }
 
-export interface VehicleInput {
+export interface CreateVehicleInput {
   brandId: string;
   modelId: string;
   year: number;
   color: string;
   numeroSerie: string | null;
   licensePlate: string | null;
+}
+
+export interface UpdateVehicleInput extends Partial<CreateVehicleInput> {
   isActive?: boolean;
 }
 

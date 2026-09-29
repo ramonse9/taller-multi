@@ -16,7 +16,12 @@ import { RouterLink } from "@angular/router";
 import { HttpErrorResponse } from "@angular/common/http";
 import { debounceTime, distinctUntilChanged, finalize } from "rxjs";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
-import { Client, ClientInput, PaginatedClients } from "./client.models";
+import {
+  Client,
+  ClientInput,
+  CustomerType,
+  PaginatedClients,
+} from "./client.models";
 import { ClientsService } from "./clients.service";
 import { ThemeService } from "../../core/theme/theme.service";
 import { apiErrorMessage } from "../../core/http/api-error";
@@ -55,13 +60,22 @@ export class ClientsPage implements OnInit {
   readonly editing = signal<Client | null>(null);
   readonly search = new FormControl("", { nonNullable: true });
   readonly form = new FormGroup({
-    fullName: new FormControl("", {
+    type: new FormControl<CustomerType>("person", { nonNullable: true }),
+    displayName: new FormControl("", {
       nonNullable: true,
       validators: [
         Validators.required,
         Validators.minLength(2),
         Validators.maxLength(180),
       ],
+    }),
+    legalName: new FormControl("", {
+      nonNullable: true,
+      validators: [Validators.maxLength(180)],
+    }),
+    contactName: new FormControl("", {
+      nonNullable: true,
+      validators: [Validators.maxLength(180)],
     }),
     taxId: new FormControl("", {
       nonNullable: true,
@@ -127,7 +141,10 @@ export class ClientsPage implements OnInit {
   openCreate(): void {
     this.editing.set(null);
     this.form.reset({
-      fullName: "",
+      type: "person",
+      displayName: "",
+      legalName: "",
+      contactName: "",
       taxId: "",
       email: "",
       phoneCountryCode: "+52",
@@ -142,7 +159,10 @@ export class ClientsPage implements OnInit {
     const phone = this.splitPhone(client.phone);
     this.editing.set(client);
     this.form.reset({
-      fullName: client.fullName,
+      type: client.type,
+      displayName: client.displayName,
+      legalName: client.legalName ?? "",
+      contactName: client.contactName ?? "",
       taxId: client.taxId ?? "",
       email: client.email ?? "",
       phoneCountryCode: phone.countryCode,
@@ -166,7 +186,11 @@ export class ClientsPage implements OnInit {
     this.error.set("");
     const raw = this.form.getRawValue();
     const input: ClientInput = {
-      fullName: raw.fullName.trim(),
+      type: raw.type,
+      displayName: raw.displayName.trim(),
+      legalName: raw.type === "company" ? raw.legalName.trim() || null : null,
+      contactName:
+        raw.type === "company" ? raw.contactName.trim() || null : null,
       taxId: raw.taxId.trim() || null,
       email: raw.email.trim() || null,
       phone: this.internationalPhone(raw.phoneCountryCode, raw.phone),

@@ -72,7 +72,7 @@ export class VehiclesService {
   ): Promise<VehicleHistoryResponseDto> {
     return this.tenant.run(user, async (runner, schema) => {
       const rows = (await runner.query(
-        `SELECT ${VEHICLE_COLUMNS}, customer.full_name AS customer_name,
+        `SELECT ${VEHICLE_COLUMNS}, customer.display_name AS customer_name,
                 service_order.id AS order_id, service_order.folio::text AS order_folio,
                 service_order.status AS order_status,
                 service_order.opened_at AS order_opened_at,
@@ -85,7 +85,7 @@ export class VehiclesService {
            ON service_order.vehicle_id = vehicle.id
          WHERE vehicle.serial_number = $1
            AND ($2::uuid IS NULL OR vehicle.brand_id = $2)
-         ORDER BY brand.name, model.name, customer.full_name, service_order.opened_at DESC`,
+         ORDER BY brand.name, model.name, customer.display_name, service_order.opened_at DESC`,
         [query.numeroSerie, query.brandId ?? null],
       )) as VehicleHistoryRow[];
 

@@ -32,7 +32,7 @@
   <section class="px-[clamp(1.5rem,5vw,5rem)] pb-16 pt-9 max-sm:pt-6">
     <div class="mb-7 flex items-end justify-between gap-8">
       <p class="m-0 text-[#68746d] dark:text-[#aab7af]">
-        Directorio de personas atendidas por tu compañía.
+        Directorio de personas y empresas atendidas por tu compañía.
       </p>
       <div class="flex items-baseline gap-2">
         <strong class="font-[var(--display)] text-3xl font-semibold"
@@ -124,13 +124,13 @@
               <div class="flex min-w-52 items-center gap-3">
                 <span
                   class="grid size-10 shrink-0 place-items-center rounded-full bg-[#e6eee9] text-xs font-extrabold text-[#2f5944] dark:bg-[#2b4938] dark:text-[#b8d8c5]"
-                  >{{ initials(client.fullName) }}</span
+                  >{{ initials(client.displayName) }}</span
                 >
                 <div>
-                  <strong class="block text-sm">{{ client.fullName }}</strong
+                  <strong class="block text-sm">{{ client.displayName }}</strong
                   ><small class="mt-1 block text-[0.7rem] text-[#879089]"
-                    >{{ client.isActive ? 'Cliente activo' : 'Cliente inactivo'
-                    }}</small
+                    >{{ client.type === 'company' ? 'Empresa' : 'Persona' }} ·
+                    {{ client.isActive ? 'Activo' : 'Inactivo' }}</small
                   >
                 </div>
               </div>
@@ -151,7 +151,7 @@
             <td class="client-td">
               <div class="flex justify-end gap-2 whitespace-nowrap">
                 <a class="client-action" [routerLink]="['/clients', client.id]"
-                  >Vehículos</a
+                  >Vehículos ({{ client.vehicleCount }})</a
                 ><button
                   class="client-action"
                   type="button"
@@ -265,21 +265,65 @@
       novalidate
     >
       <div class="sm:col-span-2">
-        <label class="field-label" for="fullName"
-          >Nombre completo <b>*</b></label
+        <span class="field-label">Tipo de cliente <b>*</b></span>
+        <div class="segments-tw mt-1 inline-flex" aria-label="Tipo de cliente">
+          <button
+            type="button"
+            [class.segment-selected]="form.controls.type.value === 'person'"
+            (click)="form.controls.type.setValue('person')"
+          >
+            Persona</button
+          ><button
+            type="button"
+            [class.segment-selected]="form.controls.type.value === 'company'"
+            (click)="form.controls.type.setValue('company')"
+          >
+            Empresa
+          </button>
+        </div>
+      </div>
+
+      <div class="sm:col-span-2">
+        <label class="field-label" for="displayName"
+          >{{ form.controls.type.value === 'company' ? 'Nombre comercial' :
+          'Nombre completo' }} <b>*</b></label
         ><input
           class="field-control"
-          id="fullName"
-          formControlName="fullName"
+          id="displayName"
+          formControlName="displayName"
           autocomplete="name"
-          placeholder="Ej. Ana López García"
-        />@if (form.controls.fullName.touched && form.controls.fullName.invalid)
-        {
+          [placeholder]="form.controls.type.value === 'company' ? 'Ej. Transportes del Pacífico' : 'Ej. Ana López García'"
+        />@if (form.controls.displayName.touched &&
+        form.controls.displayName.invalid) {
         <small class="field-error"
           >Escribe un nombre de 2 a 180 caracteres.</small
         >
         }
       </div>
+
+      @if (form.controls.type.value === 'company') {
+      <div class="sm:col-span-2">
+        <label class="field-label" for="legalName">Razón social</label
+        ><input
+          class="field-control"
+          id="legalName"
+          formControlName="legalName"
+          maxlength="180"
+          placeholder="Ej. Transportes del Pacífico, S.A. de C.V."
+        />
+      </div>
+      <div class="sm:col-span-2">
+        <label class="field-label" for="contactName">Contacto principal</label
+        ><input
+          class="field-control"
+          id="contactName"
+          formControlName="contactName"
+          maxlength="180"
+          autocomplete="name"
+          placeholder="Ej. Pedro López"
+        />
+      </div>
+      }
 
       <div class="sm:col-span-2">
         <label class="field-label" for="phone">Teléfono</label>

@@ -14,8 +14,16 @@
       <h1
         class="m-0 font-[var(--display)] text-[clamp(2.25rem,4vw,4rem)] font-semibold leading-[0.9] tracking-[-0.05em]"
       >
-        {{ client()?.fullName || 'Detalle del cliente' }}
+        {{ client()?.displayName || 'Detalle del cliente' }}
       </h1>
+      @if (client(); as headingClient) {
+      <p class="mt-3 text-sm text-[#68746d] dark:text-[#aab7af]">
+        {{ headingClient.type === 'company' ? 'Empresa' : 'Persona' }} @if
+        (headingClient.legalName) { · {{ headingClient.legalName }} } @if
+        (headingClient.contactName) { · Contacto: {{ headingClient.contactName
+        }} }
+      </p>
+      }
     </div>
     <div class="flex items-center gap-2">
       <button
@@ -255,7 +263,7 @@
           {{ editing() ? 'Actualizar vehículo' : 'Registrar vehículo' }}
         </h2>
         <p class="mt-2 text-sm text-[#68746d] dark:text-[#aab7af]">
-          {{ client()?.fullName }}
+          {{ client()?.displayName }}
         </p>
       </div>
       <button
@@ -274,37 +282,94 @@
       novalidate
     >
       <div>
-        <label class="field-label" for="vehicle-brand">Marca <b>*</b></label
-        ><select
+        <label class="field-label" for="vehicle-brand">Marca <b>*</b></label>
+        <input
           class="field-control"
           id="vehicle-brand"
-          formControlName="brandId"
-          (change)="brandChanged()"
-        >
-          <option value="">Selecciona una marca</option>
+          type="search"
+          [formControl]="brandSearch"
+          list="vehicle-brand-options"
+          autocomplete="off"
+          placeholder="Buscar o escribir una marca"
+          (input)="brandSearchChanged()"
+        />
+        <datalist id="vehicle-brand-options">
           @for (brand of brands(); track brand.id) {
-          <option [value]="brand.id">{{ brand.name }}</option>
-          }</select
-        >@if (form.controls.brandId.touched && form.controls.brandId.invalid) {
-        <small class="field-error">Selecciona una marca.</small> }
+          <option [value]="brand.name"></option>
+          }
+        </datalist>
+        @if (canCreateBrand()) {
+        <button
+          class="mt-2 bg-transparent p-0 text-left text-xs font-bold text-[#b94718] underline underline-offset-4 dark:text-[#ff9a6f]"
+          type="button"
+          [disabled]="savingCatalog()"
+          (click)="createBrand()"
+        >
+          {{ savingCatalog() ? 'Creando marca…' : '＋ Crear marca “' +
+          brandSearch.value.trim() + '”' }}
+        </button>
+        } @else if (brandSearch.value && !form.controls.brandId.value &&
+        !canManageCatalog()) {
+        <span class="field-hint"
+          >La marca no existe. Solicita su creación a un administrador.</span
+        >
+        } @if (form.controls.brandId.touched && form.controls.brandId.invalid) {
+        <small class="field-error">Selecciona o crea una marca.</small> }
       </div>
       <div>
-        <label class="field-label" for="vehicle-model">Modelo <b>*</b></label
-        ><select
+        <label class="field-label" for="vehicle-model">Modelo <b>*</b></label>
+        <input
           class="field-control"
           id="vehicle-model"
-          formControlName="modelId"
-          [disabled]="!form.controls.brandId.value || loadingModels()"
-        >
-          <option value="">
-            {{ loadingModels() ? 'Cargando modelos…' : 'Selecciona un modelo' }}
-          </option>
+          type="search"
+          [formControl]="modelSearch"
+          list="vehicle-model-options"
+          autocomplete="off"
+          placeholder="Buscar o escribir un modelo"
+          [readOnly]="!form.controls.brandId.value || loadingModels()"
+          [class.opacity-60]="!form.controls.brandId.value || loadingModels()"
+          (input)="modelSearchChanged()"
+        />
+        <datalist id="vehicle-model-options">
           @for (model of models(); track model.id) {
-          <option [value]="model.id">{{ model.name }}</option>
-          }</select
-        >@if (form.controls.modelId.touched && form.controls.modelId.invalid) {
-        <small class="field-error">Selecciona un modelo.</small> }
+          <option [value]="model.name"></option>
+          }
+        </datalist>
+        @if (loadingModels()) {
+        <span class="field-hint">Cargando modelos…</span>
+        } @else if (canCreateModel()) {
+        <button
+          class="mt-2 bg-transparent p-0 text-left text-xs font-bold text-[#b94718] underline underline-offset-4 dark:text-[#ff9a6f]"
+          type="button"
+          [disabled]="savingCatalog()"
+          (click)="createModel()"
+        >
+          {{ savingCatalog() ? 'Creando modelo…' : '＋ Crear modelo “' +
+          modelSearch.value.trim() + '”' }}
+        </button>
+        } @else if (modelSearch.value && !form.controls.modelId.value &&
+        !canManageCatalog()) {
+        <span class="field-hint"
+          >El modelo no existe. Solicita su creación a un administrador.</span
+        >
+        } @if (form.controls.modelId.touched && form.controls.modelId.invalid) {
+        <small class="field-error">Selecciona o crea un modelo.</small> }
       </div>
+      @if (catalogNotice()) {
+      <div
+        class="col-span-full bg-[#e7f2eb] px-4 py-3 text-sm text-[#245b3b] dark:bg-[#203c2c] dark:text-[#9ed5b3]"
+        role="status"
+      >
+        ✓ {{ catalogNotice() }}
+      </div>
+      } @if (catalogError()) {
+      <div
+        class="col-span-full bg-[#fff0ea] px-4 py-3 text-sm text-[#8e3214] dark:bg-[#4a241b] dark:text-[#ffb89d]"
+        role="alert"
+      >
+        {{ catalogError() }}
+      </div>
+      }
       <div>
         <label class="field-label" for="vehicle-year">Año <b>*</b></label
         ><input
@@ -385,7 +450,7 @@
         ><button
           class="primary"
           type="submit"
-          [disabled]="saving() || loadingModels()"
+          [disabled]="saving() || savingCatalog() || loadingModels()"
         >
           {{ saving() ? 'Guardando…' : 'Guardar vehículo' }}
         </button>

@@ -3,10 +3,10 @@ import { Transform, Type } from 'class-transformer';
 import {
   IsBoolean,
   IsEmail,
+  IsEnum,
   IsInt,
   IsOptional,
   IsString,
-  IsUUID,
   Length,
   Matches,
   Max,
@@ -22,17 +22,35 @@ const normalizeNullableEmail = ({ value }: { value: unknown }): unknown =>
 const normalizeNullableTaxId = ({ value }: { value: unknown }): unknown =>
   typeof value === 'string' ? value.trim().toUpperCase() || null : value;
 
+export enum CustomerType {
+  Person = 'person',
+  Company = 'company',
+}
+
 export class CreateClientDto {
+  @ApiProperty({ enum: CustomerType, default: CustomerType.Person })
+  @IsEnum(CustomerType)
+  type!: CustomerType;
+
   @ApiProperty({ example: 'Ana López' })
   @Transform(trimNullableString)
   @IsString()
   @Length(2, 180)
-  fullName!: string;
+  displayName!: string;
 
-  @ApiPropertyOptional({ nullable: true, format: 'uuid' })
+  @ApiPropertyOptional({ example: 'Transportes del Pacífico, S.A. de C.V.', nullable: true })
+  @Transform(trimNullableString)
   @IsOptional()
-  @IsUUID()
-  corporateCustomerId?: string | null;
+  @IsString()
+  @Length(2, 180)
+  legalName?: string | null;
+
+  @ApiPropertyOptional({ example: 'Pedro López', nullable: true })
+  @Transform(trimNullableString)
+  @IsOptional()
+  @IsString()
+  @Length(2, 180)
+  contactName?: string | null;
 
   @ApiPropertyOptional({ example: 'LOPA900101AB1', nullable: true })
   @Transform(normalizeNullableTaxId)
@@ -102,8 +120,10 @@ export class ClientQueryDto {
 
 export class ClientResponseDto {
   @ApiProperty({ format: 'uuid' }) id!: string;
-  @ApiProperty() fullName!: string;
-  @ApiProperty({ nullable: true, type: String }) corporateCustomerId!: string | null;
+  @ApiProperty({ enum: CustomerType }) type!: CustomerType;
+  @ApiProperty() displayName!: string;
+  @ApiProperty({ nullable: true, type: String }) legalName!: string | null;
+  @ApiProperty({ nullable: true, type: String }) contactName!: string | null;
   @ApiProperty({ nullable: true, type: String }) taxId!: string | null;
   @ApiProperty({ nullable: true, type: String }) email!: string | null;
   @ApiProperty({ nullable: true, type: String }) phone!: string | null;
@@ -115,13 +135,19 @@ export class ClientResponseDto {
   @ApiProperty() updatedAt!: Date;
 }
 
+export class ClientListItemResponseDto extends ClientResponseDto {
+  @ApiProperty({ minimum: 0, description: 'Cantidad total de vehículos asociados al cliente' })
+  vehicleCount!: number;
+}
+
 export class PaginatedClientsResponseDto {
   @ApiProperty() page!: number;
   @ApiProperty() limit!: number;
   @ApiProperty() totalItems!: number;
   @ApiProperty() totalPages!: number;
   @ApiProperty() hasNextPage!: boolean;
-  @ApiProperty({ type: ClientResponseDto, isArray: true }) items!: ClientResponseDto[];
+  @ApiProperty({ type: ClientListItemResponseDto, isArray: true })
+  items!: ClientListItemResponseDto[];
 }
 
 export class ClientsTotalResponseDto {

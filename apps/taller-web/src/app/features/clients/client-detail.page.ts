@@ -3,6 +3,7 @@ import {
   Component,
   DestroyRef,
   OnInit,
+  computed,
   inject,
   signal,
 } from "@angular/core";
@@ -15,6 +16,7 @@ import {
 } from "@angular/forms";
 import { ActivatedRoute, RouterLink } from "@angular/router";
 import { finalize, forkJoin } from "rxjs";
+import { AuthService } from "../../core/auth/auth.service";
 import { apiErrorMessage } from "../../core/http/api-error";
 import { formatShortDate } from "../../core/dates/date-format";
 import { ThemeService } from "../../core/theme/theme.service";
@@ -25,9 +27,9 @@ import {
 } from "../vehicle-catalog/vehicle-catalog.models";
 import { VehicleCatalogService } from "../vehicle-catalog/vehicle-catalog.service";
 import {
+  CreateVehicleInput,
   Vehicle,
   VehicleHistory,
-  VehicleInput,
 } from "../vehicles/vehicle.models";
 import { VehiclesService } from "../vehicles/vehicles.service";
 import { Client } from "./client.models";
@@ -49,6 +51,7 @@ export class ClientDetailPage implements OnInit {
   private readonly vehiclesService = inject(VehiclesService);
   private readonly catalog = inject(VehicleCatalogService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly auth = inject(AuthService);
   readonly theme = inject(ThemeService);
   readonly formatShortDate = formatShortDate;
 
@@ -60,13 +63,23 @@ export class ClientDetailPage implements OnInit {
   readonly loading = signal(true);
   readonly loadingModels = signal(false);
   readonly saving = signal(false);
+  readonly savingCatalog = signal(false);
   readonly loadingHistory = signal(false);
   readonly error = signal("");
+  readonly catalogError = signal("");
+  readonly catalogNotice = signal("");
   readonly notice = signal("");
   readonly editorOpen = signal(false);
   readonly editing = signal<Vehicle | null>(null);
   readonly history = signal<VehicleHistory | null>(null);
   readonly maxYear = new Date().getFullYear() + 1;
+  readonly canManageCatalog = computed(() => {
+    const role = this.auth.user()?.role;
+    return role === "company_admin" || role === "platform_admin";
+  });
+
+  readonly brandSearch = new FormControl("", { nonNullable: true });
+  readonly modelSearch = new FormControl("", { nonNullable: true });
 
   readonly form = new FormGroup({
     brandId: new FormControl("", {
@@ -144,6 +157,9 @@ export class ClientDetailPage implements OnInit {
   openCreate(): void {
     this.editing.set(null);
     this.models.set([]);
+    this.brandSearch.setValue("");
+    this.modelSearch.setValue("");
+    this.clearCatalogFeedback();
     this.form.reset({
       brandId: "",
       modelId: "",
@@ -158,6 +174,9 @@ export class ClientDetailPage implements OnInit {
 
   openEdit(vehicle: Vehicle): void {
     this.editing.set(vehicle);
+    this.brandSearch.setValue(vehicle.brandName);
+    this.modelSearch.setValue(vehicle.modelName);
+    this.clearCatalogFeedback();
     this.form.reset({
       brandId: vehicle.brandId,
       modelId: vehicle.modelId,
@@ -172,14 +191,109 @@ export class ClientDetailPage implements OnInit {
   }
 
   closeEditor(): void {
-    if (!this.saving()) this.editorOpen.set(false);
+    if (!this.saving() && !this.savingCatalog()) this.editorOpen.set(false);
   }
 
-  brandChanged(): void {
-    const brandId = this.form.controls.brandId.value;
+  brandSearchChanged(): void {
+    this.clearCatalogFeedback();
+    const brand = this.findBrand(this.brandSearch.value);
+    const brandId = brand?.id ?? "";
+    if (this.form.controls.brandId.value === brandId) return;
+    this.form.controls.brandId.setValue(brandId);
     this.form.controls.modelId.setValue("");
+    this.modelSearch.setValue("");
     this.models.set([]);
     if (brandId) this.loadModels(brandId);
+  }
+
+  modelSearchChanged(): void {
+    this.clearCatalogFeedback();
+    const model = this.findModel(this.modelSearch.value);
+    this.form.controls.modelId.setValue(model?.id ?? "");
+  }
+
+  canCreateBrand(): boolean {
+    const name = this.cleanCatalogName(this.brandSearch.value);
+    return (
+      this.canManageCatalog() &&
+      name.length >= 2 &&
+      name.length <= 100 &&
+      !this.findBrand(name)
+    );
+  }
+
+  canCreateModel(): boolean {
+    const name = this.cleanCatalogName(this.modelSearch.value);
+    return (
+      this.canManageCatalog() &&
+      !!this.form.controls.brandId.value &&
+      name.length >= 1 &&
+      name.length <= 100 &&
+      !this.findModel(name)
+    );
+  }
+
+  createBrand(): void {
+    const name = this.cleanCatalogName(this.brandSearch.value);
+    if (!this.canCreateBrand() || this.savingCatalog()) return;
+    this.savingCatalog.set(true);
+    this.clearCatalogFeedback();
+    this.catalog
+      .createBrand(name)
+      .pipe(
+        finalize(() => this.savingCatalog.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (brand) => {
+          this.brands.update((brands) =>
+            [...brands.filter(({ id }) => id !== brand.id), brand].sort(
+              (left, right) => left.name.localeCompare(right.name, "es"),
+            ),
+          );
+          this.brandSearch.setValue(brand.name);
+          this.form.controls.brandId.setValue(brand.id);
+          this.modelSearch.setValue("");
+          this.form.controls.modelId.setValue("");
+          this.models.set([]);
+          this.catalogNotice.set(`Marca ${brand.name} creada y seleccionada.`);
+          this.loadModels(brand.id);
+        },
+        error: (error: unknown) =>
+          this.catalogError.set(
+            apiErrorMessage(error, "No pudimos crear la marca."),
+          ),
+      });
+  }
+
+  createModel(): void {
+    const brandId = this.form.controls.brandId.value;
+    const name = this.cleanCatalogName(this.modelSearch.value);
+    if (!brandId || !this.canCreateModel() || this.savingCatalog()) return;
+    this.savingCatalog.set(true);
+    this.clearCatalogFeedback();
+    this.catalog
+      .createModel(brandId, name)
+      .pipe(
+        finalize(() => this.savingCatalog.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (model) => {
+          this.models.update((models) =>
+            [...models.filter(({ id }) => id !== model.id), model].sort(
+              (left, right) => left.name.localeCompare(right.name, "es"),
+            ),
+          );
+          this.modelSearch.setValue(model.name);
+          this.form.controls.modelId.setValue(model.id);
+          this.catalogNotice.set(`Modelo ${model.name} creado y seleccionado.`);
+        },
+        error: (error: unknown) =>
+          this.catalogError.set(
+            apiErrorMessage(error, "No pudimos crear el modelo."),
+          ),
+      });
   }
 
   formatNumeroSerie(): void {
@@ -201,26 +315,28 @@ export class ClientDetailPage implements OnInit {
   }
 
   save(): void {
-    if (this.form.invalid || this.saving()) {
+    if (this.form.invalid || this.saving() || this.savingCatalog()) {
       this.form.markAllAsTouched();
       return;
     }
     const raw = this.form.getRawValue();
     if (raw.year === null) return;
-    const input: VehicleInput = {
+    const input: CreateVehicleInput = {
       brandId: raw.brandId,
       modelId: raw.modelId,
       year: raw.year,
       color: raw.color.trim(),
       numeroSerie: raw.numeroSerie.trim() || null,
       licensePlate: raw.licensePlate.trim() || null,
-      isActive: raw.isActive,
     };
     const current = this.editing();
     this.saving.set(true);
     this.error.set("");
     const request = current
-      ? this.vehiclesService.update(this.clientId, current.id, input)
+      ? this.vehiclesService.update(this.clientId, current.id, {
+          ...input,
+          isActive: raw.isActive,
+        })
       : this.vehiclesService.create(this.clientId, input);
     request
       .pipe(
@@ -306,14 +422,49 @@ export class ClientDetailPage implements OnInit {
       .subscribe({
         next: (page: PaginatedCatalog<VehicleModel>) => {
           this.models.set(page.items);
-          if (selectedModelId)
+          if (selectedModelId) {
             this.form.controls.modelId.setValue(selectedModelId);
+            const selected = page.items.find(
+              ({ id }) => id === selectedModelId,
+            );
+            if (selected) this.modelSearch.setValue(selected.name);
+          }
         },
         error: (error: unknown) =>
           this.error.set(
             apiErrorMessage(error, "No pudimos cargar los modelos."),
           ),
       });
+  }
+
+  private findBrand(name: string): VehicleBrand | undefined {
+    const normalized = this.normalizeCatalogName(name);
+    return this.brands().find(
+      (brand) => this.normalizeCatalogName(brand.name) === normalized,
+    );
+  }
+
+  private findModel(name: string): VehicleModel | undefined {
+    const normalized = this.normalizeCatalogName(name);
+    return this.models().find(
+      (model) => this.normalizeCatalogName(model.name) === normalized,
+    );
+  }
+
+  private cleanCatalogName(name: string): string {
+    return name.trim().replace(/\s+/g, " ");
+  }
+
+  private normalizeCatalogName(name: string): string {
+    return this.cleanCatalogName(name)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLocaleLowerCase("es-MX");
+  }
+
+  private clearCatalogFeedback(): void {
+    this.catalogError.set("");
+    this.catalogNotice.set("");
   }
 
   private showNotice(message: string): void {

@@ -8,7 +8,7 @@ export interface TenantMigration {
   up(queryRunner: QueryRunner, schemaName: string): Promise<void>;
 }
 
-export const TENANT_BASE_VERSION = 2;
+export const TENANT_BASE_VERSION = 3;
 export const TENANT_BASE_NAME = 'tenant-base';
 
 /**
@@ -27,26 +27,24 @@ export class TenantMigrator {
 
   baseStatements(s: string): string[] {
     return [
-      `CREATE TABLE ${s}.corporate_customers (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-        legal_name varchar(180) NOT NULL,
-        tax_id varchar(20), email citext, phone varchar(30),
-        is_active boolean NOT NULL DEFAULT true,
-        created_by_user_id uuid NOT NULL REFERENCES public.users(id),
-        created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
-        UNIQUE (legal_name), UNIQUE (tax_id)
-      )`,
       `CREATE TABLE ${s}.customers (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-        corporate_customer_id uuid REFERENCES ${s}.corporate_customers(id) ON DELETE SET NULL,
-        full_name varchar(180) NOT NULL, tax_id varchar(20), email citext, phone varchar(30), notes text,
+        customer_type varchar(10) NOT NULL DEFAULT 'person'
+          CHECK (customer_type IN ('person', 'company')),
+        display_name varchar(180) NOT NULL,
+        legal_name varchar(180), contact_name varchar(180),
+        tax_id varchar(20), email citext, phone varchar(30), notes text,
         is_active boolean NOT NULL DEFAULT true,
         created_by_user_id uuid NOT NULL REFERENCES public.users(id),
         updated_by_user_id uuid NOT NULL REFERENCES public.users(id),
         created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
-        UNIQUE (tax_id)
+        UNIQUE (tax_id),
+        CHECK (
+          customer_type = 'company' OR
+          (legal_name IS NULL AND contact_name IS NULL)
+        )
       )`,
-      `CREATE INDEX customers_name_idx ON ${s}.customers (lower(full_name))`,
+      `CREATE INDEX customers_display_name_idx ON ${s}.customers (lower(display_name))`,
       `CREATE TABLE ${s}.vehicles (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
         customer_id uuid NOT NULL REFERENCES ${s}.customers(id) ON DELETE RESTRICT,

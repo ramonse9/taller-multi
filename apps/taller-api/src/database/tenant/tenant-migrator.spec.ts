@@ -26,4 +26,18 @@ describe('TenantMigrator', () => {
     expect(vehicles).not.toContain('vin ');
     expect(vehicles).not.toContain('odometer');
   });
+
+  it('uses one customer table for people and companies', () => {
+    const statements = new TenantMigrator().baseStatements('"tenant_test"');
+    const customers = statements.find((sql) =>
+      sql.includes('CREATE TABLE "tenant_test".customers'),
+    );
+
+    expect(customers).toContain("customer_type IN ('person', 'company')");
+    expect(customers).toContain('display_name varchar(180) NOT NULL');
+    expect(customers).toContain('legal_name varchar(180)');
+    expect(customers).toContain('contact_name varchar(180)');
+    expect(statements.join('\n')).not.toContain('corporate_customers');
+    expect(statements.join('\n')).not.toContain('corporate_customer_id');
+  });
 });

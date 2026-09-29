@@ -14,6 +14,7 @@ import { AuthSessions1700000003000 } from '../../src/database/migrations/public/
 import { MobilePasswordRecovery1700000004000 } from '../../src/database/migrations/public/1700000004000-mobile-password-recovery';
 import { VehicleCatalogAudit1700000005000 } from '../../src/database/migrations/public/1700000005000-vehicle-catalog-audit';
 import { TenantVehicleProfile1700000006000 } from '../../src/database/migrations/public/1700000006000-tenant-vehicle-profile';
+import { UnifiedCustomers1700000007000 } from '../../src/database/migrations/public/1700000007000-unified-customers';
 import { quoteIdentifier } from '../../src/database/schema-name';
 import { seedPublicCatalogs } from '../../src/database/seeds/public-catalogs.seed';
 
@@ -60,7 +61,10 @@ interface UserResponse {
 
 interface ClientResponse {
   id: string;
-  fullName: string;
+  type: 'person' | 'company';
+  displayName: string;
+  legalName: string | null;
+  contactName: string | null;
   createdByUserId: string;
   updatedByUserId: string;
 }
@@ -164,6 +168,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         MobilePasswordRecovery1700000004000,
         VehicleCatalogAudit1700000005000,
         TenantVehicleProfile1700000006000,
+        UnifiedCustomers1700000007000,
       ],
       migrationsTableName: 'public_schema_migrations',
       synchronize: false,
@@ -267,11 +272,11 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
 
     const alphaClient = await request<ClientResponse>('POST', '/clients', {
       token: alpha.accessToken,
-      body: { fullName: 'Cliente exclusivo Alpha' },
+      body: { type: 'person', displayName: 'Cliente exclusivo Alpha' },
     });
     const betaClient = await request<ClientResponse>('POST', '/clients', {
       token: beta.accessToken,
-      body: { fullName: 'Cliente exclusivo Beta' },
+      body: { type: 'person', displayName: 'Cliente exclusivo Beta' },
     });
     expect(alphaClient.status).toBe(201);
     expect(betaClient.status).toBe(201);
@@ -287,15 +292,15 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(foreignLookup.status).toBe(404);
 
     const [alphaRows, betaRows] = await Promise.all([
-      control.query<Array<{ full_name: string }>>(
-        `SELECT full_name FROM ${quoteIdentifier(alpha.company.schemaName)}.customers`,
+      control.query<Array<{ display_name: string }>>(
+        `SELECT display_name FROM ${quoteIdentifier(alpha.company.schemaName)}.customers`,
       ),
-      control.query<Array<{ full_name: string }>>(
-        `SELECT full_name FROM ${quoteIdentifier(beta.company.schemaName)}.customers`,
+      control.query<Array<{ display_name: string }>>(
+        `SELECT display_name FROM ${quoteIdentifier(beta.company.schemaName)}.customers`,
       ),
     ]);
-    expect(alphaRows).toEqual([{ full_name: 'Cliente exclusivo Alpha' }]);
-    expect(betaRows).toEqual([{ full_name: 'Cliente exclusivo Beta' }]);
+    expect(alphaRows).toEqual([{ display_name: 'Cliente exclusivo Alpha' }]);
+    expect(betaRows).toEqual([{ display_name: 'Cliente exclusivo Beta' }]);
   });
 
   it('reutiliza el pool y libera las conexiones tenant después de cada solicitud', async () => {
@@ -429,7 +434,8 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     const createdClient = await request<ClientResponse>('POST', '/clients', {
       token: permanentLogin.body.accessToken,
       body: {
-        fullName: 'Cliente del flujo completo',
+        type: 'person',
+        displayName: 'Cliente del flujo completo',
         email: 'cliente.flujo@test.local',
         phone: '6671234567',
       },
@@ -447,7 +453,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       token: permanentLogin.body.accessToken,
     });
     expect(fetched.status).toBe(200);
-    expect(fetched.body.fullName).toBe('Cliente del flujo completo');
+    expect(fetched.body.displayName).toBe('Cliente del flujo completo');
 
     const updated = await request<ClientResponse>('PATCH', `/clients/${createdClient.body.id}`, {
       token: permanentLogin.body.accessToken,
@@ -456,7 +462,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(updated.status).toBe(200);
     expect(updated.body).toMatchObject({
       id: createdClient.body.id,
-      fullName: 'Cliente del flujo completo',
+      displayName: 'Cliente del flujo completo',
       updatedByUserId: createdUser.body.id,
     });
   });
@@ -674,7 +680,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     const tenant = await provisionAndLogin('Vehicles Integration', 'vehicles.admin@test.local');
     const client = await request<ClientResponse>('POST', '/clients', {
       token: tenant.accessToken,
-      body: { fullName: 'Cliente con vehículo' },
+      body: { type: 'company', displayName: 'Flotilla con vehículo' },
     });
     expect(client.status).toBe(201);
 
@@ -729,7 +735,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
 
     const secondClient = await request<ClientResponse>('POST', '/clients', {
       token: tenant.accessToken,
-      body: { fullName: 'Segundo cliente con el mismo vehículo' },
+      body: { type: 'person', displayName: 'Segundo cliente con el mismo vehículo' },
     });
     const secondVehicle = await request<VehicleResponse>(
       'POST',
