@@ -33,6 +33,7 @@ export class CompaniesService {
         input.companyTypeCode,
         input.personTypeCode,
         input.admin.timezoneCode,
+        input.planCode ?? 'basic',
       );
       const sequenceRows = (await runner.query(
         "SELECT nextval('public.tenant_schema_number_seq')::text AS number",
@@ -66,6 +67,27 @@ export class CompaniesService {
         withholdsIva: input.withholdsIva,
       });
       const saved = await runner.manager.save(company);
+      const trialDays = input.trialDays ?? 14;
+      const planCode = input.planCode ?? 'basic';
+      const status = trialDays > 0 ? 'trialing' : 'active';
+      await runner.query(
+        `INSERT INTO public.company_subscriptions(
+           company_id, plan_code, status, trial_starts_at, trial_ends_at,
+           current_period_starts_at
+         ) VALUES (
+           $1, $2, $3,
+           CASE WHEN $4::integer > 0 THEN now() ELSE NULL END,
+           CASE WHEN $4::integer > 0 THEN now() + make_interval(days => $4) ELSE NULL END,
+           CASE WHEN $4::integer = 0 THEN now() ELSE NULL END
+         )`,
+        [saved.id, planCode, status, trialDays],
+      );
+      await runner.query(
+        `INSERT INTO public.company_subscription_history(
+           company_id, new_plan_code, new_status, reason
+         ) VALUES ($1, $2, $3, 'Asignación durante el onboarding')`,
+        [saved.id, planCode, status],
+      );
       await runner.query(`CREATE SCHEMA ${quoteIdentifier(schemaName)}`);
       await this.tenantMigrator.migrateBase(runner, schemaName);
       await runner.query(
@@ -146,22 +168,26 @@ export class CompaniesService {
     companyType: string,
     personType: string,
     timezoneCode: string,
+    planCode: string,
   ): Promise<void> {
     const result = (await runner.query(
       `SELECT
         EXISTS(SELECT 1 FROM public.company_types WHERE code = $1 AND is_active) AS company_type_exists,
         EXISTS(SELECT 1 FROM public.person_types WHERE code = $2 AND is_active) AS person_type_exists,
-        EXISTS(SELECT 1 FROM public.timezones WHERE code = $3 AND is_active) AS timezone_exists`,
-      [companyType, personType, timezoneCode],
+        EXISTS(SELECT 1 FROM public.timezones WHERE code = $3 AND is_active) AS timezone_exists,
+        EXISTS(SELECT 1 FROM public.subscription_plans WHERE code = $4 AND is_active) AS plan_exists`,
+      [companyType, personType, timezoneCode, planCode],
     )) as Array<{
       company_type_exists: boolean;
       person_type_exists: boolean;
       timezone_exists: boolean;
+      plan_exists: boolean;
     }>;
     if (
       !result[0]?.company_type_exists ||
       !result[0]?.person_type_exists ||
       !result[0]?.timezone_exists
+      || !result[0]?.plan_exists
     ) {
       throw new UnprocessableEntityException('Tipo de compañía, persona o zona horaria inválido');
     }

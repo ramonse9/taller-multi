@@ -13,6 +13,7 @@ import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nest
 import { JwtAuthGuard } from '../../auth/roles';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../../common/types/authenticated-user';
+import { RequiresFeature, SubscriptionGuard } from '../../subscriptions/subscription.guard';
 import { ClientsService } from './clients.service';
 import {
   ClientQueryDto,
@@ -25,7 +26,8 @@ import {
 
 @ApiTags('clients')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, SubscriptionGuard)
+@RequiresFeature('customer_history')
 @Controller('clients')
 export class ClientsController {
   constructor(private readonly clients: ClientsService) {}

@@ -35,12 +35,14 @@ import {
   VehicleModelResponseDto,
 } from './dto/vehicle-catalog.dto';
 import { VehicleCatalogService } from './vehicle-catalog.service';
+import { RequiresSubscription, SubscriptionGuard } from '../subscriptions/subscription.guard';
 
 const CATALOG_ADMIN_ROLES = [PlatformRole.PlatformAdmin, PlatformRole.CompanyAdmin];
 
 @ApiTags('vehicle-catalogs')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, SubscriptionGuard)
+@RequiresSubscription()
 @Controller('catalogs')
 export class VehicleCatalogController {
   constructor(private readonly catalog: VehicleCatalogService) {}

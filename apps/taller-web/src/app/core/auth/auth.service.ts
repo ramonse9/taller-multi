@@ -3,6 +3,7 @@ import { computed, inject, Injectable, signal } from "@angular/core";
 import { Router } from "@angular/router";
 import { Observable, tap } from "rxjs";
 import { environment } from "../../../environments/environment";
+import { SubscriptionFeature } from "../subscriptions/subscription.models";
 import {
   LoginResponse,
   PasswordRecoveryRequestResponse,
@@ -23,7 +24,18 @@ export class AuthService {
 
   homeUrl(user: SessionUser | null = this.userState()): string {
     if (user?.mustChangePassword) return "/account";
+    if (user && user.role !== "platform_admin" && !user.subscription?.usable) {
+      return "/subscription-required";
+    }
     return user?.role === "platform_admin" ? "/companies" : "/clients";
+  }
+
+  hasFeature(feature: SubscriptionFeature): boolean {
+    const user = this.userState();
+    return (
+      user?.role === "platform_admin" ||
+      (!!user?.subscription?.usable && user.subscription.features.includes(feature))
+    );
   }
 
   completePasswordChange(): void {

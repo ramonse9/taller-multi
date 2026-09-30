@@ -15,6 +15,7 @@ import { MobilePasswordRecovery1700000004000 } from '../../src/database/migratio
 import { VehicleCatalogAudit1700000005000 } from '../../src/database/migrations/public/1700000005000-vehicle-catalog-audit';
 import { TenantVehicleProfile1700000006000 } from '../../src/database/migrations/public/1700000006000-tenant-vehicle-profile';
 import { UnifiedCustomers1700000007000 } from '../../src/database/migrations/public/1700000007000-unified-customers';
+import { SubscriptionPlans1700000008000 } from '../../src/database/migrations/public/1700000008000-subscription-plans';
 import { quoteIdentifier } from '../../src/database/schema-name';
 import { seedPublicCatalogs } from '../../src/database/seeds/public-catalogs.seed';
 
@@ -169,6 +170,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         VehicleCatalogAudit1700000005000,
         TenantVehicleProfile1700000006000,
         UnifiedCustomers1700000007000,
+        SubscriptionPlans1700000008000,
       ],
       migrationsTableName: 'public_schema_migrations',
       synchronize: false,
@@ -337,6 +339,87 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       [tenant.user.id],
     );
     expect((await listClients(tenant.accessToken)).status).toBe(401);
+  });
+
+  it('cambia de plan sin borrar datos y bloquea capacidades cuando se suspende', async () => {
+    const tenant = await provisionAndLogin('Subscription Integration', 'plans.admin@test.local');
+    const initial = await request<{
+      planCode: string;
+      status: string;
+      features: string[];
+      limits: { max_users: number };
+    }>('GET', '/subscriptions/current', { token: tenant.accessToken });
+    expect(initial.status).toBe(200);
+    expect(initial.body).toMatchObject({
+      planCode: 'basic',
+      status: 'trialing',
+      limits: { max_users: 3 },
+    });
+    expect(initial.body.features).not.toContain('inventory');
+
+    for (const username of ['limite_uno', 'limite_dos']) {
+      const created = await request<UserResponse>('POST', '/users', {
+        token: tenant.accessToken,
+        body: {
+          fullName: `Usuario ${username}`,
+          username,
+          phone: username === 'limite_uno' ? '+526671110001' : '+526671110002',
+          password: USER_PASSWORD,
+          timezoneCode: 'America/Mazatlan',
+          role: 'user',
+        },
+      });
+      expect(created.status).toBe(201);
+    }
+    const overLimit = await request<unknown>('POST', '/users', {
+      token: tenant.accessToken,
+      body: {
+        fullName: 'Usuario fuera del límite',
+        username: 'limite_tres',
+        phone: '+526671110003',
+        password: USER_PASSWORD,
+        timezoneCode: 'America/Mazatlan',
+        role: 'user',
+      },
+    });
+    expect(overLimit.status).toBe(409);
+
+    const client = await request<ClientResponse>('POST', '/clients', {
+      token: tenant.accessToken,
+      body: { type: 'person', displayName: 'Cliente conservado por suscripción' },
+    });
+    expect(client.status).toBe(201);
+
+    const upgraded = await request<{
+      planCode: string;
+      status: string;
+      features: string[];
+    }>('PATCH', `/subscriptions/companies/${tenant.company.id}`, {
+      token: platformToken,
+      body: { planCode: 'control', status: 'active', reason: 'Prueba de integración' },
+    });
+    expect(upgraded.status).toBe(200);
+    expect(upgraded.body.planCode).toBe('control');
+    expect(upgraded.body.features).toEqual(expect.arrayContaining(['inventory', 'expenses']));
+
+    const suspended = await request<unknown>(
+      'PATCH',
+      `/subscriptions/companies/${tenant.company.id}`,
+      {
+        token: platformToken,
+        body: { planCode: 'basic', status: 'suspended', reason: 'Prueba de suspensión' },
+      },
+    );
+    expect(suspended.status).toBe(200);
+    expect((await listClients(tenant.accessToken)).status).toBe(403);
+
+    await request<unknown>('PATCH', `/subscriptions/companies/${tenant.company.id}`, {
+      token: platformToken,
+      body: { planCode: 'basic', status: 'active', reason: 'Reactivación' },
+    });
+    const restored = await listClients(tenant.accessToken);
+    expect(restored.status).toBe(200);
+    expect(restored.body.items.map(({ id }) => id)).toContain(client.body.id);
   });
 
   it('invalida sesiones y logins de usuarios o compañías desactivadas', async () => {

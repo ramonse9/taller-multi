@@ -19,6 +19,7 @@ const user = {
   companyLoginCode: 'alpha',
   mustChangePassword: false,
   sessionId: '76fbd920-c8c7-4bc4-83e7-b6557382a53a',
+  subscription: null,
 };
 
 const row = {

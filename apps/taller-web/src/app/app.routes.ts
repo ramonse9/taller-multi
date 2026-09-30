@@ -1,6 +1,7 @@
 import { Routes } from "@angular/router";
 import {
   authGuard,
+  featureGuard,
   guestGuard,
   homeGuard,
   roleGuard,
@@ -41,8 +42,8 @@ export const routes: Routes = [
       },
       {
         path: "clients/:id",
-        canActivate: [roleGuard],
-        data: { roles: ["company_admin", "user"] },
+        canActivate: [roleGuard, featureGuard],
+        data: { roles: ["company_admin", "user"], feature: "customer_history" },
         loadComponent: () =>
           import("./features/clients/client-detail.page").then(
             (m) => m.ClientDetailPage,
@@ -50,14 +51,14 @@ export const routes: Routes = [
       },
       {
         path: "clients",
-        canActivate: [roleGuard],
-        data: { roles: ["company_admin", "user"] },
+        canActivate: [roleGuard, featureGuard],
+        data: { roles: ["company_admin", "user"], feature: "customer_history" },
         loadComponent: () =>
           import("./features/clients/clients.page").then((m) => m.ClientsPage),
       },
       {
         path: "vehicle-catalog",
-        canActivate: [roleGuard],
+        canActivate: [roleGuard, featureGuard],
         data: { roles: ["platform_admin", "company_admin"] },
         loadComponent: () =>
           import("./features/vehicle-catalog/vehicle-catalog.page").then(
@@ -65,8 +66,26 @@ export const routes: Routes = [
           ),
       },
       {
-        path: "users",
+        path: "subscriptions",
         canActivate: [roleGuard],
+        data: { roles: ["platform_admin"] },
+        loadComponent: () =>
+          import("./features/subscriptions/subscriptions.page").then(
+            (m) => m.SubscriptionsPage,
+          ),
+      },
+      {
+        path: "subscription-required",
+        canActivate: [roleGuard],
+        data: { roles: ["company_admin", "user"] },
+        loadComponent: () =>
+          import("./features/subscriptions/subscription-required.page").then(
+            (m) => m.SubscriptionRequiredPage,
+          ),
+      },
+      {
+        path: "users",
+        canActivate: [roleGuard, featureGuard],
         data: { roles: ["company_admin"] },
         loadComponent: () =>
           import("./features/users/users.page").then((m) => m.UsersPage),

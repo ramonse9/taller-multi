@@ -9,6 +9,7 @@ import { MobilePasswordRecovery1700000004000 } from './migrations/public/1700000
 import { VehicleCatalogAudit1700000005000 } from './migrations/public/1700000005000-vehicle-catalog-audit';
 import { TenantVehicleProfile1700000006000 } from './migrations/public/1700000006000-tenant-vehicle-profile';
 import { UnifiedCustomers1700000007000 } from './migrations/public/1700000007000-unified-customers';
+import { SubscriptionPlans1700000008000 } from './migrations/public/1700000008000-subscription-plans';
 
 export default new DataSource({
   type: 'postgres',
@@ -24,6 +25,7 @@ export default new DataSource({
     VehicleCatalogAudit1700000005000,
     TenantVehicleProfile1700000006000,
     UnifiedCustomers1700000007000,
+    SubscriptionPlans1700000008000,
   ],
   migrationsTableName: 'public_schema_migrations',
   synchronize: false,

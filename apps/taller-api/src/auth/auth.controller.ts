@@ -77,6 +77,7 @@ export class AuthController {
       role: user.role,
       companyId: user.companyId,
       mustChangePassword: user.mustChangePassword,
+      subscription: user.subscription,
     };
   }
 }

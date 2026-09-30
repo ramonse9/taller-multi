@@ -13,6 +13,7 @@ import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nest
 import { JwtAuthGuard } from '../../auth/roles';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../../common/types/authenticated-user';
+import { RequiresFeature, SubscriptionGuard } from '../../subscriptions/subscription.guard';
 import {
   CreateVehicleDto,
   UpdateVehicleDto,
@@ -24,7 +25,8 @@ import { VehiclesService } from './vehicles.service';
 
 @ApiTags('vehicles')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, SubscriptionGuard)
+@RequiresFeature('vehicle_history')
 @Controller('clients/:clientId/vehicles')
 export class VehiclesController {
   constructor(private readonly vehicles: VehiclesService) {}
@@ -72,7 +74,8 @@ export class VehiclesController {
 
 @ApiTags('vehicles')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, SubscriptionGuard)
+@RequiresFeature('vehicle_history')
 @Controller('vehicles')
 export class VehicleHistoryController {
   constructor(private readonly vehicles: VehiclesService) {}

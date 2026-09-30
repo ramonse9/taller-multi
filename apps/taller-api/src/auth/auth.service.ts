@@ -7,6 +7,7 @@ import { DataSource, Repository } from 'typeorm';
 import { Company } from '../companies/entities/company.entity';
 import { PlatformRole, PlatformUser } from '../platform-users/entities/platform-user.entity';
 import { LoginDto, LoginResponseDto } from './dto/login.dto';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 
 @Injectable()
 export class AuthService {
@@ -21,6 +22,7 @@ export class AuthService {
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
     private readonly dataSource: DataSource,
+    private readonly subscriptions: SubscriptionsService,
   ) {}
 
   async login(input: LoginDto): Promise<LoginResponseDto> {
@@ -37,10 +39,11 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
-    if (user.role !== PlatformRole.PlatformAdmin) {
-      const company = user.companyId
+    const company =
+      user.role !== PlatformRole.PlatformAdmin && user.companyId
         ? await this.companies.findOneBy({ id: user.companyId })
         : null;
+    if (user.role !== PlatformRole.PlatformAdmin) {
       if (!company?.isActive) throw new UnauthorizedException('Credenciales inválidas');
     }
 
@@ -66,16 +69,14 @@ export class AuthService {
         id: user.id,
         email: user.email,
         username: user.username,
-        loginName:
-          user.role === PlatformRole.PlatformAdmin
-            ? user.email!
-            : `${user.username}@${(await this.companies.findOneByOrFail({ id: user.companyId! })).loginCode}`,
+        loginName: user.role === PlatformRole.PlatformAdmin ? user.email! : `${user.username}@${company!.loginCode}`,
         phone: user.phone,
         phoneVerifiedAt: user.phoneVerifiedAt,
         fullName: user.fullName,
         role: user.role,
         companyId: user.companyId,
         mustChangePassword: user.mustChangePassword,
+        subscription: company ? await this.subscriptions.getByCompanyId(company.id) : null,
       },
     };
   }

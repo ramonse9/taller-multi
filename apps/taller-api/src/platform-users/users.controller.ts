@@ -34,10 +34,16 @@ import {
 } from './dto/user.dto';
 import { PlatformRole } from './entities/platform-user.entity';
 import { UsersService } from './users.service';
+import {
+  AllowInactiveSubscription,
+  RequiresSubscription,
+  SubscriptionGuard,
+} from '../subscriptions/subscription.guard';
 
 @ApiTags('users')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, SubscriptionGuard)
+@RequiresSubscription()
 @Controller('users')
 export class UsersController {
   constructor(private readonly users: UsersService) {}
@@ -77,6 +83,7 @@ export class UsersController {
 
   @Patch('me/password')
   @AllowPendingPasswordChange()
+  @AllowInactiveSubscription()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Cambiar la contraseña del usuario autenticado' })
   @ApiNoContentResponse()

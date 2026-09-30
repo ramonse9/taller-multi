@@ -18,6 +18,7 @@ const user = {
   companyLoginCode: 'alpha',
   mustChangePassword: false,
   sessionId: '76fbd920-c8c7-4bc4-83e7-b6557382a53a',
+  subscription: null,
 };
 
 const clientId = '983119b6-d8f-4d6a-aa4c-c7086974b110';

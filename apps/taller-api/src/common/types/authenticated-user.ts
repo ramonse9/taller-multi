@@ -1,4 +1,5 @@
 import { PlatformRole } from '../../platform-users/entities/platform-user.entity';
+import { SubscriptionSummary } from '../../subscriptions/subscription.types';
 
 export interface AuthenticatedUser {
   id: string;
@@ -14,4 +15,5 @@ export interface AuthenticatedUser {
   companyLoginCode: string | null;
   mustChangePassword: boolean;
   sessionId: string;
+  subscription: SubscriptionSummary | null;
 }

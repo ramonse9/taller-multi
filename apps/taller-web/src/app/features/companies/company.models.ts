@@ -1,4 +1,5 @@
 import { SessionUser } from "../../core/auth/auth.models";
+import { SubscriptionPlanCode } from "../../core/subscriptions/subscription.models";
 
 export interface CreateCompanyInput {
   name: string;
@@ -7,6 +8,8 @@ export interface CreateCompanyInput {
   personTypeCode: string;
   withholdsIsr: boolean;
   withholdsIva: boolean;
+  planCode: SubscriptionPlanCode;
+  trialDays: number;
   admin: {
     fullName: string;
     username: string;

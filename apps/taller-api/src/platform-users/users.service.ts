@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Optional,
   UnauthorizedException,
 } from '@nestjs/common';
 import * as argon2 from 'argon2';
@@ -20,6 +21,7 @@ import {
 } from './dto/user.dto';
 import { PlatformRole } from './entities/platform-user.entity';
 import { tenantLoginName } from '../database/login-name';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 
 interface UserRow {
   id: string;
@@ -44,7 +46,10 @@ interface PasswordRow extends UserRow {
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(
+    private readonly dataSource: DataSource,
+    @Optional() private readonly subscriptions?: SubscriptionsService,
+  ) {}
 
   async list(user: AuthenticatedUser, query: UserQueryDto): Promise<PaginatedUsersResponseDto> {
     const companyId = this.companyIdForAdmin(user);
@@ -102,6 +107,7 @@ export class UsersService {
 
   async create(user: AuthenticatedUser, input: CreateUserDto): Promise<UserResponseDto> {
     const companyId = this.companyIdForAdmin(user);
+    await this.subscriptions?.assertCanCreateUser(companyId);
     const passwordHash = await argon2.hash(input.password, { type: argon2.argon2id });
     const runner = this.dataSource.createQueryRunner();
     await runner.connect();
@@ -159,6 +165,9 @@ export class UsersService {
       }
       if (input.timezoneCode !== undefined) {
         await this.validateTimezone(runner, input.timezoneCode);
+      }
+      if (!target.is_active && input.isActive === true) {
+        await this.subscriptions?.assertCanCreateUser(companyId);
       }
       await this.ensureAdminRemains(runner, companyId, target, input.role, input.isActive);
 

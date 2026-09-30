@@ -17,11 +17,14 @@
           >
             <span>02</span> Marcas y modelos
           </a>
+          <a class="nav-item" routerLink="/subscriptions" routerLinkActive="active">
+            <span>03</span> Suscripciones
+          </a>
         }
         @case ("company_admin") {
-          <a class="nav-item" routerLink="/clients" routerLinkActive="active">
+          @if (auth.hasFeature("customer_history")) { <a class="nav-item" routerLink="/clients" routerLinkActive="active">
             <span>01</span> Clientes
-          </a>
+          </a> }
           <a
             class="nav-item"
             routerLink="/vehicle-catalog"
@@ -37,9 +40,9 @@
           </a>
         }
         @case ("user") {
-          <a class="nav-item" routerLink="/clients" routerLinkActive="active">
+          @if (auth.hasFeature("customer_history")) { <a class="nav-item" routerLink="/clients" routerLinkActive="active">
             <span>01</span> Clientes
-          </a>
+          </a> }
           <a class="nav-item" routerLink="/account" routerLinkActive="active">
             <span>02</span> Seguridad
           </a>
@@ -54,6 +57,9 @@
       <div class="identity">
         <strong>{{ auth.user()?.fullName }}</strong>
         <span>{{ roleName() }} · {{ auth.user()?.loginName }}</span>
+        @if (auth.user()?.subscription; as subscription) {
+          <span>{{ subscription.planName }} · {{ subscription.status }}</span>
+        }
       </div>
       <button
         class="icon-button"

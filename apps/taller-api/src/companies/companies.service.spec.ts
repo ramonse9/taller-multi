@@ -25,9 +25,16 @@ describe('CompaniesService', () => {
     const query = jest
       .fn<Promise<unknown[]>, [string, unknown[]?]>()
       .mockResolvedValueOnce([
-        { company_type_exists: true, person_type_exists: true, timezone_exists: true },
+        {
+          company_type_exists: true,
+          person_type_exists: true,
+          timezone_exists: true,
+          plan_exists: true,
+        },
       ])
       .mockResolvedValueOnce([{ number: '1' }])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])

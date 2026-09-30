@@ -3,6 +3,7 @@ import { CanActivateFn, Router } from "@angular/router";
 import { catchError, map, of } from "rxjs";
 import { AuthService } from "./auth.service";
 import { UserRole } from "./auth.models";
+import { SubscriptionFeature } from "../subscriptions/subscription.models";
 
 export const authGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
@@ -48,4 +49,14 @@ export const homeGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   const router = inject(Router);
   return router.createUrlTree([auth.homeUrl()]);
+};
+
+export const featureGuard: CanActivateFn = (route) => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  const user = auth.user();
+  if (user?.role === "platform_admin") return true;
+  const feature = route.data["feature"] as SubscriptionFeature | undefined;
+  if (user?.subscription?.usable && (!feature || auth.hasFeature(feature))) return true;
+  return router.createUrlTree(["/subscription-required"]);
 };

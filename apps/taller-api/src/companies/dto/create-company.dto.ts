@@ -1,8 +1,23 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
-import { IsBoolean, IsIn, IsString, Length, Matches, ValidateNested } from 'class-validator';
+import {
+  IsBoolean,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Length,
+  Matches,
+  Max,
+  Min,
+  ValidateNested,
+} from 'class-validator';
 import { COMPANY_TYPE_CODES, CompanyTypeCode } from '../../database/schema-name';
 import { CreateTenantAdminDto, UserResponseDto } from '../../platform-users/dto/user.dto';
+import {
+  SUBSCRIPTION_PLAN_CODES,
+  SubscriptionPlanCode,
+} from '../../subscriptions/subscription.types';
 
 export class CreateCompanyDto {
   @ApiProperty({ example: 'Taller Norte' })
@@ -34,6 +49,19 @@ export class CreateCompanyDto {
   @ApiPropertyOptional({ default: false })
   @IsBoolean()
   withholdsIva = false;
+
+  @ApiPropertyOptional({ enum: SUBSCRIPTION_PLAN_CODES, default: 'basic' })
+  @IsOptional()
+  @IsIn(SUBSCRIPTION_PLAN_CODES)
+  planCode?: SubscriptionPlanCode = 'basic';
+
+  @ApiPropertyOptional({ default: 14, minimum: 0, maximum: 90 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(90)
+  trialDays?: number = 14;
 
   @ApiProperty({ type: CreateTenantAdminDto })
   @ValidateNested()

@@ -43,6 +43,9 @@
             <div><label class="field-label" for="person-type">Persona fiscal <b>*</b></label><select class="field-control" id="person-type" formControlName="personTypeCode">@for (item of personTypes(); track item.code) { <option [value]="item.code">{{ item.name }}</option> }</select></div>
             <label class="check-label"><input type="checkbox" formControlName="withholdsIsr" /><span>Retiene ISR</span></label>
             <label class="check-label"><input type="checkbox" formControlName="withholdsIva" /><span>Retiene IVA</span></label>
+            <div class="sm:col-span-2 mt-2 border-t border-[#e4e0d7] pt-5 dark:border-[#34423a]"><p class="eyebrow">SUSCRIPCIÓN INICIAL</p><p class="mt-1 text-sm text-[#68746d] dark:text-[#aab7af]">El plan puede cambiar después sin eliminar información.</p></div>
+            <div><label class="field-label" for="company-plan">Plan <b>*</b></label><select class="field-control" id="company-plan" formControlName="planCode">@for (plan of plans(); track plan.code) { <option [value]="plan.code">{{ plan.name }}</option> }</select></div>
+            <div><label class="field-label" for="trial-days">Días de prueba <b>*</b></label><input class="field-control" id="trial-days" type="number" min="0" max="90" formControlName="trialDays" />@if (form.controls.trialDays.touched && form.controls.trialDays.invalid) { <small class="field-error">Usa un valor entre 0 y 90 días.</small> }</div>
           </div>
         </section>
 
@@ -65,7 +68,8 @@
         <dl class="my-6 grid gap-0 max-[999px]:grid-cols-3 max-sm:grid-cols-1">
           <div class="summary-row"><dt>Schema</dt><dd>Se asignará al registrar</dd></div>
           <div class="summary-row"><dt>Administrador</dt><dd>{{ form.controls.admin.controls.username.value || 'usuario' }}&#64;{{ form.controls.loginCode.value || 'compania' }}</dd></div>
-          <div class="summary-row"><dt>Estado inicial</dt><dd>Activo</dd></div>
+          <div class="summary-row"><dt>Estado inicial</dt><dd>{{ form.controls.trialDays.value > 0 ? 'Periodo de prueba' : 'Activo' }}</dd></div>
+          <div class="summary-row"><dt>Suscripción</dt><dd>{{ form.controls.planCode.value }} · {{ form.controls.trialDays.value }} días de prueba</dd></div>
         </dl>
         <div class="flex gap-2.5 bg-[#edf3ef] p-3 text-[#31513f] dark:bg-[#263a2e] dark:text-[#b8d8c5]"><span class="text-[#e86a33]">↳</span><p class="m-0 text-[0.69rem] leading-6">Si algún paso falla, PostgreSQL revierte la compañía, el schema y el usuario.</p></div>
         <button class="mt-5 w-full bg-[#e86a33] px-5 py-3 font-bold text-white shadow-[0_5px_0_#aa461c] transition hover:translate-y-px hover:bg-[#d95d28] hover:shadow-[0_4px_0_#aa461c] active:translate-y-1 active:shadow-[0_1px_0_#aa461c] disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none" type="submit" [disabled]="saving() || loadingCatalogs() || !!catalogError()">{{ saving() ? 'Preparando compañía…' : 'Registrar compañía' }}</button>

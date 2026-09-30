@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsString, Length, Matches } from 'class-validator';
+import { SubscriptionResponseDto } from '../../subscriptions/dto/subscription.dto';
 
 export class LoginDto {
   @ApiProperty({ example: 'yovany@melkars' })
@@ -30,6 +31,8 @@ export class LoginUserResponseDto {
   @ApiProperty() role!: string;
   @ApiProperty({ nullable: true, type: String }) companyId!: string | null;
   @ApiProperty() mustChangePassword!: boolean;
+  @ApiProperty({ nullable: true, type: SubscriptionResponseDto })
+  subscription!: SubscriptionResponseDto | null;
 }
 
 export class LoginResponseDto {

@@ -1,3 +1,5 @@
+import { SubscriptionSummary } from "../subscriptions/subscription.models";
+
 export type UserRole = "platform_admin" | "company_admin" | "user";
 
 export interface SessionUser {
@@ -11,6 +13,7 @@ export interface SessionUser {
   role: UserRole;
   companyId: string | null;
   mustChangePassword: boolean;
+  subscription: SubscriptionSummary | null;
 }
 
 export interface LoginResponse {

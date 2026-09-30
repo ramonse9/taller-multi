@@ -21,6 +21,11 @@ import {
 import { CatalogsService } from "../../core/catalogs/catalogs.service";
 import { apiErrorMessage } from "../../core/http/api-error";
 import { ThemeService } from "../../core/theme/theme.service";
+import {
+  SubscriptionPlan,
+  SubscriptionPlanCode,
+} from "../../core/subscriptions/subscription.models";
+import { SubscriptionsService } from "../../core/subscriptions/subscriptions.service";
 import { CompaniesService } from "./companies.service";
 import { CompanyResponse, CreateCompanyInput } from "./company.models";
 
@@ -33,6 +38,7 @@ import { CompanyResponse, CreateCompanyInput } from "./company.models";
 export class CompaniesPage implements OnInit {
   private readonly companies = inject(CompaniesService);
   private readonly catalogs = inject(CatalogsService);
+  private readonly subscriptions = inject(SubscriptionsService);
   private readonly destroyRef = inject(DestroyRef);
   readonly theme = inject(ThemeService);
 
@@ -44,6 +50,7 @@ export class CompaniesPage implements OnInit {
   readonly companyTypes = signal<CatalogItem[]>([]);
   readonly personTypes = signal<CatalogItem[]>([]);
   readonly timezones = signal<TimezoneCatalogItem[]>([]);
+  readonly plans = signal<SubscriptionPlan[]>([]);
 
   readonly form = new FormGroup({
     name: new FormControl("", {
@@ -71,6 +78,14 @@ export class CompaniesPage implements OnInit {
     }),
     withholdsIsr: new FormControl(false, { nonNullable: true }),
     withholdsIva: new FormControl(false, { nonNullable: true }),
+    planCode: new FormControl<SubscriptionPlanCode>("basic", {
+      nonNullable: true,
+      validators: [Validators.required],
+    }),
+    trialDays: new FormControl(14, {
+      nonNullable: true,
+      validators: [Validators.required, Validators.min(0), Validators.max(90)],
+    }),
     admin: new FormGroup({
       fullName: new FormControl("", {
         nonNullable: true,
@@ -136,16 +151,18 @@ export class CompaniesPage implements OnInit {
       companyTypes: this.catalogs.companyTypes(),
       personTypes: this.catalogs.personTypes(),
       timezones: this.catalogs.timezones(),
+      plans: this.subscriptions.plans(),
     })
       .pipe(
         finalize(() => this.loadingCatalogs.set(false)),
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
-        next: ({ companyTypes, personTypes, timezones }) => {
+        next: ({ companyTypes, personTypes, timezones, plans }) => {
           this.companyTypes.set(companyTypes);
           this.personTypes.set(personTypes);
           this.timezones.set(timezones);
+          this.plans.set(plans);
           if (!this.form.controls.companyTypeCode.value && companyTypes[0]) {
             this.form.controls.companyTypeCode.setValue(companyTypes[0].code);
           }
@@ -176,6 +193,8 @@ export class CompaniesPage implements OnInit {
       personTypeCode: raw.personTypeCode,
       withholdsIsr: raw.withholdsIsr,
       withholdsIva: raw.withholdsIva,
+      planCode: raw.planCode,
+      trialDays: raw.trialDays,
       admin: {
         fullName: raw.admin.fullName.trim(),
         username: raw.admin.username.trim().toLowerCase(),
@@ -248,6 +267,8 @@ export class CompaniesPage implements OnInit {
       personTypeCode: this.personTypes()[0]?.code ?? "",
       withholdsIsr: false,
       withholdsIva: false,
+      planCode: "basic",
+      trialDays: 14,
       admin: {
         fullName: "",
         username: "",
