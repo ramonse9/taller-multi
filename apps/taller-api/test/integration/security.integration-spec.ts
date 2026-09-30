@@ -18,6 +18,7 @@ import { UnifiedCustomers1700000007000 } from '../../src/database/migrations/pub
 import { SubscriptionPlans1700000008000 } from '../../src/database/migrations/public/1700000008000-subscription-plans';
 import { BasicServiceOrders1700000009000 } from '../../src/database/migrations/public/1700000009000-basic-service-orders';
 import { SimplifiedOrderStatuses1700000010000 } from '../../src/database/migrations/public/1700000010000-simplified-order-statuses';
+import { ConceptCatalog1700000011000 } from '../../src/database/migrations/public/1700000011000-concept-catalog';
 import { quoteIdentifier } from '../../src/database/schema-name';
 import { seedPublicCatalogs } from '../../src/database/seeds/public-catalogs.seed';
 
@@ -116,6 +117,29 @@ interface PaginatedCatalog<T> {
   items: T[];
 }
 
+interface MeasurementUnitResponse {
+  id: string;
+  name: string;
+  symbol: string;
+  satCode: string | null;
+  allowsDecimals: boolean;
+  isActive: boolean;
+}
+
+interface ConceptResponse {
+  id: string;
+  kind: 'product' | 'service';
+  sku: string | null;
+  name: string;
+  description: string | null;
+  unit: MeasurementUnitResponse;
+  cost: string;
+  price: string;
+  tracksInventory: boolean;
+  satProductServiceCode: string | null;
+  isActive: boolean;
+}
+
 interface VehicleResponse {
   id: string;
   customerId: string;
@@ -163,7 +187,6 @@ interface OrderResponse {
   statusHistory: Array<{
     previousStatus: string | null;
     newStatus: string;
-    note: string | null;
   }>;
 }
 
@@ -200,6 +223,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         SubscriptionPlans1700000008000,
         BasicServiceOrders1700000009000,
         SimplifiedOrderStatuses1700000010000,
+        ConceptCatalog1700000011000,
       ],
       migrationsTableName: 'public_schema_migrations',
       synchronize: false,
@@ -684,6 +708,139 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       [createdUser.body.id],
     );
     expect(rows[0]?.phone_verified_at).toBeTruthy();
+  });
+
+  it('administra unidades, productos y servicios aislados por compañía y plan', async () => {
+    const tenant = await provisionAndLogin(
+      'Concept Catalog Integration',
+      'concepts.admin@test.local',
+    );
+    expect(
+      (
+        await request<MeasurementUnitResponse[]>('GET', '/catalogs/units', {
+          token: tenant.accessToken,
+        })
+      ).status,
+    ).toBe(403);
+
+    const upgraded = await request<unknown>(
+      'PATCH',
+      `/subscriptions/companies/${tenant.company.id}`,
+      {
+        token: platformToken,
+        body: { planCode: 'control', status: 'active', reason: 'Catálogo de integración' },
+      },
+    );
+    expect(upgraded.status).toBe(200);
+
+    const units = await request<MeasurementUnitResponse[]>('GET', '/catalogs/units', {
+      token: tenant.accessToken,
+    });
+    expect(units.status).toBe(200);
+    expect(units.body).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'Pieza', satCode: 'H87', allowsDecimals: false }),
+        expect.objectContaining({ name: 'Servicio', satCode: 'E48' }),
+      ]),
+    );
+
+    const customUnit = await request<MeasurementUnitResponse>('POST', '/catalogs/units', {
+      token: tenant.accessToken,
+      body: { name: 'Paquete', symbol: 'paq', satCode: 'XPK', allowsDecimals: false },
+    });
+    expect(customUnit.status).toBe(201);
+    expect(customUnit.body).toMatchObject({
+      name: 'Paquete',
+      symbol: 'paq',
+      satCode: 'XPK',
+      isActive: true,
+    });
+    expect(
+      (
+        await request<unknown>('POST', '/catalogs/units', {
+          token: tenant.accessToken,
+          body: { name: 'Otro paquete', symbol: 'PAQ', allowsDecimals: true },
+        })
+      ).status,
+    ).toBe(409);
+
+    const invalidService = await request<unknown>('POST', '/catalogs/concepts', {
+      token: tenant.accessToken,
+      body: {
+        kind: 'service',
+        sku: 'SERV-INV',
+        name: 'Servicio con inventario inválido',
+        unitId: customUnit.body.id,
+        cost: 100,
+        price: 200,
+        tracksInventory: true,
+      },
+    });
+    expect(invalidService.status).toBe(400);
+
+    const product = await request<ConceptResponse>('POST', '/catalogs/concepts', {
+      token: tenant.accessToken,
+      body: {
+        kind: 'product',
+        sku: 'ace-5w30',
+        name: 'Aceite sintético 5W-30',
+        description: 'Presentación de un litro',
+        unitId: customUnit.body.id,
+        cost: 120.5,
+        price: 189.9,
+        tracksInventory: true,
+        satProductServiceCode: '15121501',
+      },
+    });
+    expect(product.status).toBe(201);
+    expect(product.body).toMatchObject({
+      kind: 'product',
+      sku: 'ACE-5W30',
+      cost: '120.50',
+      price: '189.90',
+      tracksInventory: true,
+      satProductServiceCode: '15121501',
+      unit: { id: customUnit.body.id, symbol: 'paq' },
+    });
+    expect(
+      (
+        await request<unknown>('POST', '/catalogs/concepts', {
+          token: tenant.accessToken,
+          body: {
+            kind: 'product',
+            sku: 'Ace-5W30',
+            name: 'Producto duplicado',
+            unitId: customUnit.body.id,
+            cost: 1,
+            price: 2,
+            tracksInventory: false,
+          },
+        })
+      ).status,
+    ).toBe(409);
+
+    const listed = await request<{ totalItems: number; items: ConceptResponse[] }>(
+      'GET',
+      '/catalogs/concepts?search=5W-30&kind=product',
+      { token: tenant.accessToken },
+    );
+    expect(listed.status).toBe(200);
+    expect(listed.body.totalItems).toBe(1);
+    expect(listed.body.items[0]?.id).toBe(product.body.id);
+
+    const deactivated = await request<ConceptResponse>(
+      'PATCH',
+      `/catalogs/concepts/${product.body.id}`,
+      { token: tenant.accessToken, body: { isActive: false } },
+    );
+    expect(deactivated.status).toBe(200);
+    expect(deactivated.body.isActive).toBe(false);
+    const inactive = await request<{ totalItems: number; items: ConceptResponse[] }>(
+      'GET',
+      '/catalogs/concepts?isActive=false',
+      { token: tenant.accessToken },
+    );
+    expect(inactive.body.items.map(({ id }) => id)).toContain(product.body.id);
   });
 
   it('administra un catálogo global de marcas y modelos sin duplicados', async () => {

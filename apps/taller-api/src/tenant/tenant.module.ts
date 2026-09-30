@@ -7,6 +7,8 @@ import { VehicleHistoryController, VehiclesController } from './vehicles/vehicle
 import { VehiclesService } from './vehicles/vehicles.service';
 import { OrdersController } from './orders/orders.controller';
 import { OrdersService } from './orders/orders.service';
+import { ConceptCatalogController } from './concept-catalog/concept-catalog.controller';
+import { ConceptCatalogService } from './concept-catalog/concept-catalog.service';
 
 @Global()
 @Module({
@@ -16,8 +18,15 @@ import { OrdersService } from './orders/orders.service';
     VehiclesController,
     VehicleHistoryController,
     OrdersController,
+    ConceptCatalogController,
   ],
-  providers: [TenantSessionService, ClientsService, VehiclesService, OrdersService],
+  providers: [
+    TenantSessionService,
+    ClientsService,
+    VehiclesService,
+    OrdersService,
+    ConceptCatalogService,
+  ],
   exports: [TenantSessionService],
 })
 export class TenantModule {}

@@ -8,7 +8,7 @@ export interface TenantMigration {
   up(queryRunner: QueryRunner, schemaName: string): Promise<void>;
 }
 
-export const TENANT_BASE_VERSION = 5;
+export const TENANT_BASE_VERSION = 6;
 export const TENANT_BASE_NAME = 'tenant-base';
 
 /**
@@ -63,18 +63,41 @@ export class TenantMigrator {
       )`,
       `CREATE INDEX vehicles_serial_number_idx ON ${s}.vehicles (serial_number)
        WHERE serial_number IS NOT NULL`,
+      `CREATE TABLE ${s}.measurement_units (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        name varchar(80) NOT NULL, symbol varchar(20) NOT NULL, sat_code varchar(3),
+        allows_decimals boolean NOT NULL DEFAULT true, is_active boolean NOT NULL DEFAULT true,
+        created_by_user_id uuid REFERENCES public.users(id),
+        updated_by_user_id uuid REFERENCES public.users(id),
+        created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
+        CHECK (char_length(trim(name)) BETWEEN 1 AND 80),
+        CHECK (char_length(trim(symbol)) BETWEEN 1 AND 20),
+        CHECK (sat_code IS NULL OR sat_code ~ '^[A-Z0-9]{1,3}$')
+      )`,
+      `CREATE UNIQUE INDEX measurement_units_name_unique ON ${s}.measurement_units(lower(name))`,
+      `CREATE UNIQUE INDEX measurement_units_symbol_unique ON ${s}.measurement_units(lower(symbol))`,
+      `INSERT INTO ${s}.measurement_units(name, symbol, sat_code, allows_decimals) VALUES
+        ('Pieza', 'pza', 'H87', false), ('Servicio', 'serv', 'E48', true),
+        ('Litro', 'L', 'LTR', true), ('Hora', 'h', 'HUR', true)`,
       `CREATE TABLE ${s}.products_services (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
         kind varchar(10) NOT NULL CHECK (kind IN ('product','service')),
         sku varchar(80), name varchar(180) NOT NULL, description text,
+        unit_id uuid NOT NULL REFERENCES ${s}.measurement_units(id),
+        sat_product_service_code varchar(8)
+          CHECK (sat_product_service_code IS NULL OR sat_product_service_code ~ '^[0-9]{8}$'),
         unit_price numeric(14,2) NOT NULL DEFAULT 0 CHECK (unit_price >= 0),
         cost numeric(14,2) NOT NULL DEFAULT 0 CHECK (cost >= 0),
-        tracks_inventory boolean NOT NULL DEFAULT false,
+        tracks_inventory boolean NOT NULL DEFAULT false CHECK (kind = 'product' OR tracks_inventory = false),
         is_active boolean NOT NULL DEFAULT true,
         created_by_user_id uuid NOT NULL REFERENCES public.users(id),
+        updated_by_user_id uuid NOT NULL REFERENCES public.users(id),
         created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
-        UNIQUE (sku)
+        CHECK (char_length(trim(name)) BETWEEN 1 AND 180)
       )`,
+      `CREATE UNIQUE INDEX products_services_sku_unique
+       ON ${s}.products_services(lower(sku)) WHERE sku IS NOT NULL`,
+      `CREATE INDEX products_services_name_idx ON ${s}.products_services(lower(name))`,
       `CREATE TABLE ${s}.orders (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
         folio bigint GENERATED ALWAYS AS IDENTITY UNIQUE,
