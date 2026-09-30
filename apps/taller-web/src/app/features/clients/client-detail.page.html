@@ -26,6 +26,12 @@
       }
     </div>
     <div class="flex items-center gap-2">
+      <a
+        class="secondary-tw no-underline max-sm:hidden"
+        routerLink="/orders"
+        [queryParams]="{ customerId: clientId }"
+        >Historial de órdenes</a
+      >
       <button
         type="button"
         class="theme-toggle"
@@ -183,19 +189,23 @@
         <footer
           class="flex items-center justify-between gap-3 border-t border-[#ece9df] px-5 py-3 dark:border-[#35433b]"
         >
-          @if (vehicle.numeroSerie) {
-          <button
-            class="bg-transparent p-0 text-xs font-bold text-[#b94718] underline underline-offset-4 dark:text-[#ff9a6f]"
-            type="button"
-            (click)="openHistory(vehicle)"
-          >
-            Ver historial
-          </button>
-          } @else {
-          <span class="text-[0.68rem] text-[#879089]"
-            >Identificación básica</span
-          >
-          }
+          <div class="flex items-center gap-3">
+            <a
+              class="text-xs font-bold text-[#b94718] underline underline-offset-4 dark:text-[#ff9a6f]"
+              routerLink="/orders"
+              [queryParams]="{ customerId: clientId, vehicleId: vehicle.id }"
+              >Órdenes</a
+            >
+            @if (vehicle.numeroSerie) {
+            <button
+              class="bg-transparent p-0 text-xs font-bold text-[#b94718] underline underline-offset-4 dark:text-[#ff9a6f]"
+              type="button"
+              (click)="openHistory(vehicle)"
+            >
+              Serie
+            </button>
+            }
+          </div>
           <button
             class="bg-transparent p-0 text-xs font-bold text-[#b94718] underline underline-offset-4 dark:text-[#ff9a6f]"
             type="button"

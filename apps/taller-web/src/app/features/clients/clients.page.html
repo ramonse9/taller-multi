@@ -150,6 +150,12 @@
             </td>
             <td class="client-td">
               <div class="flex justify-end gap-2 whitespace-nowrap">
+                <a
+                  class="client-action"
+                  routerLink="/orders"
+                  [queryParams]="{ customerId: client.id }"
+                  >Órdenes</a
+                >
                 <a class="client-action" [routerLink]="['/clients', client.id]"
                   >Vehículos ({{ client.vehicleCount }})</a
                 ><button

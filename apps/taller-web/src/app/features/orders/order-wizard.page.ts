@@ -1,0 +1,503 @@
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  OnInit,
+  inject,
+  signal,
+} from "@angular/core";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
+import {
+  FormArray,
+  FormControl,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators,
+} from "@angular/forms";
+import { ActivatedRoute, Router, RouterLink } from "@angular/router";
+import { finalize, forkJoin } from "rxjs";
+import { apiErrorMessage } from "../../core/http/api-error";
+import { ThemeService } from "../../core/theme/theme.service";
+import { Client, ClientInput, CustomerType } from "../clients/client.models";
+import { ClientsService } from "../clients/clients.service";
+import {
+  VehicleBrand,
+  VehicleModel,
+} from "../vehicle-catalog/vehicle-catalog.models";
+import { VehicleCatalogService } from "../vehicle-catalog/vehicle-catalog.service";
+import { CreateVehicleInput, Vehicle } from "../vehicles/vehicle.models";
+import { VehiclesService } from "../vehicles/vehicles.service";
+import { Order, OrderInput } from "./order.models";
+import { OrdersService } from "./orders.service";
+
+@Component({
+  selector: "app-order-wizard-page",
+  imports: [ReactiveFormsModule, RouterLink],
+  templateUrl: "./order-wizard.page.html",
+  host: { class: "block min-h-screen", "[class.dark]": "theme.isDark()" },
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class OrderWizardPage implements OnInit {
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly orders = inject(OrdersService);
+  private readonly clientsService = inject(ClientsService);
+  private readonly vehiclesService = inject(VehiclesService);
+  private readonly catalog = inject(VehicleCatalogService);
+  private readonly destroyRef = inject(DestroyRef);
+  readonly theme = inject(ThemeService);
+
+  readonly orderId = this.route.snapshot.paramMap.get("id") ?? "";
+  readonly editing = !!this.orderId;
+  readonly step = signal(1);
+  readonly loading = signal(true);
+  readonly saving = signal(false);
+  readonly quickSaving = signal(false);
+  readonly error = signal("");
+  readonly clients = signal<Client[]>([]);
+  readonly vehicles = signal<Vehicle[]>([]);
+  readonly brands = signal<VehicleBrand[]>([]);
+  readonly models = signal<VehicleModel[]>([]);
+  readonly showClientForm = signal(false);
+  readonly showVehicleForm = signal(false);
+  readonly clientSearch = new FormControl("", { nonNullable: true });
+  readonly maxYear = new Date().getFullYear() + 1;
+
+  filteredClients(): Client[] {
+    const term = this.clientSearch.value.trim().toLocaleLowerCase("es-MX");
+    return term
+      ? this.clients().filter((client) =>
+          [client.displayName, client.phone ?? "", client.taxId ?? ""]
+            .join(" ")
+            .toLocaleLowerCase("es-MX")
+            .includes(term),
+        )
+      : this.clients();
+  }
+
+  selectedClient(): Client | null {
+    return (
+      this.clients().find(
+        ({ id }) => id === this.orderForm.controls.customerId.value,
+      ) ?? null
+    );
+  }
+
+  selectedVehicle(): Vehicle | null {
+    return (
+      this.vehicles().find(
+        ({ id }) => id === this.orderForm.controls.vehicleId.value,
+      ) ?? null
+    );
+  }
+
+  readonly orderForm = new FormGroup({
+    customerId: new FormControl("", {
+      nonNullable: true,
+      validators: [Validators.required],
+    }),
+    vehicleId: new FormControl("", {
+      nonNullable: true,
+      validators: [Validators.required],
+    }),
+    items: new FormArray([this.createItemGroup()]),
+  });
+  readonly clientForm = new FormGroup({
+    type: new FormControl<CustomerType>("person", { nonNullable: true }),
+    displayName: new FormControl("", {
+      nonNullable: true,
+      validators: [
+        Validators.required,
+        Validators.minLength(2),
+        Validators.maxLength(180),
+      ],
+    }),
+    phoneCountryCode: new FormControl("+52", {
+      nonNullable: true,
+      validators: [Validators.required, Validators.pattern(/^\+[1-9]\d{0,2}$/)],
+    }),
+    phone: new FormControl("", {
+      nonNullable: true,
+      validators: [
+        Validators.required,
+        Validators.pattern(/^\d{3} \d{3} \d{2} \d{2}$/),
+      ],
+    }),
+  });
+  readonly vehicleForm = new FormGroup({
+    brandId: new FormControl("", {
+      nonNullable: true,
+      validators: [Validators.required],
+    }),
+    modelId: new FormControl("", {
+      nonNullable: true,
+      validators: [Validators.required],
+    }),
+    year: new FormControl<number | null>(null, {
+      validators: [
+        Validators.required,
+        Validators.min(1886),
+        Validators.max(this.maxYear),
+      ],
+    }),
+    color: new FormControl("", {
+      nonNullable: true,
+      validators: [Validators.required, Validators.maxLength(50)],
+    }),
+    numeroSerie: new FormControl("", {
+      nonNullable: true,
+      validators: [Validators.pattern(/^[A-HJ-NPR-Z0-9]{10}$/i)],
+    }),
+    licensePlate: new FormControl("", {
+      nonNullable: true,
+      validators: [Validators.maxLength(20)],
+    }),
+  });
+
+  get items(): FormArray {
+    return this.orderForm.controls.items;
+  }
+
+  ngOnInit(): void {
+    forkJoin({
+      clients: this.clientsService.list({
+        page: 1,
+        limit: 100,
+        search: "",
+        isActive: true,
+      }),
+      brands: this.catalog.listBrands({
+        page: 1,
+        limit: 100,
+        search: "",
+        isActive: true,
+      }),
+    })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: ({ clients, brands }) => {
+          this.clients.set(clients.items);
+          this.brands.set(brands.items);
+          if (this.editing) this.loadOrder();
+          else this.loading.set(false);
+        },
+        error: (error: unknown) => {
+          this.loading.set(false);
+          this.error.set(
+            apiErrorMessage(error, "No pudimos preparar la nueva orden."),
+          );
+        },
+      });
+  }
+
+  selectClient(client: Client): void {
+    if (this.orderForm.controls.customerId.value === client.id) return;
+    this.orderForm.controls.customerId.setValue(client.id);
+    this.orderForm.controls.vehicleId.setValue("");
+    this.vehicles.set([]);
+    this.showClientForm.set(false);
+    this.loadVehicles(client.id);
+  }
+
+  selectVehicle(vehicle: Vehicle): void {
+    this.orderForm.controls.vehicleId.setValue(vehicle.id);
+    this.showVehicleForm.set(false);
+  }
+
+  goTo(step: number): void {
+    if (step > 1 && !this.orderForm.controls.customerId.value) return;
+    if (step > 2 && !this.orderForm.controls.vehicleId.value) return;
+    if (step > 3 && this.items.invalid) {
+      this.items.markAllAsTouched();
+      return;
+    }
+    this.error.set("");
+    this.step.set(step);
+  }
+
+  saveClient(): void {
+    if (this.clientForm.invalid || this.quickSaving()) {
+      this.clientForm.markAllAsTouched();
+      return;
+    }
+    const raw = this.clientForm.getRawValue();
+    const digits = raw.phone.replace(/\D/g, "");
+    const input: ClientInput = {
+      type: raw.type,
+      displayName: raw.displayName.trim(),
+      legalName: null,
+      contactName: null,
+      taxId: null,
+      email: null,
+      phone: `${raw.phoneCountryCode}${digits}`,
+      notes: null,
+    };
+    this.quickSaving.set(true);
+    this.clientsService
+      .create(input)
+      .pipe(
+        finalize(() => this.quickSaving.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (client) => {
+          this.clients.update((clients) => [client, ...clients]);
+          this.clientForm.reset({
+            type: "person",
+            displayName: "",
+            phoneCountryCode: "+52",
+            phone: "",
+          });
+          this.selectClient(client);
+        },
+        error: (error: unknown) =>
+          this.error.set(
+            apiErrorMessage(error, "No pudimos crear el cliente."),
+          ),
+      });
+  }
+
+  saveVehicle(): void {
+    if (this.vehicleForm.invalid || this.quickSaving()) {
+      this.vehicleForm.markAllAsTouched();
+      return;
+    }
+    const customerId = this.orderForm.controls.customerId.value;
+    const raw = this.vehicleForm.getRawValue();
+    if (!customerId || raw.year === null) return;
+    const input: CreateVehicleInput = {
+      brandId: raw.brandId,
+      modelId: raw.modelId,
+      year: raw.year,
+      color: raw.color.trim(),
+      numeroSerie: raw.numeroSerie.trim() || null,
+      licensePlate: raw.licensePlate.trim() || null,
+    };
+    this.quickSaving.set(true);
+    this.vehiclesService
+      .create(customerId, input)
+      .pipe(
+        finalize(() => this.quickSaving.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (vehicle) => {
+          this.vehicles.update((vehicles) => [vehicle, ...vehicles]);
+          this.resetVehicleForm();
+          this.selectVehicle(vehicle);
+        },
+        error: (error: unknown) =>
+          this.error.set(
+            apiErrorMessage(error, "No pudimos crear el vehículo."),
+          ),
+      });
+  }
+
+  brandChanged(): void {
+    const brandId = this.vehicleForm.controls.brandId.value;
+    this.vehicleForm.controls.modelId.setValue("");
+    this.models.set([]);
+    if (brandId) this.loadModels(brandId);
+  }
+
+  addItem(): void {
+    if (this.items.length < 50) this.items.push(this.createItemGroup());
+  }
+
+  removeItem(index: number): void {
+    if (this.items.length > 1) this.items.removeAt(index);
+  }
+
+  itemAmount(index: number): number | null {
+    const raw = this.items.at(index).value as {
+      quantity?: number | null;
+      unitPrice?: number | null;
+    };
+    return raw.unitPrice === null ||
+      raw.unitPrice === undefined ||
+      raw.quantity === null ||
+      raw.quantity === undefined
+      ? null
+      : Number(raw.quantity) * Number(raw.unitPrice);
+  }
+
+  total(): number | null {
+    const amounts = this.items.controls.map((_, index) =>
+      this.itemAmount(index),
+    );
+    return amounts.some((amount) => amount === null)
+      ? null
+      : amounts.reduce<number>((sum, amount) => sum + (amount ?? 0), 0);
+  }
+
+  money(value: number | null): string {
+    return value === null
+      ? "Por definir"
+      : new Intl.NumberFormat("es-MX", {
+          style: "currency",
+          currency: "MXN",
+        }).format(value);
+  }
+
+  formatPhone(): void {
+    const control = this.clientForm.controls.phone;
+    const digits = control.value.replace(/\D/g, "").slice(0, 10);
+    control.setValue(
+      [
+        digits.slice(0, 3),
+        digits.slice(3, 6),
+        digits.slice(6, 8),
+        digits.slice(8, 10),
+      ]
+        .filter(Boolean)
+        .join(" "),
+      { emitEvent: false },
+    );
+  }
+
+  formatNumeroSerie(): void {
+    const control = this.vehicleForm.controls.numeroSerie;
+    control.setValue(
+      control.value
+        .toUpperCase()
+        .replace(/[^A-HJ-NPR-Z0-9]/g, "")
+        .slice(0, 10),
+      { emitEvent: false },
+    );
+  }
+
+  formatPlate(): void {
+    const control = this.vehicleForm.controls.licensePlate;
+    control.setValue(control.value.toUpperCase().slice(0, 20), {
+      emitEvent: false,
+    });
+  }
+
+  saveOrder(): void {
+    if (this.orderForm.invalid || this.saving()) {
+      this.orderForm.markAllAsTouched();
+      return;
+    }
+    const raw = this.orderForm.getRawValue();
+    const input: OrderInput = {
+      customerId: raw.customerId,
+      vehicleId: raw.vehicleId,
+      items: raw.items.map((item) => ({
+        description: String(item["description"]).trim(),
+        quantity: Number(item["quantity"]),
+        unitPrice:
+          item["unitPrice"] === null || item["unitPrice"] === undefined
+            ? null
+            : Number(item["unitPrice"]),
+      })),
+    };
+    this.saving.set(true);
+    this.error.set("");
+    const request = this.editing
+      ? this.orders.update(this.orderId, input)
+      : this.orders.create(input);
+    request
+      .pipe(
+        finalize(() => this.saving.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (order) => void this.router.navigate(["/orders", order.id]),
+        error: (error: unknown) =>
+          this.error.set(
+            apiErrorMessage(error, "No pudimos guardar la orden."),
+          ),
+      });
+  }
+
+  private createItemGroup(): FormGroup {
+    return new FormGroup({
+      description: new FormControl("", {
+        nonNullable: true,
+        validators: [Validators.required, Validators.maxLength(300)],
+      }),
+      quantity: new FormControl<number | null>(1, {
+        validators: [Validators.required, Validators.min(0.001)],
+      }),
+      unitPrice: new FormControl<number | null>(null, {
+        validators: [Validators.min(0)],
+      }),
+    });
+  }
+
+  private loadOrder(): void {
+    this.orders
+      .getOne(this.orderId)
+      .pipe(
+        finalize(() => this.loading.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (order) => this.hydrateOrder(order),
+        error: (error: unknown) =>
+          this.error.set(apiErrorMessage(error, "No pudimos cargar la orden.")),
+      });
+  }
+
+  private hydrateOrder(order: Order): void {
+    this.orderForm.controls.customerId.setValue(order.customer.id);
+    this.orderForm.controls.vehicleId.setValue(order.vehicle.id);
+    this.items.clear();
+    order.items.forEach((item) => {
+      const group = this.createItemGroup();
+      group.patchValue({
+        description: item.description,
+        quantity: Number(item.quantity),
+        unitPrice: item.unitPrice === null ? null : Number(item.unitPrice),
+      });
+      this.items.push(group);
+    });
+    this.loadVehicles(order.customer.id, order.vehicle.id);
+  }
+
+  private loadVehicles(customerId: string, selectedVehicleId = ""): void {
+    this.vehiclesService
+      .list(customerId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (vehicles) => {
+          this.vehicles.set(
+            vehicles.filter(
+              ({ isActive, id }) => isActive || id === selectedVehicleId,
+            ),
+          );
+          if (selectedVehicleId)
+            this.orderForm.controls.vehicleId.setValue(selectedVehicleId);
+        },
+        error: (error: unknown) =>
+          this.error.set(
+            apiErrorMessage(error, "No pudimos cargar los vehículos."),
+          ),
+      });
+  }
+
+  private loadModels(brandId: string): void {
+    this.catalog
+      .listModels(brandId, { page: 1, limit: 100, search: "", isActive: true })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (models) => this.models.set(models.items),
+        error: (error: unknown) =>
+          this.error.set(
+            apiErrorMessage(error, "No pudimos cargar los modelos."),
+          ),
+      });
+  }
+
+  private resetVehicleForm(): void {
+    this.vehicleForm.reset({
+      brandId: "",
+      modelId: "",
+      year: null,
+      color: "",
+      numeroSerie: "",
+      licensePlate: "",
+    });
+    this.models.set([]);
+  }
+}

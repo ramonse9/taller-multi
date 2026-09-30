@@ -1,0 +1,195 @@
+<main
+  class="min-h-screen bg-[#f9f7f0] text-[#17251e] transition-colors dark:bg-[#101713] dark:text-[#edf3ef]"
+>
+  <header
+    class="flex flex-wrap items-end justify-between gap-5 border-b border-[#dcd9cf] px-[clamp(1.5rem,5vw,5rem)] py-9 dark:border-[#34423a]"
+  >
+    <div>
+      <p class="eyebrow">OPERACIÓN / PAQUETE BÁSICO</p>
+      <h1
+        class="m-0 font-[var(--display)] text-[clamp(2.5rem,5vw,4.5rem)] font-semibold leading-[.9] tracking-[-.05em]"
+      >
+        Órdenes
+      </h1>
+      <p class="mt-3 text-sm text-[#68746d] dark:text-[#aab7af]">
+        Historial de servicios, conceptos libres y seguimiento del trabajo.
+      </p>
+    </div>
+    <div class="flex items-center gap-2">
+      <button class="theme-toggle" type="button" (click)="theme.toggle()">
+        {{ theme.isDark() ? '☀' : '◐' }}
+      </button>
+      <a class="primary no-underline" routerLink="/orders/new"
+        >＋ Nueva orden</a
+      >
+    </div>
+  </header>
+
+  <section class="px-[clamp(1.5rem,5vw,5rem)] pb-16 pt-8">
+    @if (customerId || vehicleId) {
+    <div
+      class="mb-5 flex flex-wrap items-center justify-between gap-3 border border-[#d9c6b8] bg-[#fff4eb] px-4 py-3 text-sm dark:border-[#664431] dark:bg-[#35271f]"
+    >
+      <span
+        >Mostrando el historial {{ vehicleId ? 'del vehículo seleccionado' :
+        'del cliente seleccionado' }}.</span
+      >
+      <a
+        class="font-bold text-[#b94718] dark:text-[#ff9a6f]"
+        routerLink="/orders"
+        >Ver todas las órdenes</a
+      >
+    </div>
+    }
+    <div class="mb-6 grid gap-3 sm:grid-cols-[minmax(0,1fr)_14rem]">
+      <div class="relative">
+        <span
+          class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#768079]"
+          >⌕</span
+        >
+        <input
+          class="field-control !pl-11"
+          type="search"
+          [formControl]="search"
+          placeholder="Buscar por folio, cliente, vehículo, placa o serie"
+        />
+      </div>
+      <select
+        class="field-control"
+        [formControl]="status"
+        aria-label="Filtrar por estado"
+      >
+        <option value="">Todos los estados</option>
+        <option value="draft">Borrador</option>
+        <option value="open">Abierta</option>
+        <option value="in_progress">En proceso</option>
+        <option value="completed">Terminada</option>
+        <option value="cancelled">Cancelada</option>
+      </select>
+    </div>
+
+    @if (error()) {
+    <div
+      class="mb-5 flex justify-between gap-4 bg-[#fff0ea] px-4 py-3 text-sm text-[#8e3214] dark:bg-[#4a241b] dark:text-[#ffb89d]"
+      role="alert"
+    >
+      <span>{{ error() }}</span
+      ><button
+        class="bg-transparent p-0 underline"
+        type="button"
+        (click)="load()"
+      >
+        Reintentar
+      </button>
+    </div>
+    }
+
+    <div
+      class="relative min-h-72 overflow-x-auto border border-[#dcd9cf] bg-white dark:border-[#3d4d44] dark:bg-[#1a251f]"
+      [class.opacity-60]="loading()"
+    >
+      <table class="w-full min-w-[850px] border-collapse text-left">
+        <thead
+          class="bg-[#f2f0e9] font-[var(--mono)] text-[.62rem] uppercase tracking-[.09em] text-[#68746d] dark:bg-[#222f27] dark:text-[#aab7af]"
+        >
+          <tr>
+            <th class="p-4">Folio / fecha</th>
+            <th class="p-4">Cliente</th>
+            <th class="p-4">Vehículo</th>
+            <th class="p-4">Conceptos</th>
+            <th class="p-4">Estado</th>
+            <th class="p-4 text-right">Total</th>
+            <th class="p-4"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (order of data().items; track order.id) {
+          <tr
+            class="border-t border-[#ece9df] hover:bg-[#fbfaf6] dark:border-[#35433b] dark:hover:bg-[#202c25]"
+          >
+            <td class="p-4">
+              <strong class="block font-[var(--mono)] text-base"
+                >#{{ order.folio }}</strong
+              ><span class="text-xs text-[#68746d] dark:text-[#aab7af]"
+                >{{ formatShortDate(order.createdAt) }}</span
+              >
+            </td>
+            <td class="p-4">
+              <strong class="block">{{ order.customer.displayName }}</strong
+              ><span class="text-xs text-[#68746d] dark:text-[#aab7af]"
+                >{{ order.customer.type === 'company' ? 'Empresa' : 'Persona'
+                }}</span
+              >
+            </td>
+            <td class="p-4">
+              <strong class="block"
+                >{{ order.vehicle.brandName }} {{ order.vehicle.modelName
+                }}</strong
+              ><span class="text-xs text-[#68746d] dark:text-[#aab7af]"
+                >{{ order.vehicle.year }} · {{ order.vehicle.licensePlate ||
+                order.vehicle.color }}</span
+              >
+            </td>
+            <td class="p-4">{{ order.itemCount }}</td>
+            <td class="p-4">
+              <span class="tag">{{ statusName(order.status) }}</span>
+            </td>
+            <td class="p-4 text-right">
+              <strong>{{ money(order.total) }}</strong>@if
+              (order.hasUnpricedItems) {<span
+                class="block text-[.65rem] text-[#b94718] dark:text-[#ff9a6f]"
+                >Faltan precios</span
+              >}
+            </td>
+            <td class="p-4 text-right">
+              <a
+                class="font-bold text-[#b94718] dark:text-[#ff9a6f]"
+                [routerLink]="['/orders', order.id]"
+                >Ver detalle →</a
+              >
+            </td>
+          </tr>
+          } @empty { @if (!loading()) {
+          <tr>
+            <td
+              class="p-12 text-center text-[#68746d] dark:text-[#aab7af]"
+              colspan="7"
+            >
+              No hay órdenes que coincidan con la búsqueda.
+            </td>
+          </tr>
+          } }
+        </tbody>
+      </table>
+      @if (loading()) {
+      <div class="loader-tw" aria-label="Cargando">
+        <span></span><span></span><span></span>
+      </div>
+      }
+    </div>
+
+    <footer class="mt-5 flex items-center justify-between gap-4 text-sm">
+      <span
+        >{{ data().totalItems }} órdenes · página {{ data().page }} de {{
+        data().totalPages || 1 }}</span
+      >
+      <div class="flex gap-2">
+        <button
+          class="secondary-tw"
+          type="button"
+          [disabled]="data().page <= 1"
+          (click)="previous()"
+        >
+          Anterior</button
+        ><button
+          class="secondary-tw"
+          type="button"
+          [disabled]="!data().hasNextPage"
+          (click)="next()"
+        >
+          Siguiente
+        </button>
+      </div>
+    </footer>
+  </section>
+</main>

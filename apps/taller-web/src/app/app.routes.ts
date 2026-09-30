@@ -57,6 +57,40 @@ export const routes: Routes = [
           import("./features/clients/clients.page").then((m) => m.ClientsPage),
       },
       {
+        path: "orders/new",
+        canActivate: [roleGuard, featureGuard],
+        data: { roles: ["company_admin", "user"], feature: "service_orders" },
+        loadComponent: () =>
+          import("./features/orders/order-wizard.page").then(
+            (m) => m.OrderWizardPage,
+          ),
+      },
+      {
+        path: "orders/:id/edit",
+        canActivate: [roleGuard, featureGuard],
+        data: { roles: ["company_admin", "user"], feature: "service_orders" },
+        loadComponent: () =>
+          import("./features/orders/order-wizard.page").then(
+            (m) => m.OrderWizardPage,
+          ),
+      },
+      {
+        path: "orders/:id",
+        canActivate: [roleGuard, featureGuard],
+        data: { roles: ["company_admin", "user"], feature: "service_orders" },
+        loadComponent: () =>
+          import("./features/orders/order-detail.page").then(
+            (m) => m.OrderDetailPage,
+          ),
+      },
+      {
+        path: "orders",
+        canActivate: [roleGuard, featureGuard],
+        data: { roles: ["company_admin", "user"], feature: "service_orders" },
+        loadComponent: () =>
+          import("./features/orders/orders.page").then((m) => m.OrdersPage),
+      },
+      {
         path: "vehicle-catalog",
         canActivate: [roleGuard, featureGuard],
         data: { roles: ["platform_admin", "company_admin"] },

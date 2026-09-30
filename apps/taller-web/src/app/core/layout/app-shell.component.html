@@ -17,34 +17,52 @@
           >
             <span>02</span> Marcas y modelos
           </a>
-          <a class="nav-item" routerLink="/subscriptions" routerLinkActive="active">
+          <a
+            class="nav-item"
+            routerLink="/subscriptions"
+            routerLinkActive="active"
+          >
             <span>03</span> Suscripciones
           </a>
         }
         @case ("company_admin") {
-          @if (auth.hasFeature("customer_history")) { <a class="nav-item" routerLink="/clients" routerLinkActive="active">
-            <span>01</span> Clientes
-          </a> }
+          @if (auth.hasFeature("service_orders")) {
+            <a class="nav-item" routerLink="/orders" routerLinkActive="active">
+              <span>01</span> Órdenes
+            </a>
+          }
+          @if (auth.hasFeature("customer_history")) {
+            <a class="nav-item" routerLink="/clients" routerLinkActive="active">
+              <span>02</span> Clientes
+            </a>
+          }
           <a
             class="nav-item"
             routerLink="/vehicle-catalog"
             routerLinkActive="active"
           >
-            <span>02</span> Marcas y modelos
+            <span>03</span> Marcas y modelos
           </a>
           <a class="nav-item" routerLink="/users" routerLinkActive="active">
-            <span>03</span> Usuarios
+            <span>04</span> Usuarios
           </a>
           <a class="nav-item" routerLink="/account" routerLinkActive="active">
-            <span>04</span> Seguridad
+            <span>05</span> Seguridad
           </a>
         }
         @case ("user") {
-          @if (auth.hasFeature("customer_history")) { <a class="nav-item" routerLink="/clients" routerLinkActive="active">
-            <span>01</span> Clientes
-          </a> }
+          @if (auth.hasFeature("service_orders")) {
+            <a class="nav-item" routerLink="/orders" routerLinkActive="active">
+              <span>01</span> Órdenes
+            </a>
+          }
+          @if (auth.hasFeature("customer_history")) {
+            <a class="nav-item" routerLink="/clients" routerLinkActive="active">
+              <span>02</span> Clientes
+            </a>
+          }
           <a class="nav-item" routerLink="/account" routerLinkActive="active">
-            <span>02</span> Seguridad
+            <span>03</span> Seguridad
           </a>
         }
       }

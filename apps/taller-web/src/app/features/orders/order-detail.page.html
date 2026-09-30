@@ -1,0 +1,247 @@
+<main
+  class="min-h-screen bg-[#f9f7f0] text-[#17251e] dark:bg-[#101713] dark:text-[#edf3ef]"
+>
+  <header
+    class="border-b border-[#dcd9cf] px-[clamp(1.5rem,5vw,5rem)] py-8 dark:border-[#34423a]"
+  >
+    <div class="flex flex-wrap items-end justify-between gap-5">
+      <div>
+        <a
+          class="mb-3 inline-block text-xs font-bold text-[#68746d] hover:text-[#e86a33] dark:text-[#aab7af]"
+          routerLink="/orders"
+          >← Volver a órdenes</a
+        >
+        <p class="eyebrow">ORDEN DE SERVICIO</p>
+        <h1
+          class="m-0 font-[var(--display)] text-[clamp(2.5rem,5vw,4.5rem)] font-semibold leading-[.9] tracking-[-.05em]"
+        >
+          #{{ order()?.folio || '—' }}
+        </h1>
+      </div>
+      <div class="flex items-center gap-2">
+        <button class="theme-toggle" type="button" (click)="theme.toggle()">
+          {{ theme.isDark() ? '☀' : '◐' }}</button
+        >@if (editable()) {<a
+          class="secondary-tw no-underline"
+          [routerLink]="['/orders', orderId, 'edit']"
+          >Editar orden</a
+        >}
+      </div>
+    </div>
+  </header>
+  <section class="px-[clamp(1.5rem,5vw,5rem)] pb-16 pt-8">
+    @if (notice()) {
+    <div
+      class="mb-4 bg-[#e7f2eb] px-4 py-3 text-sm text-[#245b3b] dark:bg-[#203c2c] dark:text-[#9ed5b3]"
+    >
+      ✓ {{ notice() }}
+    </div>
+    } @if (error()) {
+    <div
+      class="mb-4 flex justify-between gap-4 bg-[#fff0ea] px-4 py-3 text-sm text-[#8e3214] dark:bg-[#4a241b] dark:text-[#ffb89d]"
+    >
+      <span>{{ error() }}</span
+      ><button
+        class="bg-transparent p-0 underline"
+        type="button"
+        (click)="load()"
+      >
+        Reintentar
+      </button>
+    </div>
+    } @if (loading()) {
+    <div class="relative min-h-72">
+      <div class="loader-tw" aria-label="Cargando">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+    } @if (!loading() && order(); as current) {
+    <div class="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(20rem,.8fr)]">
+      <div class="space-y-6">
+        <section
+          class="grid border border-[#dcd9cf] bg-white sm:grid-cols-3 dark:border-[#3d4d44] dark:bg-[#1a251f]"
+        >
+          <div
+            class="border-b border-[#ece9df] p-5 sm:border-b-0 sm:border-r dark:border-[#35433b]"
+          >
+            <span class="detail-label">ESTADO</span
+            ><strong class="block text-lg"
+              >{{ statusName(current.status) }}</strong
+            >
+          </div>
+          <div
+            class="border-b border-[#ece9df] p-5 sm:border-b-0 sm:border-r dark:border-[#35433b]"
+          >
+            <span class="detail-label">FECHA</span
+            ><strong class="block text-lg"
+              >{{ formatShortDate(current.createdAt) }}</strong
+            >
+          </div>
+          <div class="p-5">
+            <span class="detail-label">TOTAL</span
+            ><strong class="block text-lg">{{ money(current.total) }}</strong
+            >@if (current.hasUnpricedItems) {<small
+              class="text-[#b94718] dark:text-[#ff9a6f]"
+              >Faltan precios</small
+            >}
+          </div>
+        </section>
+        <section
+          class="grid border border-[#dcd9cf] bg-white md:grid-cols-2 dark:border-[#3d4d44] dark:bg-[#1a251f]"
+        >
+          <div
+            class="border-b border-[#ece9df] p-6 md:border-b-0 md:border-r dark:border-[#35433b]"
+          >
+            <span class="detail-label">CLIENTE</span
+            ><a
+              class="mt-1 block text-xl font-bold text-inherit"
+              [routerLink]="['/clients', current.customer.id]"
+              >{{ current.customer.displayName }}</a
+            ><a
+              class="mt-3 inline-block text-xs font-bold text-[#b94718] dark:text-[#ff9a6f]"
+              routerLink="/orders"
+              [queryParams]="{customerId: current.customer.id}"
+              >Ver historial del cliente →</a
+            >
+          </div>
+          <div class="p-6">
+            <span class="detail-label">VEHÍCULO</span
+            ><strong class="mt-1 block text-xl"
+              >{{ current.vehicle.brandName }} {{ current.vehicle.modelName
+              }}</strong
+            >
+            <p class="mt-1 text-sm text-[#68746d] dark:text-[#aab7af]">
+              {{ current.vehicle.year }} · {{ current.vehicle.color }} · {{
+              current.vehicle.licensePlate || 'Sin placa' }}
+            </p>
+            <a
+              class="mt-3 inline-block text-xs font-bold text-[#b94718] dark:text-[#ff9a6f]"
+              routerLink="/orders"
+              [queryParams]="{customerId: current.customer.id, vehicleId: current.vehicle.id}"
+              >Ver historial del vehículo →</a
+            >
+          </div>
+        </section>
+        <section
+          class="border border-[#dcd9cf] bg-white dark:border-[#3d4d44] dark:bg-[#1a251f]"
+        >
+          <header
+            class="border-b border-[#ece9df] bg-[#f2f0e9] px-6 py-4 dark:border-[#35433b] dark:bg-[#222f27]"
+          >
+            <p class="eyebrow">CONCEPTOS</p>
+            <h2 class="font-[var(--display)] text-2xl font-semibold">
+              Trabajo registrado
+            </h2>
+          </header>
+          <div class="divide-y divide-[#ece9df] dark:divide-[#35433b]">
+            @for (item of current.items; track item.id) {
+            <div
+              class="grid gap-2 px-6 py-4 sm:grid-cols-[minmax(0,1fr)_7rem_9rem_9rem]"
+            >
+              <strong>{{ item.description }}</strong
+              ><span>{{ item.quantity }} pza.</span
+              ><span
+                >{{ item.unitPrice === null ? 'Sin precio' :
+                money(item.unitPrice) }}</span
+              ><strong class="sm:text-right">{{ money(item.amount) }}</strong>
+            </div>
+            }
+          </div>
+          <footer
+            class="flex justify-between border-t-2 border-[#17251e] px-6 py-5 dark:border-[#edf3ef]"
+          >
+            <strong>Total</strong
+            ><strong class="text-xl">{{ money(current.total) }}</strong>
+          </footer>
+        </section>
+      </div>
+      <aside class="space-y-6">
+        @if (transitions().length) {
+        <section class="form-card-tw p-5">
+          <p class="eyebrow">SEGUIMIENTO</p>
+          <h2 class="font-[var(--display)] text-2xl font-semibold">
+            Cambiar estado
+          </h2>
+          <textarea
+            class="field-control mt-4 min-h-20"
+            [formControl]="statusNote"
+            placeholder="Nota del cambio (opcional)"
+          ></textarea>
+          <div class="mt-3 grid gap-2">
+            @for (status of transitions(); track status) {<button
+              class="secondary-tw w-full"
+              [class.!border-[#a63725]]="status === 'cancelled'"
+              [class.!text-[#a63725]]="status === 'cancelled'"
+              type="button"
+              [disabled]="saving()"
+              (click)="changeStatus(status)"
+            >
+              {{ transitionAction(status) }}</button
+            >}
+          </div>
+        </section>
+        }
+        <section class="form-card-tw p-5">
+          <p class="eyebrow">NOTAS</p>
+          <h2 class="font-[var(--display)] text-2xl font-semibold">
+            Seguimiento interno
+          </h2>
+          <textarea
+            class="field-control mt-4 min-h-24"
+            [formControl]="note"
+            placeholder="Agrega una observación sobre el servicio"
+          ></textarea
+          ><button
+            class="primary mt-3 w-full"
+            type="button"
+            [disabled]="saving()"
+            (click)="addNote()"
+          >
+            Agregar nota
+          </button>
+          <div class="mt-5 space-y-3">
+            @for (entry of current.notes.slice().reverse(); track entry.id) {
+            <article class="border-l-2 border-[#d0a17c] pl-3">
+              <p class="m-0 text-sm">{{ entry.body }}</p>
+              <small class="text-[#68746d] dark:text-[#aab7af]"
+                >{{ entry.createdByName }} · {{ formatShortDate(entry.createdAt)
+                }}</small
+              >
+            </article>
+            } @empty {
+            <p class="text-sm text-[#68746d] dark:text-[#aab7af]">
+              Todavía no hay notas.
+            </p>
+            }
+          </div>
+        </section>
+        <section class="form-card-tw p-5">
+          <p class="eyebrow">BITÁCORA</p>
+          <h2 class="font-[var(--display)] text-2xl font-semibold">
+            Historial de cambios
+          </h2>
+          <ol class="mt-5 space-y-4">
+            @for (entry of current.statusHistory.slice().reverse(); track
+            entry.id) {
+            <li class="relative border-l border-[#d0a17c] pl-4">
+              <span
+                class="absolute -left-[4px] top-1 size-[7px] rounded-full bg-[#e86a33]"
+              ></span
+              ><strong class="block text-sm"
+                >{{ entry.previousStatus ? statusName(entry.previousStatus) + '
+                → ' : '' }}{{ statusName(entry.newStatus) }}</strong
+              >@if (entry.note) {
+              <p class="my-1 text-sm">{{ entry.note }}</p>
+              }<small class="text-[#68746d] dark:text-[#aab7af]"
+                >{{ entry.changedByName }} · {{ formatShortDate(entry.changedAt)
+                }}</small
+              >
+            </li>
+            }
+          </ol>
+        </section>
+      </aside>
+    </div>
+    }
+  </section>
+</main>
