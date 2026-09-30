@@ -384,8 +384,6 @@ export class ClientDetailPage implements OnInit {
   statusName(status: string): string {
     return (
       {
-        draft: "Borrador",
-        open: "Abierta",
         in_progress: "En proceso",
         completed: "Terminada",
         cancelled: "Cancelada",

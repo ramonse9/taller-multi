@@ -11,6 +11,7 @@ import { TenantVehicleProfile1700000006000 } from './migrations/public/170000000
 import { UnifiedCustomers1700000007000 } from './migrations/public/1700000007000-unified-customers';
 import { SubscriptionPlans1700000008000 } from './migrations/public/1700000008000-subscription-plans';
 import { BasicServiceOrders1700000009000 } from './migrations/public/1700000009000-basic-service-orders';
+import { SimplifiedOrderStatuses1700000010000 } from './migrations/public/1700000010000-simplified-order-statuses';
 
 export default new DataSource({
   type: 'postgres',
@@ -28,6 +29,7 @@ export default new DataSource({
     UnifiedCustomers1700000007000,
     SubscriptionPlans1700000008000,
     BasicServiceOrders1700000009000,
+    SimplifiedOrderStatuses1700000010000,
   ],
   migrationsTableName: 'public_schema_migrations',
   synchronize: false,

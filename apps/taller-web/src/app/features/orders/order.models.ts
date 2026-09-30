@@ -1,7 +1,6 @@
 import { CustomerType } from "../clients/client.models";
 
-export type OrderStatus =
-  "draft" | "open" | "in_progress" | "completed" | "cancelled";
+export type OrderStatus = "in_progress" | "completed" | "cancelled";
 
 export interface OrderCustomer {
   id: string;
@@ -40,7 +39,6 @@ export interface OrderStatusHistory {
   id: string;
   previousStatus: OrderStatus | null;
   newStatus: OrderStatus;
-  note: string | null;
   changedByUserId: string;
   changedByName: string;
   changedAt: string;
@@ -104,8 +102,6 @@ export interface OrderListOptions {
 }
 
 export const ORDER_STATUS_NAMES: Record<OrderStatus, string> = {
-  draft: "Borrador",
-  open: "Abierta",
   in_progress: "En proceso",
   completed: "Terminada",
   cancelled: "Cancelada",

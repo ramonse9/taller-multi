@@ -8,7 +8,7 @@ export interface TenantMigration {
   up(queryRunner: QueryRunner, schemaName: string): Promise<void>;
 }
 
-export const TENANT_BASE_VERSION = 4;
+export const TENANT_BASE_VERSION = 5;
 export const TENANT_BASE_NAME = 'tenant-base';
 
 /**
@@ -80,7 +80,7 @@ export class TenantMigrator {
         folio bigint GENERATED ALWAYS AS IDENTITY UNIQUE,
         customer_id uuid NOT NULL REFERENCES ${s}.customers(id),
         vehicle_id uuid NOT NULL REFERENCES ${s}.vehicles(id),
-        status varchar(24) NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','open','in_progress','completed','cancelled')),
+        status varchar(24) NOT NULL DEFAULT 'in_progress' CHECK (status IN ('in_progress','completed','cancelled')),
         opened_at timestamptz NOT NULL DEFAULT now(), closed_at timestamptz,
         subtotal numeric(14,2), tax numeric(14,2) NOT NULL DEFAULT 0,
         total numeric(14,2) CHECK (total >= 0), is_paid boolean NOT NULL DEFAULT false,
@@ -108,8 +108,8 @@ export class TenantMigrator {
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
         order_id uuid NOT NULL REFERENCES ${s}.orders(id) ON DELETE CASCADE,
         previous_status varchar(24),
-        new_status varchar(24) NOT NULL CHECK (new_status IN ('draft','open','in_progress','completed','cancelled')),
-        note varchar(500), changed_by_user_id uuid NOT NULL REFERENCES public.users(id),
+        new_status varchar(24) NOT NULL CHECK (new_status IN ('in_progress','completed','cancelled')),
+        changed_by_user_id uuid NOT NULL REFERENCES public.users(id),
         changed_at timestamptz NOT NULL DEFAULT now()
       )`,
       `CREATE INDEX order_status_history_order_date_idx ON ${s}.order_status_history(order_id, changed_at, id)`,

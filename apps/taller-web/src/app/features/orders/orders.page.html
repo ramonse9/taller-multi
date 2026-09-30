@@ -60,8 +60,6 @@
         aria-label="Filtrar por estado"
       >
         <option value="">Todos los estados</option>
-        <option value="draft">Borrador</option>
-        <option value="open">Abierta</option>
         <option value="in_progress">En proceso</option>
         <option value="completed">Terminada</option>
         <option value="cancelled">Cancelada</option>
@@ -132,7 +130,13 @@
             </td>
             <td class="p-4">{{ order.itemCount }}</td>
             <td class="p-4">
-              <span class="tag">{{ statusName(order.status) }}</span>
+              <span
+                class="order-status"
+                [class.order-status-in-progress]="order.status === 'in_progress'"
+                [class.order-status-completed]="order.status === 'completed'"
+                [class.order-status-cancelled]="order.status === 'cancelled'"
+                >{{ statusName(order.status) }}</span
+              >
             </td>
             <td class="p-4 text-right">
               <strong>{{ money(order.total) }}</strong>@if

@@ -41,15 +41,8 @@ export class OrdersService {
     return this.http.patch<Order>(`${this.url}/${id}`, input);
   }
 
-  changeStatus(
-    id: string,
-    status: OrderStatus,
-    note?: string,
-  ): Observable<Order> {
-    return this.http.post<Order>(`${this.url}/${id}/status`, {
-      status,
-      note: note?.trim() || undefined,
-    });
+  changeStatus(id: string, status: OrderStatus): Observable<Order> {
+    return this.http.post<Order>(`${this.url}/${id}/status`, { status });
   }
 
   addNote(id: string, body: string): Observable<OrderNote> {

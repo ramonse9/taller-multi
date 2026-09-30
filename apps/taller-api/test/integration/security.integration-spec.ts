@@ -17,6 +17,7 @@ import { TenantVehicleProfile1700000006000 } from '../../src/database/migrations
 import { UnifiedCustomers1700000007000 } from '../../src/database/migrations/public/1700000007000-unified-customers';
 import { SubscriptionPlans1700000008000 } from '../../src/database/migrations/public/1700000008000-subscription-plans';
 import { BasicServiceOrders1700000009000 } from '../../src/database/migrations/public/1700000009000-basic-service-orders';
+import { SimplifiedOrderStatuses1700000010000 } from '../../src/database/migrations/public/1700000010000-simplified-order-statuses';
 import { quoteIdentifier } from '../../src/database/schema-name';
 import { seedPublicCatalogs } from '../../src/database/seeds/public-catalogs.seed';
 
@@ -198,6 +199,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         UnifiedCustomers1700000007000,
         SubscriptionPlans1700000008000,
         BasicServiceOrders1700000009000,
+        SimplifiedOrderStatuses1700000010000,
       ],
       migrationsTableName: 'public_schema_migrations',
       synchronize: false,
@@ -868,7 +870,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     await control.query(
       `INSERT INTO ${schema}.orders(
          customer_id, vehicle_id, status, created_by_user_id, updated_by_user_id
-       ) VALUES ($1, $2, 'completed', $3, $3), ($4, $5, 'open', $3, $3)`,
+       ) VALUES ($1, $2, 'completed', $3, $3), ($4, $5, 'in_progress', $3, $3)`,
       [
         client.body.id,
         vehicle.body.id,
@@ -952,7 +954,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(created.status).toBe(201);
     expect(created.body).toMatchObject({
       folio: '1',
-      status: 'draft',
+      status: 'in_progress',
       hasUnpricedItems: true,
       subtotal: null,
       total: null,
@@ -976,7 +978,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       ]),
     );
     expect(created.body.statusHistory).toEqual([
-      expect.objectContaining({ previousStatus: null, newStatus: 'draft' }),
+      expect.objectContaining({ previousStatus: null, newStatus: 'in_progress' }),
     ]);
 
     const updated = await request<OrderResponse>('PATCH', `/orders/${created.body.id}`, {
@@ -1006,16 +1008,17 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       createdByUserId: tenant.user.id,
     });
 
-    for (const [status, transitionNote] of [
-      ['open', 'Unidad recibida'],
-      ['in_progress', 'Trabajo iniciado'],
-      ['completed', 'Trabajo terminado'],
+    for (const status of [
+      'completed',
+      'in_progress',
+      'cancelled',
+      'in_progress',
+      'completed',
     ] as const) {
-      const changed = await request<OrderResponse>(
-        'POST',
-        `/orders/${created.body.id}/status`,
-        { token: tenant.accessToken, body: { status, note: transitionNote } },
-      );
+      const changed = await request<OrderResponse>('POST', `/orders/${created.body.id}/status`, {
+        token: tenant.accessToken,
+        body: { status },
+      });
       expect(changed.status).toBe(200);
       expect(changed.body.status).toBe(status);
     }
@@ -1028,8 +1031,10 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       expect.objectContaining({ body: 'Cliente autoriza los trabajos.' }),
     ]);
     expect(completed.body.statusHistory.map(({ newStatus }) => newStatus)).toEqual([
-      'draft',
-      'open',
+      'in_progress',
+      'completed',
+      'in_progress',
+      'cancelled',
       'in_progress',
       'completed',
     ]);
@@ -1083,7 +1088,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
        WHERE service_order.id = $1 GROUP BY service_order.id`,
       [created.body.id],
     );
-    expect(stored[0]).toEqual({ tax: '0.00', linked_catalog_items: '0', history_count: '4' });
+    expect(stored[0]).toEqual({ tax: '0.00', linked_catalog_items: '0', history_count: '6' });
   });
 
   async function createCompany(

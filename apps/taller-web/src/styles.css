@@ -779,6 +779,51 @@ textarea {
   }
 }
 
+@utility order-status {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+@utility order-status-in-progress {
+  border-color: #8fc4a4;
+  background: #e7f2eb;
+  color: #245b3b;
+
+  .dark & {
+    border-color: #417757;
+    background: #203c2c;
+    color: #9ed5b3;
+  }
+}
+
+@utility order-status-completed {
+  border-color: #8ab6df;
+  background: #e8f2fb;
+  color: #245d8f;
+
+  .dark & {
+    border-color: #396b98;
+    background: #1e3447;
+    color: #9fc9ef;
+  }
+}
+
+@utility order-status-cancelled {
+  border-color: #dda095;
+  background: #fff0ed;
+  color: #9c3325;
+
+  .dark & {
+    border-color: #8a493e;
+    background: #4a241f;
+    color: #ffb0a2;
+  }
+}
+
 @utility client-th {
   padding: 1rem 1.2rem;
   color: #68746d;

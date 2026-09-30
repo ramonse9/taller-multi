@@ -23,8 +23,6 @@ const nullablePrice = ({ value }: { value: unknown }): unknown =>
   value === '' || value === null ? null : value;
 
 export enum OrderStatus {
-  Draft = 'draft',
-  Open = 'open',
   InProgress = 'in_progress',
   Completed = 'completed',
   Cancelled = 'cancelled',
@@ -97,13 +95,6 @@ export class ChangeOrderStatusDto {
   @ApiProperty({ enum: OrderStatus })
   @IsEnum(OrderStatus)
   status!: OrderStatus;
-
-  @ApiPropertyOptional({ maxLength: 500, nullable: true })
-  @Transform(trimString)
-  @IsOptional()
-  @IsString()
-  @Length(1, 500)
-  note?: string | null;
 }
 
 export class CreateOrderNoteDto {
@@ -171,7 +162,6 @@ export class OrderStatusHistoryResponseDto {
   @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty({ enum: OrderStatus, nullable: true }) previousStatus!: OrderStatus | null;
   @ApiProperty({ enum: OrderStatus }) newStatus!: OrderStatus;
-  @ApiProperty({ nullable: true, type: String }) note!: string | null;
   @ApiProperty({ format: 'uuid' }) changedByUserId!: string;
   @ApiProperty() changedByName!: string;
   @ApiProperty() changedAt!: Date;

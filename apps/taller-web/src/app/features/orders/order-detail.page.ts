@@ -18,11 +18,9 @@ import { ORDER_STATUS_NAMES, Order, OrderStatus } from "./order.models";
 import { OrdersService } from "./orders.service";
 
 const TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
-  draft: ["open", "cancelled"],
-  open: ["in_progress", "completed", "cancelled"],
-  in_progress: ["open", "completed", "cancelled"],
-  completed: [],
-  cancelled: [],
+  in_progress: ["completed", "cancelled"],
+  completed: ["in_progress", "cancelled"],
+  cancelled: ["in_progress"],
 };
 
 @Component({
@@ -44,9 +42,8 @@ export class OrderDetailPage implements OnInit {
   readonly saving = signal(false);
   readonly error = signal("");
   readonly notice = signal("");
-  readonly statusNote = new FormControl("", {
+  readonly statusSelection = new FormControl<OrderStatus>("in_progress", {
     nonNullable: true,
-    validators: [Validators.maxLength(500)],
   });
   readonly note = new FormControl("", {
     nonNullable: true,
@@ -58,7 +55,7 @@ export class OrderDetailPage implements OnInit {
   });
   readonly editable = computed(() => {
     const status = this.order()?.status;
-    return status === "draft" || status === "open" || status === "in_progress";
+    return status === "in_progress";
   });
 
   ngOnInit(): void {
@@ -76,18 +73,23 @@ export class OrderDetailPage implements OnInit {
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
-        next: (order) => this.order.set(order),
+        next: (order) => {
+          this.order.set(order);
+          this.statusSelection.setValue(order.status, { emitEvent: false });
+        },
         error: (error: unknown) =>
           this.error.set(apiErrorMessage(error, "No pudimos cargar la orden.")),
       });
   }
 
-  changeStatus(status: OrderStatus): void {
-    if (this.saving() || this.statusNote.invalid) return;
+  changeStatus(): void {
+    const current = this.order();
+    const status = this.statusSelection.value;
+    if (!current || status === current.status || this.saving()) return;
     this.saving.set(true);
     this.error.set("");
     this.orders
-      .changeStatus(this.orderId, status, this.statusNote.value)
+      .changeStatus(this.orderId, status)
       .pipe(
         finalize(() => this.saving.set(false)),
         takeUntilDestroyed(this.destroyRef),
@@ -95,15 +97,17 @@ export class OrderDetailPage implements OnInit {
       .subscribe({
         next: (order) => {
           this.order.set(order);
-          this.statusNote.setValue("");
+          this.statusSelection.setValue(order.status, { emitEvent: false });
           this.showNotice(
             `Orden actualizada a ${this.statusName(status).toLocaleLowerCase("es-MX")}.`,
           );
         },
-        error: (error: unknown) =>
+        error: (error: unknown) => {
+          this.statusSelection.setValue(current.status, { emitEvent: false });
           this.error.set(
             apiErrorMessage(error, "No pudimos cambiar el estado."),
-          ),
+          );
+        },
       });
   }
 
@@ -144,16 +148,6 @@ export class OrderDetailPage implements OnInit {
           style: "currency",
           currency: "MXN",
         }).format(Number(value));
-  }
-
-  transitionAction(status: OrderStatus): string {
-    return {
-      open: "Abrir orden",
-      in_progress: "Iniciar trabajo",
-      completed: "Terminar orden",
-      cancelled: "Cancelar orden",
-      draft: "Volver a borrador",
-    }[status];
   }
 
   private showNotice(message: string): void {

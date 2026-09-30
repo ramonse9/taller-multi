@@ -65,7 +65,11 @@
             class="border-b border-[#ece9df] p-5 sm:border-b-0 sm:border-r dark:border-[#35433b]"
           >
             <span class="detail-label">ESTADO</span
-            ><strong class="block text-lg"
+            ><strong
+              class="order-status mt-1"
+              [class.order-status-in-progress]="current.status === 'in_progress'"
+              [class.order-status-completed]="current.status === 'completed'"
+              [class.order-status-cancelled]="current.status === 'cancelled'"
               >{{ statusName(current.status) }}</strong
             >
           </div>
@@ -156,31 +160,36 @@
         </section>
       </div>
       <aside class="space-y-6">
-        @if (transitions().length) {
         <section class="form-card-tw p-5">
           <p class="eyebrow">SEGUIMIENTO</p>
           <h2 class="font-[var(--display)] text-2xl font-semibold">
             Cambiar estado
           </h2>
-          <textarea
-            class="field-control mt-4 min-h-20"
-            [formControl]="statusNote"
-            placeholder="Nota del cambio (opcional)"
-          ></textarea>
-          <div class="mt-3 grid gap-2">
-            @for (status of transitions(); track status) {<button
-              class="secondary-tw w-full"
-              [class.!border-[#a63725]]="status === 'cancelled'"
-              [class.!text-[#a63725]]="status === 'cancelled'"
-              type="button"
-              [disabled]="saving()"
-              (click)="changeStatus(status)"
-            >
-              {{ transitionAction(status) }}</button
-            >}
-          </div>
+          <p class="mt-2 text-sm text-[#68746d] dark:text-[#aab7af]">
+            Selecciona el nuevo estado. El cambio se guardará automáticamente.
+          </p>
+          <select
+            class="field-control order-status mt-4 w-full"
+            [class.order-status-in-progress]="statusSelection.value === 'in_progress'"
+            [class.order-status-completed]="statusSelection.value === 'completed'"
+            [class.order-status-cancelled]="statusSelection.value === 'cancelled'"
+            [formControl]="statusSelection"
+            [disabled]="saving()"
+            (change)="changeStatus()"
+          >
+            <option [value]="current.status" disabled>
+              {{ statusName(current.status) }} (actual)
+            </option>
+            @for (status of transitions(); track status) {
+            <option [value]="status">{{ statusName(status) }}</option>
+            }
+          </select>
+          @if (saving()) {
+          <small class="mt-2 block text-[#68746d] dark:text-[#aab7af]"
+            >Guardando cambio…</small
+          >
+          }
         </section>
-        }
         <section class="form-card-tw p-5">
           <p class="eyebrow">NOTAS</p>
           <h2 class="font-[var(--display)] text-2xl font-semibold">
@@ -221,18 +230,17 @@
             Historial de cambios
           </h2>
           <ol class="mt-5 space-y-4">
-            @for (entry of current.statusHistory.slice().reverse(); track
-            entry.id) {
+            @for (entry of current.statusHistory; track entry.id) {
             <li class="relative border-l border-[#d0a17c] pl-4">
               <span
-                class="absolute -left-[4px] top-1 size-[7px] rounded-full bg-[#e86a33]"
+                class="absolute -left-[5px] top-1 size-[9px] rounded-full"
+                [class.bg-[#459568]]="entry.newStatus === 'in_progress'"
+                [class.bg-[#4388c5]]="entry.newStatus === 'completed'"
+                [class.bg-[#c84d3b]]="entry.newStatus === 'cancelled'"
               ></span
               ><strong class="block text-sm"
-                >{{ entry.previousStatus ? statusName(entry.previousStatus) + '
-                → ' : '' }}{{ statusName(entry.newStatus) }}</strong
-              >@if (entry.note) {
-              <p class="my-1 text-sm">{{ entry.note }}</p>
-              }<small class="text-[#68746d] dark:text-[#aab7af]"
+                >{{ statusName(entry.newStatus) }}</strong
+              ><small class="text-[#68746d] dark:text-[#aab7af]"
                 >{{ entry.changedByName }} · {{ formatShortDate(entry.changedAt)
                 }}</small
               >

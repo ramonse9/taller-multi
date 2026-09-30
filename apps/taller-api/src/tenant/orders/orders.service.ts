@@ -79,18 +79,15 @@ interface OrderStatusHistoryRow {
   id: string;
   previous_status: OrderStatus | null;
   new_status: OrderStatus;
-  note: string | null;
   changed_by_user_id: string;
   changed_by_name: string;
   changed_at: Date;
 }
 
 const transitions: Record<OrderStatus, OrderStatus[]> = {
-  [OrderStatus.Draft]: [OrderStatus.Open, OrderStatus.Cancelled],
-  [OrderStatus.Open]: [OrderStatus.InProgress, OrderStatus.Completed, OrderStatus.Cancelled],
-  [OrderStatus.InProgress]: [OrderStatus.Open, OrderStatus.Completed, OrderStatus.Cancelled],
-  [OrderStatus.Completed]: [],
-  [OrderStatus.Cancelled]: [],
+  [OrderStatus.InProgress]: [OrderStatus.Completed, OrderStatus.Cancelled],
+  [OrderStatus.Completed]: [OrderStatus.InProgress, OrderStatus.Cancelled],
+  [OrderStatus.Cancelled]: [OrderStatus.InProgress],
 };
 
 @Injectable()
@@ -159,7 +156,7 @@ export class OrdersService {
         `INSERT INTO ${schema}.orders(
            customer_id, vehicle_id, status, subtotal, tax, total,
            created_by_user_id, updated_by_user_id
-         ) VALUES ($1, $2, 'draft', NULL, 0, NULL, $3, $3) RETURNING id`,
+         ) VALUES ($1, $2, 'in_progress', NULL, 0, NULL, $3, $3) RETURNING id`,
         [input.customerId, input.vehicleId, user.id],
       )) as Array<{ id: string }>;
       const orderId = rows[0]?.id;
@@ -168,7 +165,7 @@ export class OrdersService {
       await runner.query(
         `INSERT INTO ${schema}.order_status_history(
            order_id, previous_status, new_status, changed_by_user_id
-         ) VALUES ($1, NULL, 'draft', $2)`,
+         ) VALUES ($1, NULL, 'in_progress', $2)`,
         [orderId, user.id],
       );
       await this.recalculate(runner, schema, orderId, user.id);
@@ -176,11 +173,7 @@ export class OrdersService {
     });
   }
 
-  update(
-    user: AuthenticatedUser,
-    id: string,
-    input: UpdateOrderDto,
-  ): Promise<OrderResponseDto> {
+  update(user: AuthenticatedUser, id: string, input: UpdateOrderDto): Promise<OrderResponseDto> {
     return this.tenant.run(user, async (runner, schemaName) => {
       const schema = quoteIdentifier(schemaName);
       const order = await this.lockOrder(runner, schema, id);
@@ -227,7 +220,6 @@ export class OrdersService {
       await runner.query(
         `UPDATE ${schema}.orders
          SET status = $1::varchar(24),
-             opened_at = CASE WHEN $1::varchar(24) = 'open' AND status = 'draft' THEN now() ELSE opened_at END,
              closed_at = CASE WHEN $1::varchar(24) IN ('completed', 'cancelled') THEN now() ELSE NULL END,
              updated_by_user_id = $2, updated_at = now()
          WHERE id = $3`,
@@ -235,9 +227,9 @@ export class OrdersService {
       );
       await runner.query(
         `INSERT INTO ${schema}.order_status_history(
-           order_id, previous_status, new_status, note, changed_by_user_id
-         ) VALUES ($1, $2, $3, $4, $5)`,
-        [id, order.status, input.status, input.note ?? null, user.id],
+           order_id, previous_status, new_status, changed_by_user_id
+         ) VALUES ($1, $2, $3, $4)`,
+        [id, order.status, input.status, user.id],
       );
       return this.getOrder(runner, schema, id);
     });
@@ -278,10 +270,9 @@ export class OrdersService {
     schema: string,
     id: string,
   ): Promise<OrderResponseDto> {
-    const rows = (await runner.query(
-      `${this.orderSelect(schema)} WHERE service_order.id = $1`,
-      [id],
-    )) as OrderRow[];
+    const rows = (await runner.query(`${this.orderSelect(schema)} WHERE service_order.id = $1`, [
+      id,
+    ])) as OrderRow[];
     const row = rows[0];
     if (!row) throw new NotFoundException('Orden no encontrada');
     const items = (await runner.query(
@@ -298,7 +289,7 @@ export class OrdersService {
       [id],
     )) as OrderNoteRow[];
     const statusHistory = (await runner.query(
-      `SELECT history.id, history.previous_status, history.new_status, history.note,
+      `SELECT history.id, history.previous_status, history.new_status,
               history.changed_by_user_id, platform_user.full_name AS changed_by_name,
               history.changed_at
        FROM ${schema}.order_status_history history
@@ -327,7 +318,6 @@ export class OrdersService {
         id: history.id,
         previousStatus: history.previous_status,
         newStatus: history.new_status,
-        note: history.note,
         changedByUserId: history.changed_by_user_id,
         changedByName: history.changed_by_name,
         changedAt: history.changed_at,
