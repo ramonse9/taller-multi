@@ -16,6 +16,7 @@ import { VehicleCatalogAudit1700000005000 } from '../../src/database/migrations/
 import { TenantVehicleProfile1700000006000 } from '../../src/database/migrations/public/1700000006000-tenant-vehicle-profile';
 import { UnifiedCustomers1700000007000 } from '../../src/database/migrations/public/1700000007000-unified-customers';
 import { SubscriptionPlans1700000008000 } from '../../src/database/migrations/public/1700000008000-subscription-plans';
+import { BasicServiceOrders1700000009000 } from '../../src/database/migrations/public/1700000009000-basic-service-orders';
 import { quoteIdentifier } from '../../src/database/schema-name';
 import { seedPublicCatalogs } from '../../src/database/seeds/public-catalogs.seed';
 
@@ -140,6 +141,31 @@ interface VehicleHistoryResponse {
   }>;
 }
 
+interface OrderResponse {
+  id: string;
+  folio: string;
+  status: string;
+  customer: { id: string; type: string; displayName: string };
+  vehicle: { id: string; brandName: string; modelName: string };
+  subtotal: string | null;
+  total: string | null;
+  hasUnpricedItems: boolean;
+  items: Array<{
+    id: string;
+    position: number;
+    description: string;
+    quantity: string;
+    unitPrice: string | null;
+    amount: string | null;
+  }>;
+  notes: Array<{ body: string; createdByUserId: string }>;
+  statusHistory: Array<{
+    previousStatus: string | null;
+    newStatus: string;
+    note: string | null;
+  }>;
+}
+
 describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
   let app: INestApplication;
   let control: DataSource;
@@ -171,6 +197,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         TenantVehicleProfile1700000006000,
         UnifiedCustomers1700000007000,
         SubscriptionPlans1700000008000,
+        BasicServiceOrders1700000009000,
       ],
       migrationsTableName: 'public_schema_migrations',
       synchronize: false,
@@ -839,8 +866,9 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
 
     const schema = quoteIdentifier(tenant.company.schemaName);
     await control.query(
-      `INSERT INTO ${schema}.orders(customer_id, vehicle_id, status, created_by_user_id)
-       VALUES ($1, $2, 'completed', $3), ($4, $5, 'open', $3)`,
+      `INSERT INTO ${schema}.orders(
+         customer_id, vehicle_id, status, created_by_user_id, updated_by_user_id
+       ) VALUES ($1, $2, 'completed', $3, $3), ($4, $5, 'open', $3, $3)`,
       [
         client.body.id,
         vehicle.body.id,
@@ -865,6 +893,197 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(history.body.matches.map(({ customerId }) => customerId)).toEqual(
       expect.arrayContaining([client.body.id, secondClient.body.id]),
     );
+  });
+
+  it('administra órdenes básicas con folio, conceptos libres, notas e historial', async () => {
+    const tenant = await provisionAndLogin('Orders Integration', 'orders.admin@test.local');
+    const customer = await request<ClientResponse>('POST', '/clients', {
+      token: tenant.accessToken,
+      body: { type: 'company', displayName: 'Flotilla Órdenes Integration' },
+    });
+    const otherCustomer = await request<ClientResponse>('POST', '/clients', {
+      token: tenant.accessToken,
+      body: { type: 'person', displayName: 'Cliente ajeno a la unidad' },
+    });
+    const brand = await request<VehicleBrandResponse>('POST', '/catalogs/vehicle-brands', {
+      token: tenant.accessToken,
+      body: { name: 'Órdenes Marca Integration' },
+    });
+    const model = await request<VehicleModelResponse>('POST', '/catalogs/vehicle-models', {
+      token: tenant.accessToken,
+      body: { brandId: brand.body.id, name: 'Órdenes Modelo Integration' },
+    });
+    const vehicle = await request<VehicleResponse>(
+      'POST',
+      `/clients/${customer.body.id}/vehicles`,
+      {
+        token: tenant.accessToken,
+        body: {
+          brandId: brand.body.id,
+          modelId: model.body.id,
+          year: 2023,
+          color: 'Azul',
+          licensePlate: 'ORD-123-A',
+        },
+      },
+    );
+
+    const foreignRelation = await request<unknown>('POST', '/orders', {
+      token: tenant.accessToken,
+      body: {
+        customerId: otherCustomer.body.id,
+        vehicleId: vehicle.body.id,
+        items: [{ description: 'No debe guardarse', quantity: 1 }],
+      },
+    });
+    expect(foreignRelation.status).toBe(422);
+
+    const created = await request<OrderResponse>('POST', '/orders', {
+      token: tenant.accessToken,
+      body: {
+        customerId: customer.body.id,
+        vehicleId: vehicle.body.id,
+        items: [
+          { description: 'Diagnóstico general', quantity: 1 },
+          { description: 'Aceite sintético', quantity: 5, unitPrice: 180.5 },
+        ],
+      },
+    });
+    expect(created.status).toBe(201);
+    expect(created.body).toMatchObject({
+      folio: '1',
+      status: 'draft',
+      hasUnpricedItems: true,
+      subtotal: null,
+      total: null,
+      customer: { id: customer.body.id, type: 'company' },
+      vehicle: { id: vehicle.body.id },
+    });
+    expect(created.body.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          position: 1,
+          description: 'Diagnóstico general',
+          unitPrice: null,
+          amount: null,
+        }),
+        expect.objectContaining({
+          position: 2,
+          description: 'Aceite sintético',
+          unitPrice: '180.50',
+          amount: '902.50',
+        }),
+      ]),
+    );
+    expect(created.body.statusHistory).toEqual([
+      expect.objectContaining({ previousStatus: null, newStatus: 'draft' }),
+    ]);
+
+    const updated = await request<OrderResponse>('PATCH', `/orders/${created.body.id}`, {
+      token: tenant.accessToken,
+      body: {
+        items: [
+          { description: 'Mano de obra', quantity: 1, unitPrice: 1200 },
+          { description: 'Aceite sintético', quantity: 5, unitPrice: 180 },
+        ],
+      },
+    });
+    expect(updated.status).toBe(200);
+    expect(updated.body).toMatchObject({
+      hasUnpricedItems: false,
+      subtotal: '2100.00',
+      total: '2100.00',
+    });
+
+    const note = await request<{ body: string; createdByUserId: string }>(
+      'POST',
+      `/orders/${created.body.id}/notes`,
+      { token: tenant.accessToken, body: { body: 'Cliente autoriza los trabajos.' } },
+    );
+    expect(note.status).toBe(201);
+    expect(note.body).toMatchObject({
+      body: 'Cliente autoriza los trabajos.',
+      createdByUserId: tenant.user.id,
+    });
+
+    for (const [status, transitionNote] of [
+      ['open', 'Unidad recibida'],
+      ['in_progress', 'Trabajo iniciado'],
+      ['completed', 'Trabajo terminado'],
+    ] as const) {
+      const changed = await request<OrderResponse>(
+        'POST',
+        `/orders/${created.body.id}/status`,
+        { token: tenant.accessToken, body: { status, note: transitionNote } },
+      );
+      expect(changed.status).toBe(200);
+      expect(changed.body.status).toBe(status);
+    }
+
+    const completed = await request<OrderResponse>('GET', `/orders/${created.body.id}`, {
+      token: tenant.accessToken,
+    });
+    expect(completed.status).toBe(200);
+    expect(completed.body.notes).toEqual([
+      expect.objectContaining({ body: 'Cliente autoriza los trabajos.' }),
+    ]);
+    expect(completed.body.statusHistory.map(({ newStatus }) => newStatus)).toEqual([
+      'draft',
+      'open',
+      'in_progress',
+      'completed',
+    ]);
+    expect(
+      (
+        await request<unknown>('PATCH', `/orders/${created.body.id}`, {
+          token: tenant.accessToken,
+          body: { items: [{ description: 'Cambio tardío', quantity: 1 }] },
+        })
+      ).status,
+    ).toBe(400);
+    expect(
+      (
+        await request<unknown>('POST', `/orders/${created.body.id}/status`, {
+          token: tenant.accessToken,
+          body: { status: 'open' },
+        })
+      ).status,
+    ).toBe(400);
+
+    const second = await request<OrderResponse>('POST', '/orders', {
+      token: tenant.accessToken,
+      body: {
+        customerId: customer.body.id,
+        vehicleId: vehicle.body.id,
+        items: [{ description: 'Segunda visita', quantity: 1 }],
+      },
+    });
+    expect(second.status).toBe(201);
+    expect(second.body.folio).toBe('2');
+
+    const listed = await request<{ totalItems: number; items: OrderResponse[] }>(
+      'GET',
+      '/orders?search=ORD-123-A&status=completed',
+      { token: tenant.accessToken },
+    );
+    expect(listed.status).toBe(200);
+    expect(listed.body.totalItems).toBe(1);
+    expect(listed.body.items[0]?.id).toBe(created.body.id);
+
+    const schema = quoteIdentifier(tenant.company.schemaName);
+    const stored = await control.query<
+      Array<{ tax: string; linked_catalog_items: string; history_count: string }>
+    >(
+      `SELECT service_order.tax,
+              COUNT(item.product_service_id)::text AS linked_catalog_items,
+              (SELECT COUNT(*)::text FROM ${schema}.order_status_history history
+               WHERE history.order_id = service_order.id) AS history_count
+       FROM ${schema}.orders service_order
+       JOIN ${schema}.order_items item ON item.order_id = service_order.id
+       WHERE service_order.id = $1 GROUP BY service_order.id`,
+      [created.body.id],
+    );
+    expect(stored[0]).toEqual({ tax: '0.00', linked_catalog_items: '0', history_count: '4' });
   });
 
   async function createCompany(

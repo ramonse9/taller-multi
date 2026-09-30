@@ -8,7 +8,7 @@ export interface TenantMigration {
   up(queryRunner: QueryRunner, schemaName: string): Promise<void>;
 }
 
-export const TENANT_BASE_VERSION = 3;
+export const TENANT_BASE_VERSION = 4;
 export const TENANT_BASE_NAME = 'tenant-base';
 
 /**
@@ -79,27 +79,40 @@ export class TenantMigrator {
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
         folio bigint GENERATED ALWAYS AS IDENTITY UNIQUE,
         customer_id uuid NOT NULL REFERENCES ${s}.customers(id),
-        vehicle_id uuid REFERENCES ${s}.vehicles(id),
+        vehicle_id uuid NOT NULL REFERENCES ${s}.vehicles(id),
         status varchar(24) NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','open','in_progress','completed','cancelled')),
         opened_at timestamptz NOT NULL DEFAULT now(), closed_at timestamptz,
-        subtotal numeric(14,2) NOT NULL DEFAULT 0, tax numeric(14,2) NOT NULL DEFAULT 0,
-        total numeric(14,2) NOT NULL DEFAULT 0 CHECK (total >= 0), is_paid boolean NOT NULL DEFAULT false,
+        subtotal numeric(14,2), tax numeric(14,2) NOT NULL DEFAULT 0,
+        total numeric(14,2) CHECK (total >= 0), is_paid boolean NOT NULL DEFAULT false,
         created_by_user_id uuid NOT NULL REFERENCES public.users(id),
+        updated_by_user_id uuid NOT NULL REFERENCES public.users(id),
         created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now()
       )`,
       `CREATE INDEX orders_status_opened_idx ON ${s}.orders(status, opened_at DESC)`,
+      `CREATE INDEX orders_customer_created_idx ON ${s}.orders(customer_id, created_at DESC)`,
+      `CREATE INDEX orders_vehicle_created_idx ON ${s}.orders(vehicle_id, created_at DESC)`,
       `CREATE TABLE ${s}.order_items (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_id uuid NOT NULL REFERENCES ${s}.orders(id) ON DELETE CASCADE,
         product_service_id uuid REFERENCES ${s}.products_services(id),
         description varchar(300) NOT NULL, quantity numeric(12,3) NOT NULL CHECK (quantity > 0),
-        unit_price numeric(14,2) NOT NULL CHECK (unit_price >= 0), total numeric(14,2) NOT NULL CHECK (total >= 0),
-        created_at timestamptz NOT NULL DEFAULT now()
+        unit_price numeric(14,2) CHECK (unit_price >= 0), total numeric(14,2) CHECK (total >= 0),
+        position integer NOT NULL CHECK (position > 0), created_at timestamptz NOT NULL DEFAULT now(),
+        UNIQUE(order_id, position)
       )`,
       `CREATE TABLE ${s}.order_notes (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_id uuid NOT NULL REFERENCES ${s}.orders(id) ON DELETE CASCADE,
         body text NOT NULL CHECK (length(trim(body)) > 0),
         created_by_user_id uuid NOT NULL REFERENCES public.users(id), created_at timestamptz NOT NULL DEFAULT now()
       )`,
+      `CREATE TABLE ${s}.order_status_history (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        order_id uuid NOT NULL REFERENCES ${s}.orders(id) ON DELETE CASCADE,
+        previous_status varchar(24),
+        new_status varchar(24) NOT NULL CHECK (new_status IN ('draft','open','in_progress','completed','cancelled')),
+        note varchar(500), changed_by_user_id uuid NOT NULL REFERENCES public.users(id),
+        changed_at timestamptz NOT NULL DEFAULT now()
+      )`,
+      `CREATE INDEX order_status_history_order_date_idx ON ${s}.order_status_history(order_id, changed_at, id)`,
       `CREATE TABLE ${s}.suppliers (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(), name varchar(180) NOT NULL UNIQUE,
         tax_id varchar(20), email citext, phone varchar(30), is_active boolean NOT NULL DEFAULT true,
