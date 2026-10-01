@@ -908,6 +908,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       token: tenant.accessToken,
     });
     const piece = units.body.find(({ name }) => name === 'Pieza')!;
+    const liter = units.body.find(({ name }) => name === 'Litro')!;
     const serviceUnit = units.body.find(({ name }) => name === 'Servicio')!;
 
     const product = await request<ConceptResponse>('POST', '/catalogs/concepts', {
@@ -1118,6 +1119,136 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         }),
       ]),
     );
+
+    const positiveAdjustmentWithoutCost = await request<unknown>('POST', '/inventory/movements', {
+      token: tenant.accessToken,
+      body: {
+        productId: product.body.id,
+        type: 'adjustment',
+        quantity: 2,
+        reason: 'Sobrante sin costo',
+      },
+    });
+    expect(positiveAdjustmentWithoutCost.status).toBe(400);
+
+    const positiveAdjustment = await request<InventoryMovementResponse>(
+      'POST',
+      '/inventory/movements',
+      {
+        token: tenant.accessToken,
+        body: {
+          productId: product.body.id,
+          type: 'adjustment',
+          quantity: 2,
+          unitCost: 90,
+          reason: 'Sobrante confirmado',
+        },
+      },
+    );
+    expect(positiveAdjustment.body).toMatchObject({
+      type: 'adjustment',
+      quantity: '2.000',
+      previousStock: '10.000',
+      resultingStock: '12.000',
+      unitCost: '90.00',
+    });
+
+    const negativeAdjustmentWithCost = await request<unknown>('POST', '/inventory/movements', {
+      token: tenant.accessToken,
+      body: {
+        productId: product.body.id,
+        type: 'adjustment',
+        quantity: -1,
+        unitCost: 90,
+        reason: 'Faltante con costo improcedente',
+      },
+    });
+    expect(negativeAdjustmentWithCost.status).toBe(400);
+
+    const negativeAdjustment = await request<InventoryMovementResponse>(
+      'POST',
+      '/inventory/movements',
+      {
+        token: tenant.accessToken,
+        body: {
+          productId: product.body.id,
+          type: 'adjustment',
+          quantity: -6,
+          reason: 'Conteo físico final',
+        },
+      },
+    );
+    expect(negativeAdjustment.body).toMatchObject({
+      quantity: '-6.000',
+      previousStock: '12.000',
+      resultingStock: '6.000',
+      unitCost: '84.58',
+    });
+    const adjustedLots = await request<InventoryLotResponse[]>(
+      'GET',
+      `/inventory/products/${product.body.id}/lots`,
+      { token: tenant.accessToken },
+    );
+    expect(adjustedLots.body).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          receivedQuantity: '10.000',
+          remainingQuantity: '0.000',
+          unitCost: '82.50',
+        }),
+        expect.objectContaining({
+          receivedQuantity: '5.000',
+          remainingQuantity: '4.000',
+          unitCost: '95.00',
+        }),
+        expect.objectContaining({
+          receivedQuantity: '2.000',
+          remainingQuantity: '2.000',
+          unitCost: '90.00',
+          sourceType: 'adjustment',
+        }),
+      ]),
+    );
+
+    const liquid = await request<ConceptResponse>('POST', '/catalogs/concepts', {
+      token: tenant.accessToken,
+      body: {
+        kind: 'product',
+        sku: 'INV-LIQ-001',
+        name: 'Aceite a granel',
+        unitId: liter.id,
+        cost: 100,
+        price: 160,
+        tracksInventory: true,
+      },
+    });
+    const decimalEntry = await request<InventoryMovementResponse>('POST', '/inventory/movements', {
+      token: tenant.accessToken,
+      body: {
+        productId: liquid.body.id,
+        type: 'entry',
+        quantity: 2.5,
+        unitCost: 100,
+        reason: 'Compra a granel',
+      },
+    });
+    expect(decimalEntry.status).toBe(201);
+    expect(decimalEntry.body.resultingStock).toBe('2.500');
+    const decimalAdjustment = await request<InventoryMovementResponse>(
+      'POST',
+      '/inventory/movements',
+      {
+        token: tenant.accessToken,
+        body: {
+          productId: liquid.body.id,
+          type: 'adjustment',
+          quantity: -0.75,
+          reason: 'Diferencia de medición',
+        },
+      },
+    );
+    expect(decimalAdjustment.status).toBe(201);
+    expect(decimalAdjustment.body.resultingStock).toBe('1.750');
   });
 
   it('administra un catálogo global de marcas y modelos sin duplicados', async () => {

@@ -225,6 +225,16 @@ export class InventoryPage implements OnInit {
       this.movementForm.controls.quantity.setErrors({ nonZero: true });
       return;
     }
+    if (!product.allowsDecimals && !Number.isInteger(raw.quantity)) {
+      this.movementForm.controls.quantity.setErrors({ integerOnly: true });
+      return;
+    }
+    if (
+      Math.abs(raw.quantity * 1000 - Math.round(raw.quantity * 1000)) > 1e-9
+    ) {
+      this.movementForm.controls.quantity.setErrors({ decimalPlaces: true });
+      return;
+    }
     if (raw.type !== "adjustment" && raw.quantity < 0) {
       this.movementForm.controls.quantity.setErrors({ positive: true });
       return;

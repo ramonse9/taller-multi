@@ -339,6 +339,15 @@
           valor positivo para aumentar o negativo para disminuir. } @else {
           Captura una cantidad positiva. }</small
         >@if (movementForm.controls.quantity.touched &&
+        movementForm.controls.quantity.hasError('integerOnly')) {<small
+          class="field-error"
+          >La unidad {{ product.unitName }} solo permite cantidades
+          enteras.</small
+        >} @else if (movementForm.controls.quantity.touched &&
+        movementForm.controls.quantity.hasError('decimalPlaces')) {<small
+          class="field-error"
+          >Usa como máximo tres decimales.</small
+        >} @else if (movementForm.controls.quantity.touched &&
         movementForm.controls.quantity.invalid) {<small class="field-error"
           >Captura una cantidad distinta de cero.</small
         >}
