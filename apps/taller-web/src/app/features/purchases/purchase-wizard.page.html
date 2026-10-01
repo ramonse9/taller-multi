@@ -34,7 +34,17 @@
             <div formArrayName="items" class="divide-y divide-[#ece9df] dark:divide-[#35433b]">
               @for (item of items.controls; track item; let index = $index) {
                 <div class="grid gap-4 p-5 md:grid-cols-[minmax(0,1fr)_9rem_11rem_auto]" [formGroupName]="index">
-                  <div><label class="field-label" [for]="'purchase-product-' + index">Producto <b>*</b></label><select class="field-control" [id]="'purchase-product-' + index" formControlName="productId" (change)="productChanged(index)"><option value="">Selecciona un producto</option>@for (productOption of products(); track productOption.id) {<option [value]="productOption.id">{{ productOption.sku ? productOption.sku + ' · ' : '' }}{{ productOption.name }}</option>}</select></div>
+                  <div>
+                    <label class="field-label">Producto <b>*</b></label>
+                    @if (product(item.controls.productId.value); as selectedProduct) {
+                      <button class="field-control flex w-full items-center justify-between gap-3 text-left" type="button" (click)="clearProduct(index)">
+                        <span class="min-w-0"><strong class="block truncate">{{ selectedProduct.name }}</strong><small class="block truncate text-[#68746d] dark:text-[#aab7af]">{{ selectedProduct.sku || 'Sin SKU' }} · {{ selectedProduct.unit.name }}</small></span><span class="shrink-0 text-xs font-bold text-[#b94718] dark:text-[#ff9a6f]">Cambiar</span>
+                      </button>
+                    } @else {
+                      <button class="field-control w-full text-left text-[#68746d] dark:text-[#aab7af]" type="button" (click)="openProductPicker(index)">⌕ Buscar o crear producto</button>
+                    }
+                    <input type="hidden" formControlName="productId" />
+                  </div>
                   <div><label class="field-label" [for]="'purchase-quantity-' + index">Cantidad <b>*</b></label><input class="field-control" [id]="'purchase-quantity-' + index" formControlName="quantity" inputmode="decimal" placeholder="0" /></div>
                   <div><label class="field-label" [for]="'purchase-cost-' + index">Costo unitario <b>*</b></label><input class="field-control" [id]="'purchase-cost-' + index" formControlName="unitCost" inputmode="decimal" placeholder="0.00" /></div>
                   <div class="flex items-end"><button class="small-action-tw" type="button" [disabled]="items.length === 1" (click)="removeItem(index)" aria-label="Quitar producto">×</button></div>
@@ -43,7 +53,6 @@
               }
             </div>
             @if (duplicateProducts()) { <p class="field-error px-5 pb-4">Cada producto debe aparecer una sola vez.</p> }
-            @if (!products().length) { <p class="p-6 text-sm text-[#8e3214]">Primero registra productos en el catálogo.</p> }
           </section>
         }
 
@@ -59,3 +68,46 @@
     }
   </section>
 </main>
+
+@if (productPickerOpen()) {
+  <div class="dialog-backdrop" role="presentation" (click)="closeProductPicker()">
+    <section class="dialog-tw max-w-3xl" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+      @if (!creatingProduct()) {
+        <p class="eyebrow">SELECCIONAR PRODUCTO</p>
+        <h2>Busca por nombre o SKU</h2>
+        <div class="relative mt-5">
+          <span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#768079]">⌕</span>
+          <input class="field-control !pl-11" type="search" [formControl]="productSearch" placeholder="Ej. aceite, filtro o ACE-5W30" autofocus />
+        </div>
+        <p class="mt-2 text-xs text-[#68746d] dark:text-[#aab7af]">Se muestran como máximo 10 resultados.</p>
+        @if (pickerError()) { <div class="dialog-error-tw" role="alert">{{ pickerError() }}</div> }
+        <div class="relative mt-5 min-h-48 border border-[#dcd9cf] dark:border-[#3d4d44]">
+          <div class="divide-y divide-[#ece9df] dark:divide-[#35433b]">
+            @for (option of productResults(); track option.id) {
+              <button class="flex w-full items-center justify-between gap-4 bg-white p-4 text-left hover:bg-[#f4f2eb] disabled:cursor-not-allowed disabled:opacity-45 dark:bg-[#1a251f] dark:hover:bg-[#222f27]" type="button" [disabled]="isAlreadyAdded(option.id)" (click)="selectProduct(option)">
+                <span class="min-w-0"><strong class="block truncate">{{ option.name }}</strong><small class="block truncate text-[#68746d] dark:text-[#aab7af]">{{ option.sku || 'Sin SKU' }} · {{ option.unit.name }} · Existencia {{ option.stock }}</small></span>
+                <span class="shrink-0 text-right"><strong class="block">{{ money(+option.cost) }}</strong><small class="text-[#68746d] dark:text-[#aab7af]">{{ isAlreadyAdded(option.id) ? 'Ya agregado' : 'Seleccionar' }}</small></span>
+              </button>
+            } @empty { @if (!searchingProducts()) { <p class="p-8 text-center text-sm text-[#68746d] dark:text-[#aab7af]">No encontramos productos con esa búsqueda.</p> } }
+          </div>
+          @if (searchingProducts()) { <div class="loader-tw" aria-label="Buscando productos"><span></span><span></span><span></span></div> }
+        </div>
+        <footer class="dialog-footer flex-wrap"><button class="small-action-tw" type="button" (click)="closeProductPicker()">Cerrar</button><button class="primary" type="button" (click)="startQuickProduct()">＋ Crear producto rápido</button></footer>
+      } @else {
+        <p class="eyebrow">PRODUCTO RÁPIDO</p>
+        <h2>Crear sin salir de la compra</h2>
+        <p class="mt-2 text-sm text-[#68746d] dark:text-[#aab7af]">El costo capturado será el costo de este renglón.</p>
+        @if (pickerError()) { <div class="dialog-error-tw" role="alert">{{ pickerError() }}</div> }
+        <form class="mt-6 grid gap-4 sm:grid-cols-2" [formGroup]="quickProductForm" (ngSubmit)="saveQuickProduct()" novalidate>
+          <div class="sm:col-span-2"><label class="field-label" for="quick-product-name">Nombre <b>*</b></label><input class="field-control" id="quick-product-name" formControlName="name" placeholder="Nombre del producto" />@if (quickProductForm.controls.name.touched && quickProductForm.controls.name.invalid) {<small class="field-error">Captura un nombre válido.</small>}</div>
+          <div><label class="field-label" for="quick-product-sku">SKU</label><input class="field-control uppercase" id="quick-product-sku" formControlName="sku" placeholder="Opcional" /></div>
+          <div><label class="field-label" for="quick-product-unit">Unidad <b>*</b></label><select class="field-control" id="quick-product-unit" formControlName="unitId">@for (unit of units(); track unit.id) {<option [value]="unit.id">{{ unit.name }} ({{ unit.symbol }})</option>}</select></div>
+          <div><label class="field-label" for="quick-product-cost">Costo de compra <b>*</b></label><input class="field-control" id="quick-product-cost" formControlName="cost" inputmode="decimal" placeholder="0.00" /></div>
+          <div><label class="field-label" for="quick-product-price">Precio de venta</label><input class="field-control" id="quick-product-price" formControlName="price" inputmode="decimal" placeholder="Opcional" /></div>
+          <label class="flex items-center gap-3 text-sm sm:col-span-2"><input type="checkbox" formControlName="tracksInventory" /><span>Controlar existencia y generar lotes</span></label>
+          <footer class="dialog-footer sm:col-span-2"><button class="small-action-tw" type="button" [disabled]="savingProduct()" (click)="creatingProduct.set(false)">← Volver</button><button class="primary" type="submit" [disabled]="savingProduct()">{{ savingProduct() ? 'Creando…' : 'Crear y seleccionar' }}</button></footer>
+        </form>
+      }
+    </section>
+  </div>
+}

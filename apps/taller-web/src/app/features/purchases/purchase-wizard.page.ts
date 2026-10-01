@@ -15,10 +15,23 @@ import {
   Validators,
 } from "@angular/forms";
 import { Router, RouterLink } from "@angular/router";
-import { finalize, forkJoin } from "rxjs";
+import {
+  Subject,
+  catchError,
+  debounceTime,
+  distinctUntilChanged,
+  finalize,
+  forkJoin,
+  switchMap,
+  tap,
+  of,
+} from "rxjs";
 import { apiErrorMessage } from "../../core/http/api-error";
 import { ThemeService } from "../../core/theme/theme.service";
-import { CatalogConcept } from "../concept-catalog/concept-catalog.models";
+import {
+  CatalogConcept,
+  MeasurementUnit,
+} from "../concept-catalog/concept-catalog.models";
 import { ConceptCatalogService } from "../concept-catalog/concept-catalog.service";
 import { Supplier } from "../suppliers/supplier.models";
 import { SuppliersService } from "../suppliers/suppliers.service";
@@ -50,11 +63,42 @@ export class PurchaseWizardPage implements OnInit {
 
   readonly step = signal(1);
   readonly suppliers = signal<Supplier[]>([]);
-  readonly products = signal<CatalogConcept[]>([]);
+  readonly units = signal<MeasurementUnit[]>([]);
+  readonly knownProducts = signal(new Map<string, CatalogConcept>());
+  readonly productResults = signal<CatalogConcept[]>([]);
   readonly loading = signal(true);
   readonly saving = signal(false);
+  readonly searchingProducts = signal(false);
+  readonly savingProduct = signal(false);
   readonly error = signal("");
+  readonly pickerError = signal("");
   readonly duplicateProducts = signal(false);
+  readonly productPickerOpen = signal(false);
+  readonly productPickerIndex = signal<number | null>(null);
+  readonly creatingProduct = signal(false);
+  readonly productSearch = new FormControl("", { nonNullable: true });
+  private readonly productQueries = new Subject<string>();
+
+  readonly quickProductForm = new FormGroup({
+    name: new FormControl("", {
+      nonNullable: true,
+      validators: [Validators.required, Validators.minLength(2), Validators.maxLength(180)],
+    }),
+    sku: new FormControl("", {
+      nonNullable: true,
+      validators: [Validators.maxLength(80)],
+    }),
+    unitId: new FormControl("", { nonNullable: true, validators: [Validators.required] }),
+    cost: new FormControl("", {
+      nonNullable: true,
+      validators: [Validators.required, Validators.pattern(moneyPattern)],
+    }),
+    price: new FormControl("", {
+      nonNullable: true,
+      validators: [Validators.pattern(/^$|^\d+(?:\.\d{1,2})?$/)],
+    }),
+    tracksInventory: new FormControl(true, { nonNullable: true }),
+  });
 
   readonly form = new FormGroup({
     supplierId: new FormControl("", { nonNullable: true, validators: [Validators.required] }),
@@ -83,15 +127,56 @@ export class PurchaseWizardPage implements OnInit {
 
   ngOnInit(): void {
     this.addItem();
+    this.productSearch.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((search) => this.productQueries.next(search));
+    this.productQueries
+      .pipe(
+        debounceTime(250),
+        distinctUntilChanged(),
+        tap(() => {
+          this.searchingProducts.set(true);
+          this.pickerError.set("");
+        }),
+        switchMap((search) =>
+          this.catalog
+            .list({ page: 1, limit: 10, search, kind: "product", isActive: true })
+            .pipe(
+              catchError((error: unknown) => {
+                this.pickerError.set(apiErrorMessage(error, "No pudimos buscar productos."));
+                return of({
+                  page: 1,
+                  limit: 10,
+                  totalItems: 0,
+                  totalPages: 0,
+                  hasNextPage: false,
+                  items: [],
+                });
+              }),
+              finalize(() => this.searchingProducts.set(false)),
+            ),
+        ),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (result) => {
+          this.productResults.set(result.items);
+          this.rememberProducts(result.items);
+        },
+      });
     forkJoin({
       suppliers: this.suppliersService.list({ page: 1, limit: 100, isActive: true }),
-      concepts: this.catalog.list({ page: 1, limit: 100, kind: "product", isActive: true }),
+      units: this.catalog.listUnits(true),
     })
       .pipe(finalize(() => this.loading.set(false)), takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: ({ suppliers, concepts }) => {
+        next: ({ suppliers, units }) => {
           this.suppliers.set(suppliers.items);
-          this.products.set(concepts.items);
+          this.units.set(
+            units.filter(
+              (unit) => unit.symbol.toLowerCase() !== "serv" && unit.name !== "Servicio",
+            ),
+          );
           const preferred = suppliers.items.find(({ isDefault }) => isDefault) ?? suppliers.items[0];
           if (preferred) this.form.controls.supplierId.setValue(preferred.id);
         },
@@ -128,11 +213,98 @@ export class PurchaseWizardPage implements OnInit {
     this.validateUniqueProducts();
   }
 
-  productChanged(index: number): void {
+  openProductPicker(index: number): void {
+    this.productPickerIndex.set(index);
+    this.productPickerOpen.set(true);
+    this.creatingProduct.set(false);
+    this.pickerError.set("");
+    this.productSearch.setValue("", { emitEvent: false });
+    this.productQueries.next("");
+  }
+
+  closeProductPicker(): void {
+    if (this.savingProduct()) return;
+    this.productPickerOpen.set(false);
+    this.creatingProduct.set(false);
+  }
+
+  selectProduct(product: CatalogConcept): void {
+    const index = this.productPickerIndex();
+    if (index === null || this.isAlreadyAdded(product.id, index)) return;
+    this.rememberProducts([product]);
     const item = this.items.at(index);
-    const product = this.product(item.controls.productId.value);
-    if (product && !item.controls.unitCost.value) item.controls.unitCost.setValue(product.cost);
+    item.controls.productId.setValue(product.id);
+    if (!item.controls.unitCost.value) item.controls.unitCost.setValue(product.cost);
     this.validateUniqueProducts();
+    this.closeProductPicker();
+  }
+
+  clearProduct(index: number): void {
+    this.items.at(index).controls.productId.setValue("");
+    this.validateUniqueProducts();
+    this.openProductPicker(index);
+  }
+
+  isAlreadyAdded(productId: string, pickerIndex = this.productPickerIndex()): boolean {
+    return this.items.controls.some(
+      (item, index) => index !== pickerIndex && item.controls.productId.value === productId,
+    );
+  }
+
+  startQuickProduct(): void {
+    const index = this.productPickerIndex();
+    const defaultUnit = this.units()[0];
+    this.quickProductForm.reset({
+      name: this.productSearch.value.trim(),
+      sku: "",
+      unitId: defaultUnit?.id ?? "",
+      cost: index === null ? "" : this.items.at(index).controls.unitCost.value,
+      price: "",
+      tracksInventory: true,
+    });
+    this.creatingProduct.set(true);
+    this.pickerError.set("");
+  }
+
+  saveQuickProduct(): void {
+    if (this.quickProductForm.invalid || this.savingProduct()) {
+      this.quickProductForm.markAllAsTouched();
+      return;
+    }
+    const raw = this.quickProductForm.getRawValue();
+    const duplicate = this.productResults().find(
+      ({ name }) => name.trim().toLocaleLowerCase("es-MX") === raw.name.trim().toLocaleLowerCase("es-MX"),
+    );
+    if (duplicate) {
+      this.pickerError.set("Ya existe un producto con ese nombre. Selecciónalo del listado.");
+      return;
+    }
+    this.savingProduct.set(true);
+    this.pickerError.set("");
+    this.catalog
+      .createConcept({
+        kind: "product",
+        sku: raw.sku.trim().toUpperCase() || null,
+        name: raw.name.trim(),
+        unitId: raw.unitId,
+        cost: Number(raw.cost),
+        price: raw.price ? Number(raw.price) : 0,
+        tracksInventory: raw.tracksInventory,
+        minimumStock: 0,
+      })
+      .pipe(
+        finalize(() => this.savingProduct.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (product) => {
+          const index = this.productPickerIndex();
+          if (index !== null) this.items.at(index).controls.unitCost.setValue(raw.cost);
+          this.selectProduct(product);
+        },
+        error: (error: unknown) =>
+          this.pickerError.set(apiErrorMessage(error, "No pudimos crear el producto.")),
+      });
   }
 
   next(): void {
@@ -151,6 +323,13 @@ export class PurchaseWizardPage implements OnInit {
     }
     this.items.markAllAsTouched();
     this.validateUniqueProducts();
+    for (const item of this.items.controls) {
+      const selected = this.product(item.controls.productId.value);
+      const quantity = Number(item.controls.quantity.value);
+      if (selected && !selected.unit.allowsDecimals && !Number.isInteger(quantity)) {
+        item.controls.quantity.setErrors({ integerOnly: true });
+      }
+    }
     if (this.items.invalid || this.duplicateProducts()) return;
     this.step.set(3);
   }
@@ -185,7 +364,7 @@ export class PurchaseWizardPage implements OnInit {
   }
 
   product(id: string): CatalogConcept | undefined {
-    return this.products().find((product) => product.id === id);
+    return this.knownProducts().get(id);
   }
 
   supplierName(): string {
@@ -212,6 +391,12 @@ export class PurchaseWizardPage implements OnInit {
       .map((item) => item.controls.productId.value)
       .filter(Boolean);
     this.duplicateProducts.set(new Set(selected).size !== selected.length);
+  }
+
+  private rememberProducts(products: CatalogConcept[]): void {
+    const known = new Map(this.knownProducts());
+    for (const product of products) known.set(product.id, product);
+    this.knownProducts.set(known);
   }
 
   private today(): string {
