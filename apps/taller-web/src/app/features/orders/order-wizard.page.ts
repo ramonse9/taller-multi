@@ -3,6 +3,7 @@ import {
   Component,
   DestroyRef,
   OnInit,
+  computed,
   inject,
   signal,
 } from "@angular/core";
@@ -16,6 +17,7 @@ import {
 } from "@angular/forms";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { finalize, forkJoin } from "rxjs";
+import { AuthService } from "../../core/auth/auth.service";
 import { apiErrorMessage } from "../../core/http/api-error";
 import { ThemeService } from "../../core/theme/theme.service";
 import { Client, ClientInput, CustomerType } from "../clients/client.models";
@@ -45,6 +47,7 @@ export class OrderWizardPage implements OnInit {
   private readonly vehiclesService = inject(VehiclesService);
   private readonly catalog = inject(VehicleCatalogService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly auth = inject(AuthService);
   readonly theme = inject(ThemeService);
 
   readonly orderId = this.route.snapshot.paramMap.get("id") ?? "";
@@ -53,7 +56,11 @@ export class OrderWizardPage implements OnInit {
   readonly loading = signal(true);
   readonly saving = signal(false);
   readonly quickSaving = signal(false);
+  readonly savingCatalog = signal(false);
+  readonly loadingModels = signal(false);
   readonly error = signal("");
+  readonly catalogError = signal("");
+  readonly catalogNotice = signal("");
   readonly clients = signal<Client[]>([]);
   readonly vehicles = signal<Vehicle[]>([]);
   readonly brands = signal<VehicleBrand[]>([]);
@@ -61,7 +68,13 @@ export class OrderWizardPage implements OnInit {
   readonly showClientForm = signal(false);
   readonly showVehicleForm = signal(false);
   readonly clientSearch = new FormControl("", { nonNullable: true });
+  readonly brandSearch = new FormControl("", { nonNullable: true });
+  readonly modelSearch = new FormControl("", { nonNullable: true });
   readonly maxYear = new Date().getFullYear() + 1;
+  readonly canManageCatalog = computed(() => {
+    const role = this.auth.user()?.role;
+    return role === "company_admin" || role === "platform_admin";
+  });
 
   filteredClients(): Client[] {
     const term = this.clientSearch.value.trim().toLocaleLowerCase("es-MX");
@@ -258,7 +271,11 @@ export class OrderWizardPage implements OnInit {
   }
 
   saveVehicle(): void {
-    if (this.vehicleForm.invalid || this.quickSaving()) {
+    if (
+      this.vehicleForm.invalid ||
+      this.quickSaving() ||
+      this.savingCatalog()
+    ) {
       this.vehicleForm.markAllAsTouched();
       return;
     }
@@ -293,11 +310,106 @@ export class OrderWizardPage implements OnInit {
       });
   }
 
-  brandChanged(): void {
-    const brandId = this.vehicleForm.controls.brandId.value;
+  brandSearchChanged(): void {
+    this.clearCatalogFeedback();
+    const brand = this.findBrand(this.brandSearch.value);
+    const brandId = brand?.id ?? "";
+    if (this.vehicleForm.controls.brandId.value === brandId) return;
+    this.vehicleForm.controls.brandId.setValue(brandId);
     this.vehicleForm.controls.modelId.setValue("");
+    this.modelSearch.setValue("");
     this.models.set([]);
     if (brandId) this.loadModels(brandId);
+  }
+
+  modelSearchChanged(): void {
+    this.clearCatalogFeedback();
+    const model = this.findModel(this.modelSearch.value);
+    this.vehicleForm.controls.modelId.setValue(model?.id ?? "");
+  }
+
+  canCreateBrand(): boolean {
+    const name = this.cleanCatalogName(this.brandSearch.value);
+    return (
+      this.canManageCatalog() &&
+      name.length >= 2 &&
+      name.length <= 100 &&
+      !this.findBrand(name)
+    );
+  }
+
+  canCreateModel(): boolean {
+    const name = this.cleanCatalogName(this.modelSearch.value);
+    return (
+      this.canManageCatalog() &&
+      !!this.vehicleForm.controls.brandId.value &&
+      name.length >= 1 &&
+      name.length <= 100 &&
+      !this.findModel(name)
+    );
+  }
+
+  createBrand(): void {
+    const name = this.cleanCatalogName(this.brandSearch.value);
+    if (!this.canCreateBrand() || this.savingCatalog()) return;
+    this.savingCatalog.set(true);
+    this.clearCatalogFeedback();
+    this.catalog
+      .createBrand(name)
+      .pipe(
+        finalize(() => this.savingCatalog.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (brand) => {
+          this.brands.update((brands) =>
+            [...brands.filter(({ id }) => id !== brand.id), brand].sort(
+              (left, right) => left.name.localeCompare(right.name, "es"),
+            ),
+          );
+          this.brandSearch.setValue(brand.name);
+          this.vehicleForm.controls.brandId.setValue(brand.id);
+          this.modelSearch.setValue("");
+          this.vehicleForm.controls.modelId.setValue("");
+          this.models.set([]);
+          this.catalogNotice.set(`Marca ${brand.name} creada y seleccionada.`);
+          this.loadModels(brand.id);
+        },
+        error: (error: unknown) =>
+          this.catalogError.set(
+            apiErrorMessage(error, "No pudimos crear la marca."),
+          ),
+      });
+  }
+
+  createModel(): void {
+    const brandId = this.vehicleForm.controls.brandId.value;
+    const name = this.cleanCatalogName(this.modelSearch.value);
+    if (!brandId || !this.canCreateModel() || this.savingCatalog()) return;
+    this.savingCatalog.set(true);
+    this.clearCatalogFeedback();
+    this.catalog
+      .createModel(brandId, name)
+      .pipe(
+        finalize(() => this.savingCatalog.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (model) => {
+          this.models.update((models) =>
+            [...models.filter(({ id }) => id !== model.id), model].sort(
+              (left, right) => left.name.localeCompare(right.name, "es"),
+            ),
+          );
+          this.modelSearch.setValue(model.name);
+          this.vehicleForm.controls.modelId.setValue(model.id);
+          this.catalogNotice.set(`Modelo ${model.name} creado y seleccionado.`);
+        },
+        error: (error: unknown) =>
+          this.catalogError.set(
+            apiErrorMessage(error, "No pudimos crear el modelo."),
+          ),
+      });
   }
 
   addItem(): void {
@@ -477,9 +589,13 @@ export class OrderWizardPage implements OnInit {
   }
 
   private loadModels(brandId: string): void {
+    this.loadingModels.set(true);
     this.catalog
       .listModels(brandId, { page: 1, limit: 100, search: "", isActive: true })
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(
+        finalize(() => this.loadingModels.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
       .subscribe({
         next: (models) => this.models.set(models.items),
         error: (error: unknown) =>
@@ -498,6 +614,39 @@ export class OrderWizardPage implements OnInit {
       numeroSerie: "",
       licensePlate: "",
     });
+    this.brandSearch.setValue("");
+    this.modelSearch.setValue("");
     this.models.set([]);
+    this.clearCatalogFeedback();
+  }
+
+  private findBrand(name: string): VehicleBrand | undefined {
+    const normalized = this.normalizeCatalogName(name);
+    return this.brands().find(
+      (brand) => this.normalizeCatalogName(brand.name) === normalized,
+    );
+  }
+
+  private findModel(name: string): VehicleModel | undefined {
+    const normalized = this.normalizeCatalogName(name);
+    return this.models().find(
+      (model) => this.normalizeCatalogName(model.name) === normalized,
+    );
+  }
+
+  private cleanCatalogName(name: string): string {
+    return name.trim().replace(/\s+/g, " ");
+  }
+
+  private normalizeCatalogName(name: string): string {
+    return this.cleanCatalogName(name)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLocaleLowerCase("es-MX");
+  }
+
+  private clearCatalogFeedback(): void {
+    this.catalogError.set("");
+    this.catalogNotice.set("");
   }
 }

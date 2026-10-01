@@ -240,31 +240,97 @@
         >
           <div>
             <label class="field-label" for="quick-brand">Marca <b>*</b></label
-            ><select
+            ><input
               class="field-control"
               id="quick-brand"
-              formControlName="brandId"
-              (change)="brandChanged()"
-            >
-              <option value="">Seleccionar marca</option>
+              type="search"
+              [formControl]="brandSearch"
+              list="quick-brand-options"
+              autocomplete="off"
+              placeholder="Buscar o escribir una marca"
+              (input)="brandSearchChanged()"
+            />
+            <datalist id="quick-brand-options">
               @for (brand of brands(); track brand.id) {
-              <option [value]="brand.id">{{ brand.name }}</option>
+              <option [value]="brand.name"></option>
               }
-            </select>
+            </datalist>
+            @if (canCreateBrand()) {
+            <button
+              class="mt-2 bg-transparent p-0 text-left text-xs font-bold text-[#b94718] underline underline-offset-4 dark:text-[#ff9a6f]"
+              type="button"
+              [disabled]="savingCatalog()"
+              (click)="createBrand()"
+            >
+              {{ savingCatalog() ? 'Creando marca…' : '＋ Crear marca “' +
+              brandSearch.value.trim() + '”' }}
+            </button>
+            } @else if (brandSearch.value && !vehicleForm.controls.brandId.value
+            && !canManageCatalog()) {
+            <span class="field-hint"
+              >La marca no existe. Solicita su creación a un
+              administrador.</span
+            >
+            } @if (vehicleForm.controls.brandId.touched &&
+            vehicleForm.controls.brandId.invalid) {
+            <small class="field-error">Selecciona o crea una marca.</small> }
           </div>
           <div>
             <label class="field-label" for="quick-model">Modelo <b>*</b></label
-            ><select
+            ><input
               class="field-control"
               id="quick-model"
-              formControlName="modelId"
-            >
-              <option value="">Seleccionar modelo</option>
+              type="search"
+              [formControl]="modelSearch"
+              list="quick-model-options"
+              autocomplete="off"
+              placeholder="Buscar o escribir un modelo"
+              [readOnly]="!vehicleForm.controls.brandId.value || loadingModels()"
+              [class.opacity-60]="!vehicleForm.controls.brandId.value || loadingModels()"
+              (input)="modelSearchChanged()"
+            />
+            <datalist id="quick-model-options">
               @for (model of models(); track model.id) {
-              <option [value]="model.id">{{ model.name }}</option>
+              <option [value]="model.name"></option>
               }
-            </select>
+            </datalist>
+            @if (loadingModels()) {
+            <span class="field-hint">Cargando modelos…</span>
+            } @else if (canCreateModel()) {
+            <button
+              class="mt-2 bg-transparent p-0 text-left text-xs font-bold text-[#b94718] underline underline-offset-4 dark:text-[#ff9a6f]"
+              type="button"
+              [disabled]="savingCatalog()"
+              (click)="createModel()"
+            >
+              {{ savingCatalog() ? 'Creando modelo…' : '＋ Crear modelo “' +
+              modelSearch.value.trim() + '”' }}
+            </button>
+            } @else if (modelSearch.value && !vehicleForm.controls.modelId.value
+            && !canManageCatalog()) {
+            <span class="field-hint"
+              >El modelo no existe. Solicita su creación a un
+              administrador.</span
+            >
+            } @if (vehicleForm.controls.modelId.touched &&
+            vehicleForm.controls.modelId.invalid) {
+            <small class="field-error">Selecciona o crea un modelo.</small> }
           </div>
+          @if (catalogNotice()) {
+          <div
+            class="bg-[#e7f2eb] px-4 py-3 text-sm text-[#245b3b] dark:bg-[#203c2c] dark:text-[#9ed5b3]"
+            role="status"
+          >
+            ✓ {{ catalogNotice() }}
+          </div>
+          } @if (catalogError()) {
+          <div
+            class="bg-[#fff0ea] px-4 py-3 text-sm text-[#8e3214] dark:bg-[#4a241b] dark:text-[#ffb89d]"
+            role="alert"
+          >
+            {{ catalogError() }}
+          </div>
+          }
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="field-label" for="quick-year">Año <b>*</b></label
@@ -307,7 +373,7 @@
           <button
             class="primary w-full"
             type="submit"
-            [disabled]="quickSaving()"
+            [disabled]="quickSaving() || savingCatalog() || loadingModels()"
           >
             {{ quickSaving() ? 'Creando…' : 'Crear y seleccionar' }}
           </button>
