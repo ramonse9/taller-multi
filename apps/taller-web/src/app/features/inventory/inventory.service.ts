@@ -6,6 +6,7 @@ import {
   InventoryMovement,
   InventoryMovementInput,
   InventoryMovementType,
+  InventoryLot,
   InventoryProduct,
   PaginatedInventoryMovements,
   PaginatedInventoryProducts,
@@ -37,6 +38,10 @@ export class InventoryService {
 
   getProduct(id: string): Observable<InventoryProduct> {
     return this.http.get<InventoryProduct>(`${this.url}/products/${id}`);
+  }
+
+  listLots(id: string): Observable<InventoryLot[]> {
+    return this.http.get<InventoryLot[]>(`${this.url}/products/${id}/lots`);
   }
 
   listMovements(options: {

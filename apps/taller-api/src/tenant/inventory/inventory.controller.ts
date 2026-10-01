@@ -23,6 +23,7 @@ import {
   CreateInventoryMovementDto,
   InventoryMovementQueryDto,
   InventoryMovementResponseDto,
+  InventoryLotResponseDto,
   InventoryProductQueryDto,
   InventoryProductResponseDto,
   PaginatedInventoryMovementsResponseDto,
@@ -56,6 +57,16 @@ export class InventoryController {
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
   ): Promise<InventoryProductResponseDto> {
     return this.inventory.getProduct(user, id);
+  }
+
+  @Get('products/:id/lots')
+  @ApiOperation({ summary: 'Consultar los lotes y costos de adquisición de un producto' })
+  @ApiOkResponse({ type: InventoryLotResponseDto, isArray: true })
+  listLots(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+  ): Promise<InventoryLotResponseDto[]> {
+    return this.inventory.listLots(user, id);
   }
 
   @Get('movements')

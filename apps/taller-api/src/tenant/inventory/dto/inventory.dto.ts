@@ -30,6 +30,14 @@ export enum InventoryMovementType {
   Adjustment = 'adjustment',
 }
 
+export enum InventoryLotSourceType {
+  OpeningBalance = 'opening_balance',
+  ManualEntry = 'manual_entry',
+  Adjustment = 'adjustment',
+  Purchase = 'purchase',
+  OrderReturn = 'order_return',
+}
+
 export class CreateInventoryMovementDto {
   @ApiProperty({ format: 'uuid' })
   @IsUUID('4')
@@ -137,8 +145,38 @@ export class InventoryProductResponseDto {
   @ApiProperty() allowsDecimals!: boolean;
   @ApiProperty({ description: 'Decimal entregado como texto' }) stock!: string;
   @ApiProperty({ description: 'Decimal entregado como texto' }) minimumStock!: string;
+  @ApiProperty({
+    nullable: true,
+    type: String,
+    description: 'Costo del lote recibido más recientemente',
+  })
+  lastCost!: string | null;
+  @ApiProperty({
+    nullable: true,
+    type: String,
+    description: 'Promedio ponderado de las unidades restantes',
+  })
+  averageCost!: string | null;
   @ApiProperty() isLowStock!: boolean;
   @ApiProperty() isActive!: boolean;
+}
+
+export class InventoryLotResponseDto {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty({ format: 'uuid' }) productId!: string;
+  @ApiProperty({ description: 'Cantidad recibida entregada como texto' })
+  receivedQuantity!: string;
+  @ApiProperty({ description: 'Cantidad restante entregada como texto' })
+  remainingQuantity!: string;
+  @ApiProperty({ description: 'Costo unitario entregado como texto' }) unitCost!: string;
+  @ApiProperty() receivedAt!: Date;
+  @ApiProperty({ enum: InventoryLotSourceType }) sourceType!: InventoryLotSourceType;
+  @ApiProperty({ nullable: true, type: String }) sourceReference!: string | null;
+  @ApiProperty({ format: 'uuid', nullable: true, type: String })
+  entryMovementId!: string | null;
+  @ApiProperty({ format: 'uuid', nullable: true, type: String })
+  createdByUserId!: string | null;
+  @ApiProperty({ nullable: true, type: String }) createdByName!: string | null;
 }
 
 export class PaginatedInventoryProductsResponseDto {

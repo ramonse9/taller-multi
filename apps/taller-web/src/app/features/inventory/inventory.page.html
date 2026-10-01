@@ -169,8 +169,11 @@
               <h2 class="section-title">Movimientos</h2>
               <p class="section-copy">
                 @if (selectedProduct(); as product) { {{ product.name }} ·
-                Existencia {{ product.stock }} {{ product.unitSymbol }} } @else
-                { Selecciona un producto }
+                Existencia {{ product.stock }} {{ product.unitSymbol }} · Último
+                costo {{ product.lastCost === null ? '—' :
+                money(product.lastCost) }} · Promedio {{ product.averageCost ===
+                null ? '—' : money(product.averageCost) }} } @else { Selecciona
+                un producto }
               </p>
             </div>
           </div>
@@ -328,6 +331,7 @@
             type="number"
             [step]="product.allowsDecimals ? '0.001' : '1'"
             formControlName="quantity"
+            (input)="movementFormQuantityChanged()"
           /><span class="input-addon">{{ product.unitSymbol }}</span>
         </div>
         <small class="field-hint"
@@ -339,9 +343,12 @@
           >Captura una cantidad distinta de cero.</small
         >}
       </div>
-      @if (movementForm.controls.type.value === 'entry') {
+      @if (movementForm.controls.type.value === 'entry' ||
+      (movementForm.controls.type.value === 'adjustment' &&
+      (movementForm.controls.quantity.value || 0) > 0)) {
       <div>
-        <label class="field-label" for="movement-cost">Costo unitario</label
+        <label class="field-label" for="movement-cost"
+          >Costo unitario <b>*</b></label
         ><input
           class="field-control"
           id="movement-cost"
@@ -349,8 +356,12 @@
           min="0"
           step="0.01"
           formControlName="unitCost"
-          placeholder="Opcional"
+          placeholder="0.00"
         />
+        @if (movementForm.controls.unitCost.touched &&
+        movementForm.controls.unitCost.invalid) {<small class="field-error"
+          >Captura el costo unitario de esta entrada.</small
+        >}
       </div>
       }
       <div>

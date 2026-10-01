@@ -22,6 +22,7 @@ import { ConceptCatalog1700000011000 } from '../../src/database/migrations/publi
 import { Inventory1700000012000 } from '../../src/database/migrations/public/1700000012000-inventory';
 import { OrderCatalogIntegration1700000013000 } from '../../src/database/migrations/public/1700000013000-order-catalog-integration';
 import { RemoveHourUnit1700000014000 } from '../../src/database/migrations/public/1700000014000-remove-hour-unit';
+import { InventoryCostLots1700000015000 } from '../../src/database/migrations/public/1700000015000-inventory-cost-lots';
 import { quoteIdentifier } from '../../src/database/schema-name';
 import { seedPublicCatalogs } from '../../src/database/seeds/public-catalogs.seed';
 
@@ -165,7 +166,19 @@ interface InventoryProductResponse {
   id: string;
   stock: string;
   minimumStock: string;
+  lastCost: string | null;
+  averageCost: string | null;
   isLowStock: boolean;
+}
+
+interface InventoryLotResponse {
+  id: string;
+  productId: string;
+  receivedQuantity: string;
+  remainingQuantity: string;
+  unitCost: string;
+  sourceType: string;
+  sourceReference: string | null;
 }
 
 interface VehicleResponse {
@@ -264,6 +277,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         Inventory1700000012000,
         OrderCatalogIntegration1700000013000,
         RemoveHourUnit1700000014000,
+        InventoryCostLots1700000015000,
       ],
       migrationsTableName: 'public_schema_migrations',
       synchronize: false,
@@ -939,6 +953,17 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     });
     expect(serviceMovement.status).toBe(400);
 
+    const entryWithoutCost = await request<unknown>('POST', '/inventory/movements', {
+      token: tenant.accessToken,
+      body: {
+        productId: product.body.id,
+        type: 'entry',
+        quantity: 1,
+        reason: 'Entrada sin costo',
+      },
+    });
+    expect(entryWithoutCost.status).toBe(400);
+
     const entry = await request<InventoryMovementResponse>('POST', '/inventory/movements', {
       token: tenant.accessToken,
       body: {
@@ -1026,6 +1051,8 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(stock.body).toMatchObject({
       stock: '5.000',
       minimumStock: '6.000',
+      lastCost: '82.50',
+      averageCost: '82.50',
       isLowStock: true,
     });
     const lowStock = await request<{ totalItems: number; items: InventoryProductResponse[] }>(
@@ -1044,6 +1071,53 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(history.status).toBe(200);
     expect(history.body.totalItems).toBe(3);
     expect(history.body.items.map(({ type }) => type)).toEqual(['adjustment', 'exit', 'entry']);
+
+    const secondEntry = await request<InventoryMovementResponse>('POST', '/inventory/movements', {
+      token: tenant.accessToken,
+      body: {
+        productId: product.body.id,
+        type: 'entry',
+        quantity: 5,
+        unitCost: 95,
+        reason: 'Segunda compra',
+      },
+    });
+    expect(secondEntry.status).toBe(201);
+    const valuedStock = await request<InventoryProductResponse>(
+      'GET',
+      `/inventory/products/${product.body.id}`,
+      { token: tenant.accessToken },
+    );
+    expect(valuedStock.body).toMatchObject({
+      stock: '10.000',
+      lastCost: '95.00',
+      averageCost: '88.75',
+    });
+    const lots = await request<InventoryLotResponse[]>(
+      'GET',
+      `/inventory/products/${product.body.id}/lots`,
+      { token: tenant.accessToken },
+    );
+    expect(lots.status).toBe(200);
+    expect(lots.body).toHaveLength(2);
+    expect(lots.body).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          receivedQuantity: '10.000',
+          remainingQuantity: '5.000',
+          unitCost: '82.50',
+          sourceType: 'manual_entry',
+          sourceReference: 'Compra inicial',
+        }),
+        expect.objectContaining({
+          receivedQuantity: '5.000',
+          remainingQuantity: '5.000',
+          unitCost: '95.00',
+          sourceType: 'manual_entry',
+          sourceReference: 'Segunda compra',
+        }),
+      ]),
+    );
   });
 
   it('administra un catálogo global de marcas y modelos sin duplicados', async () => {

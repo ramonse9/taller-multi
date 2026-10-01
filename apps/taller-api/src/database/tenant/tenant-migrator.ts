@@ -8,8 +8,8 @@ export interface TenantMigration {
   up(queryRunner: QueryRunner, schemaName: string): Promise<void>;
 }
 
-export const TENANT_BASE_VERSION = 7;
-export const TENANT_BASE_NAME = 'tenant-base';
+export const TENANT_BASE_VERSION = 10;
+export const TENANT_BASE_NAME = 'tenant-base-v10';
 
 /**
  * Dynamic tenant migrations deliberately use qualified identifiers everywhere.
@@ -173,6 +173,9 @@ export class TenantMigrator {
         received_quantity numeric(12,3) NOT NULL CHECK (received_quantity > 0),
         remaining_quantity numeric(12,3) NOT NULL CHECK (remaining_quantity >= 0),
         unit_cost numeric(14,2) NOT NULL CHECK (unit_cost >= 0), received_at timestamptz NOT NULL DEFAULT now(),
+        source_type varchar(24) NOT NULL DEFAULT 'purchase'
+          CHECK (source_type IN ('opening_balance','manual_entry','adjustment','purchase','order_return')),
+        source_reference varchar(250), created_by_user_id uuid REFERENCES public.users(id),
         CHECK (remaining_quantity <= received_quantity)
       )`,
       `CREATE INDEX inventory_lots_fifo_idx ON ${s}.inventory_lots(product_id, received_at, id) WHERE remaining_quantity > 0`,
@@ -196,6 +199,18 @@ export class TenantMigrator {
       `CREATE INDEX inventory_movements_product_date_idx ON ${s}.inventory_movements(product_id, created_at DESC)`,
       `CREATE INDEX inventory_movements_order_date_idx ON ${s}.inventory_movements(order_id, created_at, id)
        WHERE order_id IS NOT NULL`,
+      `ALTER TABLE ${s}.inventory_lots ADD COLUMN entry_movement_id uuid UNIQUE
+       REFERENCES ${s}.inventory_movements(id) ON DELETE SET NULL`,
+      `CREATE TABLE ${s}.inventory_lot_allocations (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        movement_id uuid NOT NULL REFERENCES ${s}.inventory_movements(id) ON DELETE CASCADE,
+        lot_id uuid NOT NULL REFERENCES ${s}.inventory_lots(id),
+        quantity numeric(12,3) NOT NULL CHECK (quantity > 0),
+        unit_cost numeric(14,2) NOT NULL CHECK (unit_cost >= 0),
+        created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(movement_id, lot_id)
+      )`,
+      `CREATE INDEX inventory_lot_allocations_lot_idx
+       ON ${s}.inventory_lot_allocations(lot_id, created_at, id)`,
       `CREATE TABLE ${s}.quotes (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(), folio bigint GENERATED ALWAYS AS IDENTITY UNIQUE,
         customer_id uuid NOT NULL REFERENCES ${s}.customers(id), vehicle_id uuid REFERENCES ${s}.vehicles(id),

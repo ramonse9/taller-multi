@@ -10,8 +10,29 @@ export interface InventoryProduct {
   allowsDecimals: boolean;
   stock: string;
   minimumStock: string;
+  lastCost: string | null;
+  averageCost: string | null;
   isLowStock: boolean;
   isActive: boolean;
+}
+
+export interface InventoryLot {
+  id: string;
+  productId: string;
+  receivedQuantity: string;
+  remainingQuantity: string;
+  unitCost: string;
+  receivedAt: string;
+  sourceType:
+    | "opening_balance"
+    | "manual_entry"
+    | "adjustment"
+    | "purchase"
+    | "order_return";
+  sourceReference: string | null;
+  entryMovementId: string | null;
+  createdByUserId: string | null;
+  createdByName: string | null;
 }
 
 export interface InventoryMovement {

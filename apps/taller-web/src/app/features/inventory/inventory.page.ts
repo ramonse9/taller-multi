@@ -81,7 +81,7 @@ export class InventoryPage implements OnInit {
       validators: [Validators.required],
     }),
     unitCost: new FormControl<number | null>(null, {
-      validators: [Validators.min(0)],
+      validators: [Validators.required, Validators.min(0)],
     }),
     reason: new FormControl("", {
       nonNullable: true,
@@ -192,6 +192,7 @@ export class InventoryPage implements OnInit {
       unitCost: null,
       reason: "",
     });
+    this.updateCostValidation();
     this.movementEditorOpen.set(true);
     this.error.set("");
   }
@@ -206,7 +207,11 @@ export class InventoryPage implements OnInit {
     if (type !== "adjustment" && quantity !== null) {
       this.movementForm.controls.quantity.setValue(Math.abs(quantity));
     }
-    if (type !== "entry") this.movementForm.controls.unitCost.setValue(null);
+    this.updateCostValidation();
+  }
+
+  movementFormQuantityChanged(): void {
+    this.updateCostValidation();
   }
 
   saveMovement(): void {
@@ -224,6 +229,13 @@ export class InventoryPage implements OnInit {
       this.movementForm.controls.quantity.setErrors({ positive: true });
       return;
     }
+    const increasesStock =
+      raw.type === "entry" || (raw.type === "adjustment" && raw.quantity > 0);
+    if (increasesStock && raw.unitCost === null) {
+      this.movementForm.controls.unitCost.setErrors({ required: true });
+      this.movementForm.controls.unitCost.markAsTouched();
+      return;
+    }
     this.saving.set(true);
     this.error.set("");
     this.inventory
@@ -231,7 +243,7 @@ export class InventoryPage implements OnInit {
         productId: product.id,
         type: raw.type,
         quantity: raw.quantity,
-        unitCost: raw.type === "entry" ? raw.unitCost : null,
+        unitCost: increasesStock ? raw.unitCost : null,
         reason: raw.reason.trim(),
       })
       .pipe(
@@ -269,6 +281,21 @@ export class InventoryPage implements OnInit {
       style: "currency",
       currency: "MXN",
     }).format(Number(value));
+  }
+
+  private updateCostValidation(): void {
+    const type = this.movementForm.controls.type.value;
+    const quantity = this.movementForm.controls.quantity.value;
+    const increasesStock =
+      type === "entry" || (type === "adjustment" && (quantity ?? 0) > 0);
+    const control = this.movementForm.controls.unitCost;
+    control.setValidators(
+      increasesStock
+        ? [Validators.required, Validators.min(0)]
+        : [Validators.min(0)],
+    );
+    if (!increasesStock) control.setValue(null);
+    control.updateValueAndValidity();
   }
 
   private showNotice(message: string): void {

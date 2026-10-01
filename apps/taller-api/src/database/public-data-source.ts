@@ -16,6 +16,7 @@ import { ConceptCatalog1700000011000 } from './migrations/public/1700000011000-c
 import { Inventory1700000012000 } from './migrations/public/1700000012000-inventory';
 import { OrderCatalogIntegration1700000013000 } from './migrations/public/1700000013000-order-catalog-integration';
 import { RemoveHourUnit1700000014000 } from './migrations/public/1700000014000-remove-hour-unit';
+import { InventoryCostLots1700000015000 } from './migrations/public/1700000015000-inventory-cost-lots';
 
 export default new DataSource({
   type: 'postgres',
@@ -38,6 +39,7 @@ export default new DataSource({
     Inventory1700000012000,
     OrderCatalogIntegration1700000013000,
     RemoveHourUnit1700000014000,
+    InventoryCostLots1700000015000,
   ],
   migrationsTableName: 'public_schema_migrations',
   synchronize: false,
