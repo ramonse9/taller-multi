@@ -115,6 +115,18 @@ export const routes: Routes = [
           ),
       },
       {
+        path: "suppliers",
+        canActivate: [roleGuard, featureGuard],
+        data: {
+          roles: ["company_admin", "user"],
+          feature: "item_catalog",
+        },
+        loadComponent: () =>
+          import("./features/suppliers/suppliers.page").then(
+            (m) => m.SuppliersPage,
+          ),
+      },
+      {
         path: "vehicle-catalog",
         canActivate: [roleGuard, featureGuard],
         data: { roles: ["platform_admin", "company_admin"] },

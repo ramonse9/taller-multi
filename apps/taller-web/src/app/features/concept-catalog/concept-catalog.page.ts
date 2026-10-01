@@ -82,14 +82,14 @@ export class ConceptCatalogPage implements OnInit {
       nonNullable: true,
       validators: [Validators.required],
     }),
-    cost: new FormControl("0.00", {
+    cost: new FormControl("", {
       nonNullable: true,
       validators: [
         Validators.required,
         Validators.pattern(/^\d+(\.\d{0,2})?$/),
       ],
     }),
-    price: new FormControl("0.00", {
+    price: new FormControl("", {
       nonNullable: true,
       validators: [
         Validators.required,
@@ -220,8 +220,8 @@ export class ConceptCatalogPage implements OnInit {
       name: concept?.name ?? "",
       description: concept?.description ?? "",
       unitId: concept?.unit.id ?? this.activeUnits()[0]?.id ?? "",
-      cost: concept?.cost ?? "0.00",
-      price: concept?.price ?? "0.00",
+      cost: concept?.cost ?? "",
+      price: concept?.price ?? "",
       tracksInventory: concept?.tracksInventory ?? false,
       minimumStock: concept ? Number(concept.minimumStock) : 0,
       satProductServiceCode: concept?.satProductServiceCode ?? "",

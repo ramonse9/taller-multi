@@ -11,6 +11,8 @@ import { ConceptCatalogController } from './concept-catalog/concept-catalog.cont
 import { ConceptCatalogService } from './concept-catalog/concept-catalog.service';
 import { InventoryController } from './inventory/inventory.controller';
 import { InventoryService } from './inventory/inventory.service';
+import { SuppliersController } from './suppliers/suppliers.controller';
+import { SuppliersService } from './suppliers/suppliers.service';
 
 @Global()
 @Module({
@@ -22,6 +24,7 @@ import { InventoryService } from './inventory/inventory.service';
     OrdersController,
     ConceptCatalogController,
     InventoryController,
+    SuppliersController,
   ],
   providers: [
     TenantSessionService,
@@ -30,6 +33,7 @@ import { InventoryService } from './inventory/inventory.service';
     OrdersService,
     ConceptCatalogService,
     InventoryService,
+    SuppliersService,
   ],
   exports: [TenantSessionService],
 })

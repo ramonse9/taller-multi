@@ -24,6 +24,7 @@ import { OrderCatalogIntegration1700000013000 } from '../../src/database/migrati
 import { RemoveHourUnit1700000014000 } from '../../src/database/migrations/public/1700000014000-remove-hour-unit';
 import { InventoryCostLots1700000015000 } from '../../src/database/migrations/public/1700000015000-inventory-cost-lots';
 import { InventoryMovementReversals1700000016000 } from '../../src/database/migrations/public/1700000016000-inventory-movement-reversals';
+import { SupplierCatalog1700000017000 } from '../../src/database/migrations/public/1700000017000-supplier-catalog';
 import { quoteIdentifier } from '../../src/database/schema-name';
 import { seedPublicCatalogs } from '../../src/database/seeds/public-catalogs.seed';
 
@@ -172,6 +173,18 @@ interface InventoryProductResponse {
   isLowStock: boolean;
 }
 
+interface SupplierResponse {
+  id: string;
+  commercialName: string;
+  legalName: string | null;
+  taxId: string | null;
+  phone: string | null;
+  email: string | null;
+  notes: string | null;
+  isActive: boolean;
+  isDefault: boolean;
+}
+
 interface InventoryLotResponse {
   id: string;
   productId: string;
@@ -286,6 +299,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         RemoveHourUnit1700000014000,
         InventoryCostLots1700000015000,
         InventoryMovementReversals1700000016000,
+        SupplierCatalog1700000017000,
       ],
       migrationsTableName: 'public_schema_migrations',
       synchronize: false,
@@ -904,6 +918,98 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       { token: tenant.accessToken },
     );
     expect(inactive.body.items.map(({ id }) => id)).toContain(product.body.id);
+  });
+
+  it('administra proveedores aislados y conserva un Proveedor general predeterminado', async () => {
+    const tenant = await provisionAndLogin('Supplier Integration', 'supplier.admin@test.local');
+    await request<unknown>('PATCH', `/subscriptions/companies/${tenant.company.id}`, {
+      token: platformToken,
+      body: { planCode: 'control', status: 'active', reason: 'Proveedores de integración' },
+    });
+
+    const initial = await request<{ totalItems: number; items: SupplierResponse[] }>(
+      'GET',
+      '/suppliers',
+      { token: tenant.accessToken },
+    );
+    expect(initial.status).toBe(200);
+    expect(initial.body.totalItems).toBe(1);
+    expect(initial.body.items[0]).toMatchObject({
+      commercialName: 'Proveedor general',
+      isActive: true,
+      isDefault: true,
+    });
+
+    const created = await request<SupplierResponse>('POST', '/suppliers', {
+      token: tenant.accessToken,
+      body: {
+        commercialName: 'Refaccionaria del Pacífico',
+        legalName: 'Refacciones del Pacífico, S.A. de C.V.',
+        taxId: 'RPA010101AB1',
+        phone: '+526671223344',
+        email: 'VENTAS@PROVEEDOR.MX',
+        notes: 'Entrega los martes',
+      },
+    });
+    expect(created.status).toBe(201);
+    expect(created.body).toMatchObject({
+      commercialName: 'Refaccionaria del Pacífico',
+      taxId: 'RPA010101AB1',
+      email: 'ventas@proveedor.mx',
+      isActive: true,
+      isDefault: false,
+    });
+
+    const duplicateName = await request<unknown>('POST', '/suppliers', {
+      token: tenant.accessToken,
+      body: { commercialName: 'refaccionaria del pacífico' },
+    });
+    expect(duplicateName.status).toBe(409);
+    const duplicateTaxId = await request<unknown>('POST', '/suppliers', {
+      token: tenant.accessToken,
+      body: { commercialName: 'Otro proveedor', taxId: 'rpa010101ab1' },
+    });
+    expect(duplicateTaxId.status).toBe(409);
+
+    const updated = await request<SupplierResponse>('PATCH', `/suppliers/${created.body.id}`, {
+      token: tenant.accessToken,
+      body: { phone: '+526679998877', notes: 'Entrega lunes y jueves' },
+    });
+    expect(updated.body).toMatchObject({
+      phone: '+526679998877',
+      notes: 'Entrega lunes y jueves',
+    });
+    const deactivated = await request<SupplierResponse>('PATCH', `/suppliers/${created.body.id}`, {
+      token: tenant.accessToken,
+      body: { isActive: false },
+    });
+    expect(deactivated.body.isActive).toBe(false);
+
+    const protectedDefault = await request<unknown>(
+      'PATCH',
+      `/suppliers/${initial.body.items[0]!.id}`,
+      { token: tenant.accessToken, body: { isActive: false } },
+    );
+    expect(protectedDefault.status).toBe(400);
+
+    const otherTenant = await provisionAndLogin(
+      'Supplier Isolation',
+      'supplier.isolation@test.local',
+    );
+    await request<unknown>('PATCH', `/subscriptions/companies/${otherTenant.company.id}`, {
+      token: platformToken,
+      body: { planCode: 'control', status: 'active', reason: 'Aislamiento de proveedores' },
+    });
+    const isolated = await request<{ totalItems: number; items: SupplierResponse[] }>(
+      'GET',
+      '/suppliers',
+      { token: otherTenant.accessToken },
+    );
+    expect(isolated.body.totalItems).toBe(1);
+    expect(isolated.body.items[0]).toMatchObject({
+      commercialName: 'Proveedor general',
+      isDefault: true,
+    });
   });
 
   it('administra existencias, entradas, salidas, ajustes e historial de inventario', async () => {

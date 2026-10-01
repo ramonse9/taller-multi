@@ -1,0 +1,294 @@
+<main
+  class="min-h-screen bg-[#f9f7f0] text-[#17251e] dark:bg-[#101713] dark:text-[#edf3ef]"
+>
+  <header
+    class="flex flex-wrap items-end justify-between gap-5 border-b border-[#dcd9cf] px-[clamp(1.5rem,5vw,5rem)] py-8 dark:border-[#34423a]"
+  >
+    <div>
+      <p class="eyebrow">CONTROL / COMPRAS</p>
+      <h1
+        class="m-0 font-[var(--display)] text-[clamp(2.4rem,5vw,4.5rem)] font-semibold leading-[.9] tracking-[-.05em]"
+      >
+        Proveedores
+      </h1>
+      <p class="mt-3 text-sm text-[#68746d] dark:text-[#aab7af]">
+        Usa Proveedor general para compras rápidas o registra proveedores con
+        mayor detalle.
+      </p>
+    </div>
+    <div class="flex items-center gap-2">
+      <button class="theme-toggle" type="button" (click)="theme.toggle()">
+        {{ theme.isDark() ? '☀' : '◐' }}
+      </button>
+      <button class="primary" type="button" (click)="openEditor()">
+        ＋ Nuevo Proveedor
+      </button>
+    </div>
+  </header>
+
+  <section class="px-[clamp(1.5rem,5vw,5rem)] pb-16 pt-8">
+    @if (notice()) {
+    <div
+      class="mb-4 bg-[#e7f2eb] px-4 py-3 text-sm text-[#245b3b] dark:bg-[#203c2c] dark:text-[#9ed5b3]"
+    >
+      ✓ {{ notice() }}
+    </div>
+    } @if (error()) {
+    <div
+      class="mb-4 bg-[#fff0ea] px-4 py-3 text-sm text-[#8e3214] dark:bg-[#4a241b] dark:text-[#ffb89d]"
+    >
+      {{ error() }}
+    </div>
+    }
+
+    <section class="form-card-tw overflow-hidden">
+      <header class="form-card-header flex-wrap justify-between gap-4">
+        <div>
+          <p class="eyebrow">DIRECTORIO</p>
+          <h2 class="section-title">
+            {{ suppliers().totalItems }} proveedores
+          </h2>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button
+            class="small-action-tw"
+            type="button"
+            [class.border-[#e86a33]]="active()"
+            (click)="filter(true)"
+          >
+            Activos
+          </button>
+          <button
+            class="small-action-tw"
+            type="button"
+            [class.border-[#e86a33]]="!active()"
+            (click)="filter(false)"
+          >
+            Inactivos
+          </button>
+        </div>
+      </header>
+      <div class="border-b border-[#dcd9cf] p-4 dark:border-[#3d4d44]">
+        <input
+          class="field-control"
+          type="search"
+          [formControl]="search"
+          placeholder="Buscar por nombre, RFC, teléfono o correo"
+        />
+      </div>
+      <div class="relative min-h-72" [class.opacity-50]="loading()">
+        <div
+          class="grid gap-px bg-[#ece9df] md:grid-cols-2 xl:grid-cols-3 dark:bg-[#35433b]"
+        >
+          @for (supplier of suppliers().items; track supplier.id) {
+          <article
+            class="flex min-h-56 flex-col bg-white p-5 dark:bg-[#1a251f]"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <strong class="block truncate text-lg"
+                  >{{ supplier.commercialName }}</strong
+                >
+                <small class="text-[#68746d] dark:text-[#aab7af]">
+                  {{ supplier.legalName || 'Sin razón social' }}
+                </small>
+              </div>
+              @if (supplier.isDefault) {
+              <span
+                class="shrink-0 bg-[#edf0f8] px-2 py-1 text-xs font-bold text-[#36598b]"
+              >
+                Predeterminado
+              </span>
+              }
+            </div>
+            <dl class="mt-5 grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <dt class="text-[#68746d] dark:text-[#aab7af]">RFC</dt>
+                <dd class="m-0">{{ supplier.taxId || '—' }}</dd>
+              </div>
+              <div>
+                <dt class="text-[#68746d] dark:text-[#aab7af]">Teléfono</dt>
+                <dd class="m-0">{{ supplier.phone || '—' }}</dd>
+              </div>
+              <div class="col-span-2">
+                <dt class="text-[#68746d] dark:text-[#aab7af]">Correo</dt>
+                <dd class="m-0 truncate">{{ supplier.email || '—' }}</dd>
+              </div>
+            </dl>
+            @if (supplier.notes) {
+            <p class="mt-4 text-sm text-[#68746d] dark:text-[#aab7af]">
+              {{ supplier.notes }}
+            </p>
+            }
+            <footer class="mt-auto flex gap-2 pt-5">
+              <button
+                class="small-action-tw"
+                type="button"
+                (click)="openEditor(supplier)"
+              >
+                Editar
+              </button>
+              @if (!supplier.isDefault) {
+              <button
+                class="small-action-tw"
+                type="button"
+                [disabled]="saving()"
+                (click)="changeStatus(supplier)"
+              >
+                {{ supplier.isActive ? 'Desactivar' : 'Reactivar' }}
+              </button>
+              }
+            </footer>
+          </article>
+          } @empty { @if (!loading()) {
+          <p
+            class="col-span-full bg-white p-12 text-center text-sm text-[#68746d] dark:bg-[#1a251f] dark:text-[#aab7af]"
+          >
+            {{ active() ? 'No encontramos proveedores activos.' : 'No hay
+            proveedores inactivos.' }}
+          </p>
+          } }
+        </div>
+        @if (loading()) {
+        <div class="loader-tw" aria-label="Cargando proveedores">
+          <span></span><span></span><span></span>
+        </div>
+        }
+      </div>
+      <footer class="pagination-tw">
+        <span
+          >Página {{ suppliers().page }} de {{ suppliers().totalPages || 1
+          }}</span
+        >
+        <div>
+          <button
+            type="button"
+            [disabled]="suppliers().page <= 1"
+            (click)="load(suppliers().page - 1)"
+          >
+            ←
+          </button>
+          <button
+            type="button"
+            [disabled]="!suppliers().hasNextPage"
+            (click)="load(suppliers().page + 1)"
+          >
+            →
+          </button>
+        </div>
+      </footer>
+    </section>
+  </section>
+</main>
+
+@if (editorOpen()) {
+<div class="dialog-backdrop" role="presentation" (click)="closeEditor()">
+  <section
+    class="dialog-tw max-w-3xl"
+    role="dialog"
+    aria-modal="true"
+    (click)="$event.stopPropagation()"
+  >
+    <p class="eyebrow">
+      {{ editing() ? 'EDITAR PROVEEDOR' : 'NUEVO PROVEEDOR' }}
+    </p>
+    <h2>{{ editing()?.commercialName || 'Registrar proveedor' }}</h2>
+    @if (editing()?.isDefault) {
+    <p class="mt-2 text-sm text-[#68746d] dark:text-[#aab7af]">
+      Este es el proveedor predeterminado y no puede desactivarse ni cambiar de
+      nombre.
+    </p>
+    } @if (error()) {
+    <div class="dialog-error-tw" role="alert">{{ error() }}</div>
+    }
+    <form
+      class="mt-6 grid gap-4 sm:grid-cols-2"
+      [formGroup]="form"
+      (ngSubmit)="save()"
+      novalidate
+    >
+      <div>
+        <label class="field-label" for="supplier-commercial-name"
+          >Nombre comercial <b>*</b></label
+        >
+        <input
+          class="field-control"
+          id="supplier-commercial-name"
+          formControlName="commercialName"
+          placeholder="Refaccionaria del Pacífico"
+        />
+        @if (form.controls.commercialName.touched &&
+        form.controls.commercialName.invalid) {
+        <small class="field-error"
+          >Captura un nombre de 2 a 180 caracteres.</small
+        >
+        }
+      </div>
+      <div>
+        <label class="field-label" for="supplier-legal-name"
+          >Razón social</label
+        >
+        <input
+          class="field-control"
+          id="supplier-legal-name"
+          formControlName="legalName"
+          placeholder="Opcional"
+        />
+      </div>
+      <div>
+        <label class="field-label" for="supplier-tax-id">RFC</label>
+        <input
+          class="field-control uppercase"
+          id="supplier-tax-id"
+          formControlName="taxId"
+          maxlength="13"
+          placeholder="RPA010101AB1"
+        />
+        @if (form.controls.taxId.touched && form.controls.taxId.invalid) {
+        <small class="field-error">Captura un RFC válido.</small>
+        }
+      </div>
+      <div>
+        <label class="field-label" for="supplier-phone">Teléfono</label>
+        <input
+          class="field-control"
+          id="supplier-phone"
+          formControlName="phone"
+          inputmode="tel"
+          placeholder="667 122 33 44"
+        />
+      </div>
+      <div>
+        <label class="field-label" for="supplier-email">Correo</label>
+        <input
+          class="field-control"
+          id="supplier-email"
+          formControlName="email"
+          type="email"
+          placeholder="ventas@proveedor.mx"
+        />
+        @if (form.controls.email.touched && form.controls.email.invalid) {
+        <small class="field-error">Captura un correo válido.</small>
+        }
+      </div>
+      <div class="sm:col-span-2">
+        <label class="field-label" for="supplier-notes">Notas</label>
+        <textarea
+          class="field-control min-h-24"
+          id="supplier-notes"
+          formControlName="notes"
+          placeholder="Condiciones de entrega, horarios o contacto"
+        ></textarea>
+      </div>
+      <footer class="dialog-footer sm:col-span-2">
+        <button class="ghost-tw" type="button" (click)="closeEditor()">
+          Cancelar
+        </button>
+        <button class="primary" type="submit" [disabled]="saving()">
+          {{ saving() ? 'Guardando…' : 'Guardar proveedor' }}
+        </button>
+      </footer>
+    </form>
+  </section>
+</div>
+}

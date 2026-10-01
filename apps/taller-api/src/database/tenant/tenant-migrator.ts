@@ -8,8 +8,8 @@ export interface TenantMigration {
   up(queryRunner: QueryRunner, schemaName: string): Promise<void>;
 }
 
-export const TENANT_BASE_VERSION = 11;
-export const TENANT_BASE_NAME = 'tenant-base-v11';
+export const TENANT_BASE_VERSION = 12;
+export const TENANT_BASE_NAME = 'tenant-base-v12';
 
 /**
  * Dynamic tenant migrations deliberately use qualified identifiers everywhere.
@@ -148,11 +148,18 @@ export class TenantMigrator {
       )`,
       `CREATE INDEX order_status_history_order_date_idx ON ${s}.order_status_history(order_id, changed_at, id)`,
       `CREATE TABLE ${s}.suppliers (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid(), name varchar(180) NOT NULL UNIQUE,
-        tax_id varchar(20), email citext, phone varchar(30), is_active boolean NOT NULL DEFAULT true,
-        created_by_user_id uuid NOT NULL REFERENCES public.users(id),
-        created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now()
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(), name varchar(180) NOT NULL,
+        legal_name varchar(180), tax_id varchar(20), email citext, phone varchar(30), notes text,
+        is_active boolean NOT NULL DEFAULT true, is_system boolean NOT NULL DEFAULT false,
+        created_by_user_id uuid REFERENCES public.users(id),
+        updated_by_user_id uuid REFERENCES public.users(id),
+        created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
+        CHECK (NOT is_system OR is_active)
       )`,
+      `CREATE UNIQUE INDEX suppliers_name_unique ON ${s}.suppliers(lower(name))`,
+      `CREATE UNIQUE INDEX suppliers_tax_id_unique ON ${s}.suppliers(upper(tax_id)) WHERE tax_id IS NOT NULL`,
+      `CREATE UNIQUE INDEX suppliers_single_system_idx ON ${s}.suppliers(is_system) WHERE is_system = true`,
+      `INSERT INTO ${s}.suppliers(name, is_system) VALUES ('Proveedor general', true)`,
       `CREATE TABLE ${s}.purchases (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(), folio bigint GENERATED ALWAYS AS IDENTITY UNIQUE,
         supplier_id uuid NOT NULL REFERENCES ${s}.suppliers(id),
