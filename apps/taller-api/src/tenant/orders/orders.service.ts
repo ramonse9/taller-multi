@@ -656,13 +656,24 @@ export class OrdersService {
     for (const item of items) {
       const quantity = Number(item.quantity);
       const exitMovements = (await runner.query(
-        `SELECT id FROM ${schema}.inventory_movements
-         WHERE order_item_id = $1 AND order_id = $2 AND movement_type = 'exit'
-         ORDER BY created_at DESC LIMIT 1
+        `SELECT movement.id FROM ${schema}.inventory_movements movement
+         WHERE movement.order_item_id = $1
+           AND movement.order_id = $2
+           AND movement.movement_type = 'exit'
+           AND NOT EXISTS (
+             SELECT 1 FROM ${schema}.inventory_movements reversal
+             WHERE reversal.reverses_movement_id = movement.id
+           )
+         ORDER BY movement.created_at DESC LIMIT 1
          FOR UPDATE`,
         [item.id, order.id],
       )) as Array<{ id: string }>;
       const exitMovement = exitMovements[0];
+      if (!exitMovement) {
+        throw new UnprocessableEntityException(
+          `La salida de inventario ya fue devuelta o no existe: ${item.description}`,
+        );
+      }
       const allocations = exitMovement
         ? ((await runner.query(
             `SELECT lot_id, quantity::text, unit_cost::text
@@ -671,7 +682,7 @@ export class OrdersService {
             [exitMovement.id],
           )) as InventoryAllocationRow[])
         : [];
-      const actualCost = await this.allocationCost(runner, schema, exitMovement?.id);
+      const actualCost = await this.allocationCost(runner, schema, exitMovement.id);
       const updated = (await runner.query(
         `UPDATE ${schema}.products_services
          SET stock = stock + $2, updated_by_user_id = $3, updated_at = now()
@@ -698,8 +709,9 @@ export class OrdersService {
       const movements = (await runner.query(
         `INSERT INTO ${schema}.inventory_movements(
            product_id, order_item_id, order_id, movement_type, quantity,
-           previous_stock, resulting_stock, unit_cost, reason, created_by_user_id
-         ) VALUES ($1, $2, $3, 'entry', $4, $5, $6, $7, $8, $9)
+           previous_stock, resulting_stock, unit_cost, reason, created_by_user_id,
+           reverses_movement_id
+         ) VALUES ($1, $2, $3, 'entry', $4, $5, $6, $7, $8, $9, $10)
          RETURNING id`,
         [
           item.product_service_id,
@@ -711,6 +723,7 @@ export class OrdersService {
           actualCost?.unitCost ?? item.unit_cost,
           `Devolución por cambio de estado de la orden #${order.folio}`,
           userId,
+          exitMovement.id,
         ],
       )) as Array<{ id: string }>;
       if (allocations.length === 0) {

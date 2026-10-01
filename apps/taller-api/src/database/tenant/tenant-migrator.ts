@@ -8,8 +8,8 @@ export interface TenantMigration {
   up(queryRunner: QueryRunner, schemaName: string): Promise<void>;
 }
 
-export const TENANT_BASE_VERSION = 10;
-export const TENANT_BASE_NAME = 'tenant-base-v10';
+export const TENANT_BASE_VERSION = 11;
+export const TENANT_BASE_NAME = 'tenant-base-v11';
 
 /**
  * Dynamic tenant migrations deliberately use qualified identifiers everywhere.
@@ -199,6 +199,11 @@ export class TenantMigrator {
       `CREATE INDEX inventory_movements_product_date_idx ON ${s}.inventory_movements(product_id, created_at DESC)`,
       `CREATE INDEX inventory_movements_order_date_idx ON ${s}.inventory_movements(order_id, created_at, id)
        WHERE order_id IS NOT NULL`,
+      `ALTER TABLE ${s}.inventory_movements ADD COLUMN reverses_movement_id uuid
+       REFERENCES ${s}.inventory_movements(id) ON DELETE SET NULL`,
+      `CREATE UNIQUE INDEX inventory_movements_single_reversal_idx
+       ON ${s}.inventory_movements(reverses_movement_id)
+       WHERE reverses_movement_id IS NOT NULL`,
       `ALTER TABLE ${s}.inventory_lots ADD COLUMN entry_movement_id uuid UNIQUE
        REFERENCES ${s}.inventory_movements(id) ON DELETE SET NULL`,
       `CREATE TABLE ${s}.inventory_lot_allocations (

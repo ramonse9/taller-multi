@@ -23,6 +23,7 @@ import { Inventory1700000012000 } from '../../src/database/migrations/public/170
 import { OrderCatalogIntegration1700000013000 } from '../../src/database/migrations/public/1700000013000-order-catalog-integration';
 import { RemoveHourUnit1700000014000 } from '../../src/database/migrations/public/1700000014000-remove-hour-unit';
 import { InventoryCostLots1700000015000 } from '../../src/database/migrations/public/1700000015000-inventory-cost-lots';
+import { InventoryMovementReversals1700000016000 } from '../../src/database/migrations/public/1700000016000-inventory-movement-reversals';
 import { quoteIdentifier } from '../../src/database/schema-name';
 import { seedPublicCatalogs } from '../../src/database/seeds/public-catalogs.seed';
 
@@ -278,6 +279,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         OrderCatalogIntegration1700000013000,
         RemoveHourUnit1700000014000,
         InventoryCostLots1700000015000,
+        InventoryMovementReversals1700000016000,
       ],
       migrationsTableName: 'public_schema_migrations',
       synchronize: false,
@@ -1875,21 +1877,57 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       ).body.stock,
     ).toBe('10.000');
 
+    const duplicateCancellation = await request<unknown>(
+      'POST',
+      `/orders/${created.body.id}/status`,
+      { token: tenant.accessToken, body: { status: 'cancelled' } },
+    );
+    expect(duplicateCancellation.status).toBe(400);
+    const restoredLots = await request<InventoryLotResponse[]>(
+      'GET',
+      `/inventory/products/${product.body.id}/lots`,
+      { token: tenant.accessToken },
+    );
+    expect(
+      restoredLots.body.map(({ receivedQuantity, remainingQuantity, unitCost }) => ({
+        receivedQuantity,
+        remainingQuantity,
+        unitCost,
+      })),
+    ).toEqual(
+      expect.arrayContaining([
+        { receivedQuantity: '1.000', remainingQuantity: '1.000', unitCost: '80.00' },
+        { receivedQuantity: '9.000', remainingQuantity: '9.000', unitCost: '100.00' },
+      ]),
+    );
+
     const schema = quoteIdentifier(tenant.company.schemaName);
     const movements = await control.query<
-      Array<{ movement_type: string; quantity: string; order_id: string }>
+      Array<{
+        id: string;
+        movement_type: string;
+        quantity: string;
+        order_id: string;
+        reverses_movement_id: string | null;
+      }>
     >(
-      `SELECT movement_type, quantity::text, order_id
+      `SELECT id, movement_type, quantity::text, order_id, reverses_movement_id
        FROM ${schema}.inventory_movements
        WHERE order_id = $1 ORDER BY created_at, id`,
       [created.body.id],
     );
-    expect(movements).toEqual([
-      { movement_type: 'exit', quantity: '-2.000', order_id: created.body.id },
-      { movement_type: 'entry', quantity: '2.000', order_id: created.body.id },
-      { movement_type: 'exit', quantity: '-3.000', order_id: created.body.id },
-      { movement_type: 'entry', quantity: '3.000', order_id: created.body.id },
+    expect(movements).toHaveLength(4);
+    expect(movements.map(({ movement_type, quantity }) => ({ movement_type, quantity }))).toEqual([
+      { movement_type: 'exit', quantity: '-2.000' },
+      { movement_type: 'entry', quantity: '2.000' },
+      { movement_type: 'exit', quantity: '-3.000' },
+      { movement_type: 'entry', quantity: '3.000' },
     ]);
+    const exits = movements.filter(({ movement_type }) => movement_type === 'exit');
+    const returns = movements.filter(({ movement_type }) => movement_type === 'entry');
+    expect(returns.map(({ reverses_movement_id }) => reverses_movement_id)).toEqual(
+      expect.arrayContaining(exits.map(({ id }) => id)),
+    );
     const fifoAllocations = await control.query<
       Array<{ movement_id: string; lot_count: string; actual_cost: string }>
     >(
