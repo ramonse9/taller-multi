@@ -351,6 +351,11 @@ export class InventoryService {
       unit.allows_decimals,
       (SELECT lot.unit_cost::text FROM ${schema}.inventory_lots lot
        WHERE lot.product_id = concept.id
+         AND NOT EXISTS (
+           SELECT 1 FROM ${schema}.purchase_items purchase_item
+           JOIN ${schema}.purchases purchase ON purchase.id = purchase_item.purchase_id
+           WHERE purchase_item.id = lot.purchase_item_id AND purchase.status = 'cancelled'
+         )
        ORDER BY lot.received_at DESC, lot.id DESC LIMIT 1) AS last_cost,
       (SELECT round(sum(lot.remaining_quantity * lot.unit_cost) /
         nullif(sum(lot.remaining_quantity), 0), 2)::text

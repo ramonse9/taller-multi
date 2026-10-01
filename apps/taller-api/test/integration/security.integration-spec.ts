@@ -26,6 +26,7 @@ import { InventoryCostLots1700000015000 } from '../../src/database/migrations/pu
 import { InventoryMovementReversals1700000016000 } from '../../src/database/migrations/public/1700000016000-inventory-movement-reversals';
 import { SupplierCatalog1700000017000 } from '../../src/database/migrations/public/1700000017000-supplier-catalog';
 import { PurchaseModel1700000018000 } from '../../src/database/migrations/public/1700000018000-purchase-model';
+import { PurchaseInventoryTraceability1700000019000 } from '../../src/database/migrations/public/1700000019000-purchase-inventory-traceability';
 import { quoteIdentifier } from '../../src/database/schema-name';
 import { seedPublicCatalogs } from '../../src/database/seeds/public-catalogs.seed';
 
@@ -199,6 +200,8 @@ interface PurchaseResponse {
   cancelledAt: string | null;
   items: Array<{
     productId: string;
+    inventoryMovementId: string | null;
+    inventoryLotId: string | null;
     productName: string;
     quantity: string;
     unitCost: string;
@@ -322,6 +325,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         InventoryMovementReversals1700000016000,
         SupplierCatalog1700000017000,
         PurchaseModel1700000018000,
+        PurchaseInventoryTraceability1700000019000,
       ],
       migrationsTableName: 'public_schema_migrations',
       synchronize: false,
@@ -1056,6 +1060,16 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         tracksInventory: true,
       },
     });
+    await request<InventoryMovementResponse>('POST', '/inventory/movements', {
+      token: tenant.accessToken,
+      body: {
+        productId: product.body.id,
+        type: 'entry',
+        quantity: 2,
+        unitCost: 80,
+        reason: 'Existencia anterior a la compra',
+      },
+    });
 
     const created = await request<PurchaseResponse>('POST', '/purchases', {
       token: tenant.accessToken,
@@ -1090,7 +1104,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
           token: tenant.accessToken,
         })
       ).body.stock,
-    ).toBe('0.000');
+    ).toBe('2.000');
 
     const edited = await request<PurchaseResponse>('PATCH', `/purchases/${created.body.id}`, {
       token: tenant.accessToken,
@@ -1109,26 +1123,47 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(confirmed.status).toBe(200);
     expect(confirmed.body.status).toBe('confirmed');
     expect(confirmed.body.confirmedAt).not.toBeNull();
+    expect(typeof confirmed.body.items[0]?.inventoryMovementId).toBe('string');
+    expect(typeof confirmed.body.items[0]?.inventoryLotId).toBe('string');
     const stock = await request<InventoryProductResponse>(
       'GET',
       `/inventory/products/${product.body.id}`,
       { token: tenant.accessToken },
     );
-    expect(stock.body).toMatchObject({ stock: '4.000', lastCost: '95.00' });
+    expect(stock.body).toMatchObject({
+      stock: '6.000',
+      lastCost: '95.00',
+      averageCost: '90.00',
+    });
     const lots = await request<InventoryLotResponse[]>(
       'GET',
       `/inventory/products/${product.body.id}/lots`,
       { token: tenant.accessToken },
     );
-    expect(lots.body).toEqual([
-      expect.objectContaining({
+    expect(lots.body).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
         receivedQuantity: '4.000',
         remainingQuantity: '4.000',
         unitCost: '95.00',
         sourceType: 'purchase',
         sourceReference: 'Compra #1',
-      }),
-    ]);
+        }),
+      ]),
+    );
+    const duplicateConfirmation = await request<unknown>(
+      'POST',
+      `/purchases/${created.body.id}/status`,
+      { token: tenant.accessToken, body: { status: 'confirmed' } },
+    );
+    expect(duplicateConfirmation.status).toBe(400);
+    expect(
+      (
+        await request<InventoryProductResponse>('GET', `/inventory/products/${product.body.id}`, {
+          token: tenant.accessToken,
+        })
+      ).body.stock,
+    ).toBe('6.000');
     expect(
       (
         await request<unknown>('PATCH', `/purchases/${created.body.id}`, {
@@ -1150,7 +1185,11 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       `/inventory/products/${product.body.id}`,
       { token: tenant.accessToken },
     );
-    expect(emptyStock.body.stock).toBe('0.000');
+    expect(emptyStock.body).toMatchObject({
+      stock: '2.000',
+      lastCost: '80.00',
+      averageCost: '80.00',
+    });
 
     const second = await request<PurchaseResponse>('POST', '/purchases', {
       token: tenant.accessToken,

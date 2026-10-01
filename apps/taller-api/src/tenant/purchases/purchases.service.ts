@@ -44,6 +44,8 @@ interface PurchaseRow {
 interface PurchaseItemRow {
   id: string;
   product_id: string;
+  inventory_movement_id: string | null;
+  inventory_lot_id: string | null;
   position: number;
   product_name: string;
   product_sku: string | null;
@@ -199,7 +201,12 @@ export class PurchasesService {
       if (input.status === PurchaseStatus.Draft) {
         throw new BadRequestException('Una compra confirmada o cancelada no puede volver a borrador');
       }
-      if (purchase.status === input.status) return this.requirePurchase(runner, schema, id);
+      if (purchase.status === input.status) {
+        if (input.status === PurchaseStatus.Confirmed) {
+          throw new BadRequestException('La compra ya fue confirmada');
+        }
+        return this.requirePurchase(runner, schema, id);
+      }
       if (purchase.status === PurchaseStatus.Cancelled) {
         throw new BadRequestException('Una compra cancelada no puede cambiar de estado');
       }
@@ -240,11 +247,14 @@ export class PurchasesService {
       const balance = balances[0][0]!;
       const movements = (await runner.query(
         `INSERT INTO ${schema}.inventory_movements(
-           product_id, movement_type, quantity, previous_stock, resulting_stock,
+           product_id, purchase_id, purchase_item_id,
+           movement_type, quantity, previous_stock, resulting_stock,
            unit_cost, reason, created_by_user_id
-         ) VALUES ($1, 'entry', $2, $3, $4, $5, $6, $7) RETURNING id`,
+         ) VALUES ($1, $2, $3, 'entry', $4, $5, $6, $7, $8, $9) RETURNING id`,
         [
           product.id,
+          purchase.id,
+          item.id,
           item.quantity,
           balance.previous_stock,
           balance.resulting_stock,
@@ -321,12 +331,15 @@ export class PurchasesService {
         }
         await runner.query(
           `INSERT INTO ${schema}.inventory_movements(
-             product_id, lot_id, movement_type, quantity, previous_stock, resulting_stock,
+             product_id, lot_id, purchase_id, purchase_item_id,
+             movement_type, quantity, previous_stock, resulting_stock,
              unit_cost, reason, created_by_user_id, reverses_movement_id
-           ) VALUES ($1, $2, 'adjustment', -($3::numeric), $4, $5, $6, $7, $8, $9)`,
+           ) VALUES ($1, $2, $3, $4, 'adjustment', -($5::numeric), $6, $7, $8, $9, $10, $11)`,
           [
             item.product_id,
             lot.id,
+            purchase.id,
+            item.id,
             item.quantity,
             balance.previous_stock,
             balance.resulting_stock,
@@ -488,9 +501,13 @@ export class PurchasesService {
     const row = rows[0];
     if (!row) throw new NotFoundException('Compra no encontrada');
     const items = (await runner.query(
-      `SELECT id, product_id, position, product_name, product_sku, unit_name, unit_symbol,
-        quantity::text, unit_cost::text, total::text
-       FROM ${schema}.purchase_items WHERE purchase_id = $1 ORDER BY position`,
+      `SELECT item.id, item.product_id, item.position, item.product_name, item.product_sku,
+        item.unit_name, item.unit_symbol, item.quantity::text, item.unit_cost::text,
+        item.total::text, lot.id AS inventory_lot_id,
+        lot.entry_movement_id AS inventory_movement_id
+       FROM ${schema}.purchase_items item
+       LEFT JOIN ${schema}.inventory_lots lot ON lot.purchase_item_id = item.id
+       WHERE item.purchase_id = $1 ORDER BY item.position`,
       [id],
     )) as PurchaseItemRow[];
     return { ...this.toSummary(row), items: items.map((item) => this.toItem(item)) };
@@ -538,6 +555,8 @@ export class PurchasesService {
     return {
       id: row.id,
       productId: row.product_id,
+      inventoryMovementId: row.inventory_movement_id,
+      inventoryLotId: row.inventory_lot_id,
       position: row.position,
       productName: row.product_name,
       productSku: row.product_sku,

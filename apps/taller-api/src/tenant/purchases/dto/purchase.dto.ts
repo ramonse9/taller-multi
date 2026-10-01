@@ -135,6 +135,10 @@ export class PurchaseSupplierResponseDto {
 export class PurchaseItemResponseDto {
   @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty({ format: 'uuid' }) productId!: string;
+  @ApiProperty({ format: 'uuid', nullable: true, type: String })
+  inventoryMovementId!: string | null;
+  @ApiProperty({ format: 'uuid', nullable: true, type: String })
+  inventoryLotId!: string | null;
   @ApiProperty() position!: number;
   @ApiProperty() productName!: string;
   @ApiProperty({ nullable: true, type: String }) productSku!: string | null;

@@ -20,6 +20,7 @@ import { InventoryCostLots1700000015000 } from './migrations/public/170000001500
 import { InventoryMovementReversals1700000016000 } from './migrations/public/1700000016000-inventory-movement-reversals';
 import { SupplierCatalog1700000017000 } from './migrations/public/1700000017000-supplier-catalog';
 import { PurchaseModel1700000018000 } from './migrations/public/1700000018000-purchase-model';
+import { PurchaseInventoryTraceability1700000019000 } from './migrations/public/1700000019000-purchase-inventory-traceability';
 
 export default new DataSource({
   type: 'postgres',
@@ -46,6 +47,7 @@ export default new DataSource({
     InventoryMovementReversals1700000016000,
     SupplierCatalog1700000017000,
     PurchaseModel1700000018000,
+    PurchaseInventoryTraceability1700000019000,
   ],
   migrationsTableName: 'public_schema_migrations',
   synchronize: false,

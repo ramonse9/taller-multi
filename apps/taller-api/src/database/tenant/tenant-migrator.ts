@@ -8,8 +8,8 @@ export interface TenantMigration {
   up(queryRunner: QueryRunner, schemaName: string): Promise<void>;
 }
 
-export const TENANT_BASE_VERSION = 13;
-export const TENANT_BASE_NAME = 'tenant-base-v13';
+export const TENANT_BASE_VERSION = 14;
+export const TENANT_BASE_NAME = 'tenant-base-v14';
 
 /**
  * Dynamic tenant migrations deliberately use qualified identifiers everywhere.
@@ -184,7 +184,7 @@ export class TenantMigrator {
       )`,
       `CREATE TABLE ${s}.inventory_lots (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(), product_id uuid NOT NULL REFERENCES ${s}.products_services(id),
-        purchase_item_id uuid REFERENCES ${s}.purchase_items(id),
+        purchase_item_id uuid UNIQUE REFERENCES ${s}.purchase_items(id),
         received_quantity numeric(12,3) NOT NULL CHECK (received_quantity > 0),
         remaining_quantity numeric(12,3) NOT NULL CHECK (remaining_quantity >= 0),
         unit_cost numeric(14,2) NOT NULL CHECK (unit_cost >= 0), received_at timestamptz NOT NULL DEFAULT now(),
@@ -199,6 +199,8 @@ export class TenantMigrator {
         lot_id uuid REFERENCES ${s}.inventory_lots(id),
         order_item_id uuid REFERENCES ${s}.order_items(id) ON DELETE SET NULL,
         order_id uuid REFERENCES ${s}.orders(id) ON DELETE SET NULL,
+        purchase_item_id uuid REFERENCES ${s}.purchase_items(id) ON DELETE SET NULL,
+        purchase_id uuid REFERENCES ${s}.purchases(id) ON DELETE SET NULL,
         movement_type varchar(20) NOT NULL CHECK (movement_type IN ('entry','exit','adjustment')),
         quantity numeric(12,3) NOT NULL,
         previous_stock numeric(14,3) NOT NULL CHECK (previous_stock >= 0),
@@ -214,6 +216,11 @@ export class TenantMigrator {
       `CREATE INDEX inventory_movements_product_date_idx ON ${s}.inventory_movements(product_id, created_at DESC)`,
       `CREATE INDEX inventory_movements_order_date_idx ON ${s}.inventory_movements(order_id, created_at, id)
        WHERE order_id IS NOT NULL`,
+      `CREATE INDEX inventory_movements_purchase_date_idx ON ${s}.inventory_movements(purchase_id, created_at, id)
+       WHERE purchase_id IS NOT NULL`,
+      `CREATE UNIQUE INDEX inventory_movements_purchase_item_entry_unique
+       ON ${s}.inventory_movements(purchase_item_id)
+       WHERE purchase_item_id IS NOT NULL AND movement_type = 'entry'`,
       `ALTER TABLE ${s}.inventory_movements ADD COLUMN reverses_movement_id uuid
        REFERENCES ${s}.inventory_movements(id) ON DELETE SET NULL`,
       `CREATE UNIQUE INDEX inventory_movements_single_reversal_idx
