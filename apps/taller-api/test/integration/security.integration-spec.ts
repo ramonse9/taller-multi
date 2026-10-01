@@ -1252,7 +1252,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       token: tenant.accessToken,
       body: { status: 'confirmed' },
     });
-    await request<InventoryMovementResponse>('POST', '/inventory/movements', {
+    const fifoExit = await request<InventoryMovementResponse>('POST', '/inventory/movements', {
       token: tenant.accessToken,
       body: {
         productId: product.body.id,
@@ -1261,6 +1261,31 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         reason: 'Consumo que alcanza el lote de compra',
       },
     });
+    expect(fifoExit.body).toMatchObject({
+      quantity: '-3.000',
+      previousStock: '5.000',
+      resultingStock: '2.000',
+      unitCost: '90.00',
+    });
+    const fifoLots = await request<InventoryLotResponse[]>(
+      'GET',
+      `/inventory/products/${product.body.id}/lots`,
+      { token: tenant.accessToken },
+    );
+    expect(fifoLots.body).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          unitCost: '80.00',
+          remainingQuantity: '0.000',
+        }),
+        expect.objectContaining({
+          unitCost: '110.00',
+          receivedQuantity: '3.000',
+          remainingQuantity: '2.000',
+          sourceType: 'purchase',
+        }),
+      ]),
+    );
     const consumedCancellation = await request<unknown>(
       'POST',
       `/purchases/${consumedPurchase.body.id}/status`,

@@ -1,0 +1,61 @@
+<main class="min-h-screen bg-[#f9f7f0] text-[#17251e] dark:bg-[#101713] dark:text-[#edf3ef]">
+  <header class="border-b border-[#dcd9cf] px-[clamp(1.5rem,5vw,5rem)] py-8 dark:border-[#34423a]">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+      <div><p class="eyebrow">COMPRAS / NUEVO REGISTRO</p><h1 class="m-0 font-[var(--display)] text-[clamp(2.2rem,5vw,4rem)] font-semibold leading-[.9] tracking-[-.05em]">Nueva compra</h1></div>
+      <div class="flex gap-2"><button class="theme-toggle" type="button" (click)="theme.toggle()">{{ theme.isDark() ? '☀' : '◐' }}</button><a class="small-action-tw no-underline" routerLink="/purchases">Cerrar</a></div>
+    </div>
+    <ol class="mt-8 grid max-w-3xl grid-cols-3 gap-2 text-xs font-bold uppercase tracking-[.08em]">
+      <li class="border-t-2 pt-2" [class.border-[#e86a33]]="step() >= 1">01 Datos</li>
+      <li class="border-t-2 pt-2" [class.border-[#e86a33]]="step() >= 2">02 Productos</li>
+      <li class="border-t-2 pt-2" [class.border-[#e86a33]]="step() >= 3">03 Revisión</li>
+    </ol>
+  </header>
+
+  <section class="mx-auto max-w-6xl px-[clamp(1.5rem,5vw,5rem)] py-8">
+    @if (error()) { <div class="mb-5 bg-[#fff0ea] px-4 py-3 text-sm text-[#8e3214] dark:bg-[#4a241b] dark:text-[#ffb89d]" role="alert">{{ error() }}</div> }
+    @if (loading()) { <div class="relative min-h-72"><div class="loader-tw"><span></span><span></span><span></span></div></div> }
+    @else {
+      <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+        @if (step() === 1) {
+          <section class="form-card-tw p-6 md:p-8">
+            <p class="eyebrow">PASO 01</p><h2 class="section-title">Datos de la compra</h2>
+            <div class="mt-7 grid gap-5 md:grid-cols-2">
+              <div><label class="field-label" for="purchase-supplier">Proveedor <b>*</b></label><select class="field-control" id="purchase-supplier" formControlName="supplierId"><option value="">Selecciona un proveedor</option>@for (supplier of suppliers(); track supplier.id) {<option [value]="supplier.id">{{ supplier.commercialName }}{{ supplier.isDefault ? ' · predeterminado' : '' }}</option>}</select></div>
+              <div><label class="field-label" for="purchase-date">Fecha <b>*</b></label><input class="field-control" id="purchase-date" type="date" formControlName="purchasedAt" /></div>
+              <div><label class="field-label" for="purchase-reference">Referencia</label><input class="field-control" id="purchase-reference" formControlName="reference" placeholder="Factura, remisión o nota" /></div>
+              <div class="md:col-span-2"><label class="field-label" for="purchase-notes">Notas</label><textarea class="field-control min-h-28" id="purchase-notes" formControlName="notes" placeholder="Información adicional de la compra"></textarea></div>
+            </div>
+          </section>
+        }
+
+        @if (step() === 2) {
+          <section class="form-card-tw overflow-hidden">
+            <header class="form-card-header flex-wrap justify-between gap-3"><div><p class="eyebrow">PASO 02</p><h2 class="section-title">Productos y costos</h2></div><button class="small-action-tw" type="button" (click)="addItem()">＋ Agregar producto</button></header>
+            <div formArrayName="items" class="divide-y divide-[#ece9df] dark:divide-[#35433b]">
+              @for (item of items.controls; track item; let index = $index) {
+                <div class="grid gap-4 p-5 md:grid-cols-[minmax(0,1fr)_9rem_11rem_auto]" [formGroupName]="index">
+                  <div><label class="field-label" [for]="'purchase-product-' + index">Producto <b>*</b></label><select class="field-control" [id]="'purchase-product-' + index" formControlName="productId" (change)="productChanged(index)"><option value="">Selecciona un producto</option>@for (productOption of products(); track productOption.id) {<option [value]="productOption.id">{{ productOption.sku ? productOption.sku + ' · ' : '' }}{{ productOption.name }}</option>}</select></div>
+                  <div><label class="field-label" [for]="'purchase-quantity-' + index">Cantidad <b>*</b></label><input class="field-control" [id]="'purchase-quantity-' + index" formControlName="quantity" inputmode="decimal" placeholder="0" /></div>
+                  <div><label class="field-label" [for]="'purchase-cost-' + index">Costo unitario <b>*</b></label><input class="field-control" [id]="'purchase-cost-' + index" formControlName="unitCost" inputmode="decimal" placeholder="0.00" /></div>
+                  <div class="flex items-end"><button class="small-action-tw" type="button" [disabled]="items.length === 1" (click)="removeItem(index)" aria-label="Quitar producto">×</button></div>
+                  @if (item.touched && item.invalid) { <small class="field-error md:col-span-4">Completa producto, cantidad y costo con valores válidos.</small> }
+                </div>
+              }
+            </div>
+            @if (duplicateProducts()) { <p class="field-error px-5 pb-4">Cada producto debe aparecer una sola vez.</p> }
+            @if (!products().length) { <p class="p-6 text-sm text-[#8e3214]">Primero registra productos en el catálogo.</p> }
+          </section>
+        }
+
+        @if (step() === 3) {
+          <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
+            <section class="form-card-tw overflow-hidden"><header class="form-card-header"><div><p class="eyebrow">PASO 03</p><h2 class="section-title">Revisa la compra</h2></div></header><div class="divide-y divide-[#ece9df] dark:divide-[#35433b]">@for (item of items.controls; track item) {<div class="grid grid-cols-[minmax(0,1fr)_auto] gap-4 p-5"><div><strong>{{ product(item.controls.productId.value)?.name }}</strong><span class="block text-xs text-[#68746d] dark:text-[#aab7af]">{{ item.controls.quantity.value }} {{ productUnitSymbol(item.controls.productId.value) }} × {{ money(+item.controls.unitCost.value) }}</span></div><strong>{{ money(lineAmount(item)) }}</strong></div>}</div></section>
+            <aside class="form-card-tw h-fit p-6"><span class="detail-label">PROVEEDOR</span><strong class="mt-1 block">{{ supplierName() }}</strong><span class="mt-4 block detail-label">FECHA</span><strong class="mt-1 block">{{ form.controls.purchasedAt.value }}</strong><div class="my-6 border-t border-[#dcd9cf] dark:border-[#3d4d44]"></div><span class="detail-label">TOTAL</span><strong class="mt-1 block text-3xl">{{ money(total()) }}</strong><p class="mt-3 text-xs text-[#68746d] dark:text-[#aab7af]">La compra se guardará como borrador. El inventario cambiará hasta confirmarla.</p></aside>
+          </div>
+        }
+
+        <footer class="mt-6 flex items-center justify-between gap-3"><button class="small-action-tw" type="button" [disabled]="step() === 1 || saving()" (click)="previous()">← Anterior</button>@if (step() < 3) {<button class="primary" type="button" [disabled]="loading()" (click)="next()">Continuar →</button>} @else {<button class="primary" type="submit" [disabled]="saving()">{{ saving() ? 'Guardando…' : 'Guardar borrador' }}</button>}</footer>
+      </form>
+    }
+  </section>
+</main>

@@ -55,12 +55,21 @@
             </a>
           }
           @if (auth.hasFeature("item_catalog")) {
+            @if (auth.hasFeature("inventory")) {
+              <a
+                class="nav-item"
+                routerLink="/purchases"
+                routerLinkActive="active"
+              >
+                <span>05</span> Compras
+              </a>
+            }
             <a
               class="nav-item"
               routerLink="/suppliers"
               routerLinkActive="active"
             >
-              <span>05</span> Proveedores
+              <span>06</span> Proveedores
             </a>
           }
           <a
@@ -68,13 +77,13 @@
             routerLink="/vehicle-catalog"
             routerLinkActive="active"
           >
-            <span>06</span> Marcas y modelos
+            <span>07</span> Marcas y modelos
           </a>
           <a class="nav-item" routerLink="/users" routerLinkActive="active">
-            <span>07</span> Usuarios
+            <span>08</span> Usuarios
           </a>
           <a class="nav-item" routerLink="/account" routerLinkActive="active">
-            <span>08</span> Seguridad
+            <span>09</span> Seguridad
           </a>
         }
         @case ("user") {
@@ -107,16 +116,25 @@
             </a>
           }
           @if (auth.hasFeature("item_catalog")) {
+            @if (auth.hasFeature("inventory")) {
+              <a
+                class="nav-item"
+                routerLink="/purchases"
+                routerLinkActive="active"
+              >
+                <span>05</span> Compras
+              </a>
+            }
             <a
               class="nav-item"
               routerLink="/suppliers"
               routerLinkActive="active"
             >
-              <span>05</span> Proveedores
+              <span>06</span> Proveedores
             </a>
           }
           <a class="nav-item" routerLink="/account" routerLinkActive="active">
-            <span>06</span> Seguridad
+            <span>07</span> Seguridad
           </a>
         }
       }

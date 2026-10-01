@@ -1,0 +1,83 @@
+<main class="min-h-screen bg-[#f9f7f0] text-[#17251e] dark:bg-[#101713] dark:text-[#edf3ef]">
+  <header class="flex flex-wrap items-end justify-between gap-5 border-b border-[#dcd9cf] px-[clamp(1.5rem,5vw,5rem)] py-8 dark:border-[#34423a]">
+    <div>
+      <p class="eyebrow">CONTROL / INVENTARIO</p>
+      <h1 class="m-0 font-[var(--display)] text-[clamp(2.4rem,5vw,4.5rem)] font-semibold leading-[.9] tracking-[-.05em]">Compras</h1>
+      <p class="mt-3 text-sm text-[#68746d] dark:text-[#aab7af]">Entradas por proveedor con costos y lotes trazables.</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <button class="theme-toggle" type="button" (click)="theme.toggle()">{{ theme.isDark() ? '☀' : '◐' }}</button>
+      <a class="primary no-underline" routerLink="/purchases/new">＋ Nueva compra</a>
+    </div>
+  </header>
+
+  <section class="px-[clamp(1.5rem,5vw,5rem)] pb-16 pt-8">
+    <div class="mb-6 grid gap-3 md:grid-cols-[minmax(0,1fr)_13rem_16rem]">
+      <div class="relative">
+        <span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#768079]">⌕</span>
+        <input class="field-control !pl-11" type="search" [formControl]="search" placeholder="Buscar por folio, proveedor o referencia" />
+      </div>
+      <select class="field-control" [formControl]="status" aria-label="Filtrar por estado">
+        <option value="">Todos los estados</option>
+        <option value="draft">Borrador</option>
+        <option value="confirmed">Confirmada</option>
+        <option value="cancelled">Cancelada</option>
+      </select>
+      <select class="field-control" [formControl]="supplierId" aria-label="Filtrar por proveedor">
+        <option value="">Todos los proveedores</option>
+        @for (supplier of suppliers(); track supplier.id) {
+          <option [value]="supplier.id">{{ supplier.commercialName }}</option>
+        }
+      </select>
+    </div>
+
+    @if (error()) {
+      <div class="mb-5 flex justify-between gap-4 bg-[#fff0ea] px-4 py-3 text-sm text-[#8e3214] dark:bg-[#4a241b] dark:text-[#ffb89d]" role="alert">
+        <span>{{ error() }}</span><button class="bg-transparent p-0 underline" type="button" (click)="load()">Reintentar</button>
+      </div>
+    }
+
+    <div class="relative min-h-72" [class.opacity-60]="loading()">
+      <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        @for (purchase of data().items; track purchase.id) {
+          <a class="group flex min-h-64 flex-col border border-[#dcd9cf] bg-white p-5 text-inherit no-underline transition hover:border-[#c7a58f] dark:border-[#3d4d44] dark:bg-[#1a251f] dark:hover:border-[#6c7f74]" [routerLink]="['/purchases', purchase.id]">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <strong class="font-[var(--mono)] text-xl">#{{ purchase.folio }}</strong>
+                <span class="mt-1 block text-xs text-[#68746d] dark:text-[#aab7af]">{{ formatShortDate(purchase.purchasedAt) }}</span>
+              </div>
+              <span class="px-2 py-1 text-xs font-bold"
+                [class.bg-[#fff1d6]]="purchase.status === 'draft'"
+                [class.text-[#805719]]="purchase.status === 'draft'"
+                [class.bg-[#e5f0ff]]="purchase.status === 'confirmed'"
+                [class.text-[#285a91]]="purchase.status === 'confirmed'"
+                [class.bg-[#ffe6e2]]="purchase.status === 'cancelled'"
+                [class.text-[#a1362c]]="purchase.status === 'cancelled'">{{ statusName(purchase.status) }}</span>
+            </div>
+            <div class="mt-5 border-y border-[#ece9df] py-4 dark:border-[#35433b]">
+              <span class="detail-label">PROVEEDOR</span>
+              <strong class="mt-1 block">{{ purchase.supplier.commercialName }}</strong>
+              <span class="mt-1 block text-xs text-[#68746d] dark:text-[#aab7af]">{{ purchase.reference || 'Sin referencia' }}</span>
+            </div>
+            <div class="mt-auto flex items-end justify-between gap-4 pt-5">
+              <span class="text-sm text-[#68746d] dark:text-[#aab7af]">{{ purchase.itemCount }} {{ purchase.itemCount === 1 ? 'producto' : 'productos' }}</span>
+              <div class="text-right"><span class="detail-label">TOTAL</span><strong class="block text-lg">{{ money(purchase.total) }}</strong></div>
+            </div>
+            <span class="mt-3 text-right text-xs font-bold text-[#b94718] group-hover:underline dark:text-[#ff9a6f]">Ver detalle →</span>
+          </a>
+        } @empty { @if (!loading()) {
+          <div class="col-span-full border border-[#dcd9cf] bg-white p-12 text-center text-[#68746d] dark:border-[#3d4d44] dark:bg-[#1a251f] dark:text-[#aab7af]">No hay compras que coincidan con los filtros.</div>
+        } }
+      </div>
+      @if (loading()) { <div class="loader-tw" aria-label="Cargando compras"><span></span><span></span><span></span></div> }
+    </div>
+
+    <footer class="mt-5 flex items-center justify-between gap-4 text-sm">
+      <span>Página {{ data().page }} de {{ data().totalPages || 1 }} · {{ data().totalItems }} compras</span>
+      <div class="flex gap-2">
+        <button class="small-action-tw" type="button" [disabled]="data().page <= 1" (click)="load(data().page - 1)">← Anterior</button>
+        <button class="small-action-tw" type="button" [disabled]="!data().hasNextPage" (click)="load(data().page + 1)">Siguiente →</button>
+      </div>
+    </footer>
+  </section>
+</main>

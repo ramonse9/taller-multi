@@ -115,6 +115,33 @@ export const routes: Routes = [
           ),
       },
       {
+        path: "purchases/new",
+        canActivate: [roleGuard, featureGuard],
+        data: { roles: ["company_admin", "user"], feature: "inventory" },
+        loadComponent: () =>
+          import("./features/purchases/purchase-wizard.page").then(
+            (m) => m.PurchaseWizardPage,
+          ),
+      },
+      {
+        path: "purchases/:id",
+        canActivate: [roleGuard, featureGuard],
+        data: { roles: ["company_admin", "user"], feature: "inventory" },
+        loadComponent: () =>
+          import("./features/purchases/purchase-detail.page").then(
+            (m) => m.PurchaseDetailPage,
+          ),
+      },
+      {
+        path: "purchases",
+        canActivate: [roleGuard, featureGuard],
+        data: { roles: ["company_admin", "user"], feature: "inventory" },
+        loadComponent: () =>
+          import("./features/purchases/purchases.page").then(
+            (m) => m.PurchasesPage,
+          ),
+      },
+      {
         path: "suppliers",
         canActivate: [roleGuard, featureGuard],
         data: {
