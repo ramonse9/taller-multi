@@ -14,7 +14,12 @@ import { finalize } from "rxjs";
 import { formatShortDate } from "../../core/dates/date-format";
 import { apiErrorMessage } from "../../core/http/api-error";
 import { ThemeService } from "../../core/theme/theme.service";
-import { ORDER_STATUS_NAMES, Order, OrderStatus } from "./order.models";
+import {
+  ORDER_STATUS_NAMES,
+  Order,
+  OrderItem,
+  OrderStatus,
+} from "./order.models";
 import { OrdersService } from "./orders.service";
 
 const TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
@@ -148,6 +153,24 @@ export class OrderDetailPage implements OnInit {
           style: "currency",
           currency: "MXN",
         }).format(Number(value));
+  }
+
+  hasActualCosts(order: Order): boolean {
+    return (
+      order.inventoryAppliedAt !== null ||
+      order.items.some(({ costLayers }) => costLayers.length > 0)
+    );
+  }
+
+  itemCostLabel(order: Order, item: OrderItem): string {
+    if (
+      item.productServiceId &&
+      item.tracksInventory &&
+      this.hasActualCosts(order)
+    ) {
+      return "Costo real FIFO";
+    }
+    return item.productServiceId ? "Costo de referencia" : "Costo capturado";
   }
 
   private showNotice(message: string): void {

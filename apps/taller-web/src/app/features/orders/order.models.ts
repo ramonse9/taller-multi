@@ -31,6 +31,14 @@ export interface OrderItem {
   unitCost: string | null;
   costAmount: string | null;
   tracksInventory: boolean;
+  costLayers: OrderItemCostLayer[];
+}
+
+export interface OrderItemCostLayer {
+  lotId: string;
+  quantity: string;
+  unitCost: string;
+  costAmount: string;
 }
 
 export interface OrderNote {

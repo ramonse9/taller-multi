@@ -277,6 +277,118 @@
         </footer>
       </section>
     </div>
+
+    <section class="form-card-tw mt-6 overflow-hidden">
+      <header class="form-card-header flex-wrap justify-between">
+        <div class="flex items-center gap-3">
+          <span class="section-number">03</span>
+          <div>
+            <h2 class="section-title">Lotes y costos</h2>
+            <p class="section-copy">
+              @if (selectedProduct(); as product) { {{ product.name }} · {{
+              lots().length }} lotes registrados } @else { Selecciona un
+              producto }
+            </p>
+          </div>
+        </div>
+      </header>
+
+      @if (selectedProduct(); as product) {
+      <div
+        class="grid border-b border-[#dcd9cf] sm:grid-cols-3 dark:border-[#3d4d44]"
+      >
+        <div
+          class="border-b p-5 sm:border-b-0 sm:border-r dark:border-[#35433b]"
+        >
+          <span class="detail-label">EXISTENCIA</span>
+          <strong class="block font-[var(--mono)] text-xl"
+            >{{ product.stock }} {{ product.unitSymbol }}</strong
+          >
+        </div>
+        <div
+          class="border-b p-5 sm:border-b-0 sm:border-r dark:border-[#35433b]"
+        >
+          <span class="detail-label">ÚLTIMO COSTO</span>
+          <strong class="block text-xl"
+            >{{ product.lastCost === null ? '—' : money(product.lastCost)
+            }}</strong
+          >
+        </div>
+        <div class="p-5">
+          <span class="detail-label">COSTO PROMEDIO</span>
+          <strong class="block text-xl"
+            >{{ product.averageCost === null ? '—' : money(product.averageCost)
+            }}</strong
+          >
+        </div>
+      </div>
+
+      <div class="relative min-h-40" [class.opacity-50]="loadingLots()">
+        <div
+          class="grid gap-px bg-[#ece9df] md:grid-cols-2 xl:grid-cols-3 dark:bg-[#35433b]"
+        >
+          @for (lot of lots(); track lot.id) {
+          <article class="bg-white p-5 dark:bg-[#1a251f]">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <span class="detail-label"
+                  >{{ lotSourceName(lot.sourceType) }}</span
+                >
+                <strong class="mt-1 block text-lg"
+                  >{{ money(lot.unitCost) }}</strong
+                >
+              </div>
+              <span
+                class="px-2 py-1 text-xs font-bold"
+                [class.bg-[#e7f2eb]]="lotHasStock(lot)"
+                [class.text-[#245b3b]]="lotHasStock(lot)"
+                [class.bg-[#ece9df]]="!lotHasStock(lot)"
+                [class.text-[#68746d]]="!lotHasStock(lot)"
+                >{{ lotHasStock(lot) ? 'Disponible' : 'Agotado' }}</span
+              >
+            </div>
+            <dl class="mt-4 grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <dt class="text-[#68746d] dark:text-[#aab7af]">Recibido</dt>
+                <dd class="m-0 font-[var(--mono)] font-bold">
+                  {{ lot.receivedQuantity }} {{ product.unitSymbol }}
+                </dd>
+              </div>
+              <div>
+                <dt class="text-[#68746d] dark:text-[#aab7af]">Restante</dt>
+                <dd class="m-0 font-[var(--mono)] font-bold">
+                  {{ lot.remainingQuantity }} {{ product.unitSymbol }}
+                </dd>
+              </div>
+            </dl>
+            <p class="mt-4 text-xs text-[#68746d] dark:text-[#aab7af]">
+              {{ formatShortDate(lot.receivedAt) }}@if (lot.createdByName) { ·
+              {{ lot.createdByName }} }
+            </p>
+            @if (lot.sourceReference) {
+            <p class="mt-2 text-sm">{{ lot.sourceReference }}</p>
+            }
+          </article>
+          } @empty { @if (!loadingLots()) {
+          <p
+            class="col-span-full bg-white p-10 text-center text-sm text-[#68746d] dark:bg-[#1a251f] dark:text-[#aab7af]"
+          >
+            Este producto todavía no tiene lotes.
+          </p>
+          } }
+        </div>
+        @if (loadingLots()) {
+        <div class="loader-tw" aria-label="Cargando lotes">
+          <span></span><span></span><span></span>
+        </div>
+        }
+      </div>
+      } @else {
+      <p class="p-10 text-center text-sm text-[#68746d] dark:text-[#aab7af]">
+        Selecciona un producto para consultar sus lotes.
+      </p>
+      }
+    </section>
   </section>
 </main>
 

@@ -18,6 +18,7 @@ import { formatShortDate } from "../../core/dates/date-format";
 import { apiErrorMessage } from "../../core/http/api-error";
 import { ThemeService } from "../../core/theme/theme.service";
 import {
+  InventoryLot,
   InventoryMovement,
   InventoryMovementType,
   InventoryProduct,
@@ -59,9 +60,11 @@ export class InventoryPage implements OnInit {
 
   readonly products = signal<PaginatedInventoryProducts>(emptyProducts());
   readonly movements = signal<PaginatedInventoryMovements>(emptyMovements());
+  readonly lots = signal<InventoryLot[]>([]);
   readonly selectedProduct = signal<InventoryProduct | null>(null);
   readonly loadingProducts = signal(true);
   readonly loadingMovements = signal(false);
+  readonly loadingLots = signal(false);
   readonly saving = signal(false);
   readonly lowStockOnly = signal(false);
   readonly movementEditorOpen = signal(false);
@@ -131,8 +134,13 @@ export class InventoryPage implements OnInit {
             null;
           const changed = selected?.id !== selectedId;
           this.selectedProduct.set(selected);
-          if (changed) this.loadMovements(1);
-          else if (!selected) this.movements.set(emptyMovements());
+          if (changed) {
+            this.loadMovements(1);
+            this.loadLots();
+          } else if (!selected) {
+            this.movements.set(emptyMovements());
+            this.lots.set([]);
+          }
         },
         error: (error: unknown) =>
           this.error.set(
@@ -151,6 +159,31 @@ export class InventoryPage implements OnInit {
     if (this.selectedProduct()?.id === product.id) return;
     this.selectedProduct.set(product);
     this.loadMovements(1);
+    this.loadLots();
+  }
+
+  loadLots(): void {
+    const product = this.selectedProduct();
+    if (!product) {
+      this.lots.set([]);
+      return;
+    }
+    this.loadingLots.set(true);
+    this.inventory
+      .listLots(product.id)
+      .pipe(
+        finalize(() => this.loadingLots.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (lots) => {
+          if (this.selectedProduct()?.id === product.id) this.lots.set(lots);
+        },
+        error: (error: unknown) =>
+          this.error.set(
+            apiErrorMessage(error, "No pudimos cargar los lotes."),
+          ),
+      });
   }
 
   loadMovements(page = this.movements().page): void {
@@ -266,6 +299,7 @@ export class InventoryPage implements OnInit {
           this.showNotice("Movimiento registrado.");
           this.loadProducts();
           this.loadMovements(1);
+          this.loadLots();
         },
         error: (error: unknown) =>
           this.error.set(
@@ -284,6 +318,20 @@ export class InventoryPage implements OnInit {
 
   movementIsPositive(movement: InventoryMovement): boolean {
     return Number(movement.quantity) > 0;
+  }
+
+  lotSourceName(source: InventoryLot["sourceType"]): string {
+    return {
+      opening_balance: "Saldo inicial",
+      manual_entry: "Entrada manual",
+      adjustment: "Ajuste positivo",
+      purchase: "Compra",
+      order_return: "Devolución de orden",
+    }[source];
+  }
+
+  lotHasStock(lot: InventoryLot): boolean {
+    return Number(lot.remainingQuantity) > 0;
   }
 
   money(value: string): string {

@@ -167,6 +167,15 @@ export class OrderQueryDto {
   vehicleId?: string;
 }
 
+export class OrderItemCostLayerResponseDto {
+  @ApiProperty({ format: 'uuid' }) lotId!: string;
+  @ApiProperty({ description: 'Cantidad consumida entregada como texto' }) quantity!: string;
+  @ApiProperty({ description: 'Costo unitario del lote entregado como texto' })
+  unitCost!: string;
+  @ApiProperty({ description: 'Costo consumido del lote entregado como texto' })
+  costAmount!: string;
+}
+
 export class OrderItemResponseDto {
   @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty({ format: 'uuid', nullable: true, type: String })
@@ -181,6 +190,8 @@ export class OrderItemResponseDto {
   @ApiProperty({ nullable: true, type: String }) unitCost!: string | null;
   @ApiProperty({ nullable: true, type: String }) costAmount!: string | null;
   @ApiProperty() tracksInventory!: boolean;
+  @ApiProperty({ type: OrderItemCostLayerResponseDto, isArray: true })
+  costLayers!: OrderItemCostLayerResponseDto[];
 }
 
 export class OrderNoteResponseDto {

@@ -97,7 +97,10 @@
           <div
             class="border-b border-[#ece9df] p-5 sm:border-b-0 sm:border-r dark:border-[#35433b]"
           >
-            <span class="detail-label">COSTO HISTÓRICO</span>
+            <span class="detail-label"
+              >{{ hasActualCosts(current) ? 'COSTO REAL' : 'COSTO ESTIMADO'
+              }}</span
+            >
             <strong class="block text-lg"
               >{{ money(current.totalCost) }}</strong
             >
@@ -169,15 +172,26 @@
           <div class="divide-y divide-[#ece9df] dark:divide-[#35433b]">
             @for (item of current.items; track item.id) {
             <div
-              class="grid gap-2 px-6 py-4 sm:grid-cols-[minmax(0,1fr)_7rem_9rem_9rem]"
+              class="grid gap-3 px-6 py-4 sm:grid-cols-[minmax(0,1fr)_7rem_9rem_9rem]"
             >
               <div>
                 <strong class="block">{{ item.description }}</strong>
-                @if (item.productServiceId) {
+                @if (item.costAmount !== null) {
                 <small class="text-[#68746d] dark:text-[#aab7af]"
-                  >Catálogo@if (item.unitCost !== null) { · Costo histórico {{
-                  money(item.unitCost) }} }</small
+                  >{{ itemCostLabel(current, item) }}: {{ money(item.unitCost)
+                  }} × {{ item.quantity }} {{ item.unitSymbol }} =
+                  <strong>{{ money(item.costAmount) }}</strong></small
                 >
+                } @if (item.costLayers.length > 0) {
+                <div class="mt-2 flex flex-wrap gap-1.5">
+                  @for (layer of item.costLayers; track layer.lotId) {
+                  <span
+                    class="border border-[#dcd9cf] bg-[#f9f7f0] px-2 py-1 font-[var(--mono)] text-[.7rem] dark:border-[#3d4d44] dark:bg-[#222f27]"
+                    >{{ layer.quantity }} × {{ money(layer.unitCost) }} = {{
+                    money(layer.costAmount) }}</span
+                  >
+                  }
+                </div>
                 }
               </div>
               <span>{{ item.quantity }} {{ item.unitSymbol }}</span
@@ -189,10 +203,21 @@
             }
           </div>
           <footer
-            class="flex justify-between border-t-2 border-[#17251e] px-6 py-5 dark:border-[#edf3ef]"
+            class="border-t-2 border-[#17251e] px-6 py-5 dark:border-[#edf3ef]"
           >
-            <strong>Total</strong
-            ><strong class="text-xl">{{ money(current.total) }}</strong>
+            <div
+              class="ml-auto grid max-w-md grid-cols-2 gap-x-8 gap-y-2 text-right"
+            >
+              <span>Venta</span><strong>{{ money(current.total) }}</strong>
+              @if (current.totalCost !== null) {
+              <span
+                >{{ hasActualCosts(current) ? 'Costo real' : 'Costo estimado'
+                }}</span
+              ><strong>{{ money(current.totalCost) }}</strong>
+              <span>Utilidad bruta</span
+              ><strong class="text-lg">{{ money(current.grossProfit) }}</strong>
+              }
+            </div>
           </footer>
         </section>
       </div>

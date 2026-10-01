@@ -233,6 +233,12 @@ interface OrderResponse {
     unitCost: string | null;
     costAmount: string | null;
     tracksInventory: boolean;
+    costLayers: Array<{
+      lotId: string;
+      quantity: string;
+      unitCost: string;
+      costAmount: string;
+    }>;
   }>;
   notes: Array<{ body: string; createdByUserId: string }>;
   statusHistory: Array<{
@@ -1789,6 +1795,10 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       unitCost: '90.00',
       costAmount: '180.00',
     });
+    expect(completed.body.items[0]?.costLayers).toEqual([
+      expect.objectContaining({ quantity: '1.000', unitCost: '80.00', costAmount: '80.00' }),
+      expect.objectContaining({ quantity: '1.000', unitCost: '100.00', costAmount: '100.00' }),
+    ]);
     expect(
       (
         await request<InventoryProductResponse>('GET', `/inventory/products/${product.body.id}`, {

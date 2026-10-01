@@ -78,6 +78,14 @@ interface OrderItemRow {
   tracks_inventory: boolean;
 }
 
+interface OrderItemCostLayerRow {
+  order_item_id: string;
+  lot_id: string;
+  quantity: string;
+  unit_cost: string;
+  cost_amount: string;
+}
+
 interface CatalogConceptRow {
   id: string;
   name: string;
@@ -334,6 +342,31 @@ export class OrdersService {
        FROM ${schema}.order_items WHERE order_id = $1 ORDER BY position`,
       [id],
     )) as OrderItemRow[];
+    const costLayers = (await runner.query(
+      `WITH latest_exit AS (
+         SELECT DISTINCT ON (movement.order_item_id)
+                movement.order_item_id, movement.id
+         FROM ${schema}.inventory_movements movement
+         WHERE movement.order_id = $1
+           AND movement.order_item_id IS NOT NULL
+           AND movement.movement_type = 'exit'
+         ORDER BY movement.order_item_id, movement.created_at DESC, movement.id DESC
+       )
+       SELECT latest_exit.order_item_id, allocation.lot_id,
+              allocation.quantity::text, allocation.unit_cost::text,
+              round(allocation.quantity * allocation.unit_cost, 2)::text AS cost_amount
+       FROM latest_exit
+       JOIN ${schema}.inventory_lot_allocations allocation
+         ON allocation.movement_id = latest_exit.id
+       ORDER BY latest_exit.order_item_id, allocation.created_at, allocation.id`,
+      [id],
+    )) as OrderItemCostLayerRow[];
+    const costLayersByItem = new Map<string, OrderItemCostLayerRow[]>();
+    for (const layer of costLayers) {
+      const current = costLayersByItem.get(layer.order_item_id) ?? [];
+      current.push(layer);
+      costLayersByItem.set(layer.order_item_id, current);
+    }
     const notes = (await runner.query(
       `SELECT note.id, note.body, note.created_by_user_id,
               platform_user.full_name AS created_by_name, note.created_at
@@ -366,6 +399,12 @@ export class OrdersService {
         unitCost: item.unit_cost,
         costAmount: item.cost_total,
         tracksInventory: item.tracks_inventory,
+        costLayers: (costLayersByItem.get(item.id) ?? []).map((layer) => ({
+          lotId: layer.lot_id,
+          quantity: layer.quantity,
+          unitCost: layer.unit_cost,
+          costAmount: layer.cost_amount,
+        })),
       })),
       notes: notes.map<OrderNoteResponseDto>((note) => ({
         id: note.id,
