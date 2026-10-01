@@ -20,11 +20,17 @@ export interface OrderVehicle {
 
 export interface OrderItem {
   id: string;
+  productServiceId: string | null;
   position: number;
   description: string;
+  unitName: string;
+  unitSymbol: string;
   quantity: string;
   unitPrice: string | null;
   amount: string | null;
+  unitCost: string | null;
+  costAmount: string | null;
+  tracksInventory: boolean;
 }
 
 export interface OrderNote {
@@ -52,6 +58,9 @@ export interface OrderSummary {
   vehicle: OrderVehicle;
   subtotal: string | null;
   total: string | null;
+  totalCost: string | null;
+  grossProfit: string | null;
+  inventoryAppliedAt: string | null;
   hasUnpricedItems: boolean;
   openedAt: string;
   closedAt: string | null;
@@ -81,9 +90,12 @@ export interface PaginatedOrders {
 }
 
 export interface OrderItemInput {
+  itemId?: string;
+  productServiceId?: string | null;
   description: string;
   quantity: number;
   unitPrice?: number | null;
+  unitCost?: number | null;
 }
 
 export interface OrderInput {

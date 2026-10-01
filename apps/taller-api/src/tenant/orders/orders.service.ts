@@ -41,6 +41,9 @@ interface OrderRow {
   status: OrderStatus;
   subtotal: string | null;
   total: string | null;
+  total_cost: string | null;
+  gross_profit: string | null;
+  inventory_applied_at: Date | null;
   has_unpriced_items: boolean;
   item_count: string;
   opened_at: Date;
@@ -53,18 +56,46 @@ interface OrderRow {
 
 interface LockedOrderRow {
   id: string;
+  folio: string;
   customer_id: string;
   vehicle_id: string;
   status: OrderStatus;
+  inventory_applied_at: Date | null;
 }
 
 interface OrderItemRow {
   id: string;
+  product_service_id: string | null;
   position: number;
   description: string;
+  unit_name: string;
+  unit_symbol: string;
   quantity: string;
   unit_price: string | null;
   total: string | null;
+  unit_cost: string | null;
+  cost_total: string | null;
+  tracks_inventory: boolean;
+}
+
+interface CatalogConceptRow {
+  id: string;
+  name: string;
+  cost: string;
+  unit_price: string;
+  tracks_inventory: boolean;
+  is_active: boolean;
+  unit_name: string;
+  unit_symbol: string;
+  unit_allows_decimals: boolean;
+}
+
+interface InventoryOrderItemRow {
+  id: string;
+  product_service_id: string;
+  description: string;
+  quantity: string;
+  unit_cost: string | null;
 }
 
 interface OrderNoteRow {
@@ -161,7 +192,7 @@ export class OrdersService {
       )) as Array<{ id: string }>;
       const orderId = rows[0]?.id;
       if (!orderId) throw new Error('No se pudo crear la orden');
-      await this.replaceItems(runner, schema, orderId, input.items);
+      await this.replaceItems(runner, schema, orderId, input.items, user);
       await runner.query(
         `INSERT INTO ${schema}.order_status_history(
            order_id, previous_status, new_status, changed_by_user_id
@@ -197,7 +228,7 @@ export class OrdersService {
         );
       }
       if (input.items !== undefined) {
-        await this.replaceItems(runner, schema, id, input.items);
+        await this.replaceItems(runner, schema, id, input.items, user);
         await this.recalculate(runner, schema, id, user.id);
       }
       return this.getOrder(runner, schema, id);
@@ -216,6 +247,11 @@ export class OrdersService {
         throw new BadRequestException(
           `No se puede cambiar una orden de ${order.status} a ${input.status}`,
         );
+      }
+      if (input.status === OrderStatus.Completed) {
+        await this.applyInventory(runner, schema, order, user.id);
+      } else if (order.status === OrderStatus.Completed) {
+        await this.returnInventory(runner, schema, order, user.id);
       }
       await runner.query(
         `UPDATE ${schema}.orders
@@ -276,7 +312,8 @@ export class OrdersService {
     const row = rows[0];
     if (!row) throw new NotFoundException('Orden no encontrada');
     const items = (await runner.query(
-      `SELECT id, position, description, quantity, unit_price, total
+      `SELECT id, product_service_id, position, description, unit_name, unit_symbol,
+              quantity, unit_price, total, unit_cost, cost_total, tracks_inventory
        FROM ${schema}.order_items WHERE order_id = $1 ORDER BY position`,
       [id],
     )) as OrderItemRow[];
@@ -301,11 +338,17 @@ export class OrdersService {
       ...this.toBaseResponse(row),
       items: items.map<OrderItemResponseDto>((item) => ({
         id: item.id,
+        productServiceId: item.product_service_id,
         position: item.position,
         description: item.description,
+        unitName: item.unit_name,
+        unitSymbol: item.unit_symbol,
         quantity: item.quantity,
         unitPrice: item.unit_price,
         amount: item.total,
+        unitCost: item.unit_cost,
+        costAmount: item.cost_total,
+        tracksInventory: item.tracks_inventory,
       })),
       notes: notes.map<OrderNoteResponseDto>((note) => ({
         id: note.id,
@@ -330,21 +373,86 @@ export class OrdersService {
     schema: string,
     orderId: string,
     items: OrderItemInputDto[],
+    user: AuthenticatedUser,
   ): Promise<void> {
+    const existingItems = (await runner.query(
+      `SELECT id, product_service_id, position, description, unit_name, unit_symbol,
+              quantity, unit_price, total, unit_cost, cost_total, tracks_inventory
+       FROM ${schema}.order_items WHERE order_id = $1`,
+      [orderId],
+    )) as OrderItemRow[];
+    const existingById = new Map(existingItems.map((item) => [item.id, item]));
     await runner.query(`DELETE FROM ${schema}.order_items WHERE order_id = $1`, [orderId]);
     for (const [index, item] of items.entries()) {
-      const unitPrice = item.unitPrice ?? null;
+      let productServiceId: string | null = null;
+      let description = item.description ?? '';
+      let unitName = 'Unidad';
+      let unitSymbol = 'u';
+      let unitPrice = item.unitPrice ?? null;
+      let unitCost = item.unitCost ?? null;
+      let tracksInventory = false;
+      const existing = item.itemId ? existingById.get(item.itemId) : undefined;
+      if (item.itemId && !existing) {
+        throw new BadRequestException('Uno de los conceptos ya no pertenece a la orden');
+      }
+      if (existing?.product_service_id) {
+        if (
+          item.productServiceId !== undefined &&
+          item.productServiceId !== null &&
+          item.productServiceId !== existing.product_service_id
+        ) {
+          throw new BadRequestException(
+            'No se puede sustituir el catálogo de un concepto existente',
+          );
+        }
+        productServiceId = existing.product_service_id;
+        description = existing.description;
+        unitName = existing.unit_name;
+        unitSymbol = existing.unit_symbol;
+        unitPrice = existing.unit_price === null ? null : Number(existing.unit_price);
+        unitCost = existing.unit_cost === null ? null : Number(existing.unit_cost);
+        tracksInventory = existing.tracks_inventory;
+      } else if (item.productServiceId) {
+        if (!user.subscription?.features.includes('item_catalog')) {
+          throw new UnprocessableEntityException(
+            'El plan actual no permite agregar conceptos desde el catálogo',
+          );
+        }
+        const concept = await this.getActiveConcept(runner, schema, item.productServiceId);
+        if (!concept.unit_allows_decimals && !Number.isInteger(item.quantity)) {
+          throw new UnprocessableEntityException(
+            `La unidad de ${concept.name} no permite cantidades decimales`,
+          );
+        }
+        productServiceId = concept.id;
+        description = concept.name;
+        unitName = concept.unit_name;
+        unitSymbol = concept.unit_symbol;
+        unitPrice = Number(concept.unit_price);
+        unitCost = Number(concept.cost);
+        tracksInventory = concept.tracks_inventory;
+      } else if (!user.subscription?.features.includes('free_order_items')) {
+        throw new UnprocessableEntityException('El plan actual no permite conceptos libres');
+      }
       const amount = unitPrice === null ? null : this.amount(item.quantity, unitPrice);
+      const costAmount = unitCost === null ? null : this.amount(item.quantity, unitCost);
       await runner.query(
         `INSERT INTO ${schema}.order_items(
-           order_id, product_service_id, description, quantity, unit_price, total, position
-         ) VALUES ($1, NULL, $2, $3, $4, $5, $6)`,
+           order_id, product_service_id, description, unit_name, unit_symbol,
+           quantity, unit_price, total, unit_cost, cost_total, tracks_inventory, position
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
         [
           orderId,
-          item.description,
+          productServiceId,
+          description,
+          unitName,
+          unitSymbol,
           item.quantity.toFixed(3),
           unitPrice === null ? null : unitPrice.toFixed(2),
           amount,
+          unitCost === null ? null : unitCost.toFixed(2),
+          costAmount,
+          tracksInventory,
           index + 1,
         ],
       );
@@ -360,12 +468,21 @@ export class OrdersService {
     await runner.query(
       `UPDATE ${schema}.orders service_order
        SET subtotal = totals.total, total = totals.total, tax = 0,
+           total_cost = totals.total_cost,
+           gross_profit = CASE
+             WHEN totals.total IS NULL OR totals.total_cost IS NULL THEN NULL
+             ELSE totals.total - totals.total_cost
+           END,
            updated_by_user_id = $2, updated_at = now()
        FROM (
          SELECT CASE
            WHEN COUNT(*) FILTER (WHERE total IS NULL) > 0 THEN NULL
            ELSE COALESCE(SUM(total), 0)
-         END AS total
+         END AS total,
+         CASE
+           WHEN COUNT(*) FILTER (WHERE cost_total IS NULL) > 0 THEN NULL
+           ELSE COALESCE(SUM(cost_total), 0)
+         END AS total_cost
          FROM ${schema}.order_items WHERE order_id = $1
        ) totals
        WHERE service_order.id = $1`,
@@ -409,7 +526,7 @@ export class OrdersService {
     id: string,
   ): Promise<LockedOrderRow> {
     const rows = (await runner.query(
-      `SELECT id, customer_id, vehicle_id, status
+      `SELECT id, folio::text AS folio, customer_id, vehicle_id, status, inventory_applied_at
        FROM ${schema}.orders WHERE id = $1 FOR UPDATE`,
       [id],
     )) as LockedOrderRow[];
@@ -423,12 +540,139 @@ export class OrdersService {
     }
   }
 
+  private async getActiveConcept(
+    runner: QueryRunner,
+    schema: string,
+    id: string,
+  ): Promise<CatalogConceptRow> {
+    const rows = (await runner.query(
+      `SELECT concept.id, concept.name, concept.cost, concept.unit_price,
+              concept.tracks_inventory, concept.is_active,
+              unit.name AS unit_name, unit.symbol AS unit_symbol,
+              unit.allows_decimals AS unit_allows_decimals
+       FROM ${schema}.products_services concept
+       JOIN ${schema}.measurement_units unit ON unit.id = concept.unit_id
+       WHERE concept.id = $1 FOR SHARE OF concept, unit`,
+      [id],
+    )) as CatalogConceptRow[];
+    const concept = rows[0];
+    if (!concept) throw new NotFoundException('Concepto de catálogo no encontrado');
+    if (!concept.is_active) {
+      throw new UnprocessableEntityException(`El concepto ${concept.name} está desactivado`);
+    }
+    return concept;
+  }
+
+  private async applyInventory(
+    runner: QueryRunner,
+    schema: string,
+    order: LockedOrderRow,
+    userId: string,
+  ): Promise<void> {
+    if (order.inventory_applied_at) return;
+    const items = await this.inventoryItems(runner, schema, order.id);
+    if (items.length === 0) return;
+    for (const item of items) {
+      const quantity = Number(item.quantity);
+      const updated = (await runner.query(
+        `UPDATE ${schema}.products_services
+         SET stock = stock - $2, updated_by_user_id = $3, updated_at = now()
+         WHERE id = $1 AND stock >= $2
+         RETURNING (stock + $2)::text AS previous_stock, stock::text AS resulting_stock`,
+        [item.product_service_id, quantity, userId],
+      )) as [Array<{ previous_stock: string; resulting_stock: string }>, number];
+      const balance = updated[0][0];
+      if (!balance) {
+        throw new UnprocessableEntityException(
+          `No hay existencia suficiente para terminar la orden: ${item.description}`,
+        );
+      }
+      await runner.query(
+        `INSERT INTO ${schema}.inventory_movements(
+           product_id, order_item_id, order_id, movement_type, quantity,
+           previous_stock, resulting_stock, unit_cost, reason, created_by_user_id
+         ) VALUES ($1, $2, $3, 'exit', $4, $5, $6, $7, $8, $9)`,
+        [
+          item.product_service_id,
+          item.id,
+          order.id,
+          -quantity,
+          balance.previous_stock,
+          balance.resulting_stock,
+          item.unit_cost,
+          `Salida por orden #${order.folio}`,
+          userId,
+        ],
+      );
+    }
+    await runner.query(`UPDATE ${schema}.orders SET inventory_applied_at = now() WHERE id = $1`, [
+      order.id,
+    ]);
+  }
+
+  private async returnInventory(
+    runner: QueryRunner,
+    schema: string,
+    order: LockedOrderRow,
+    userId: string,
+  ): Promise<void> {
+    if (!order.inventory_applied_at) return;
+    const items = await this.inventoryItems(runner, schema, order.id);
+    for (const item of items) {
+      const quantity = Number(item.quantity);
+      const updated = (await runner.query(
+        `UPDATE ${schema}.products_services
+         SET stock = stock + $2, updated_by_user_id = $3, updated_at = now()
+         WHERE id = $1
+         RETURNING (stock - $2)::text AS previous_stock, stock::text AS resulting_stock`,
+        [item.product_service_id, quantity, userId],
+      )) as [Array<{ previous_stock: string; resulting_stock: string }>, number];
+      const balance = updated[0][0];
+      if (!balance) throw new NotFoundException(`Producto no encontrado: ${item.description}`);
+      await runner.query(
+        `INSERT INTO ${schema}.inventory_movements(
+           product_id, order_item_id, order_id, movement_type, quantity,
+           previous_stock, resulting_stock, unit_cost, reason, created_by_user_id
+         ) VALUES ($1, $2, $3, 'entry', $4, $5, $6, $7, $8, $9)`,
+        [
+          item.product_service_id,
+          item.id,
+          order.id,
+          quantity,
+          balance.previous_stock,
+          balance.resulting_stock,
+          item.unit_cost,
+          `Devolución por cambio de estado de la orden #${order.folio}`,
+          userId,
+        ],
+      );
+    }
+    await runner.query(`UPDATE ${schema}.orders SET inventory_applied_at = NULL WHERE id = $1`, [
+      order.id,
+    ]);
+  }
+
+  private async inventoryItems(
+    runner: QueryRunner,
+    schema: string,
+    orderId: string,
+  ): Promise<InventoryOrderItemRow[]> {
+    return (await runner.query(
+      `SELECT id, product_service_id, description, quantity, unit_cost
+       FROM ${schema}.order_items
+       WHERE order_id = $1 AND product_service_id IS NOT NULL AND tracks_inventory = true
+       ORDER BY product_service_id, position FOR UPDATE`,
+      [orderId],
+    )) as InventoryOrderItemRow[];
+  }
+
   private orderSelect(schema: string): string {
     return `SELECT service_order.id, service_order.folio::text AS folio,
       service_order.customer_id, customer.customer_type, customer.display_name AS customer_name,
       service_order.vehicle_id, brand.name AS brand_name, model.name AS model_name,
       vehicle.model_year, vehicle.color, vehicle.serial_number, vehicle.license_plate,
       service_order.status, service_order.subtotal, service_order.total,
+      service_order.total_cost, service_order.gross_profit, service_order.inventory_applied_at,
       EXISTS(
         SELECT 1 FROM ${schema}.order_items unpriced
         WHERE unpriced.order_id = service_order.id AND unpriced.unit_price IS NULL
@@ -466,6 +710,9 @@ export class OrdersService {
       },
       subtotal: row.subtotal,
       total: row.total,
+      totalCost: row.total_cost,
+      grossProfit: row.gross_profit,
+      inventoryAppliedAt: row.inventory_applied_at,
       hasUnpricedItems: row.has_unpriced_items,
       openedAt: row.opened_at,
       closedAt: row.closed_at,

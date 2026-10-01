@@ -16,12 +16,14 @@ import {
   Validators,
 } from "@angular/forms";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
-import { finalize, forkJoin } from "rxjs";
+import { finalize, forkJoin, of } from "rxjs";
 import { AuthService } from "../../core/auth/auth.service";
 import { apiErrorMessage } from "../../core/http/api-error";
 import { ThemeService } from "../../core/theme/theme.service";
 import { Client, ClientInput, CustomerType } from "../clients/client.models";
 import { ClientsService } from "../clients/clients.service";
+import { CatalogConcept } from "../concept-catalog/concept-catalog.models";
+import { ConceptCatalogService } from "../concept-catalog/concept-catalog.service";
 import {
   VehicleBrand,
   VehicleModel,
@@ -46,6 +48,7 @@ export class OrderWizardPage implements OnInit {
   private readonly clientsService = inject(ClientsService);
   private readonly vehiclesService = inject(VehiclesService);
   private readonly catalog = inject(VehicleCatalogService);
+  private readonly conceptCatalog = inject(ConceptCatalogService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly auth = inject(AuthService);
   readonly theme = inject(ThemeService);
@@ -65,9 +68,11 @@ export class OrderWizardPage implements OnInit {
   readonly vehicles = signal<Vehicle[]>([]);
   readonly brands = signal<VehicleBrand[]>([]);
   readonly models = signal<VehicleModel[]>([]);
+  readonly concepts = signal<CatalogConcept[]>([]);
   readonly showClientForm = signal(false);
   readonly showVehicleForm = signal(false);
   readonly clientSearch = new FormControl("", { nonNullable: true });
+  readonly conceptSearch = new FormControl("", { nonNullable: true });
   readonly brandSearch = new FormControl("", { nonNullable: true });
   readonly modelSearch = new FormControl("", { nonNullable: true });
   readonly maxYear = new Date().getFullYear() + 1;
@@ -75,6 +80,12 @@ export class OrderWizardPage implements OnInit {
     const role = this.auth.user()?.role;
     return role === "company_admin" || role === "platform_admin";
   });
+  readonly canUseItemCatalog = computed(() =>
+    this.auth.hasFeature("item_catalog"),
+  );
+  readonly canUseProfitability = computed(() =>
+    this.auth.hasFeature("profitability"),
+  );
 
   filteredClients(): Client[] {
     const term = this.clientSearch.value.trim().toLocaleLowerCase("es-MX");
@@ -185,12 +196,16 @@ export class OrderWizardPage implements OnInit {
         search: "",
         isActive: true,
       }),
+      concepts: this.canUseItemCatalog()
+        ? this.conceptCatalog.list()
+        : of({ items: [] as CatalogConcept[] }),
     })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: ({ clients, brands }) => {
+        next: ({ clients, brands, concepts }) => {
           this.clients.set(clients.items);
           this.brands.set(brands.items);
+          this.concepts.set(concepts.items);
           if (this.editing) this.loadOrder();
           else this.loading.set(false);
         },
@@ -416,6 +431,41 @@ export class OrderWizardPage implements OnInit {
     if (this.items.length < 50) this.items.push(this.createItemGroup());
   }
 
+  addCatalogItem(concept: CatalogConcept): void {
+    if (this.items.length >= 50) return;
+    const initialFreeItem =
+      this.items.length === 1 &&
+      !this.items.at(0).value["description"] &&
+      !this.items.at(0).value["productServiceId"];
+    const group = this.createItemGroup({
+      productServiceId: concept.id,
+      description: concept.name,
+      quantity: 1,
+      unitPrice: Number(concept.price),
+      unitCost: Number(concept.cost),
+      unitName: concept.unit.name,
+      unitSymbol: concept.unit.symbol,
+      tracksInventory: concept.tracksInventory,
+    });
+    if (initialFreeItem) this.items.setControl(0, group);
+    else this.items.push(group);
+    this.conceptSearch.setValue("");
+  }
+
+  filteredConcepts(): CatalogConcept[] {
+    const term = this.normalizeCatalogName(this.conceptSearch.value);
+    if (!term) return this.concepts().slice(0, 8);
+    return this.concepts()
+      .filter((concept) =>
+        this.normalizeCatalogName(
+          [concept.sku ?? "", concept.name, concept.description ?? ""].join(
+            " ",
+          ),
+        ).includes(term),
+      )
+      .slice(0, 8);
+  }
+
   removeItem(index: number): void {
     if (this.items.length > 1) this.items.removeAt(index);
   }
@@ -442,13 +492,13 @@ export class OrderWizardPage implements OnInit {
       : amounts.reduce<number>((sum, amount) => sum + (amount ?? 0), 0);
   }
 
-  money(value: number | null): string {
+  money(value: number | string | null): string {
     return value === null
       ? "Por definir"
       : new Intl.NumberFormat("es-MX", {
           style: "currency",
           currency: "MXN",
-        }).format(value);
+        }).format(Number(value));
   }
 
   formatPhone(): void {
@@ -495,12 +545,18 @@ export class OrderWizardPage implements OnInit {
       customerId: raw.customerId,
       vehicleId: raw.vehicleId,
       items: raw.items.map((item) => ({
+        itemId: item["itemId"] || undefined,
+        productServiceId: item["productServiceId"] || null,
         description: String(item["description"]).trim(),
         quantity: Number(item["quantity"]),
         unitPrice:
           item["unitPrice"] === null || item["unitPrice"] === undefined
             ? null
             : Number(item["unitPrice"]),
+        unitCost:
+          item["unitCost"] === null || item["unitCost"] === undefined
+            ? null
+            : Number(item["unitCost"]),
       })),
     };
     this.saving.set(true);
@@ -522,17 +578,45 @@ export class OrderWizardPage implements OnInit {
       });
   }
 
-  private createItemGroup(): FormGroup {
+  private createItemGroup(
+    value: {
+      itemId?: string;
+      productServiceId?: string | null;
+      description?: string;
+      quantity?: number;
+      unitPrice?: number | null;
+      unitCost?: number | null;
+      unitName?: string;
+      unitSymbol?: string;
+      tracksInventory?: boolean;
+    } = {},
+  ): FormGroup {
     return new FormGroup({
-      description: new FormControl("", {
+      itemId: new FormControl(value.itemId ?? "", { nonNullable: true }),
+      productServiceId: new FormControl(value.productServiceId ?? "", {
+        nonNullable: true,
+      }),
+      description: new FormControl(value.description ?? "", {
         nonNullable: true,
         validators: [Validators.required, Validators.maxLength(300)],
       }),
-      quantity: new FormControl<number | null>(1, {
+      quantity: new FormControl<number | null>(value.quantity ?? 1, {
         validators: [Validators.required, Validators.min(0.001)],
       }),
-      unitPrice: new FormControl<number | null>(null, {
+      unitPrice: new FormControl<number | null>(value.unitPrice ?? null, {
         validators: [Validators.min(0)],
+      }),
+      unitCost: new FormControl<number | null>(value.unitCost ?? null, {
+        validators: [Validators.min(0)],
+      }),
+      unitName: new FormControl(value.unitName ?? "Unidad", {
+        nonNullable: true,
+      }),
+      unitSymbol: new FormControl(value.unitSymbol ?? "u", {
+        nonNullable: true,
+      }),
+      tracksInventory: new FormControl(value.tracksInventory ?? false, {
+        nonNullable: true,
       }),
     });
   }
@@ -558,9 +642,15 @@ export class OrderWizardPage implements OnInit {
     order.items.forEach((item) => {
       const group = this.createItemGroup();
       group.patchValue({
+        itemId: item.id,
+        productServiceId: item.productServiceId ?? "",
         description: item.description,
         quantity: Number(item.quantity),
         unitPrice: item.unitPrice === null ? null : Number(item.unitPrice),
+        unitCost: item.unitCost === null ? null : Number(item.unitCost),
+        unitName: item.unitName,
+        unitSymbol: item.unitSymbol,
+        tracksInventory: item.tracksInventory,
       });
       this.items.push(group);
     });

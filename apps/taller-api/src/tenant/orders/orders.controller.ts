@@ -64,7 +64,7 @@ export class OrdersController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Crear una orden básica con conceptos libres' })
+  @ApiOperation({ summary: 'Crear una orden con conceptos de catálogo o captura libre' })
   @ApiCreatedResponse({ type: OrderResponseDto })
   @ApiUnprocessableEntityResponse({
     description: 'Cliente o vehículo inactivo, inexistente o sin relación',

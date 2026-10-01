@@ -402,13 +402,63 @@
             ¿Qué trabajo se realizará?
           </h2>
           <p class="text-sm text-[#68746d] dark:text-[#aab7af]">
-            Escribe libremente productos o servicios. El precio es opcional.
+            @if (canUseItemCatalog()) { Agrega productos o servicios del
+            catálogo. La captura libre permanece disponible como excepción. }
+            @else { Escribe libremente productos o servicios. El precio es
+            opcional. }
           </p>
         </div>
         <button class="secondary-tw" type="button" (click)="addItem()">
-          ＋ Agregar concepto
+          ＋ Agregar concepto libre
         </button>
       </div>
+      @if (canUseItemCatalog()) {
+      <section
+        class="mt-6 border border-[#d9c6b8] bg-[#fffaf5] p-4 dark:border-[#664431] dark:bg-[#2b211b]"
+      >
+        <label class="field-label" for="order-catalog-search"
+          >AGREGAR DESDE EL CATÁLOGO</label
+        >
+        <input
+          class="field-control mt-2"
+          id="order-catalog-search"
+          type="search"
+          [formControl]="conceptSearch"
+          placeholder="Buscar por nombre, SKU o descripción"
+        />
+        <div class="mt-3 grid max-h-64 gap-2 overflow-y-auto sm:grid-cols-2">
+          @for (concept of filteredConcepts(); track concept.id) {
+          <button
+            class="flex items-center justify-between gap-3 border border-[#dcd9cf] bg-white p-3 text-left transition hover:border-[#e86a33] dark:border-[#3d4d44] dark:bg-[#1a251f] dark:hover:border-[#ff9a6f]"
+            type="button"
+            (click)="addCatalogItem(concept)"
+          >
+            <span>
+              <strong class="block">{{ concept.name }}</strong>
+              <small class="text-[#68746d] dark:text-[#aab7af]"
+                >{{ concept.sku || (concept.kind === 'product' ? 'Producto' :
+                'Servicio') }} · {{ concept.unit.symbol }} @if
+                (concept.tracksInventory) { · Existencia {{ concept.stock }}
+                }</small
+              >
+            </span>
+            <span class="shrink-0 text-right">
+              <strong class="block">{{ money(concept.price) }}</strong>
+              <small class="font-bold text-[#b94718] dark:text-[#ff9a6f]"
+                >＋ Agregar</small
+              >
+            </span>
+          </button>
+          } @empty {
+          <p
+            class="col-span-full p-5 text-center text-sm text-[#68746d] dark:text-[#aab7af]"
+          >
+            No encontramos conceptos activos.
+          </p>
+          }
+        </div>
+      </section>
+      }
       <div class="mt-6 space-y-3" [formGroup]="orderForm">
         <div formArrayName="items">
           @for (item of items.controls; track item; let i = $index) {
@@ -417,14 +467,38 @@
             [formGroupName]="i"
           >
             <div>
-              <label class="field-label" [for]="'item-description-' + i"
-                >Descripción <b>*</b></label
+              <label class="field-label" [for]="'item-description-' + i">
+                DESCRIPCIÓN <b>*</b> @if (item.value.productServiceId) {
+                <span class="text-[#b94718] dark:text-[#ff9a6f]"
+                  >· CATÁLOGO</span
+                >
+                } </label
               ><input
                 class="field-control"
                 [id]="'item-description-' + i"
                 formControlName="description"
                 placeholder="Ej. Cambio de balatas delanteras"
+                [readOnly]="!!item.value.productServiceId"
               />
+              @if (canUseProfitability() && !item.value.productServiceId) {
+              <label class="field-label mt-2" [for]="'item-cost-' + i"
+                >Costo unitario</label
+              >
+              <input
+                class="field-control"
+                [id]="'item-cost-' + i"
+                type="number"
+                min="0"
+                step="0.01"
+                formControlName="unitCost"
+                placeholder="Opcional"
+              />
+              } @else if (canUseProfitability() && item.value.unitCost !== null)
+              {
+              <small class="field-hint"
+                >Costo histórico: {{ money(item.value.unitCost) }}</small
+              >
+              }
             </div>
             <div>
               <label class="field-label" [for]="'item-quantity-' + i"
@@ -437,6 +511,7 @@
                 step="0.001"
                 formControlName="quantity"
               />
+              <small class="field-hint">{{ item.value.unitSymbol }}</small>
             </div>
             <div>
               <label class="field-label" [for]="'item-price-' + i"
@@ -449,6 +524,7 @@
                 step="0.01"
                 formControlName="unitPrice"
                 placeholder="Opcional"
+                [readOnly]="!!item.value.productServiceId"
               />
             </div>
             <div>
@@ -527,7 +603,7 @@
             <span
               >{{ item.value.description }}
               <small class="text-[#68746d] dark:text-[#aab7af]"
-                >× {{ item.value.quantity }}</small
+                >× {{ item.value.quantity }} {{ item.value.unitSymbol }}</small
               ></span
             ><strong>{{ money(itemAmount(i)) }}</strong>
           </div>

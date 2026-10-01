@@ -20,6 +20,7 @@ import { BasicServiceOrders1700000009000 } from '../../src/database/migrations/p
 import { SimplifiedOrderStatuses1700000010000 } from '../../src/database/migrations/public/1700000010000-simplified-order-statuses';
 import { ConceptCatalog1700000011000 } from '../../src/database/migrations/public/1700000011000-concept-catalog';
 import { Inventory1700000012000 } from '../../src/database/migrations/public/1700000012000-inventory';
+import { OrderCatalogIntegration1700000013000 } from '../../src/database/migrations/public/1700000013000-order-catalog-integration';
 import { quoteIdentifier } from '../../src/database/schema-name';
 import { seedPublicCatalogs } from '../../src/database/seeds/public-catalogs.seed';
 
@@ -200,14 +201,23 @@ interface OrderResponse {
   vehicle: { id: string; brandName: string; modelName: string };
   subtotal: string | null;
   total: string | null;
+  totalCost: string | null;
+  grossProfit: string | null;
+  inventoryAppliedAt: string | null;
   hasUnpricedItems: boolean;
   items: Array<{
     id: string;
+    productServiceId: string | null;
     position: number;
     description: string;
     quantity: string;
     unitPrice: string | null;
     amount: string | null;
+    unitName: string;
+    unitSymbol: string;
+    unitCost: string | null;
+    costAmount: string | null;
+    tracksInventory: boolean;
   }>;
   notes: Array<{ body: string; createdByUserId: string }>;
   statusHistory: Array<{
@@ -251,6 +261,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         SimplifiedOrderStatuses1700000010000,
         ConceptCatalog1700000011000,
         Inventory1700000012000,
+        OrderCatalogIntegration1700000013000,
       ],
       migrationsTableName: 'public_schema_migrations',
       synchronize: false,
@@ -1435,6 +1446,212 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       [created.body.id],
     );
     expect(stored[0]).toEqual({ tax: '0.00', linked_catalog_items: '0', history_count: '6' });
+  });
+
+  it('integra catálogo, instantáneas, utilidad y devoluciones de inventario con órdenes', async () => {
+    const tenant = await provisionAndLogin(
+      'Order Catalog Integration',
+      'order.catalog.admin@test.local',
+    );
+    await request<unknown>('PATCH', `/subscriptions/companies/${tenant.company.id}`, {
+      token: platformToken,
+      body: { planCode: 'control', status: 'active', reason: 'Órdenes con inventario' },
+    });
+    const units = await request<MeasurementUnitResponse[]>('GET', '/catalogs/units', {
+      token: tenant.accessToken,
+    });
+    const piece = units.body.find(({ name }) => name === 'Pieza')!;
+    const product = await request<ConceptResponse>('POST', '/catalogs/concepts', {
+      token: tenant.accessToken,
+      body: {
+        kind: 'product',
+        sku: 'ORD-INV-001',
+        name: 'Filtro histórico',
+        unitId: piece.id,
+        cost: 80,
+        price: 140,
+        tracksInventory: true,
+      },
+    });
+    await request<InventoryMovementResponse>('POST', '/inventory/movements', {
+      token: tenant.accessToken,
+      body: {
+        productId: product.body.id,
+        type: 'entry',
+        quantity: 10,
+        unitCost: 80,
+        reason: 'Existencia para órdenes',
+      },
+    });
+
+    const customer = await request<ClientResponse>('POST', '/clients', {
+      token: tenant.accessToken,
+      body: { type: 'person', displayName: 'Cliente catálogo en orden' },
+    });
+    const brand = await request<VehicleBrandResponse>('POST', '/catalogs/vehicle-brands', {
+      token: tenant.accessToken,
+      body: { name: 'Marca Order Catalog Integration' },
+    });
+    const model = await request<VehicleModelResponse>('POST', '/catalogs/vehicle-models', {
+      token: tenant.accessToken,
+      body: { brandId: brand.body.id, name: 'Modelo Order Catalog Integration' },
+    });
+    const vehicle = await request<VehicleResponse>(
+      'POST',
+      `/clients/${customer.body.id}/vehicles`,
+      {
+        token: tenant.accessToken,
+        body: {
+          brandId: brand.body.id,
+          modelId: model.body.id,
+          year: 2025,
+          color: 'Negro',
+        },
+      },
+    );
+
+    const created = await request<OrderResponse>('POST', '/orders', {
+      token: tenant.accessToken,
+      body: {
+        customerId: customer.body.id,
+        vehicleId: vehicle.body.id,
+        items: [
+          { productServiceId: product.body.id, quantity: 2 },
+          {
+            description: 'Instalación libre',
+            quantity: 1,
+            unitPrice: 300,
+            unitCost: 100,
+          },
+        ],
+      },
+    });
+    expect(created.status).toBe(201);
+    expect(created.body).toMatchObject({
+      total: '580.00',
+      totalCost: '260.00',
+      grossProfit: '320.00',
+      inventoryAppliedAt: null,
+    });
+    expect(created.body.items[0]).toMatchObject({
+      productServiceId: product.body.id,
+      description: 'Filtro histórico',
+      unitName: 'Pieza',
+      unitSymbol: 'pza',
+      unitPrice: '140.00',
+      unitCost: '80.00',
+      tracksInventory: true,
+    });
+
+    await request<ConceptResponse>('PATCH', `/catalogs/concepts/${product.body.id}`, {
+      token: tenant.accessToken,
+      body: { cost: 95, price: 175 },
+    });
+    const unchanged = await request<OrderResponse>('GET', `/orders/${created.body.id}`, {
+      token: tenant.accessToken,
+    });
+    expect(unchanged.body.items[0]).toMatchObject({
+      unitPrice: '140.00',
+      unitCost: '80.00',
+    });
+
+    const completed = await request<OrderResponse>('POST', `/orders/${created.body.id}/status`, {
+      token: tenant.accessToken,
+      body: { status: 'completed' },
+    });
+    expect(completed.status).toBe(200);
+    expect(completed.body.inventoryAppliedAt).toBeTruthy();
+    expect(
+      (
+        await request<InventoryProductResponse>('GET', `/inventory/products/${product.body.id}`, {
+          token: tenant.accessToken,
+        })
+      ).body.stock,
+    ).toBe('8.000');
+
+    const reopened = await request<OrderResponse>('POST', `/orders/${created.body.id}/status`, {
+      token: tenant.accessToken,
+      body: { status: 'in_progress' },
+    });
+    expect(reopened.body.inventoryAppliedAt).toBeNull();
+    expect(
+      (
+        await request<InventoryProductResponse>('GET', `/inventory/products/${product.body.id}`, {
+          token: tenant.accessToken,
+        })
+      ).body.stock,
+    ).toBe('10.000');
+
+    const edited = await request<OrderResponse>('PATCH', `/orders/${created.body.id}`, {
+      token: tenant.accessToken,
+      body: {
+        items: [
+          {
+            itemId: reopened.body.items[0]!.id,
+            productServiceId: product.body.id,
+            description: 'Este texto no debe sustituir la instantánea',
+            quantity: 3,
+          },
+          {
+            itemId: reopened.body.items[1]!.id,
+            description: 'Instalación libre',
+            quantity: 1,
+            unitPrice: 300,
+            unitCost: 100,
+          },
+        ],
+      },
+    });
+    expect(edited.body).toMatchObject({
+      total: '720.00',
+      totalCost: '340.00',
+      grossProfit: '380.00',
+    });
+    expect(edited.body.items[0]).toMatchObject({
+      description: 'Filtro histórico',
+      unitPrice: '140.00',
+      unitCost: '80.00',
+    });
+
+    await request<OrderResponse>('POST', `/orders/${created.body.id}/status`, {
+      token: tenant.accessToken,
+      body: { status: 'completed' },
+    });
+    expect(
+      (
+        await request<InventoryProductResponse>('GET', `/inventory/products/${product.body.id}`, {
+          token: tenant.accessToken,
+        })
+      ).body.stock,
+    ).toBe('7.000');
+    const cancelled = await request<OrderResponse>('POST', `/orders/${created.body.id}/status`, {
+      token: tenant.accessToken,
+      body: { status: 'cancelled' },
+    });
+    expect(cancelled.body.inventoryAppliedAt).toBeNull();
+    expect(
+      (
+        await request<InventoryProductResponse>('GET', `/inventory/products/${product.body.id}`, {
+          token: tenant.accessToken,
+        })
+      ).body.stock,
+    ).toBe('10.000');
+
+    const schema = quoteIdentifier(tenant.company.schemaName);
+    const movements = await control.query<
+      Array<{ movement_type: string; quantity: string; order_id: string }>
+    >(
+      `SELECT movement_type, quantity::text, order_id
+       FROM ${schema}.inventory_movements
+       WHERE order_id = $1 ORDER BY created_at, id`,
+      [created.body.id],
+    );
+    expect(movements).toEqual([
+      { movement_type: 'exit', quantity: '-2.000', order_id: created.body.id },
+      { movement_type: 'entry', quantity: '2.000', order_id: created.body.id },
+      { movement_type: 'exit', quantity: '-3.000', order_id: created.body.id },
+      { movement_type: 'entry', quantity: '3.000', order_id: created.body.id },
+    ]);
   });
 
   async function createCompany(

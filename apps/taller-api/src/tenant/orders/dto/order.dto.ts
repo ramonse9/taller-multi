@@ -13,6 +13,7 @@ import {
   Length,
   Max,
   Min,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 
@@ -29,11 +30,27 @@ export enum OrderStatus {
 }
 
 export class OrderItemInputDto {
+  @ApiPropertyOptional({ format: 'uuid', description: 'Renglón existente al editar una orden' })
+  @IsOptional()
+  @IsUUID('4')
+  itemId?: string;
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Concepto del catálogo; ausente para captura libre',
+  })
+  @IsOptional()
+  @IsUUID('4')
+  productServiceId?: string | null;
+
   @ApiProperty({ example: 'Cambio de balatas delanteras' })
+  @ValidateIf(
+    (input: OrderItemInputDto) => !input.productServiceId || input.description !== undefined,
+  )
   @Transform(trimString)
   @IsString()
   @Length(1, 300)
-  description!: string;
+  description?: string;
 
   @ApiProperty({ example: 1, minimum: 0.001, maximum: 999999999.999 })
   @Type(() => Number)
@@ -50,6 +67,15 @@ export class OrderItemInputDto {
   @Min(0)
   @Max(999999999999.99)
   unitPrice?: number | null;
+
+  @ApiPropertyOptional({ example: 800, nullable: true, minimum: 0 })
+  @Transform(nullablePrice)
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2, allowInfinity: false, allowNaN: false })
+  @Min(0)
+  @Max(999999999999.99)
+  unitCost?: number | null;
 }
 
 export class CreateOrderDto {
@@ -143,11 +169,18 @@ export class OrderQueryDto {
 
 export class OrderItemResponseDto {
   @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty({ format: 'uuid', nullable: true, type: String })
+  productServiceId!: string | null;
   @ApiProperty() position!: number;
   @ApiProperty() description!: string;
+  @ApiProperty() unitName!: string;
+  @ApiProperty() unitSymbol!: string;
   @ApiProperty({ description: 'Decimal entregado como texto' }) quantity!: string;
   @ApiProperty({ nullable: true, type: String }) unitPrice!: string | null;
   @ApiProperty({ nullable: true, type: String }) amount!: string | null;
+  @ApiProperty({ nullable: true, type: String }) unitCost!: string | null;
+  @ApiProperty({ nullable: true, type: String }) costAmount!: string | null;
+  @ApiProperty() tracksInventory!: boolean;
 }
 
 export class OrderNoteResponseDto {
@@ -192,6 +225,9 @@ export class OrderSummaryResponseDto {
   @ApiProperty({ type: OrderVehicleResponseDto }) vehicle!: OrderVehicleResponseDto;
   @ApiProperty({ nullable: true, type: String }) subtotal!: string | null;
   @ApiProperty({ nullable: true, type: String }) total!: string | null;
+  @ApiProperty({ nullable: true, type: String }) totalCost!: string | null;
+  @ApiProperty({ nullable: true, type: String }) grossProfit!: string | null;
+  @ApiProperty({ nullable: true, type: Date }) inventoryAppliedAt!: Date | null;
   @ApiProperty() hasUnpricedItems!: boolean;
   @ApiProperty() openedAt!: Date;
   @ApiProperty({ nullable: true, type: Date }) closedAt!: Date | null;

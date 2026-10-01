@@ -112,6 +112,8 @@ export class TenantMigrator {
         opened_at timestamptz NOT NULL DEFAULT now(), closed_at timestamptz,
         subtotal numeric(14,2), tax numeric(14,2) NOT NULL DEFAULT 0,
         total numeric(14,2) CHECK (total >= 0), is_paid boolean NOT NULL DEFAULT false,
+        total_cost numeric(14,2) CHECK (total_cost IS NULL OR total_cost >= 0),
+        gross_profit numeric(14,2), inventory_applied_at timestamptz,
         created_by_user_id uuid NOT NULL REFERENCES public.users(id),
         updated_by_user_id uuid NOT NULL REFERENCES public.users(id),
         created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now()
@@ -124,6 +126,10 @@ export class TenantMigrator {
         product_service_id uuid REFERENCES ${s}.products_services(id),
         description varchar(300) NOT NULL, quantity numeric(12,3) NOT NULL CHECK (quantity > 0),
         unit_price numeric(14,2) CHECK (unit_price >= 0), total numeric(14,2) CHECK (total >= 0),
+        unit_name varchar(80) NOT NULL DEFAULT 'Unidad', unit_symbol varchar(20) NOT NULL DEFAULT 'u',
+        unit_cost numeric(14,2) CHECK (unit_cost IS NULL OR unit_cost >= 0),
+        cost_total numeric(14,2) CHECK (cost_total IS NULL OR cost_total >= 0),
+        tracks_inventory boolean NOT NULL DEFAULT false,
         position integer NOT NULL CHECK (position > 0), created_at timestamptz NOT NULL DEFAULT now(),
         UNIQUE(order_id, position)
       )`,
@@ -172,7 +178,9 @@ export class TenantMigrator {
       `CREATE INDEX inventory_lots_fifo_idx ON ${s}.inventory_lots(product_id, received_at, id) WHERE remaining_quantity > 0`,
       `CREATE TABLE ${s}.inventory_movements (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(), product_id uuid NOT NULL REFERENCES ${s}.products_services(id),
-        lot_id uuid REFERENCES ${s}.inventory_lots(id), order_item_id uuid REFERENCES ${s}.order_items(id),
+        lot_id uuid REFERENCES ${s}.inventory_lots(id),
+        order_item_id uuid REFERENCES ${s}.order_items(id) ON DELETE SET NULL,
+        order_id uuid REFERENCES ${s}.orders(id) ON DELETE SET NULL,
         movement_type varchar(20) NOT NULL CHECK (movement_type IN ('entry','exit','adjustment')),
         quantity numeric(12,3) NOT NULL,
         previous_stock numeric(14,3) NOT NULL CHECK (previous_stock >= 0),
@@ -186,6 +194,8 @@ export class TenantMigrator {
         )
       )`,
       `CREATE INDEX inventory_movements_product_date_idx ON ${s}.inventory_movements(product_id, created_at DESC)`,
+      `CREATE INDEX inventory_movements_order_date_idx ON ${s}.inventory_movements(order_id, created_at, id)
+       WHERE order_id IS NOT NULL`,
       `CREATE TABLE ${s}.quotes (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(), folio bigint GENERATED ALWAYS AS IDENTITY UNIQUE,
         customer_id uuid NOT NULL REFERENCES ${s}.customers(id), vehicle_id uuid REFERENCES ${s}.vehicles(id),

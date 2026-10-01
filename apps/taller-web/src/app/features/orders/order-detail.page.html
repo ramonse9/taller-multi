@@ -90,6 +90,35 @@
             >}
           </div>
         </section>
+        @if (current.totalCost !== null) {
+        <section
+          class="grid border border-[#dcd9cf] bg-white sm:grid-cols-3 dark:border-[#3d4d44] dark:bg-[#1a251f]"
+        >
+          <div
+            class="border-b border-[#ece9df] p-5 sm:border-b-0 sm:border-r dark:border-[#35433b]"
+          >
+            <span class="detail-label">COSTO HISTÓRICO</span>
+            <strong class="block text-lg"
+              >{{ money(current.totalCost) }}</strong
+            >
+          </div>
+          <div
+            class="border-b border-[#ece9df] p-5 sm:border-b-0 sm:border-r dark:border-[#35433b]"
+          >
+            <span class="detail-label">UTILIDAD BRUTA</span>
+            <strong class="block text-lg"
+              >{{ money(current.grossProfit) }}</strong
+            >
+          </div>
+          <div class="p-5">
+            <span class="detail-label">INVENTARIO</span>
+            <strong class="block text-sm"
+              >{{ current.inventoryAppliedAt ? 'Descontado al terminar' : 'Sin
+              descontar' }}</strong
+            >
+          </div>
+        </section>
+        }
         <section
           class="grid border border-[#dcd9cf] bg-white md:grid-cols-2 dark:border-[#3d4d44] dark:bg-[#1a251f]"
         >
@@ -142,8 +171,16 @@
             <div
               class="grid gap-2 px-6 py-4 sm:grid-cols-[minmax(0,1fr)_7rem_9rem_9rem]"
             >
-              <strong>{{ item.description }}</strong
-              ><span>{{ item.quantity }} pza.</span
+              <div>
+                <strong class="block">{{ item.description }}</strong>
+                @if (item.productServiceId) {
+                <small class="text-[#68746d] dark:text-[#aab7af]"
+                  >Catálogo@if (item.unitCost !== null) { · Costo histórico {{
+                  money(item.unitCost) }} }</small
+                >
+                }
+              </div>
+              <span>{{ item.quantity }} {{ item.unitSymbol }}</span
               ><span
                 >{{ item.unitPrice === null ? 'Sin precio' :
                 money(item.unitPrice) }}</span
