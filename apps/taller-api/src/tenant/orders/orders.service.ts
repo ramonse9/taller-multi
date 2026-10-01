@@ -358,7 +358,8 @@ export class OrdersService {
        FROM latest_exit
        JOIN ${schema}.inventory_lot_allocations allocation
          ON allocation.movement_id = latest_exit.id
-       ORDER BY latest_exit.order_item_id, allocation.created_at, allocation.id`,
+       JOIN ${schema}.inventory_lots lot ON lot.id = allocation.lot_id
+       ORDER BY latest_exit.order_item_id, lot.received_at, lot.id`,
       [id],
     )) as OrderItemCostLayerRow[];
     const costLayersByItem = new Map<string, OrderItemCostLayerRow[]>();

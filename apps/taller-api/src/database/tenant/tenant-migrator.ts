@@ -8,8 +8,8 @@ export interface TenantMigration {
   up(queryRunner: QueryRunner, schemaName: string): Promise<void>;
 }
 
-export const TENANT_BASE_VERSION = 12;
-export const TENANT_BASE_NAME = 'tenant-base-v12';
+export const TENANT_BASE_VERSION = 13;
+export const TENANT_BASE_NAME = 'tenant-base-v13';
 
 /**
  * Dynamic tenant migrations deliberately use qualified identifiers everywhere.
@@ -164,15 +164,23 @@ export class TenantMigrator {
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(), folio bigint GENERATED ALWAYS AS IDENTITY UNIQUE,
         supplier_id uuid NOT NULL REFERENCES ${s}.suppliers(id),
         status varchar(20) NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','confirmed','cancelled')),
-        purchased_at timestamptz NOT NULL DEFAULT now(), total numeric(14,2) NOT NULL DEFAULT 0 CHECK (total >= 0),
+        purchased_at timestamptz NOT NULL DEFAULT now(), reference varchar(120), notes text,
+        total numeric(14,2) NOT NULL DEFAULT 0 CHECK (total >= 0),
+        confirmed_at timestamptz, cancelled_at timestamptz,
         created_by_user_id uuid NOT NULL REFERENCES public.users(id),
+        updated_by_user_id uuid NOT NULL REFERENCES public.users(id),
         created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now()
       )`,
+      `CREATE INDEX purchases_status_date_idx ON ${s}.purchases(status, purchased_at DESC, id DESC)`,
+      `CREATE INDEX purchases_supplier_date_idx ON ${s}.purchases(supplier_id, purchased_at DESC, id DESC)`,
       `CREATE TABLE ${s}.purchase_items (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(), purchase_id uuid NOT NULL REFERENCES ${s}.purchases(id) ON DELETE CASCADE,
         product_id uuid NOT NULL REFERENCES ${s}.products_services(id),
+        product_name varchar(180) NOT NULL, product_sku varchar(80),
+        unit_name varchar(80) NOT NULL, unit_symbol varchar(20) NOT NULL,
         quantity numeric(12,3) NOT NULL CHECK (quantity > 0), unit_cost numeric(14,2) NOT NULL CHECK (unit_cost >= 0),
-        total numeric(14,2) NOT NULL CHECK (total >= 0)
+        total numeric(14,2) NOT NULL CHECK (total >= 0), position integer NOT NULL CHECK (position > 0),
+        created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(purchase_id, position)
       )`,
       `CREATE TABLE ${s}.inventory_lots (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(), product_id uuid NOT NULL REFERENCES ${s}.products_services(id),

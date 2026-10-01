@@ -19,6 +19,7 @@ import { RemoveHourUnit1700000014000 } from './migrations/public/1700000014000-r
 import { InventoryCostLots1700000015000 } from './migrations/public/1700000015000-inventory-cost-lots';
 import { InventoryMovementReversals1700000016000 } from './migrations/public/1700000016000-inventory-movement-reversals';
 import { SupplierCatalog1700000017000 } from './migrations/public/1700000017000-supplier-catalog';
+import { PurchaseModel1700000018000 } from './migrations/public/1700000018000-purchase-model';
 
 export default new DataSource({
   type: 'postgres',
@@ -44,6 +45,7 @@ export default new DataSource({
     InventoryCostLots1700000015000,
     InventoryMovementReversals1700000016000,
     SupplierCatalog1700000017000,
+    PurchaseModel1700000018000,
   ],
   migrationsTableName: 'public_schema_migrations',
   synchronize: false,

@@ -25,6 +25,7 @@ import { RemoveHourUnit1700000014000 } from '../../src/database/migrations/publi
 import { InventoryCostLots1700000015000 } from '../../src/database/migrations/public/1700000015000-inventory-cost-lots';
 import { InventoryMovementReversals1700000016000 } from '../../src/database/migrations/public/1700000016000-inventory-movement-reversals';
 import { SupplierCatalog1700000017000 } from '../../src/database/migrations/public/1700000017000-supplier-catalog';
+import { PurchaseModel1700000018000 } from '../../src/database/migrations/public/1700000018000-purchase-model';
 import { quoteIdentifier } from '../../src/database/schema-name';
 import { seedPublicCatalogs } from '../../src/database/seeds/public-catalogs.seed';
 
@@ -185,6 +186,26 @@ interface SupplierResponse {
   isDefault: boolean;
 }
 
+interface PurchaseResponse {
+  id: string;
+  folio: string;
+  status: 'draft' | 'confirmed' | 'cancelled';
+  supplier: { id: string; commercialName: string; isDefault: boolean };
+  reference: string | null;
+  notes: string | null;
+  total: string;
+  itemCount: number;
+  confirmedAt: string | null;
+  cancelledAt: string | null;
+  items: Array<{
+    productId: string;
+    productName: string;
+    quantity: string;
+    unitCost: string;
+    amount: string;
+  }>;
+}
+
 interface InventoryLotResponse {
   id: string;
   productId: string;
@@ -300,6 +321,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         InventoryCostLots1700000015000,
         InventoryMovementReversals1700000016000,
         SupplierCatalog1700000017000,
+        PurchaseModel1700000018000,
       ],
       migrationsTableName: 'public_schema_migrations',
       synchronize: false,
@@ -1010,6 +1032,146 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       commercialName: 'Proveedor general',
       isDefault: true,
     });
+  });
+
+  it('administra compras con folio, totales, proveedor general y entradas de inventario', async () => {
+    const tenant = await provisionAndLogin('Purchase Integration', 'purchase.admin@test.local');
+    await request<unknown>('PATCH', `/subscriptions/companies/${tenant.company.id}`, {
+      token: platformToken,
+      body: { planCode: 'control', status: 'active', reason: 'Compras de integración' },
+    });
+    const units = await request<MeasurementUnitResponse[]>('GET', '/catalogs/units', {
+      token: tenant.accessToken,
+    });
+    const piece = units.body.find(({ name }) => name === 'Pieza')!;
+    const product = await request<ConceptResponse>('POST', '/catalogs/concepts', {
+      token: tenant.accessToken,
+      body: {
+        kind: 'product',
+        sku: 'COM-001',
+        name: 'Filtro para compra',
+        unitId: piece.id,
+        cost: 0,
+        price: 180,
+        tracksInventory: true,
+      },
+    });
+
+    const created = await request<PurchaseResponse>('POST', '/purchases', {
+      token: tenant.accessToken,
+      body: {
+        reference: 'FAC-1001',
+        notes: 'Entrega completa',
+        items: [{ productId: product.body.id, quantity: 3, unitCost: 105.5 }],
+      },
+    });
+    expect(created.status).toBe(201);
+    expect(created.body).toMatchObject({
+      folio: '1',
+      status: 'draft',
+      supplier: { commercialName: 'Proveedor general', isDefault: true },
+      reference: 'FAC-1001',
+      notes: 'Entrega completa',
+      total: '316.50',
+      itemCount: 1,
+      items: [
+        {
+          productId: product.body.id,
+          productName: 'Filtro para compra',
+          quantity: '3.000',
+          unitCost: '105.50',
+          amount: '316.50',
+        },
+      ],
+    });
+    expect(
+      (
+        await request<InventoryProductResponse>('GET', `/inventory/products/${product.body.id}`, {
+          token: tenant.accessToken,
+        })
+      ).body.stock,
+    ).toBe('0.000');
+
+    const edited = await request<PurchaseResponse>('PATCH', `/purchases/${created.body.id}`, {
+      token: tenant.accessToken,
+      body: {
+        notes: null,
+        items: [{ productId: product.body.id, quantity: 4, unitCost: 95 }],
+      },
+    });
+    expect(edited.body).toMatchObject({ total: '380.00', notes: null });
+
+    const confirmed = await request<PurchaseResponse>(
+      'POST',
+      `/purchases/${created.body.id}/status`,
+      { token: tenant.accessToken, body: { status: 'confirmed' } },
+    );
+    expect(confirmed.status).toBe(200);
+    expect(confirmed.body.status).toBe('confirmed');
+    expect(confirmed.body.confirmedAt).not.toBeNull();
+    const stock = await request<InventoryProductResponse>(
+      'GET',
+      `/inventory/products/${product.body.id}`,
+      { token: tenant.accessToken },
+    );
+    expect(stock.body).toMatchObject({ stock: '4.000', lastCost: '95.00' });
+    const lots = await request<InventoryLotResponse[]>(
+      'GET',
+      `/inventory/products/${product.body.id}/lots`,
+      { token: tenant.accessToken },
+    );
+    expect(lots.body).toEqual([
+      expect.objectContaining({
+        receivedQuantity: '4.000',
+        remainingQuantity: '4.000',
+        unitCost: '95.00',
+        sourceType: 'purchase',
+        sourceReference: 'Compra #1',
+      }),
+    ]);
+    expect(
+      (
+        await request<unknown>('PATCH', `/purchases/${created.body.id}`, {
+          token: tenant.accessToken,
+          body: { reference: 'NO-EDITABLE' },
+        })
+      ).status,
+    ).toBe(400);
+
+    const cancelled = await request<PurchaseResponse>(
+      'POST',
+      `/purchases/${created.body.id}/status`,
+      { token: tenant.accessToken, body: { status: 'cancelled' } },
+    );
+    expect(cancelled.body.status).toBe('cancelled');
+    expect(cancelled.body.cancelledAt).not.toBeNull();
+    const emptyStock = await request<InventoryProductResponse>(
+      'GET',
+      `/inventory/products/${product.body.id}`,
+      { token: tenant.accessToken },
+    );
+    expect(emptyStock.body.stock).toBe('0.000');
+
+    const second = await request<PurchaseResponse>('POST', '/purchases', {
+      token: tenant.accessToken,
+      body: { items: [{ productId: product.body.id, quantity: 1, unitCost: 100 }] },
+    });
+    expect(second.body.folio).toBe('2');
+    const draftCancelled = await request<PurchaseResponse>(
+      'POST',
+      `/purchases/${second.body.id}/status`,
+      { token: tenant.accessToken, body: { status: 'cancelled' } },
+    );
+    expect(draftCancelled.body.status).toBe('cancelled');
+
+    const listed = await request<{ totalItems: number; items: PurchaseResponse[] }>(
+      'GET',
+      '/purchases?search=FAC-1001&status=cancelled',
+      { token: tenant.accessToken },
+    );
+    expect(listed.status).toBe(200);
+    expect(listed.body.totalItems).toBe(1);
+    expect(listed.body.items[0]?.id).toBe(created.body.id);
   });
 
   it('administra existencias, entradas, salidas, ajustes e historial de inventario', async () => {
