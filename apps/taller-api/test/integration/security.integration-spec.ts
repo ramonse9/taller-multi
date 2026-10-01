@@ -19,6 +19,7 @@ import { SubscriptionPlans1700000008000 } from '../../src/database/migrations/pu
 import { BasicServiceOrders1700000009000 } from '../../src/database/migrations/public/1700000009000-basic-service-orders';
 import { SimplifiedOrderStatuses1700000010000 } from '../../src/database/migrations/public/1700000010000-simplified-order-statuses';
 import { ConceptCatalog1700000011000 } from '../../src/database/migrations/public/1700000011000-concept-catalog';
+import { Inventory1700000012000 } from '../../src/database/migrations/public/1700000012000-inventory';
 import { quoteIdentifier } from '../../src/database/schema-name';
 import { seedPublicCatalogs } from '../../src/database/seeds/public-catalogs.seed';
 
@@ -136,8 +137,33 @@ interface ConceptResponse {
   cost: string;
   price: string;
   tracksInventory: boolean;
+  stock: string;
+  minimumStock: string;
+  isLowStock: boolean;
   satProductServiceCode: string | null;
   isActive: boolean;
+}
+
+interface InventoryMovementResponse {
+  id: string;
+  productId: string;
+  productName: string;
+  type: 'entry' | 'exit' | 'adjustment';
+  quantity: string;
+  previousStock: string;
+  resultingStock: string;
+  unitCost: string | null;
+  reason: string;
+  createdByUserId: string;
+  createdByName: string;
+  createdAt: string;
+}
+
+interface InventoryProductResponse {
+  id: string;
+  stock: string;
+  minimumStock: string;
+  isLowStock: boolean;
 }
 
 interface VehicleResponse {
@@ -224,6 +250,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         BasicServiceOrders1700000009000,
         SimplifiedOrderStatuses1700000010000,
         ConceptCatalog1700000011000,
+        Inventory1700000012000,
       ],
       migrationsTableName: 'public_schema_migrations',
       synchronize: false,
@@ -841,6 +868,168 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       { token: tenant.accessToken },
     );
     expect(inactive.body.items.map(({ id }) => id)).toContain(product.body.id);
+  });
+
+  it('administra existencias, entradas, salidas, ajustes e historial de inventario', async () => {
+    const tenant = await provisionAndLogin('Inventory Integration', 'inventory.admin@test.local');
+    await request<unknown>('PATCH', `/subscriptions/companies/${tenant.company.id}`, {
+      token: platformToken,
+      body: { planCode: 'control', status: 'active', reason: 'Inventario de integración' },
+    });
+    const units = await request<MeasurementUnitResponse[]>('GET', '/catalogs/units', {
+      token: tenant.accessToken,
+    });
+    const piece = units.body.find(({ name }) => name === 'Pieza')!;
+    const serviceUnit = units.body.find(({ name }) => name === 'Servicio')!;
+
+    const product = await request<ConceptResponse>('POST', '/catalogs/concepts', {
+      token: tenant.accessToken,
+      body: {
+        kind: 'product',
+        sku: 'INV-001',
+        name: 'Filtro de aceite',
+        unitId: piece.id,
+        cost: 80,
+        price: 140,
+        tracksInventory: true,
+        minimumStock: 6,
+      },
+    });
+    expect(product.status).toBe(201);
+    expect(product.body).toMatchObject({
+      stock: '0.000',
+      minimumStock: '6.000',
+      isLowStock: true,
+    });
+    const service = await request<ConceptResponse>('POST', '/catalogs/concepts', {
+      token: tenant.accessToken,
+      body: {
+        kind: 'service',
+        sku: 'SERV-001',
+        name: 'Diagnóstico',
+        unitId: serviceUnit.id,
+        cost: 0,
+        price: 350,
+        tracksInventory: false,
+      },
+    });
+
+    const serviceMovement = await request<unknown>('POST', '/inventory/movements', {
+      token: tenant.accessToken,
+      body: {
+        productId: service.body.id,
+        type: 'entry',
+        quantity: 1,
+        reason: 'No debe permitirse',
+      },
+    });
+    expect(serviceMovement.status).toBe(400);
+
+    const entry = await request<InventoryMovementResponse>('POST', '/inventory/movements', {
+      token: tenant.accessToken,
+      body: {
+        productId: product.body.id,
+        type: 'entry',
+        quantity: 10,
+        unitCost: 82.5,
+        reason: 'Compra inicial',
+      },
+    });
+    expect(entry.status).toBe(201);
+    expect(entry.body).toMatchObject({
+      type: 'entry',
+      quantity: '10.000',
+      previousStock: '0.000',
+      resultingStock: '10.000',
+      unitCost: '82.50',
+      reason: 'Compra inicial',
+      createdByUserId: tenant.user.id,
+    });
+
+    const exit = await request<InventoryMovementResponse>('POST', '/inventory/movements', {
+      token: tenant.accessToken,
+      body: {
+        productId: product.body.id,
+        type: 'exit',
+        quantity: 3,
+        reason: 'Uso en orden de prueba',
+      },
+    });
+    expect(exit.body).toMatchObject({
+      type: 'exit',
+      quantity: '-3.000',
+      previousStock: '10.000',
+      resultingStock: '7.000',
+    });
+    expect(
+      (
+        await request<unknown>('POST', '/inventory/movements', {
+          token: tenant.accessToken,
+          body: {
+            productId: product.body.id,
+            type: 'exit',
+            quantity: 8,
+            reason: 'Salida superior a existencia',
+          },
+        })
+      ).status,
+    ).toBe(422);
+    expect(
+      (
+        await request<unknown>('POST', '/inventory/movements', {
+          token: tenant.accessToken,
+          body: {
+            productId: product.body.id,
+            type: 'entry',
+            quantity: 0.5,
+            reason: 'La pieza no acepta decimales',
+          },
+        })
+      ).status,
+    ).toBe(400);
+
+    const adjustment = await request<InventoryMovementResponse>('POST', '/inventory/movements', {
+      token: tenant.accessToken,
+      body: {
+        productId: product.body.id,
+        type: 'adjustment',
+        quantity: -2,
+        reason: 'Diferencia detectada en conteo',
+      },
+    });
+    expect(adjustment.body).toMatchObject({
+      type: 'adjustment',
+      quantity: '-2.000',
+      previousStock: '7.000',
+      resultingStock: '5.000',
+    });
+
+    const stock = await request<InventoryProductResponse>(
+      'GET',
+      `/inventory/products/${product.body.id}`,
+      { token: tenant.accessToken },
+    );
+    expect(stock.body).toMatchObject({
+      stock: '5.000',
+      minimumStock: '6.000',
+      isLowStock: true,
+    });
+    const lowStock = await request<{ totalItems: number; items: InventoryProductResponse[] }>(
+      'GET',
+      '/inventory/products?lowStock=true',
+      { token: tenant.accessToken },
+    );
+    expect(lowStock.body.items.map(({ id }) => id)).toContain(product.body.id);
+
+    const history = await request<{
+      totalItems: number;
+      items: InventoryMovementResponse[];
+    }>('GET', `/inventory/movements?productId=${product.body.id}`, {
+      token: tenant.accessToken,
+    });
+    expect(history.status).toBe(200);
+    expect(history.body.totalItems).toBe(3);
+    expect(history.body.items.map(({ type }) => type)).toEqual(['adjustment', 'exit', 'entry']);
   });
 
   it('administra un catálogo global de marcas y modelos sin duplicados', async () => {

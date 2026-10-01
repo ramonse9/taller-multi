@@ -13,6 +13,7 @@ import { SubscriptionPlans1700000008000 } from './migrations/public/170000000800
 import { BasicServiceOrders1700000009000 } from './migrations/public/1700000009000-basic-service-orders';
 import { SimplifiedOrderStatuses1700000010000 } from './migrations/public/1700000010000-simplified-order-statuses';
 import { ConceptCatalog1700000011000 } from './migrations/public/1700000011000-concept-catalog';
+import { Inventory1700000012000 } from './migrations/public/1700000012000-inventory';
 
 export default new DataSource({
   type: 'postgres',
@@ -32,6 +33,7 @@ export default new DataSource({
     BasicServiceOrders1700000009000,
     SimplifiedOrderStatuses1700000010000,
     ConceptCatalog1700000011000,
+    Inventory1700000012000,
   ],
   migrationsTableName: 'public_schema_migrations',
   synchronize: false,

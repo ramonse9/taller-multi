@@ -44,6 +44,8 @@ interface ConceptRow {
   unit_price: string;
   cost: string;
   tracks_inventory: boolean;
+  stock: string;
+  minimum_stock: string;
   sat_product_service_code: string | null;
   is_active: boolean;
   created_by_user_id: string;
@@ -189,15 +191,15 @@ export class ConceptCatalogService {
   createConcept(user: AuthenticatedUser, input: CreateConceptDto): Promise<ConceptResponseDto> {
     return this.tenant.run(user, async (runner, schemaName) => {
       await this.requireActiveUnit(runner, schemaName, input.unitId);
-      this.assertInventoryKind(input.kind, input.tracksInventory);
+      this.assertInventorySettings(input.kind, input.tracksInventory, input.minimumStock ?? 0, 0);
       const schema = quoteIdentifier(schemaName);
       try {
         const rows = (await runner.query(
           `INSERT INTO ${schema}.products_services(
              kind, sku, name, description, unit_id, cost, unit_price,
-             tracks_inventory, sat_product_service_code,
+             tracks_inventory, minimum_stock, sat_product_service_code,
              created_by_user_id, updated_by_user_id
-           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10)
+           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11)
            RETURNING id`,
           [
             input.kind,
@@ -208,6 +210,7 @@ export class ConceptCatalogService {
             input.cost,
             input.price,
             input.tracksInventory,
+            input.minimumStock ?? 0,
             input.satProductServiceCode ?? null,
             user.id,
           ],
@@ -231,14 +234,15 @@ export class ConceptCatalogService {
       if (input.unitId !== undefined) await this.requireActiveUnit(runner, schemaName, unitId);
       const kind = input.kind ?? current.kind;
       const tracksInventory = input.tracksInventory ?? current.tracks_inventory;
-      this.assertInventoryKind(kind, tracksInventory);
+      const minimumStock = input.minimumStock ?? Number(current.minimum_stock);
+      this.assertInventorySettings(kind, tracksInventory, minimumStock, Number(current.stock));
       try {
         await runner.query(
           `UPDATE ${quoteIdentifier(schemaName)}.products_services SET
              kind = $2, sku = $3, name = $4, description = $5, unit_id = $6,
-             cost = $7, unit_price = $8, tracks_inventory = $9,
-             sat_product_service_code = $10, is_active = $11,
-             updated_by_user_id = $12, updated_at = now()
+             cost = $7, unit_price = $8, tracks_inventory = $9, minimum_stock = $10,
+             sat_product_service_code = $11, is_active = $12,
+             updated_by_user_id = $13, updated_at = now()
            WHERE id = $1`,
           [
             id,
@@ -250,6 +254,7 @@ export class ConceptCatalogService {
             input.cost ?? Number(current.cost),
             input.price ?? Number(current.unit_price),
             tracksInventory,
+            minimumStock,
             input.satProductServiceCode === undefined
               ? current.sat_product_service_code
               : input.satProductServiceCode,
@@ -301,6 +306,7 @@ export class ConceptCatalogService {
   private conceptSelect(schema: string): string {
     return `SELECT concept.id, concept.kind, concept.sku, concept.name, concept.description,
       concept.unit_price, concept.cost, concept.tracks_inventory,
+      concept.stock, concept.minimum_stock,
       concept.sat_product_service_code, concept.is_active,
       concept.created_by_user_id, concept.updated_by_user_id,
       concept.created_at, concept.updated_at,
@@ -314,9 +320,24 @@ export class ConceptCatalogService {
       JOIN ${schema}.measurement_units unit ON unit.id = concept.unit_id`;
   }
 
-  private assertInventoryKind(kind: ConceptKind, tracksInventory: boolean): void {
+  private assertInventorySettings(
+    kind: ConceptKind,
+    tracksInventory: boolean,
+    minimumStock: number,
+    stock: number,
+  ): void {
     if (kind === ConceptKind.Service && tracksInventory) {
       throw new BadRequestException('Un servicio no puede controlar inventario');
+    }
+    if (!tracksInventory && minimumStock !== 0) {
+      throw new BadRequestException(
+        'La existencia mínima solo aplica a productos con control de inventario',
+      );
+    }
+    if (!tracksInventory && stock !== 0) {
+      throw new UnprocessableEntityException(
+        'No se puede desactivar el inventario mientras el producto tenga existencias',
+      );
     }
   }
 
@@ -372,6 +393,12 @@ export class ConceptCatalogService {
       cost: row.cost,
       price: row.unit_price,
       tracksInventory: row.tracks_inventory,
+      stock: row.stock,
+      minimumStock: row.minimum_stock,
+      isLowStock:
+        row.tracks_inventory &&
+        Number(row.minimum_stock) > 0 &&
+        Number(row.stock) <= Number(row.minimum_stock),
       satProductServiceCode: row.sat_product_service_code,
       isActive: row.is_active,
       createdByUserId: row.created_by_user_id,

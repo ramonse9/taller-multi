@@ -136,6 +136,14 @@ export class CreateConceptDto {
   @IsBoolean()
   tracksInventory!: boolean;
 
+  @ApiPropertyOptional({ default: 0, minimum: 0 })
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 3, allowInfinity: false, allowNaN: false })
+  @Min(0)
+  @Max(99999999999.999)
+  minimumStock?: number;
+
   @ApiPropertyOptional({ example: '15121501', nullable: true })
   @Transform(nullableUppercase)
   @IsOptional()
@@ -193,6 +201,10 @@ export class ConceptResponseDto {
   @ApiProperty({ description: 'Decimal entregado como texto' }) cost!: string;
   @ApiProperty({ description: 'Decimal entregado como texto' }) price!: string;
   @ApiProperty() tracksInventory!: boolean;
+  @ApiProperty({ description: 'Existencia decimal entregada como texto' }) stock!: string;
+  @ApiProperty({ description: 'Existencia mínima decimal entregada como texto' })
+  minimumStock!: string;
+  @ApiProperty() isLowStock!: boolean;
   @ApiProperty({ nullable: true, type: String }) satProductServiceCode!: string | null;
   @ApiProperty() isActive!: boolean;
   @ApiProperty({ format: 'uuid' }) createdByUserId!: string;

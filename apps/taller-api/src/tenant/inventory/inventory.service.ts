@@ -1,0 +1,287 @@
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
+import { QueryRunner } from 'typeorm';
+import { AuthenticatedUser } from '../../common/types/authenticated-user';
+import { quoteIdentifier } from '../../database/schema-name';
+import { TenantSessionService } from '../tenant-session.service';
+import {
+  CreateInventoryMovementDto,
+  InventoryMovementQueryDto,
+  InventoryMovementResponseDto,
+  InventoryMovementType,
+  InventoryProductQueryDto,
+  InventoryProductResponseDto,
+  PaginatedInventoryMovementsResponseDto,
+  PaginatedInventoryProductsResponseDto,
+} from './dto/inventory.dto';
+
+interface InventoryProductRow {
+  id: string;
+  sku: string | null;
+  name: string;
+  kind: 'product' | 'service';
+  tracks_inventory: boolean;
+  stock: string;
+  minimum_stock: string;
+  is_active: boolean;
+  unit_id: string;
+  unit_name: string;
+  unit_symbol: string;
+  allows_decimals: boolean;
+}
+
+interface InventoryMovementRow {
+  id: string;
+  product_id: string;
+  product_name: string;
+  product_sku: string | null;
+  movement_type: InventoryMovementType;
+  quantity: string;
+  previous_stock: string;
+  resulting_stock: string;
+  unit_cost: string | null;
+  reason: string;
+  created_by_user_id: string;
+  created_by_name: string;
+  created_at: Date;
+}
+
+@Injectable()
+export class InventoryService {
+  constructor(private readonly tenant: TenantSessionService) {}
+
+  listProducts(
+    user: AuthenticatedUser,
+    query: InventoryProductQueryDto,
+  ): Promise<PaginatedInventoryProductsResponseDto> {
+    return this.tenant.run(user, async (runner, schemaName) => {
+      const schema = quoteIdentifier(schemaName);
+      const search = `%${this.escapeLike(query.search.trim())}%`;
+      const lowStock = query.lowStock ?? null;
+      const parameters = [query.isActive, search, lowStock];
+      const where = `concept.tracks_inventory = true AND concept.is_active = $1
+        AND ($2 = '%%' OR concept.name ILIKE $2 ESCAPE '\\'
+          OR COALESCE(concept.sku, '') ILIKE $2 ESCAPE '\\')
+        AND ($3::boolean IS NULL OR
+          (concept.minimum_stock > 0 AND concept.stock <= concept.minimum_stock) = $3)`;
+      const countRows = (await runner.query(
+        `SELECT count(*)::int AS total
+         FROM ${schema}.products_services concept WHERE ${where}`,
+        parameters,
+      )) as Array<{ total: number }>;
+      const totalItems = countRows[0]?.total ?? 0;
+      const offset = (query.page - 1) * query.limit;
+      const rows = (await runner.query(
+        `${this.productSelect(schema)} WHERE ${where}
+         ORDER BY concept.name, concept.id LIMIT $4 OFFSET $5`,
+        [...parameters, query.limit, offset],
+      )) as InventoryProductRow[];
+      return {
+        page: query.page,
+        limit: query.limit,
+        totalItems,
+        totalPages: totalItems === 0 ? 0 : Math.ceil(totalItems / query.limit),
+        hasNextPage: offset + rows.length < totalItems,
+        items: rows.map((row) => this.toProduct(row)),
+      };
+    });
+  }
+
+  getProduct(user: AuthenticatedUser, id: string): Promise<InventoryProductResponseDto> {
+    return this.tenant.run(user, async (runner, schemaName) => {
+      const product = await this.findProduct(runner, schemaName, id);
+      if (!product || !product.tracks_inventory) {
+        throw new NotFoundException('Producto con inventario no encontrado');
+      }
+      return this.toProduct(product);
+    });
+  }
+
+  listMovements(
+    user: AuthenticatedUser,
+    query: InventoryMovementQueryDto,
+  ): Promise<PaginatedInventoryMovementsResponseDto> {
+    return this.tenant.run(user, async (runner, schemaName) => {
+      const schema = quoteIdentifier(schemaName);
+      const parameters = [query.productId ?? null, query.type ?? null];
+      const where = `($1::uuid IS NULL OR movement.product_id = $1)
+        AND ($2::varchar IS NULL OR movement.movement_type = $2)`;
+      const countRows = (await runner.query(
+        `SELECT count(*)::int AS total
+         FROM ${schema}.inventory_movements movement WHERE ${where}`,
+        parameters,
+      )) as Array<{ total: number }>;
+      const totalItems = countRows[0]?.total ?? 0;
+      const offset = (query.page - 1) * query.limit;
+      const rows = (await runner.query(
+        `${this.movementSelect(schema)} WHERE ${where}
+         ORDER BY movement.created_at DESC, movement.id DESC LIMIT $3 OFFSET $4`,
+        [...parameters, query.limit, offset],
+      )) as InventoryMovementRow[];
+      return {
+        page: query.page,
+        limit: query.limit,
+        totalItems,
+        totalPages: totalItems === 0 ? 0 : Math.ceil(totalItems / query.limit),
+        hasNextPage: offset + rows.length < totalItems,
+        items: rows.map((row) => this.toMovement(row)),
+      };
+    });
+  }
+
+  createMovement(
+    user: AuthenticatedUser,
+    input: CreateInventoryMovementDto,
+  ): Promise<InventoryMovementResponseDto> {
+    return this.tenant.run(user, async (runner, schemaName) => {
+      const schema = quoteIdentifier(schemaName);
+      const product = await this.lockProduct(runner, schema, input.productId);
+      if (!product) throw new NotFoundException('Producto no encontrado');
+      if (product.kind === 'service') {
+        throw new BadRequestException('Los servicios no pueden tener movimientos de inventario');
+      }
+      if (!product.tracks_inventory) {
+        throw new BadRequestException('El producto no controla inventario');
+      }
+      if (!product.is_active)
+        throw new UnprocessableEntityException('El producto está desactivado');
+      if (!product.allows_decimals && !Number.isInteger(input.quantity)) {
+        throw new BadRequestException('La unidad del producto no permite cantidades decimales');
+      }
+      if (input.type !== InventoryMovementType.Adjustment && input.quantity <= 0) {
+        throw new BadRequestException('Las entradas y salidas requieren una cantidad positiva');
+      }
+      if (input.type !== InventoryMovementType.Entry && input.unitCost !== undefined) {
+        throw new BadRequestException('El costo unitario solo aplica a movimientos de entrada');
+      }
+      const delta = input.type === InventoryMovementType.Exit ? -input.quantity : input.quantity;
+      const updated = (await runner.query(
+        `UPDATE ${schema}.products_services
+         SET stock = stock + $2, updated_by_user_id = $3, updated_at = now()
+         WHERE id = $1 AND stock + $2 >= 0
+         RETURNING (stock - $2)::text AS previous_stock, stock::text AS resulting_stock`,
+        [input.productId, delta, user.id],
+      )) as [Array<{ previous_stock: string; resulting_stock: string }>, number];
+      const balance = updated[0][0];
+      if (!balance) {
+        throw new UnprocessableEntityException('La salida supera la existencia disponible');
+      }
+      const inserted = (await runner.query(
+        `INSERT INTO ${schema}.inventory_movements(
+           product_id, movement_type, quantity, previous_stock, resulting_stock,
+           unit_cost, reason, created_by_user_id
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+        [
+          input.productId,
+          input.type,
+          delta,
+          balance.previous_stock,
+          balance.resulting_stock,
+          input.unitCost ?? null,
+          input.reason,
+          user.id,
+        ],
+      )) as Array<{ id: string }>;
+      const movement = await this.findMovement(runner, schema, inserted[0]!.id);
+      if (!movement) throw new Error('No se pudo registrar el movimiento');
+      return this.toMovement(movement);
+    });
+  }
+
+  private async findProduct(
+    runner: QueryRunner,
+    schemaName: string,
+    id: string,
+  ): Promise<InventoryProductRow | undefined> {
+    const schema = quoteIdentifier(schemaName);
+    const rows = (await runner.query(`${this.productSelect(schema)} WHERE concept.id = $1`, [
+      id,
+    ])) as InventoryProductRow[];
+    return rows[0];
+  }
+
+  private async lockProduct(
+    runner: QueryRunner,
+    schema: string,
+    id: string,
+  ): Promise<InventoryProductRow | undefined> {
+    const rows = (await runner.query(
+      `${this.productSelect(schema)} WHERE concept.id = $1 FOR UPDATE OF concept`,
+      [id],
+    )) as InventoryProductRow[];
+    return rows[0];
+  }
+
+  private async findMovement(
+    runner: QueryRunner,
+    schema: string,
+    id: string,
+  ): Promise<InventoryMovementRow | undefined> {
+    const rows = (await runner.query(`${this.movementSelect(schema)} WHERE movement.id = $1`, [
+      id,
+    ])) as InventoryMovementRow[];
+    return rows[0];
+  }
+
+  private productSelect(schema: string): string {
+    return `SELECT concept.id, concept.sku, concept.name, concept.kind,
+      concept.tracks_inventory, concept.stock, concept.minimum_stock, concept.is_active,
+      unit.id AS unit_id, unit.name AS unit_name, unit.symbol AS unit_symbol,
+      unit.allows_decimals
+      FROM ${schema}.products_services concept
+      JOIN ${schema}.measurement_units unit ON unit.id = concept.unit_id`;
+  }
+
+  private movementSelect(schema: string): string {
+    return `SELECT movement.id, movement.product_id, concept.name AS product_name,
+      concept.sku AS product_sku, movement.movement_type, movement.quantity,
+      movement.previous_stock, movement.resulting_stock, movement.unit_cost,
+      movement.reason, movement.created_by_user_id,
+      platform_user.full_name AS created_by_name, movement.created_at
+      FROM ${schema}.inventory_movements movement
+      JOIN ${schema}.products_services concept ON concept.id = movement.product_id
+      JOIN public.users platform_user ON platform_user.id = movement.created_by_user_id`;
+  }
+
+  private escapeLike(value: string): string {
+    return value.replaceAll('\\', '\\\\').replaceAll('%', '\\%').replaceAll('_', '\\_');
+  }
+
+  private toProduct(row: InventoryProductRow): InventoryProductResponseDto {
+    return {
+      id: row.id,
+      sku: row.sku,
+      name: row.name,
+      unitId: row.unit_id,
+      unitName: row.unit_name,
+      unitSymbol: row.unit_symbol,
+      allowsDecimals: row.allows_decimals,
+      stock: row.stock,
+      minimumStock: row.minimum_stock,
+      isLowStock: Number(row.minimum_stock) > 0 && Number(row.stock) <= Number(row.minimum_stock),
+      isActive: row.is_active,
+    };
+  }
+
+  private toMovement(row: InventoryMovementRow): InventoryMovementResponseDto {
+    return {
+      id: row.id,
+      productId: row.product_id,
+      productName: row.product_name,
+      productSku: row.product_sku,
+      type: row.movement_type,
+      quantity: row.quantity,
+      previousStock: row.previous_stock,
+      resultingStock: row.resulting_stock,
+      unitCost: row.unit_cost,
+      reason: row.reason,
+      createdByUserId: row.created_by_user_id,
+      createdByName: row.created_by_name,
+      createdAt: row.created_at,
+    };
+  }
+}

@@ -8,7 +8,7 @@ export interface TenantMigration {
   up(queryRunner: QueryRunner, schemaName: string): Promise<void>;
 }
 
-export const TENANT_BASE_VERSION = 6;
+export const TENANT_BASE_VERSION = 7;
 export const TENANT_BASE_NAME = 'tenant-base';
 
 /**
@@ -88,6 +88,8 @@ export class TenantMigrator {
           CHECK (sat_product_service_code IS NULL OR sat_product_service_code ~ '^[0-9]{8}$'),
         unit_price numeric(14,2) NOT NULL DEFAULT 0 CHECK (unit_price >= 0),
         cost numeric(14,2) NOT NULL DEFAULT 0 CHECK (cost >= 0),
+        stock numeric(14,3) NOT NULL DEFAULT 0 CHECK (stock >= 0),
+        minimum_stock numeric(14,3) NOT NULL DEFAULT 0 CHECK (minimum_stock >= 0),
         tracks_inventory boolean NOT NULL DEFAULT false CHECK (kind = 'product' OR tracks_inventory = false),
         is_active boolean NOT NULL DEFAULT true,
         created_by_user_id uuid NOT NULL REFERENCES public.users(id),
@@ -98,6 +100,9 @@ export class TenantMigrator {
       `CREATE UNIQUE INDEX products_services_sku_unique
        ON ${s}.products_services(lower(sku)) WHERE sku IS NOT NULL`,
       `CREATE INDEX products_services_name_idx ON ${s}.products_services(lower(name))`,
+      `CREATE INDEX products_services_low_stock_idx
+       ON ${s}.products_services(stock, minimum_stock)
+       WHERE tracks_inventory = true AND is_active = true`,
       `CREATE TABLE ${s}.orders (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
         folio bigint GENERATED ALWAYS AS IDENTITY UNIQUE,
@@ -168,9 +173,17 @@ export class TenantMigrator {
       `CREATE TABLE ${s}.inventory_movements (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(), product_id uuid NOT NULL REFERENCES ${s}.products_services(id),
         lot_id uuid REFERENCES ${s}.inventory_lots(id), order_item_id uuid REFERENCES ${s}.order_items(id),
-        movement_type varchar(20) NOT NULL CHECK (movement_type IN ('purchase','sale','adjustment','return')),
-        quantity numeric(12,3) NOT NULL CHECK (quantity <> 0), unit_cost numeric(14,2), reason varchar(250),
+        movement_type varchar(20) NOT NULL CHECK (movement_type IN ('entry','exit','adjustment')),
+        quantity numeric(12,3) NOT NULL,
+        previous_stock numeric(14,3) NOT NULL CHECK (previous_stock >= 0),
+        resulting_stock numeric(14,3) NOT NULL CHECK (resulting_stock >= 0),
+        unit_cost numeric(14,2) CHECK (unit_cost IS NULL OR unit_cost >= 0), reason varchar(250) NOT NULL,
         created_by_user_id uuid NOT NULL REFERENCES public.users(id), created_at timestamptz NOT NULL DEFAULT now()
+        ,CHECK (
+          (movement_type = 'entry' AND quantity > 0) OR
+          (movement_type = 'exit' AND quantity < 0) OR
+          (movement_type = 'adjustment' AND quantity <> 0)
+        )
       )`,
       `CREATE INDEX inventory_movements_product_date_idx ON ${s}.inventory_movements(product_id, created_at DESC)`,
       `CREATE TABLE ${s}.quotes (

@@ -9,6 +9,8 @@ import { OrdersController } from './orders/orders.controller';
 import { OrdersService } from './orders/orders.service';
 import { ConceptCatalogController } from './concept-catalog/concept-catalog.controller';
 import { ConceptCatalogService } from './concept-catalog/concept-catalog.service';
+import { InventoryController } from './inventory/inventory.controller';
+import { InventoryService } from './inventory/inventory.service';
 
 @Global()
 @Module({
@@ -19,6 +21,7 @@ import { ConceptCatalogService } from './concept-catalog/concept-catalog.service
     VehicleHistoryController,
     OrdersController,
     ConceptCatalogController,
+    InventoryController,
   ],
   providers: [
     TenantSessionService,
@@ -26,6 +29,7 @@ import { ConceptCatalogService } from './concept-catalog/concept-catalog.service
     VehiclesService,
     OrdersService,
     ConceptCatalogService,
+    InventoryService,
   ],
   exports: [TenantSessionService],
 })
