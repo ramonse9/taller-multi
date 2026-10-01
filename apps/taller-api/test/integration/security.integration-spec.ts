@@ -21,6 +21,7 @@ import { SimplifiedOrderStatuses1700000010000 } from '../../src/database/migrati
 import { ConceptCatalog1700000011000 } from '../../src/database/migrations/public/1700000011000-concept-catalog';
 import { Inventory1700000012000 } from '../../src/database/migrations/public/1700000012000-inventory';
 import { OrderCatalogIntegration1700000013000 } from '../../src/database/migrations/public/1700000013000-order-catalog-integration';
+import { RemoveHourUnit1700000014000 } from '../../src/database/migrations/public/1700000014000-remove-hour-unit';
 import { quoteIdentifier } from '../../src/database/schema-name';
 import { seedPublicCatalogs } from '../../src/database/seeds/public-catalogs.seed';
 
@@ -262,6 +263,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         ConceptCatalog1700000011000,
         Inventory1700000012000,
         OrderCatalogIntegration1700000013000,
+        RemoveHourUnit1700000014000,
       ],
       migrationsTableName: 'public_schema_migrations',
       synchronize: false,
@@ -781,6 +783,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         expect.objectContaining({ name: 'Servicio', satCode: 'E48' }),
       ]),
     );
+    expect(units.body.map(({ name }) => name)).not.toContain('Hora');
 
     const customUnit = await request<MeasurementUnitResponse>('POST', '/catalogs/units', {
       token: tenant.accessToken,

@@ -78,7 +78,7 @@ export class TenantMigrator {
       `CREATE UNIQUE INDEX measurement_units_symbol_unique ON ${s}.measurement_units(lower(symbol))`,
       `INSERT INTO ${s}.measurement_units(name, symbol, sat_code, allows_decimals) VALUES
         ('Pieza', 'pza', 'H87', false), ('Servicio', 'serv', 'E48', true),
-        ('Litro', 'L', 'LTR', true), ('Hora', 'h', 'HUR', true)`,
+        ('Litro', 'L', 'LTR', true)`,
       `CREATE TABLE ${s}.products_services (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
         kind varchar(10) NOT NULL CHECK (kind IN ('product','service')),

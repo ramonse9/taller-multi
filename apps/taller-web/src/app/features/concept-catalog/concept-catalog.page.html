@@ -1,0 +1,580 @@
+<main
+  class="min-h-screen bg-[#f9f7f0] text-[#17251e] dark:bg-[#101713] dark:text-[#edf3ef]"
+>
+  <header
+    class="flex flex-wrap items-end justify-between gap-5 border-b border-[#dcd9cf] px-[clamp(1.5rem,5vw,5rem)] py-8 dark:border-[#34423a]"
+  >
+    <div>
+      <p class="eyebrow">CONTROL / CATÁLOGO</p>
+      <h1
+        class="m-0 font-[var(--display)] text-[clamp(2.4rem,5vw,4.5rem)] font-semibold leading-[.9] tracking-[-.05em]"
+      >
+        Productos y servicios
+      </h1>
+      <p class="mt-3 text-sm text-[#68746d] dark:text-[#aab7af]">
+        Precios, costos, unidades y configuración de inventario.
+      </p>
+    </div>
+    <div class="flex items-center gap-2">
+      <button class="theme-toggle" type="button" (click)="theme.toggle()">
+        {{ theme.isDark() ? '☀' : '◐' }}
+      </button>
+      <button class="primary" type="button" (click)="openConceptEditor()">
+        ＋ Nuevo concepto
+      </button>
+    </div>
+  </header>
+
+  <section class="px-[clamp(1.5rem,5vw,5rem)] pb-16 pt-8">
+    @if (notice()) {
+    <div
+      class="mb-4 bg-[#e7f2eb] px-4 py-3 text-sm text-[#245b3b] dark:bg-[#203c2c] dark:text-[#9ed5b3]"
+      role="status"
+    >
+      ✓ {{ notice() }}
+    </div>
+    } @if (error()) {
+    <div
+      class="mb-4 bg-[#fff0ea] px-4 py-3 text-sm text-[#8e3214] dark:bg-[#4a241b] dark:text-[#ffb89d]"
+      role="alert"
+    >
+      {{ error() }}
+    </div>
+    }
+
+    <div class="grid items-start gap-6 xl:grid-cols-[minmax(0,1.6fr)_23rem]">
+      <section class="form-card-tw overflow-hidden">
+        <header class="form-card-header flex-wrap justify-between">
+          <div class="flex items-center gap-3">
+            <span class="section-number">01</span>
+            <div>
+              <h2 class="section-title">Conceptos</h2>
+              <p class="section-copy">{{ concepts().totalItems }} resultados</p>
+            </div>
+          </div>
+          <button
+            class="small-action-tw"
+            type="button"
+            (click)="openConceptEditor()"
+          >
+            Agregar
+          </button>
+        </header>
+        <div
+          class="grid gap-3 border-b border-[#dcd9cf] p-4 sm:grid-cols-[1fr_11rem] dark:border-[#3d4d44]"
+        >
+          <input
+            class="field-control"
+            type="search"
+            [formControl]="search"
+            placeholder="Buscar por nombre, SKU o descripción"
+          />
+          <select class="field-control" [formControl]="kind">
+            <option value="">Productos y servicios</option>
+            <option value="product">Productos</option>
+            <option value="service">Servicios</option>
+          </select>
+          <div
+            class="segments-tw sm:col-span-2"
+            aria-label="Estado de conceptos"
+          >
+            <button
+              type="button"
+              [class.segment-selected]="active()"
+              (click)="filterConcepts(true)"
+            >
+              Activos
+            </button>
+            <button
+              type="button"
+              [class.segment-selected]="!active()"
+              (click)="filterConcepts(false)"
+            >
+              Inactivos
+            </button>
+          </div>
+        </div>
+
+        <div class="relative min-h-72" [class.opacity-50]="loading()">
+          <div
+            class="divide-y divide-[#ece9df] lg:hidden dark:divide-[#35433b]"
+          >
+            @for (concept of concepts().items; track concept.id) {
+            <article class="p-5">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <span class="detail-label"
+                    >{{ concept.kind === 'product' ? 'PRODUCTO' : 'SERVICIO'
+                    }}</span
+                  >
+                  <strong class="mt-1 block">{{ concept.name }}</strong>
+                  <small class="text-[#68746d] dark:text-[#aab7af]"
+                    >{{ concept.sku || 'Sin SKU' }} · {{ concept.unit.symbol
+                    }}</small
+                  >
+                </div>
+                @if (concept.isLowStock) {
+                <span
+                  class="bg-[#fff0ea] px-2 py-1 text-xs font-bold text-[#a63725] dark:bg-[#4a241b] dark:text-[#ff9e8c]"
+                  >Inventario bajo</span
+                >
+                }
+              </div>
+              <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
+                <span
+                  >Costo
+                  <strong class="block">{{ money(concept.cost) }}</strong></span
+                >
+                <span
+                  >Precio
+                  <strong class="block"
+                    >{{ money(concept.price) }}</strong
+                  ></span
+                >
+                @if (concept.tracksInventory) {
+                <span
+                  >Existencia
+                  <strong class="block"
+                    >{{ concept.stock }} {{ concept.unit.symbol }}</strong
+                  ></span
+                >
+                <span
+                  >Mínimo
+                  <strong class="block"
+                    >{{ concept.minimumStock }}</strong
+                  ></span
+                >
+                }
+              </div>
+              <div class="mt-4 flex gap-4 text-xs font-bold">
+                <button
+                  class="bg-transparent p-0 text-[#b94718] dark:text-[#ff9a6f]"
+                  type="button"
+                  (click)="openConceptEditor(concept)"
+                >
+                  Editar
+                </button>
+                <button
+                  class="bg-transparent p-0 text-[#68746d] dark:text-[#aab7af]"
+                  type="button"
+                  (click)="changeConceptStatus(concept)"
+                >
+                  {{ concept.isActive ? 'Desactivar' : 'Reactivar' }}
+                </button>
+              </div>
+            </article>
+            } @empty { @if (!loading()) {
+            <p
+              class="p-10 text-center text-sm text-[#68746d] dark:text-[#aab7af]"
+            >
+              No hay conceptos que coincidan.
+            </p>
+            } }
+          </div>
+
+          <div class="hidden overflow-x-auto lg:block">
+            <table class="w-full min-w-[760px] border-collapse text-left">
+              <thead
+                class="bg-[#f2f0e9] font-[var(--mono)] text-[.62rem] uppercase tracking-[.09em] text-[#68746d] dark:bg-[#222f27] dark:text-[#aab7af]"
+              >
+                <tr>
+                  <th class="p-4">Concepto</th>
+                  <th class="p-4">Unidad</th>
+                  <th class="p-4 text-right">Costo</th>
+                  <th class="p-4 text-right">Precio</th>
+                  <th class="p-4">Inventario</th>
+                  <th class="p-4"></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (concept of concepts().items; track concept.id) {
+                <tr class="border-t border-[#ece9df] dark:border-[#35433b]">
+                  <td class="p-4">
+                    <strong class="block">{{ concept.name }}</strong
+                    ><small class="text-[#68746d] dark:text-[#aab7af]"
+                      >{{ concept.sku || 'Sin SKU' }} · {{ concept.kind ===
+                      'product' ? 'Producto' : 'Servicio' }}</small
+                    >
+                  </td>
+                  <td class="p-4">
+                    {{ concept.unit.name }}
+                    <small class="block text-[#68746d] dark:text-[#aab7af]"
+                      >{{ concept.unit.symbol }}</small
+                    >
+                  </td>
+                  <td class="p-4 text-right">{{ money(concept.cost) }}</td>
+                  <td class="p-4 text-right">
+                    <strong>{{ money(concept.price) }}</strong>
+                  </td>
+                  <td class="p-4">
+                    @if (concept.tracksInventory) {
+                    <strong
+                      [class.text-[#a63725]]="concept.isLowStock"
+                      [class.dark:text-[#ff9e8c]]="concept.isLowStock"
+                      >{{ concept.stock }}</strong
+                    ><small class="block text-[#68746d] dark:text-[#aab7af]"
+                      >Mín. {{ concept.minimumStock }}</small
+                    >
+                    } @else { <span class="text-[#879089]">No controla</span> }
+                  </td>
+                  <td class="p-4 text-right">
+                    <button
+                      class="bg-transparent p-0 text-xs text-[#b94718] dark:text-[#ff9a6f]"
+                      type="button"
+                      (click)="openConceptEditor(concept)"
+                    >
+                      Editar</button
+                    ><button
+                      class="ml-3 bg-transparent p-0 text-xs text-[#68746d] dark:text-[#aab7af]"
+                      type="button"
+                      (click)="changeConceptStatus(concept)"
+                    >
+                      {{ concept.isActive ? 'Desactivar' : 'Reactivar' }}
+                    </button>
+                  </td>
+                </tr>
+                } @empty { @if (!loading()) {
+                <tr>
+                  <td
+                    class="p-12 text-center text-[#68746d] dark:text-[#aab7af]"
+                    colspan="6"
+                  >
+                    No hay conceptos que coincidan.
+                  </td>
+                </tr>
+                } }
+              </tbody>
+            </table>
+          </div>
+          @if (loading()) {
+          <div class="loader-tw" aria-label="Cargando">
+            <span></span><span></span><span></span>
+          </div>
+          }
+        </div>
+        <footer class="pagination-tw">
+          <span
+            >Página {{ concepts().page }} de {{ concepts().totalPages || 1
+            }}</span
+          >
+          <div>
+            <button
+              type="button"
+              [disabled]="concepts().page <= 1"
+              (click)="loadConcepts(concepts().page - 1)"
+            >
+              ←</button
+            ><button
+              type="button"
+              [disabled]="!concepts().hasNextPage"
+              (click)="loadConcepts(concepts().page + 1)"
+            >
+              →
+            </button>
+          </div>
+        </footer>
+      </section>
+
+      <aside class="form-card-tw overflow-hidden">
+        <header class="form-card-header justify-between">
+          <div class="flex items-center gap-3">
+            <span class="section-number">02</span>
+            <div>
+              <h2 class="section-title">Unidades</h2>
+              <p class="section-copy">{{ units().length }} registradas</p>
+            </div>
+          </div>
+          <button
+            class="small-action-tw"
+            type="button"
+            (click)="openUnitEditor()"
+          >
+            Agregar
+          </button>
+        </header>
+        <div class="segments-tw m-4" aria-label="Estado de unidades">
+          <button
+            type="button"
+            [class.segment-selected]="unitActive()"
+            (click)="filterUnits(true)"
+          >
+            Activas</button
+          ><button
+            type="button"
+            [class.segment-selected]="!unitActive()"
+            (click)="filterUnits(false)"
+          >
+            Inactivas
+          </button>
+        </div>
+        <div
+          class="relative min-h-48 divide-y divide-[#ece9df] dark:divide-[#35433b]"
+          [class.opacity-50]="loadingUnits()"
+        >
+          @for (unit of units(); track unit.id) {
+          <article class="flex items-center justify-between gap-3 p-4">
+            <div>
+              <strong class="block">{{ unit.name }}</strong
+              ><small class="text-[#68746d] dark:text-[#aab7af]"
+                >{{ unit.symbol }} · SAT {{ unit.satCode || 'Sin clave' }} · {{
+                unit.allowsDecimals ? 'Acepta decimales' : 'Solo enteros'
+                }}</small
+              >
+            </div>
+            <div class="shrink-0 text-right">
+              <button
+                class="block bg-transparent p-0 text-xs text-[#b94718] dark:text-[#ff9a6f]"
+                type="button"
+                (click)="openUnitEditor(unit)"
+              >
+                Editar</button
+              ><button
+                class="mt-2 bg-transparent p-0 text-xs text-[#68746d] dark:text-[#aab7af]"
+                type="button"
+                (click)="changeUnitStatus(unit)"
+              >
+                {{ unit.isActive ? 'Desactivar' : 'Reactivar' }}
+              </button>
+            </div>
+          </article>
+          } @empty { @if (!loadingUnits()) {
+          <p class="p-8 text-center text-sm text-[#68746d] dark:text-[#aab7af]">
+            No hay unidades en este estado.
+          </p>
+          } } @if (loadingUnits()) {
+          <div class="loader-tw" aria-label="Cargando">
+            <span></span><span></span><span></span>
+          </div>
+          }
+        </div>
+      </aside>
+    </div>
+  </section>
+</main>
+
+@if (conceptEditorOpen()) {
+<div class="dialog-backdrop" role="presentation" (click)="closeConceptEditor()">
+  <section
+    class="dialog-tw max-h-[92vh] max-w-3xl overflow-y-auto"
+    role="dialog"
+    aria-modal="true"
+    (click)="$event.stopPropagation()"
+  >
+    <p class="eyebrow">
+      {{ editingConcept() ? 'EDITAR CONCEPTO' : 'NUEVO CONCEPTO' }}
+    </p>
+    <h2>
+      {{ editingConcept() ? 'Actualizar producto o servicio' : 'Registrar
+      producto o servicio' }}
+    </h2>
+    @if (error()) {
+    <div class="dialog-error-tw" role="alert">{{ error() }}</div>
+    }
+    <form
+      class="mt-6 grid gap-4 sm:grid-cols-2"
+      [formGroup]="conceptForm"
+      (ngSubmit)="saveConcept()"
+      novalidate
+    >
+      <div>
+        <label class="field-label" for="concept-kind">Tipo <b>*</b></label
+        ><select
+          class="field-control"
+          id="concept-kind"
+          formControlName="kind"
+          (change)="conceptKindChanged()"
+        >
+          <option value="product">Producto</option>
+          <option value="service">Servicio</option>
+        </select>
+      </div>
+      <div>
+        <label class="field-label" for="concept-sku">SKU</label
+        ><input
+          class="field-control uppercase"
+          id="concept-sku"
+          formControlName="sku"
+          placeholder="FIL-ACE-001"
+        />
+      </div>
+      <div class="sm:col-span-2">
+        <label class="field-label" for="concept-name">Nombre <b>*</b></label
+        ><input
+          class="field-control"
+          id="concept-name"
+          formControlName="name"
+          placeholder="Filtro de aceite"
+        />
+      </div>
+      <div class="sm:col-span-2">
+        <label class="field-label" for="concept-description">Descripción</label
+        ><textarea
+          class="field-control min-h-20"
+          id="concept-description"
+          formControlName="description"
+        ></textarea>
+      </div>
+      <div>
+        <label class="field-label" for="concept-unit">Unidad <b>*</b></label
+        ><select
+          class="field-control"
+          id="concept-unit"
+          formControlName="unitId"
+        >
+          <option value="">Seleccionar unidad</option>
+          @for (unit of conceptUnits(); track unit.id) {
+          <option [value]="unit.id">{{ unit.name }} ({{ unit.symbol }})</option>
+          }
+        </select>
+        @if (conceptForm.controls.kind.value === 'service') {
+        <small class="field-hint"
+          >Los servicios utilizan automáticamente la unidad Servicio
+          (serv).</small
+        >
+        }
+      </div>
+      <div>
+        <label class="field-label" for="concept-sat">Clave SAT</label
+        ><input
+          class="field-control"
+          id="concept-sat"
+          formControlName="satProductServiceCode"
+          maxlength="8"
+          placeholder="15121501"
+        />
+      </div>
+      <div>
+        <label class="field-label" for="concept-cost">Costo <b>*</b></label
+        ><input
+          class="field-control"
+          id="concept-cost"
+          type="text"
+          inputmode="decimal"
+          autocomplete="off"
+          formControlName="cost"
+          (input)="formatDecimal('cost')"
+        />
+        @if (conceptForm.controls.cost.touched &&
+        conceptForm.controls.cost.invalid) {
+        <small class="field-error"
+          >Usa solo números, un punto y hasta dos decimales.</small
+        >
+        }
+      </div>
+      <div>
+        <label class="field-label" for="concept-price">Precio <b>*</b></label
+        ><input
+          class="field-control"
+          id="concept-price"
+          type="text"
+          inputmode="decimal"
+          autocomplete="off"
+          formControlName="price"
+          (input)="formatDecimal('price')"
+        />
+        @if (conceptForm.controls.price.touched &&
+        conceptForm.controls.price.invalid) {
+        <small class="field-error"
+          >Usa solo números, un punto y hasta dos decimales.</small
+        >
+        }
+      </div>
+      @if (conceptForm.controls.kind.value === 'product') {
+      <label
+        class="flex items-center gap-3 border border-[#dcd9cf] p-3 sm:col-span-2 dark:border-[#3d4d44]"
+        ><input type="checkbox" formControlName="tracksInventory" />
+        <span
+          ><strong class="block">Controlar inventario</strong
+          ><small class="text-[#68746d] dark:text-[#aab7af]"
+            >Las órdenes descontarán existencia al terminarse.</small
+          ></span
+        ></label
+      >
+      @if (conceptForm.controls.tracksInventory.value) {
+      <div>
+        <label class="field-label" for="concept-minimum"
+          >Existencia mínima</label
+        ><input
+          class="field-control"
+          id="concept-minimum"
+          type="number"
+          min="0"
+          step="0.001"
+          formControlName="minimumStock"
+        />
+      </div>
+      } }
+      <footer class="dialog-footer sm:col-span-2">
+        <button class="ghost-tw" type="button" (click)="closeConceptEditor()">
+          Cancelar</button
+        ><button class="primary" type="submit" [disabled]="saving()">
+          {{ saving() ? 'Guardando…' : 'Guardar concepto' }}
+        </button>
+      </footer>
+    </form>
+  </section>
+</div>
+} @if (unitEditorOpen()) {
+<div class="dialog-backdrop" role="presentation" (click)="closeUnitEditor()">
+  <section
+    class="dialog-tw"
+    role="dialog"
+    aria-modal="true"
+    (click)="$event.stopPropagation()"
+  >
+    <p class="eyebrow">
+      {{ editingUnit() ? 'EDITAR UNIDAD' : 'NUEVA UNIDAD' }}
+    </p>
+    <h2>{{ editingUnit() ? 'Actualizar unidad' : 'Registrar unidad' }}</h2>
+    @if (error()) {
+    <div class="dialog-error-tw" role="alert">{{ error() }}</div>
+    }
+    <form
+      class="mt-6 space-y-4"
+      [formGroup]="unitForm"
+      (ngSubmit)="saveUnit()"
+      novalidate
+    >
+      <div>
+        <label class="field-label" for="unit-name">Nombre <b>*</b></label
+        ><input
+          class="field-control"
+          id="unit-name"
+          formControlName="name"
+          placeholder="Caja"
+        />
+      </div>
+      <div>
+        <label class="field-label" for="unit-symbol">Símbolo <b>*</b></label
+        ><input
+          class="field-control"
+          id="unit-symbol"
+          formControlName="symbol"
+          placeholder="cja"
+        />
+      </div>
+      <div>
+        <label class="field-label" for="unit-sat">ClaveUnidad SAT</label
+        ><input
+          class="field-control uppercase"
+          id="unit-sat"
+          formControlName="satCode"
+          maxlength="3"
+          placeholder="XBX"
+        />
+      </div>
+      <label class="flex items-center gap-3"
+        ><input type="checkbox" formControlName="allowsDecimals" /> Permitir
+        cantidades decimales</label
+      >
+      <footer class="dialog-footer">
+        <button class="ghost-tw" type="button" (click)="closeUnitEditor()">
+          Cancelar</button
+        ><button class="primary" type="submit" [disabled]="saving()">
+          {{ saving() ? 'Guardando…' : 'Guardar unidad' }}
+        </button>
+      </footer>
+    </form>
+  </section>
+</div>
+}

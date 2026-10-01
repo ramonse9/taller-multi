@@ -34,3 +34,31 @@ export interface PaginatedConcepts {
   hasNextPage: boolean;
   items: CatalogConcept[];
 }
+
+export interface ConceptListOptions {
+  page: number;
+  limit: number;
+  search?: string;
+  kind?: ConceptKind | "";
+  isActive?: boolean;
+}
+
+export interface MeasurementUnitInput {
+  name: string;
+  symbol: string;
+  satCode?: string | null;
+  allowsDecimals: boolean;
+}
+
+export interface CatalogConceptInput {
+  kind: ConceptKind;
+  sku?: string | null;
+  name: string;
+  description?: string | null;
+  unitId: string;
+  cost: number;
+  price: number;
+  tracksInventory: boolean;
+  minimumStock?: number;
+  satProductServiceCode?: string | null;
+}

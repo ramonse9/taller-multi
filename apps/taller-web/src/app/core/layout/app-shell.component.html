@@ -36,18 +36,36 @@
               <span>02</span> Clientes
             </a>
           }
+          @if (auth.hasFeature("item_catalog")) {
+            <a
+              class="nav-item"
+              routerLink="/concept-catalog"
+              routerLinkActive="active"
+            >
+              <span>03</span> Productos y servicios
+            </a>
+          }
+          @if (auth.hasFeature("inventory")) {
+            <a
+              class="nav-item"
+              routerLink="/inventory"
+              routerLinkActive="active"
+            >
+              <span>04</span> Inventario
+            </a>
+          }
           <a
             class="nav-item"
             routerLink="/vehicle-catalog"
             routerLinkActive="active"
           >
-            <span>03</span> Marcas y modelos
+            <span>05</span> Marcas y modelos
           </a>
           <a class="nav-item" routerLink="/users" routerLinkActive="active">
-            <span>04</span> Usuarios
+            <span>06</span> Usuarios
           </a>
           <a class="nav-item" routerLink="/account" routerLinkActive="active">
-            <span>05</span> Seguridad
+            <span>07</span> Seguridad
           </a>
         }
         @case ("user") {
@@ -61,8 +79,26 @@
               <span>02</span> Clientes
             </a>
           }
+          @if (auth.hasFeature("item_catalog")) {
+            <a
+              class="nav-item"
+              routerLink="/concept-catalog"
+              routerLinkActive="active"
+            >
+              <span>03</span> Productos y servicios
+            </a>
+          }
+          @if (auth.hasFeature("inventory")) {
+            <a
+              class="nav-item"
+              routerLink="/inventory"
+              routerLinkActive="active"
+            >
+              <span>04</span> Inventario
+            </a>
+          }
           <a class="nav-item" routerLink="/account" routerLinkActive="active">
-            <span>03</span> Seguridad
+            <span>05</span> Seguridad
           </a>
         }
       }

@@ -91,6 +91,30 @@ export const routes: Routes = [
           import("./features/orders/orders.page").then((m) => m.OrdersPage),
       },
       {
+        path: "concept-catalog",
+        canActivate: [roleGuard, featureGuard],
+        data: {
+          roles: ["company_admin", "user"],
+          feature: "item_catalog",
+        },
+        loadComponent: () =>
+          import("./features/concept-catalog/concept-catalog.page").then(
+            (m) => m.ConceptCatalogPage,
+          ),
+      },
+      {
+        path: "inventory",
+        canActivate: [roleGuard, featureGuard],
+        data: {
+          roles: ["company_admin", "user"],
+          feature: "inventory",
+        },
+        loadComponent: () =>
+          import("./features/inventory/inventory.page").then(
+            (m) => m.InventoryPage,
+          ),
+      },
+      {
         path: "vehicle-catalog",
         canActivate: [roleGuard, featureGuard],
         data: { roles: ["platform_admin", "company_admin"] },
