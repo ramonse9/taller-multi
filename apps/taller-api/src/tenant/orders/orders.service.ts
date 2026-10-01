@@ -98,6 +98,23 @@ interface InventoryOrderItemRow {
   unit_cost: string | null;
 }
 
+interface InventoryLotRow {
+  id: string;
+  remaining_quantity: string;
+  unit_cost: string;
+}
+
+interface InventoryAllocationRow {
+  lot_id: string;
+  quantity: string;
+  unit_cost: string;
+}
+
+interface InventoryCostResult {
+  unitCost: string;
+  totalCost: string;
+}
+
 interface OrderNoteRow {
   id: string;
   body: string;
@@ -587,11 +604,12 @@ export class OrdersService {
           `No hay existencia suficiente para terminar la orden: ${item.description}`,
         );
       }
-      await runner.query(
+      const movements = (await runner.query(
         `INSERT INTO ${schema}.inventory_movements(
            product_id, order_item_id, order_id, movement_type, quantity,
            previous_stock, resulting_stock, unit_cost, reason, created_by_user_id
-         ) VALUES ($1, $2, $3, 'exit', $4, $5, $6, $7, $8, $9)`,
+         ) VALUES ($1, $2, $3, 'exit', $4, $5, $6, NULL, $7, $8)
+         RETURNING id`,
         [
           item.product_service_id,
           item.id,
@@ -599,15 +617,32 @@ export class OrdersService {
           -quantity,
           balance.previous_stock,
           balance.resulting_stock,
-          item.unit_cost,
           `Salida por orden #${order.folio}`,
           userId,
         ],
+      )) as Array<{ id: string }>;
+      const movementId = movements[0]!.id;
+      const actualCost = await this.consumeOrderLots(
+        runner,
+        schema,
+        item.product_service_id,
+        movementId,
+        quantity,
+        item.description,
+      );
+      await runner.query(
+        `UPDATE ${schema}.order_items
+         SET unit_cost = $2, cost_total = $3 WHERE id = $1`,
+        [item.id, actualCost.unitCost, actualCost.totalCost],
       );
     }
-    await runner.query(`UPDATE ${schema}.orders SET inventory_applied_at = now() WHERE id = $1`, [
-      order.id,
-    ]);
+    await this.recalculate(runner, schema, order.id, userId);
+    await runner.query(
+      `UPDATE ${schema}.orders
+       SET inventory_applied_at = now(), updated_by_user_id = $2, updated_at = now()
+       WHERE id = $1`,
+      [order.id, userId],
+    );
   }
 
   private async returnInventory(
@@ -620,6 +655,23 @@ export class OrdersService {
     const items = await this.inventoryItems(runner, schema, order.id);
     for (const item of items) {
       const quantity = Number(item.quantity);
+      const exitMovements = (await runner.query(
+        `SELECT id FROM ${schema}.inventory_movements
+         WHERE order_item_id = $1 AND order_id = $2 AND movement_type = 'exit'
+         ORDER BY created_at DESC LIMIT 1
+         FOR UPDATE`,
+        [item.id, order.id],
+      )) as Array<{ id: string }>;
+      const exitMovement = exitMovements[0];
+      const allocations = exitMovement
+        ? ((await runner.query(
+            `SELECT lot_id, quantity::text, unit_cost::text
+             FROM ${schema}.inventory_lot_allocations
+             WHERE movement_id = $1 ORDER BY created_at, id`,
+            [exitMovement.id],
+          )) as InventoryAllocationRow[])
+        : [];
+      const actualCost = await this.allocationCost(runner, schema, exitMovement?.id);
       const updated = (await runner.query(
         `UPDATE ${schema}.products_services
          SET stock = stock + $2, updated_by_user_id = $3, updated_at = now()
@@ -629,11 +681,26 @@ export class OrdersService {
       )) as [Array<{ previous_stock: string; resulting_stock: string }>, number];
       const balance = updated[0][0];
       if (!balance) throw new NotFoundException(`Producto no encontrado: ${item.description}`);
-      await runner.query(
+      for (const allocation of allocations) {
+        const restored = (await runner.query(
+          `UPDATE ${schema}.inventory_lots
+           SET remaining_quantity = remaining_quantity + $2
+           WHERE id = $1 AND remaining_quantity + $2 <= received_quantity
+           RETURNING id`,
+          [allocation.lot_id, allocation.quantity],
+        )) as [Array<{ id: string }>, number];
+        if (!restored[0][0]) {
+          throw new UnprocessableEntityException(
+            `No se pudo devolver el lote consumido por: ${item.description}`,
+          );
+        }
+      }
+      const movements = (await runner.query(
         `INSERT INTO ${schema}.inventory_movements(
            product_id, order_item_id, order_id, movement_type, quantity,
            previous_stock, resulting_stock, unit_cost, reason, created_by_user_id
-         ) VALUES ($1, $2, $3, 'entry', $4, $5, $6, $7, $8, $9)`,
+         ) VALUES ($1, $2, $3, 'entry', $4, $5, $6, $7, $8, $9)
+         RETURNING id`,
         [
           item.product_service_id,
           item.id,
@@ -641,15 +708,103 @@ export class OrdersService {
           quantity,
           balance.previous_stock,
           balance.resulting_stock,
-          item.unit_cost,
+          actualCost?.unitCost ?? item.unit_cost,
           `Devolución por cambio de estado de la orden #${order.folio}`,
           userId,
         ],
+      )) as Array<{ id: string }>;
+      if (allocations.length === 0) {
+        const unitCost = actualCost?.unitCost ?? item.unit_cost ?? '0.00';
+        const lots = (await runner.query(
+          `INSERT INTO ${schema}.inventory_lots(
+             product_id, received_quantity, remaining_quantity, unit_cost,
+             source_type, source_reference, created_by_user_id, entry_movement_id
+           ) VALUES ($1, $2, $2, $3, 'order_return', $4, $5, $6)
+           RETURNING id`,
+          [
+            item.product_service_id,
+            quantity,
+            unitCost,
+            `Devolución de orden #${order.folio}`,
+            userId,
+            movements[0]!.id,
+          ],
+        )) as Array<{ id: string }>;
+        await runner.query(`UPDATE ${schema}.inventory_movements SET lot_id = $2 WHERE id = $1`, [
+          movements[0]!.id,
+          lots[0]!.id,
+        ]);
+      }
+    }
+    await runner.query(
+      `UPDATE ${schema}.orders
+       SET inventory_applied_at = NULL, updated_by_user_id = $2, updated_at = now()
+       WHERE id = $1`,
+      [order.id, userId],
+    );
+  }
+
+  private async consumeOrderLots(
+    runner: QueryRunner,
+    schema: string,
+    productId: string,
+    movementId: string,
+    requiredQuantity: number,
+    description: string,
+  ): Promise<InventoryCostResult> {
+    const lots = (await runner.query(
+      `SELECT id, remaining_quantity::text, unit_cost::text
+       FROM ${schema}.inventory_lots
+       WHERE product_id = $1 AND remaining_quantity > 0
+       ORDER BY received_at, id FOR UPDATE`,
+      [productId],
+    )) as InventoryLotRow[];
+    let pending = requiredQuantity;
+    for (const lot of lots) {
+      if (pending <= 0) break;
+      const consumed = Math.min(pending, Number(lot.remaining_quantity));
+      await runner.query(
+        `UPDATE ${schema}.inventory_lots
+         SET remaining_quantity = remaining_quantity - $2 WHERE id = $1`,
+        [lot.id, consumed],
+      );
+      await runner.query(
+        `INSERT INTO ${schema}.inventory_lot_allocations(
+           movement_id, lot_id, quantity, unit_cost
+         ) VALUES ($1, $2, $3, $4)`,
+        [movementId, lot.id, consumed, lot.unit_cost],
+      );
+      pending = Number((pending - consumed).toFixed(3));
+    }
+    if (pending > 0) {
+      throw new UnprocessableEntityException(
+        `No hay lotes suficientes para terminar la orden: ${description}`,
       );
     }
-    await runner.query(`UPDATE ${schema}.orders SET inventory_applied_at = NULL WHERE id = $1`, [
-      order.id,
+    const cost = await this.allocationCost(runner, schema, movementId);
+    if (!cost) throw new Error('No se pudo calcular el costo real del inventario');
+    await runner.query(`UPDATE ${schema}.inventory_movements SET unit_cost = $2 WHERE id = $1`, [
+      movementId,
+      cost.unitCost,
     ]);
+    return cost;
+  }
+
+  private async allocationCost(
+    runner: QueryRunner,
+    schema: string,
+    movementId: string | undefined,
+  ): Promise<InventoryCostResult | undefined> {
+    if (!movementId) return undefined;
+    const rows = (await runner.query(
+      `SELECT round(sum(quantity * unit_cost) / nullif(sum(quantity), 0), 2)::text AS unit_cost,
+              round(sum(quantity * unit_cost), 2)::text AS total_cost
+       FROM ${schema}.inventory_lot_allocations WHERE movement_id = $1`,
+      [movementId],
+    )) as Array<{ unit_cost: string | null; total_cost: string | null }>;
+    const cost = rows[0];
+    if (!cost?.unit_cost || !cost.total_cost) return undefined;
+    return { unitCost: cost.unit_cost, totalCost: cost.total_cost };
   }
 
   private async inventoryItems(

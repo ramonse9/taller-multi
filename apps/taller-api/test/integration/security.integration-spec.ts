@@ -1686,9 +1686,19 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       body: {
         productId: product.body.id,
         type: 'entry',
-        quantity: 10,
+        quantity: 1,
         unitCost: 80,
-        reason: 'Existencia para órdenes',
+        reason: 'Primer lote para órdenes',
+      },
+    });
+    await request<InventoryMovementResponse>('POST', '/inventory/movements', {
+      token: tenant.accessToken,
+      body: {
+        productId: product.body.id,
+        type: 'entry',
+        quantity: 9,
+        unitCost: 100,
+        reason: 'Segundo lote para órdenes',
       },
     });
 
@@ -1737,8 +1747,8 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(created.status).toBe(201);
     expect(created.body).toMatchObject({
       total: '580.00',
-      totalCost: '260.00',
-      grossProfit: '320.00',
+      totalCost: '300.00',
+      grossProfit: '280.00',
       inventoryAppliedAt: null,
     });
     expect(created.body.items[0]).toMatchObject({
@@ -1747,7 +1757,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       unitName: 'Pieza',
       unitSymbol: 'pza',
       unitPrice: '140.00',
-      unitCost: '80.00',
+      unitCost: '100.00',
       tracksInventory: true,
     });
 
@@ -1760,7 +1770,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     });
     expect(unchanged.body.items[0]).toMatchObject({
       unitPrice: '140.00',
-      unitCost: '80.00',
+      unitCost: '100.00',
     });
 
     const completed = await request<OrderResponse>('POST', `/orders/${created.body.id}/status`, {
@@ -1769,6 +1779,14 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     });
     expect(completed.status).toBe(200);
     expect(completed.body.inventoryAppliedAt).toBeTruthy();
+    expect(completed.body).toMatchObject({
+      totalCost: '280.00',
+      grossProfit: '300.00',
+    });
+    expect(completed.body.items[0]).toMatchObject({
+      unitCost: '90.00',
+      costAmount: '180.00',
+    });
     expect(
       (
         await request<InventoryProductResponse>('GET', `/inventory/products/${product.body.id}`, {
@@ -1812,18 +1830,30 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     });
     expect(edited.body).toMatchObject({
       total: '720.00',
-      totalCost: '340.00',
-      grossProfit: '380.00',
+      totalCost: '370.00',
+      grossProfit: '350.00',
     });
     expect(edited.body.items[0]).toMatchObject({
       description: 'Filtro histórico',
       unitPrice: '140.00',
-      unitCost: '80.00',
+      unitCost: '90.00',
     });
 
-    await request<OrderResponse>('POST', `/orders/${created.body.id}/status`, {
-      token: tenant.accessToken,
-      body: { status: 'completed' },
+    const completedAgain = await request<OrderResponse>(
+      'POST',
+      `/orders/${created.body.id}/status`,
+      {
+        token: tenant.accessToken,
+        body: { status: 'completed' },
+      },
+    );
+    expect(completedAgain.body).toMatchObject({
+      totalCost: '380.00',
+      grossProfit: '340.00',
+    });
+    expect(completedAgain.body.items[0]).toMatchObject({
+      unitCost: '93.33',
+      costAmount: '280.00',
     });
     expect(
       (
@@ -1860,6 +1890,51 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       { movement_type: 'exit', quantity: '-3.000', order_id: created.body.id },
       { movement_type: 'entry', quantity: '3.000', order_id: created.body.id },
     ]);
+    const fifoAllocations = await control.query<
+      Array<{ movement_id: string; lot_count: string; actual_cost: string }>
+    >(
+      `SELECT allocation.movement_id, count(*)::text AS lot_count,
+              round(sum(allocation.quantity * allocation.unit_cost), 2)::text AS actual_cost
+       FROM ${schema}.inventory_lot_allocations allocation
+       JOIN ${schema}.inventory_movements movement ON movement.id = allocation.movement_id
+       WHERE movement.order_id = $1 AND movement.movement_type = 'exit'
+       GROUP BY allocation.movement_id ORDER BY min(movement.created_at)`,
+      [created.body.id],
+    );
+    expect(
+      fifoAllocations.map(({ lot_count, actual_cost }) => ({ lot_count, actual_cost })),
+    ).toEqual([
+      { lot_count: '2', actual_cost: '180.00' },
+      { lot_count: '2', actual_cost: '280.00' },
+    ]);
+
+    const orderWithoutStock = await request<OrderResponse>('POST', '/orders', {
+      token: tenant.accessToken,
+      body: {
+        customerId: customer.body.id,
+        vehicleId: vehicle.body.id,
+        items: [{ productServiceId: product.body.id, quantity: 11 }],
+      },
+    });
+    const rejectedCompletion = await request<unknown>(
+      'POST',
+      `/orders/${orderWithoutStock.body.id}/status`,
+      { token: tenant.accessToken, body: { status: 'completed' } },
+    );
+    expect(rejectedCompletion.status).toBe(422);
+    const unchangedOrder = await request<OrderResponse>(
+      'GET',
+      `/orders/${orderWithoutStock.body.id}`,
+      { token: tenant.accessToken },
+    );
+    expect(unchangedOrder.body.status).toBe('in_progress');
+    expect(
+      (
+        await request<InventoryProductResponse>('GET', `/inventory/products/${product.body.id}`, {
+          token: tenant.accessToken,
+        })
+      ).body.stock,
+    ).toBe('10.000');
   });
 
   async function createCompany(
