@@ -8,8 +8,8 @@ export interface TenantMigration {
   up(queryRunner: QueryRunner, schemaName: string): Promise<void>;
 }
 
-export const TENANT_BASE_VERSION = 14;
-export const TENANT_BASE_NAME = 'tenant-base-v14';
+export const TENANT_BASE_VERSION = 15;
+export const TENANT_BASE_NAME = 'tenant-base-v15';
 
 /**
  * Dynamic tenant migrations deliberately use qualified identifiers everywhere.
@@ -173,6 +173,16 @@ export class TenantMigrator {
       )`,
       `CREATE INDEX purchases_status_date_idx ON ${s}.purchases(status, purchased_at DESC, id DESC)`,
       `CREATE INDEX purchases_supplier_date_idx ON ${s}.purchases(supplier_id, purchased_at DESC, id DESC)`,
+      `CREATE TABLE ${s}.purchase_status_history (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        purchase_id uuid NOT NULL REFERENCES ${s}.purchases(id) ON DELETE CASCADE,
+        previous_status varchar(20) CHECK (previous_status IS NULL OR previous_status IN ('draft','confirmed','cancelled')),
+        new_status varchar(20) NOT NULL CHECK (new_status IN ('draft','confirmed','cancelled')),
+        changed_by_user_id uuid NOT NULL REFERENCES public.users(id),
+        changed_at timestamptz NOT NULL DEFAULT now()
+      )`,
+      `CREATE INDEX purchase_status_history_purchase_date_idx
+       ON ${s}.purchase_status_history(purchase_id, changed_at, id)`,
       `CREATE TABLE ${s}.purchase_items (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(), purchase_id uuid NOT NULL REFERENCES ${s}.purchases(id) ON DELETE CASCADE,
         product_id uuid NOT NULL REFERENCES ${s}.products_services(id),

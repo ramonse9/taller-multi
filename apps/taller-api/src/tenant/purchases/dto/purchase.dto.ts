@@ -149,6 +149,16 @@ export class PurchaseItemResponseDto {
   @ApiProperty({ description: 'Importe monetario entregado como texto' }) amount!: string;
 }
 
+export class PurchaseStatusHistoryResponseDto {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty({ enum: PurchaseStatus, nullable: true })
+  previousStatus!: PurchaseStatus | null;
+  @ApiProperty({ enum: PurchaseStatus }) newStatus!: PurchaseStatus;
+  @ApiProperty({ format: 'uuid' }) changedByUserId!: string;
+  @ApiProperty() changedByName!: string;
+  @ApiProperty() changedAt!: Date;
+}
+
 export class PurchaseSummaryResponseDto {
   @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty({ description: 'Folio automático por compañía; bigint entregado como texto' })
@@ -171,6 +181,8 @@ export class PurchaseSummaryResponseDto {
 export class PurchaseResponseDto extends PurchaseSummaryResponseDto {
   @ApiProperty({ type: PurchaseItemResponseDto, isArray: true })
   items!: PurchaseItemResponseDto[];
+  @ApiProperty({ type: PurchaseStatusHistoryResponseDto, isArray: true })
+  statusHistory!: PurchaseStatusHistoryResponseDto[];
 }
 
 export class PaginatedPurchasesResponseDto {

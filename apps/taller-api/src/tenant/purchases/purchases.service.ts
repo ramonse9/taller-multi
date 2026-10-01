@@ -17,6 +17,7 @@ import {
   PurchaseQueryDto,
   PurchaseResponseDto,
   PurchaseStatus,
+  PurchaseStatusHistoryResponseDto,
   PurchaseSummaryResponseDto,
   UpdatePurchaseDto,
 } from './dto/purchase.dto';
@@ -70,6 +71,15 @@ interface ProductRow {
 
 interface LockedPurchaseItem extends PurchaseItemRow {
   tracks_inventory: boolean;
+}
+
+interface PurchaseStatusHistoryRow {
+  id: string;
+  previous_status: PurchaseStatus | null;
+  new_status: PurchaseStatus;
+  changed_by_user_id: string;
+  changed_by_name: string;
+  changed_at: Date;
 }
 
 @Injectable()
@@ -140,6 +150,7 @@ export class PurchasesService {
         ],
       )) as Array<{ id: string }>;
       const id = rows[0]!.id;
+      await this.recordStatus(runner, schema, id, null, PurchaseStatus.Draft, user.id);
       await this.replaceItems(runner, schema, id, input.items);
       await this.recalculateTotal(runner, schema, id);
       return this.requirePurchase(runner, schema, id);
@@ -202,10 +213,11 @@ export class PurchasesService {
         throw new BadRequestException('Una compra confirmada o cancelada no puede volver a borrador');
       }
       if (purchase.status === input.status) {
-        if (input.status === PurchaseStatus.Confirmed) {
-          throw new BadRequestException('La compra ya fue confirmada');
-        }
-        return this.requirePurchase(runner, schema, id);
+        throw new BadRequestException(
+          input.status === PurchaseStatus.Confirmed
+            ? 'La compra ya fue confirmada'
+            : 'La compra ya fue cancelada',
+        );
       }
       if (purchase.status === PurchaseStatus.Cancelled) {
         throw new BadRequestException('Una compra cancelada no puede cambiar de estado');
@@ -218,6 +230,7 @@ export class PurchasesService {
       } else {
         await this.cancel(runner, schema, purchase, user.id);
       }
+      await this.recordStatus(runner, schema, id, purchase.status, input.status, user.id);
       return this.requirePurchase(runner, schema, id);
     });
   }
@@ -510,7 +523,37 @@ export class PurchasesService {
        WHERE item.purchase_id = $1 ORDER BY item.position`,
       [id],
     )) as PurchaseItemRow[];
-    return { ...this.toSummary(row), items: items.map((item) => this.toItem(item)) };
+    const statusHistory = (await runner.query(
+      `SELECT history.id, history.previous_status, history.new_status,
+        history.changed_by_user_id, platform_user.full_name AS changed_by_name,
+        history.changed_at
+       FROM ${schema}.purchase_status_history history
+       JOIN public.users platform_user ON platform_user.id = history.changed_by_user_id
+       WHERE history.purchase_id = $1
+       ORDER BY history.changed_at, history.id`,
+      [id],
+    )) as PurchaseStatusHistoryRow[];
+    return {
+      ...this.toSummary(row),
+      items: items.map((item) => this.toItem(item)),
+      statusHistory: statusHistory.map((history) => this.toStatusHistory(history)),
+    };
+  }
+
+  private async recordStatus(
+    runner: QueryRunner,
+    schema: string,
+    purchaseId: string,
+    previousStatus: PurchaseStatus | null,
+    newStatus: PurchaseStatus,
+    userId: string,
+  ): Promise<void> {
+    await runner.query(
+      `INSERT INTO ${schema}.purchase_status_history(
+         purchase_id, previous_status, new_status, changed_by_user_id
+       ) VALUES ($1, $2, $3, $4)`,
+      [purchaseId, previousStatus, newStatus, userId],
+    );
   }
 
   private purchaseSelect(schema: string): string {
@@ -565,6 +608,17 @@ export class PurchasesService {
       quantity: row.quantity,
       unitCost: row.unit_cost,
       amount: row.total,
+    };
+  }
+
+  private toStatusHistory(row: PurchaseStatusHistoryRow): PurchaseStatusHistoryResponseDto {
+    return {
+      id: row.id,
+      previousStatus: row.previous_status,
+      newStatus: row.new_status,
+      changedByUserId: row.changed_by_user_id,
+      changedByName: row.changed_by_name,
+      changedAt: row.changed_at,
     };
   }
 

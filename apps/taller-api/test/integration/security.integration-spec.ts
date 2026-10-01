@@ -27,6 +27,7 @@ import { InventoryMovementReversals1700000016000 } from '../../src/database/migr
 import { SupplierCatalog1700000017000 } from '../../src/database/migrations/public/1700000017000-supplier-catalog';
 import { PurchaseModel1700000018000 } from '../../src/database/migrations/public/1700000018000-purchase-model';
 import { PurchaseInventoryTraceability1700000019000 } from '../../src/database/migrations/public/1700000019000-purchase-inventory-traceability';
+import { PurchaseStatusHistory1700000020000 } from '../../src/database/migrations/public/1700000020000-purchase-status-history';
 import { quoteIdentifier } from '../../src/database/schema-name';
 import { seedPublicCatalogs } from '../../src/database/seeds/public-catalogs.seed';
 
@@ -198,6 +199,11 @@ interface PurchaseResponse {
   itemCount: number;
   confirmedAt: string | null;
   cancelledAt: string | null;
+  statusHistory: Array<{
+    previousStatus: 'draft' | 'confirmed' | 'cancelled' | null;
+    newStatus: 'draft' | 'confirmed' | 'cancelled';
+    changedByUserId: string;
+  }>;
   items: Array<{
     productId: string;
     inventoryMovementId: string | null;
@@ -326,6 +332,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         SupplierCatalog1700000017000,
         PurchaseModel1700000018000,
         PurchaseInventoryTraceability1700000019000,
+        PurchaseStatusHistory1700000020000,
       ],
       migrationsTableName: 'public_schema_migrations',
       synchronize: false,
@@ -1088,6 +1095,13 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       notes: 'Entrega completa',
       total: '316.50',
       itemCount: 1,
+      statusHistory: [
+        {
+          previousStatus: null,
+          newStatus: 'draft',
+          changedByUserId: tenant.user.id,
+        },
+      ],
       items: [
         {
           productId: product.body.id,
@@ -1103,8 +1117,8 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         await request<InventoryProductResponse>('GET', `/inventory/products/${product.body.id}`, {
           token: tenant.accessToken,
         })
-      ).body.stock,
-    ).toBe('2.000');
+      ).body,
+    ).toMatchObject({ stock: '2.000', lastCost: '80.00', averageCost: '80.00' });
 
     const edited = await request<PurchaseResponse>('PATCH', `/purchases/${created.body.id}`, {
       token: tenant.accessToken,
@@ -1123,6 +1137,10 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(confirmed.status).toBe(200);
     expect(confirmed.body.status).toBe('confirmed');
     expect(confirmed.body.confirmedAt).not.toBeNull();
+    expect(confirmed.body.statusHistory.map(({ newStatus }) => newStatus)).toEqual([
+      'draft',
+      'confirmed',
+    ]);
     expect(typeof confirmed.body.items[0]?.inventoryMovementId).toBe('string');
     expect(typeof confirmed.body.items[0]?.inventoryLotId).toBe('string');
     const stock = await request<InventoryProductResponse>(
@@ -1180,6 +1198,11 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     );
     expect(cancelled.body.status).toBe('cancelled');
     expect(cancelled.body.cancelledAt).not.toBeNull();
+    expect(cancelled.body.statusHistory.map(({ newStatus }) => newStatus)).toEqual([
+      'draft',
+      'confirmed',
+      'cancelled',
+    ]);
     const emptyStock = await request<InventoryProductResponse>(
       'GET',
       `/inventory/products/${product.body.id}`,
@@ -1190,6 +1213,12 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       lastCost: '80.00',
       averageCost: '80.00',
     });
+    const duplicateCancellation = await request<unknown>(
+      'POST',
+      `/purchases/${created.body.id}/status`,
+      { token: tenant.accessToken, body: { status: 'cancelled' } },
+    );
+    expect(duplicateCancellation.status).toBe(400);
 
     const second = await request<PurchaseResponse>('POST', '/purchases', {
       token: tenant.accessToken,
@@ -1202,6 +1231,59 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       { token: tenant.accessToken, body: { status: 'cancelled' } },
     );
     expect(draftCancelled.body.status).toBe('cancelled');
+    expect(draftCancelled.body.statusHistory.map(({ newStatus }) => newStatus)).toEqual([
+      'draft',
+      'cancelled',
+    ]);
+    expect(
+      (
+        await request<unknown>('POST', `/purchases/${second.body.id}/status`, {
+          token: tenant.accessToken,
+          body: { status: 'cancelled' },
+        })
+      ).status,
+    ).toBe(400);
+
+    const consumedPurchase = await request<PurchaseResponse>('POST', '/purchases', {
+      token: tenant.accessToken,
+      body: { items: [{ productId: product.body.id, quantity: 3, unitCost: 110 }] },
+    });
+    await request<PurchaseResponse>('POST', `/purchases/${consumedPurchase.body.id}/status`, {
+      token: tenant.accessToken,
+      body: { status: 'confirmed' },
+    });
+    await request<InventoryMovementResponse>('POST', '/inventory/movements', {
+      token: tenant.accessToken,
+      body: {
+        productId: product.body.id,
+        type: 'exit',
+        quantity: 3,
+        reason: 'Consumo que alcanza el lote de compra',
+      },
+    });
+    const consumedCancellation = await request<unknown>(
+      'POST',
+      `/purchases/${consumedPurchase.body.id}/status`,
+      { token: tenant.accessToken, body: { status: 'cancelled' } },
+    );
+    expect(consumedCancellation.status).toBe(422);
+    const consumedStillConfirmed = await request<PurchaseResponse>(
+      'GET',
+      `/purchases/${consumedPurchase.body.id}`,
+      { token: tenant.accessToken },
+    );
+    expect(consumedStillConfirmed.body.status).toBe('confirmed');
+    expect(consumedStillConfirmed.body.statusHistory.map(({ newStatus }) => newStatus)).toEqual([
+      'draft',
+      'confirmed',
+    ]);
+    expect(
+      (
+        await request<InventoryProductResponse>('GET', `/inventory/products/${product.body.id}`, {
+          token: tenant.accessToken,
+        })
+      ).body,
+    ).toMatchObject({ stock: '2.000', lastCost: '110.00', averageCost: '110.00' });
 
     const listed = await request<{ totalItems: number; items: PurchaseResponse[] }>(
       'GET',
