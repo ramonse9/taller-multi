@@ -34,6 +34,10 @@ export class ConceptCatalogService {
     return this.http.post<CatalogConcept>(this.conceptsUrl, input);
   }
 
+  getConcept(id: string): Observable<CatalogConcept> {
+    return this.http.get<CatalogConcept>(`${this.conceptsUrl}/${id}`);
+  }
+
   updateConcept(
     id: string,
     input: Partial<CatalogConceptInput> & { isActive?: boolean },

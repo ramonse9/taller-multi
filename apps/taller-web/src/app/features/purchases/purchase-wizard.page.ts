@@ -14,7 +14,7 @@ import {
   ReactiveFormsModule,
   Validators,
 } from "@angular/forms";
-import { Router, RouterLink } from "@angular/router";
+import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import {
   Subject,
   catchError,
@@ -22,6 +22,7 @@ import {
   distinctUntilChanged,
   finalize,
   forkJoin,
+  map,
   switchMap,
   tap,
   of,
@@ -36,6 +37,7 @@ import { ConceptCatalogService } from "../concept-catalog/concept-catalog.servic
 import { Supplier } from "../suppliers/supplier.models";
 import { SuppliersService } from "../suppliers/suppliers.service";
 import { PurchasesService } from "./purchases.service";
+import { Purchase } from "./purchase.models";
 
 type PurchaseItemForm = FormGroup<{
   productId: FormControl<string>;
@@ -57,11 +59,14 @@ export class PurchaseWizardPage implements OnInit {
   private readonly purchases = inject(PurchasesService);
   private readonly suppliersService = inject(SuppliersService);
   private readonly catalog = inject(ConceptCatalogService);
+  private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   readonly theme = inject(ThemeService);
+  readonly purchaseId = this.route.snapshot.paramMap.get("id");
 
   readonly step = signal(1);
+  readonly purchaseFolio = signal("");
   readonly suppliers = signal<Supplier[]>([]);
   readonly units = signal<MeasurementUnit[]>([]);
   readonly knownProducts = signal(new Map<string, CatalogConcept>());
@@ -167,18 +172,36 @@ export class PurchaseWizardPage implements OnInit {
     forkJoin({
       suppliers: this.suppliersService.list({ page: 1, limit: 100, isActive: true }),
       units: this.catalog.listUnits(true),
+      purchase: this.purchaseId ? this.purchases.getOne(this.purchaseId) : of(null),
     })
-      .pipe(finalize(() => this.loading.set(false)), takeUntilDestroyed(this.destroyRef))
+      .pipe(
+        switchMap((data) => {
+          if (data.purchase && data.purchase.status !== "draft") {
+            void this.router.navigate(["/purchases", data.purchase.id]);
+            return of({ ...data, products: [] as CatalogConcept[] });
+          }
+          const productRequests = data.purchase?.items.map(({ productId }) =>
+            this.catalog.getConcept(productId),
+          );
+          return (productRequests?.length ? forkJoin(productRequests) : of([])).pipe(
+            map((products) => ({ ...data, products })),
+          );
+        }),
+        finalize(() => this.loading.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
       .subscribe({
-        next: ({ suppliers, units }) => {
+        next: ({ suppliers, units, purchase, products }) => {
           this.suppliers.set(suppliers.items);
           this.units.set(
             units.filter(
               (unit) => unit.symbol.toLowerCase() !== "serv" && unit.name !== "Servicio",
             ),
           );
+          this.rememberProducts(products);
           const preferred = suppliers.items.find(({ isDefault }) => isDefault) ?? suppliers.items[0];
           if (preferred) this.form.controls.supplierId.setValue(preferred.id);
+          if (purchase?.status === "draft") this.populatePurchase(purchase);
         },
         error: (error: unknown) =>
           this.error.set(apiErrorMessage(error, "No pudimos preparar el registro de compra.")),
@@ -189,18 +212,18 @@ export class PurchaseWizardPage implements OnInit {
     return this.form.controls.items;
   }
 
-  addItem(): void {
+  addItem(value?: { productId: string; quantity: string; unitCost: string }): void {
     this.items.push(
       new FormGroup({
-        productId: new FormControl("", {
+        productId: new FormControl(value?.productId ?? "", {
           nonNullable: true,
           validators: [Validators.required],
         }),
-        quantity: new FormControl("", {
+        quantity: new FormControl(value?.quantity ?? "", {
           nonNullable: true,
           validators: [Validators.required, Validators.pattern(quantityPattern)],
         }),
-        unitCost: new FormControl("", {
+        unitCost: new FormControl(value?.unitCost ?? "", {
           nonNullable: true,
           validators: [Validators.required, Validators.pattern(moneyPattern)],
         }),
@@ -338,28 +361,46 @@ export class PurchaseWizardPage implements OnInit {
     if (this.step() > 1) this.step.update((step) => step - 1);
   }
 
-  save(): void {
+  save(confirmAfterSave = false): void {
     if (this.form.invalid || this.duplicateProducts() || this.saving()) return;
     const raw = this.form.getRawValue();
     this.saving.set(true);
     this.error.set("");
-    this.purchases
-      .create({
-        supplierId: raw.supplierId,
-        purchasedAt: raw.purchasedAt,
-        reference: raw.reference.trim() || null,
-        notes: raw.notes.trim() || null,
-        items: raw.items.map((item) => ({
-          productId: item.productId,
-          quantity: Number(item.quantity),
-          unitCost: Number(item.unitCost),
-        })),
-      })
-      .pipe(finalize(() => this.saving.set(false)), takeUntilDestroyed(this.destroyRef))
+    const input = {
+      supplierId: raw.supplierId,
+      purchasedAt: raw.purchasedAt,
+      reference: raw.reference.trim() || null,
+      notes: raw.notes.trim() || null,
+      items: raw.items.map((item) => ({
+        productId: item.productId,
+        quantity: Number(item.quantity),
+        unitCost: Number(item.unitCost),
+      })),
+    };
+    const request = this.purchaseId
+      ? this.purchases.update(this.purchaseId, input)
+      : this.purchases.create(input);
+    request
+      .pipe(
+        switchMap((purchase) =>
+          confirmAfterSave
+            ? this.purchases.changeStatus(purchase.id, "confirmed")
+            : of(purchase),
+        ),
+        finalize(() => this.saving.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
       .subscribe({
         next: (purchase) => void this.router.navigate(["/purchases", purchase.id]),
         error: (error: unknown) =>
-          this.error.set(apiErrorMessage(error, "No pudimos registrar la compra.")),
+          this.error.set(
+            apiErrorMessage(
+              error,
+              confirmAfterSave
+                ? "El borrador se guardó, pero no pudimos confirmar la compra."
+                : "No pudimos guardar la compra.",
+            ),
+          ),
       });
   }
 
@@ -386,6 +427,10 @@ export class PurchaseWizardPage implements OnInit {
     return new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(value);
   }
 
+  isEditing(): boolean {
+    return this.purchaseId !== null;
+  }
+
   private validateUniqueProducts(): void {
     const selected = this.items.controls
       .map((item) => item.controls.productId.value)
@@ -397,6 +442,25 @@ export class PurchaseWizardPage implements OnInit {
     const known = new Map(this.knownProducts());
     for (const product of products) known.set(product.id, product);
     this.knownProducts.set(known);
+  }
+
+  private populatePurchase(purchase: Purchase): void {
+    this.purchaseFolio.set(purchase.folio);
+    this.form.patchValue({
+      supplierId: purchase.supplier.id,
+      purchasedAt: purchase.purchasedAt.slice(0, 10),
+      reference: purchase.reference ?? "",
+      notes: purchase.notes ?? "",
+    });
+    this.items.clear();
+    for (const item of purchase.items) {
+      this.addItem({
+        productId: item.productId,
+        quantity: item.quantity.replace(/\.?0+$/, ""),
+        unitCost: item.unitCost,
+      });
+    }
+    if (!this.items.length) this.addItem();
   }
 
   private today(): string {

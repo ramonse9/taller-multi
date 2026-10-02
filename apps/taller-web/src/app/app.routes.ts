@@ -124,6 +124,15 @@ export const routes: Routes = [
           ),
       },
       {
+        path: "purchases/:id/edit",
+        canActivate: [roleGuard, featureGuard],
+        data: { roles: ["company_admin", "user"], feature: "inventory" },
+        loadComponent: () =>
+          import("./features/purchases/purchase-wizard.page").then(
+            (m) => m.PurchaseWizardPage,
+          ),
+      },
+      {
         path: "purchases/:id",
         canActivate: [roleGuard, featureGuard],
         data: { roles: ["company_admin", "user"], feature: "inventory" },
