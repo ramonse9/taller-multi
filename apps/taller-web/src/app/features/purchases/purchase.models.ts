@@ -75,3 +75,24 @@ export interface PurchaseInput {
   notes?: string | null;
   items: Array<{ productId: string; quantity: number; unitCost: number }>;
 }
+
+export interface PurchaseCostVariation {
+  productId: string;
+  productName: string;
+  productSku: string | null;
+  currentCost: string;
+  previousCost: string;
+  changeAmount: string;
+  changePercent: string;
+  direction: "increase" | "decrease";
+  lastPurchasedAt: string;
+}
+
+export interface PurchaseIndicators {
+  confirmedLast30Days: number;
+  confirmedAmountLast30Days: string;
+  draftCount: number;
+  draftAmount: string;
+  recentPurchases: PurchaseSummary[];
+  importantVariations: PurchaseCostVariation[];
+}

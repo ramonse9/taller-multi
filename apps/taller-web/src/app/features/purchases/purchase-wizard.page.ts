@@ -45,6 +45,12 @@ type PurchaseItemForm = FormGroup<{
   unitCost: FormControl<string>;
 }>;
 
+interface CostComparison {
+  direction: "increase" | "decrease" | "same";
+  percent: number;
+  amount: number;
+}
+
 const quantityPattern = /^\d+(?:\.\d{1,3})?$/;
 const moneyPattern = /^\d+(?:\.\d{1,2})?$/;
 
@@ -421,6 +427,20 @@ export class PurchaseWizardPage implements OnInit {
 
   lineAmount(item: PurchaseItemForm): number {
     return Number(item.controls.quantity.value) * Number(item.controls.unitCost.value) || 0;
+  }
+
+  costComparison(item: PurchaseItemForm): CostComparison | null {
+    const product = this.product(item.controls.productId.value);
+    const lastCost = Number(product?.lastCost);
+    const capturedCost = Number(item.controls.unitCost.value);
+    if (!product?.lastCost || !Number.isFinite(lastCost) || lastCost <= 0) return null;
+    if (!Number.isFinite(capturedCost)) return null;
+    const amount = capturedCost - lastCost;
+    return {
+      direction: Math.abs(amount) < 0.005 ? "same" : amount > 0 ? "increase" : "decrease",
+      percent: Number(((amount / lastCost) * 100).toFixed(2)),
+      amount: Number(amount.toFixed(2)),
+    };
   }
 
   money(value: number): string {

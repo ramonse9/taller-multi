@@ -1310,6 +1310,41 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       ).body,
     ).toMatchObject({ stock: '2.000', lastCost: '110.00', averageCost: '110.00' });
 
+    const higherCostPurchase = await request<PurchaseResponse>('POST', '/purchases', {
+      token: tenant.accessToken,
+      body: { items: [{ productId: product.body.id, quantity: 1, unitCost: 125 }] },
+    });
+    await request<PurchaseResponse>('POST', `/purchases/${higherCostPurchase.body.id}/status`, {
+      token: tenant.accessToken,
+      body: { status: 'confirmed' },
+    });
+    const indicators = await request<{
+      confirmedLast30Days: number;
+      confirmedAmountLast30Days: string;
+      draftCount: number;
+      recentPurchases: PurchaseResponse[];
+      importantVariations: Array<{
+        productId: string;
+        currentCost: string;
+        previousCost: string;
+        changePercent: string;
+        direction: string;
+      }>;
+    }>('GET', '/purchases/indicators', { token: tenant.accessToken });
+    expect(indicators.status).toBe(200);
+    expect(indicators.body.confirmedLast30Days).toBe(2);
+    expect(indicators.body.draftCount).toBe(0);
+    expect(indicators.body.recentPurchases[0]?.id).toBe(higherCostPurchase.body.id);
+    expect(indicators.body.importantVariations).toContainEqual(
+      expect.objectContaining({
+        productId: product.body.id,
+        currentCost: '125.00',
+        previousCost: '110.00',
+        changePercent: '13.64',
+        direction: 'increase',
+      }),
+    );
+
     const listed = await request<{ totalItems: number; items: PurchaseResponse[] }>(
       'GET',
       '/purchases?search=FAC-1001&status=cancelled',

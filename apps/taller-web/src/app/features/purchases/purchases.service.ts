@@ -5,6 +5,7 @@ import { environment } from "../../../environments/environment";
 import {
   PaginatedPurchases,
   Purchase,
+  PurchaseIndicators,
   PurchaseInput,
   PurchaseStatus,
 } from "./purchase.models";
@@ -32,6 +33,10 @@ export class PurchasesService {
 
   getOne(id: string): Observable<Purchase> {
     return this.http.get<Purchase>(`${this.url}/${id}`);
+  }
+
+  indicators(): Observable<PurchaseIndicators> {
+    return this.http.get<PurchaseIndicators>(`${this.url}/indicators`);
   }
 
   create(input: PurchaseInput): Observable<Purchase> {

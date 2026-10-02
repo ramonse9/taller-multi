@@ -43,6 +43,8 @@ interface ConceptRow {
   description: string | null;
   unit_price: string;
   cost: string;
+  last_cost: string | null;
+  average_cost: string | null;
   tracks_inventory: boolean;
   stock: string;
   minimum_stock: string;
@@ -307,6 +309,25 @@ export class ConceptCatalogService {
     return `SELECT concept.id, concept.kind, concept.sku, concept.name, concept.description,
       concept.unit_price, concept.cost, concept.tracks_inventory,
       concept.stock, concept.minimum_stock,
+      COALESCE(
+        (SELECT lot.unit_cost::text FROM ${schema}.inventory_lots lot
+         WHERE lot.product_id = concept.id
+           AND NOT EXISTS (
+             SELECT 1 FROM ${schema}.purchase_items purchase_item
+             JOIN ${schema}.purchases purchase ON purchase.id = purchase_item.purchase_id
+             WHERE purchase_item.id = lot.purchase_item_id AND purchase.status = 'cancelled'
+           )
+         ORDER BY lot.received_at DESC, lot.id DESC LIMIT 1),
+        (SELECT item.unit_cost::text FROM ${schema}.purchase_items item
+         JOIN ${schema}.purchases purchase ON purchase.id = item.purchase_id
+         WHERE item.product_id = concept.id AND purchase.status = 'confirmed'
+         ORDER BY purchase.confirmed_at DESC, item.id DESC LIMIT 1),
+        concept.cost::text
+      ) AS last_cost,
+      (SELECT round(sum(lot.remaining_quantity * lot.unit_cost) /
+        nullif(sum(lot.remaining_quantity), 0), 2)::text
+       FROM ${schema}.inventory_lots lot
+       WHERE lot.product_id = concept.id AND lot.remaining_quantity > 0) AS average_cost,
       concept.sat_product_service_code, concept.is_active,
       concept.created_by_user_id, concept.updated_by_user_id,
       concept.created_at, concept.updated_at,
@@ -391,6 +412,8 @@ export class ConceptCatalogService {
         updated_at: row.unit_updated_at,
       }),
       cost: row.cost,
+      lastCost: row.last_cost,
+      averageCost: row.average_cost,
       price: row.unit_price,
       tracksInventory: row.tracks_inventory,
       stock: row.stock,

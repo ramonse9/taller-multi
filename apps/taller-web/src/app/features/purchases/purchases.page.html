@@ -12,6 +12,38 @@
   </header>
 
   <section class="px-[clamp(1.5rem,5vw,5rem)] pb-16 pt-8">
+    <div class="mb-6 grid gap-px bg-[#dcd9cf] sm:grid-cols-2 xl:grid-cols-4 dark:bg-[#3d4d44]">
+      <article class="bg-white p-5 dark:bg-[#1a251f]"><span class="detail-label">COMPRAS · 30 DÍAS</span><strong class="mt-2 block text-3xl">{{ indicators().confirmedLast30Days }}</strong><small class="text-[#68746d] dark:text-[#aab7af]">Confirmadas</small></article>
+      <article class="bg-white p-5 dark:bg-[#1a251f]"><span class="detail-label">INVERSIÓN · 30 DÍAS</span><strong class="mt-2 block text-3xl">{{ money(indicators().confirmedAmountLast30Days) }}</strong><small class="text-[#68746d] dark:text-[#aab7af]">Solo compras confirmadas</small></article>
+      <article class="bg-white p-5 dark:bg-[#1a251f]"><span class="detail-label">BORRADORES</span><strong class="mt-2 block text-3xl">{{ indicators().draftCount }}</strong><small class="text-[#68746d] dark:text-[#aab7af]">Pendientes de confirmar</small></article>
+      <article class="bg-white p-5 dark:bg-[#1a251f]"><span class="detail-label">TOTAL EN BORRADORES</span><strong class="mt-2 block text-3xl">{{ money(indicators().draftAmount) }}</strong><small class="text-[#68746d] dark:text-[#aab7af]">Todavía no afecta inventario</small></article>
+    </div>
+
+    <div class="mb-8 grid gap-5 xl:grid-cols-2">
+      <section class="form-card-tw overflow-hidden">
+        <header class="form-card-header"><div><p class="eyebrow">ACTIVIDAD</p><h2 class="section-title">Compras recientes</h2></div></header>
+        <div class="divide-y divide-[#ece9df] dark:divide-[#35433b]">
+          @for (purchase of indicators().recentPurchases; track purchase.id) {
+            <a class="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 p-4 text-inherit no-underline hover:bg-[#f4f2eb] dark:hover:bg-[#222f27]" [routerLink]="['/purchases', purchase.id]">
+              <strong class="font-[var(--mono)]">#{{ purchase.folio }}</strong><span class="min-w-0"><strong class="block truncate">{{ purchase.supplier.commercialName }}</strong><small class="text-[#68746d] dark:text-[#aab7af]">{{ formatShortDate(purchase.purchasedAt) }} · {{ statusName(purchase.status) }}</small></span><strong>{{ money(purchase.total) }}</strong>
+            </a>
+          } @empty { <p class="p-8 text-center text-sm text-[#68746d] dark:text-[#aab7af]">Todavía no hay compras registradas.</p> }
+        </div>
+      </section>
+
+      <section class="form-card-tw overflow-hidden">
+        <header class="form-card-header"><div><p class="eyebrow">COSTOS</p><h2 class="section-title">Variaciones importantes</h2><small class="text-[#68746d] dark:text-[#aab7af]">Cambios de 5% o más entre las dos últimas compras confirmadas.</small></div></header>
+        <div class="divide-y divide-[#ece9df] dark:divide-[#35433b]">
+          @for (variation of indicators().importantVariations; track variation.productId) {
+            <div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 p-4">
+              <div class="min-w-0"><strong class="block truncate">{{ variation.productName }}</strong><small class="text-[#68746d] dark:text-[#aab7af]">{{ variation.productSku || 'Sin SKU' }} · {{ money(variation.previousCost) }} → {{ money(variation.currentCost) }}</small></div>
+              <span class="px-2 py-1 text-sm font-bold" [class.bg-[#ffe6e2]]="variation.direction === 'increase'" [class.text-[#a1362c]]="variation.direction === 'increase'" [class.bg-[#e7f2eb]]="variation.direction === 'decrease'" [class.text-[#245b3b]]="variation.direction === 'decrease'">{{ variation.direction === 'increase' ? '↑' : '↓' }} {{ variation.changePercent }}%</span>
+            </div>
+          } @empty { <p class="p-8 text-center text-sm text-[#68746d] dark:text-[#aab7af]">No hay variaciones mayores al 5%.</p> }
+        </div>
+      </section>
+    </div>
+
     <div class="mb-6 grid gap-3 md:grid-cols-[minmax(0,1fr)_13rem_16rem]">
       <div class="relative">
         <span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#768079]">⌕</span>

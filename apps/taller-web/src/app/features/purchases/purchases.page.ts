@@ -18,6 +18,7 @@ import { SuppliersService } from "../suppliers/suppliers.service";
 import {
   PaginatedPurchases,
   PURCHASE_STATUS_NAMES,
+  PurchaseIndicators,
   PurchaseStatus,
 } from "./purchase.models";
 import { PurchasesService } from "./purchases.service";
@@ -29,6 +30,15 @@ const emptyPurchases = (): PaginatedPurchases => ({
   totalPages: 0,
   hasNextPage: false,
   items: [],
+});
+
+const emptyIndicators = (): PurchaseIndicators => ({
+  confirmedLast30Days: 0,
+  confirmedAmountLast30Days: "0.00",
+  draftCount: 0,
+  draftAmount: "0.00",
+  recentPurchases: [],
+  importantVariations: [],
 });
 
 @Component({
@@ -46,6 +56,7 @@ export class PurchasesPage implements OnInit {
   readonly formatShortDate = formatShortDate;
 
   readonly data = signal<PaginatedPurchases>(emptyPurchases());
+  readonly indicators = signal<PurchaseIndicators>(emptyIndicators());
   readonly suppliers = signal<Supplier[]>([]);
   readonly loading = signal(true);
   readonly error = signal("");
@@ -100,12 +111,14 @@ export class PurchasesPage implements OnInit {
     this.loading.set(true);
     forkJoin({
       purchases: this.purchasesService.list({ page: 1, limit: 20 }),
+      indicators: this.purchasesService.indicators(),
       suppliers: this.suppliersService.list({ page: 1, limit: 100, isActive: true }),
     })
       .pipe(finalize(() => this.loading.set(false)), takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: ({ purchases, suppliers }) => {
+        next: ({ purchases, indicators, suppliers }) => {
           this.data.set(purchases);
+          this.indicators.set(indicators);
           this.suppliers.set(suppliers.items);
         },
         error: (error: unknown) =>

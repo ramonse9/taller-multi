@@ -26,6 +26,7 @@ import {
   ChangePurchaseStatusDto,
   CreatePurchaseDto,
   PaginatedPurchasesResponseDto,
+  PurchaseIndicatorsResponseDto,
   PurchaseQueryDto,
   PurchaseResponseDto,
   UpdatePurchaseDto,
@@ -39,6 +40,13 @@ import { PurchasesService } from './purchases.service';
 @Controller('purchases')
 export class PurchasesController {
   constructor(private readonly purchases: PurchasesService) {}
+
+  @Get('indicators')
+  @ApiOperation({ summary: 'Consultar resumen reciente y variaciones de costos' })
+  @ApiOkResponse({ type: PurchaseIndicatorsResponseDto })
+  indicators(@CurrentUser() user: AuthenticatedUser): Promise<PurchaseIndicatorsResponseDto> {
+    return this.purchases.indicators(user);
+  }
 
   @Get()
   @ApiOperation({ summary: 'Listar y buscar compras de la compañía' })

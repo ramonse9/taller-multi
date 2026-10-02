@@ -12,6 +12,8 @@ import {
   ChangePurchaseStatusDto,
   CreatePurchaseDto,
   PaginatedPurchasesResponseDto,
+  PurchaseCostVariationResponseDto,
+  PurchaseIndicatorsResponseDto,
   PurchaseItemInputDto,
   PurchaseItemResponseDto,
   PurchaseQueryDto,
@@ -82,9 +84,89 @@ interface PurchaseStatusHistoryRow {
   changed_at: Date;
 }
 
+interface PurchaseCostVariationRow {
+  product_id: string;
+  product_name: string;
+  product_sku: string | null;
+  current_cost: string;
+  previous_cost: string;
+  change_amount: string;
+  change_percent: string;
+  last_purchased_at: Date;
+}
+
 @Injectable()
 export class PurchasesService {
   constructor(private readonly tenant: TenantSessionService) {}
+
+  indicators(user: AuthenticatedUser): Promise<PurchaseIndicatorsResponseDto> {
+    return this.tenant.run(user, async (runner, schemaName) => {
+      const schema = quoteIdentifier(schemaName);
+      const summaryRows = (await runner.query(`
+        SELECT
+          count(*) FILTER (
+            WHERE status = 'confirmed' AND purchased_at >= now() - interval '30 days'
+          )::int AS confirmed_last_30_days,
+          COALESCE(sum(total) FILTER (
+            WHERE status = 'confirmed' AND purchased_at >= now() - interval '30 days'
+          ), 0)::text AS confirmed_amount_last_30_days,
+          count(*) FILTER (WHERE status = 'draft')::int AS draft_count,
+          COALESCE(sum(total) FILTER (WHERE status = 'draft'), 0)::text AS draft_amount
+        FROM ${schema}.purchases
+      `)) as Array<{
+        confirmed_last_30_days: number;
+        confirmed_amount_last_30_days: string;
+        draft_count: number;
+        draft_amount: string;
+      }>;
+      const recentRows = (await runner.query(
+        `${this.purchaseSelect(schema)}
+         ORDER BY purchase.purchased_at DESC, purchase.folio DESC LIMIT 5`,
+      )) as PurchaseRow[];
+      const variationRows = (await runner.query(`
+        WITH ranked_costs AS (
+          SELECT item.product_id, item.product_name, item.product_sku,
+                 item.unit_cost, purchase.confirmed_at,
+                 row_number() OVER (
+                   PARTITION BY item.product_id
+                   ORDER BY purchase.confirmed_at DESC, purchase.folio DESC, item.id DESC
+                 ) AS position
+          FROM ${schema}.purchase_items item
+          JOIN ${schema}.purchases purchase ON purchase.id = item.purchase_id
+          WHERE purchase.status = 'confirmed'
+        ), compared AS (
+          SELECT product_id,
+                 max(product_name) FILTER (WHERE position = 1) AS product_name,
+                 max(product_sku) FILTER (WHERE position = 1) AS product_sku,
+                 max(unit_cost) FILTER (WHERE position = 1) AS current_cost,
+                 max(unit_cost) FILTER (WHERE position = 2) AS previous_cost,
+                 max(confirmed_at) FILTER (WHERE position = 1) AS last_purchased_at
+          FROM ranked_costs WHERE position <= 2 GROUP BY product_id
+        )
+        SELECT product_id, product_name, product_sku,
+               current_cost::text, previous_cost::text,
+               round(current_cost - previous_cost, 2)::text AS change_amount,
+               round(((current_cost - previous_cost) / previous_cost) * 100, 2)::text
+                 AS change_percent,
+               last_purchased_at
+        FROM compared
+        WHERE previous_cost > 0
+          AND abs(((current_cost - previous_cost) / previous_cost) * 100) >= 5
+        ORDER BY abs(((current_cost - previous_cost) / previous_cost) * 100) DESC,
+                 product_name
+        LIMIT 10
+      `)) as PurchaseCostVariationRow[];
+      const summary = summaryRows[0]!;
+      return {
+        confirmedLast30Days: summary.confirmed_last_30_days,
+        confirmedAmountLast30Days: summary.confirmed_amount_last_30_days,
+        draftCount: summary.draft_count,
+        draftAmount: summary.draft_amount,
+        recentPurchases: recentRows.map((row) => this.toSummary(row)),
+        importantVariations: variationRows.map((row) => this.toVariation(row)),
+      };
+    });
+  }
 
   list(
     user: AuthenticatedUser,
@@ -619,6 +701,20 @@ export class PurchasesService {
       changedByUserId: row.changed_by_user_id,
       changedByName: row.changed_by_name,
       changedAt: row.changed_at,
+    };
+  }
+
+  private toVariation(row: PurchaseCostVariationRow): PurchaseCostVariationResponseDto {
+    return {
+      productId: row.product_id,
+      productName: row.product_name,
+      productSku: row.product_sku,
+      currentCost: row.current_cost,
+      previousCost: row.previous_cost,
+      changeAmount: row.change_amount,
+      changePercent: row.change_percent,
+      direction: Number(row.change_amount) >= 0 ? 'increase' : 'decrease',
+      lastPurchasedAt: row.last_purchased_at,
     };
   }
 

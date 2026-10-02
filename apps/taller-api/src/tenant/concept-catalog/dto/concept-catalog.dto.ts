@@ -199,6 +199,10 @@ export class ConceptResponseDto {
   @ApiProperty({ nullable: true, type: String }) description!: string | null;
   @ApiProperty({ type: MeasurementUnitResponseDto }) unit!: MeasurementUnitResponseDto;
   @ApiProperty({ description: 'Decimal entregado como texto' }) cost!: string;
+  @ApiProperty({ nullable: true, type: String, description: 'Último costo confirmado' })
+  lastCost!: string | null;
+  @ApiProperty({ nullable: true, type: String, description: 'Costo promedio del inventario' })
+  averageCost!: string | null;
   @ApiProperty({ description: 'Decimal entregado como texto' }) price!: string;
   @ApiProperty() tracksInventory!: boolean;
   @ApiProperty({ description: 'Existencia decimal entregada como texto' }) stock!: string;

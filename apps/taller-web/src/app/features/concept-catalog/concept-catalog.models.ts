@@ -17,6 +17,8 @@ export interface CatalogConcept {
   description: string | null;
   unit: MeasurementUnit;
   cost: string;
+  lastCost: string | null;
+  averageCost: string | null;
   price: string;
   tracksInventory: boolean;
   stock: string;

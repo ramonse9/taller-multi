@@ -194,3 +194,32 @@ export class PaginatedPurchasesResponseDto {
   @ApiProperty({ type: PurchaseSummaryResponseDto, isArray: true })
   items!: PurchaseSummaryResponseDto[];
 }
+
+export class PurchaseCostVariationResponseDto {
+  @ApiProperty({ format: 'uuid' }) productId!: string;
+  @ApiProperty() productName!: string;
+  @ApiProperty({ nullable: true, type: String }) productSku!: string | null;
+  @ApiProperty({ description: 'Costo de la compra confirmada más reciente' })
+  currentCost!: string;
+  @ApiProperty({ description: 'Costo confirmado inmediatamente anterior' })
+  previousCost!: string;
+  @ApiProperty({ description: 'Diferencia monetaria entregada como texto' })
+  changeAmount!: string;
+  @ApiProperty({ description: 'Variación porcentual entregada como texto' })
+  changePercent!: string;
+  @ApiProperty({ enum: ['increase', 'decrease'] })
+  direction!: 'increase' | 'decrease';
+  @ApiProperty() lastPurchasedAt!: Date;
+}
+
+export class PurchaseIndicatorsResponseDto {
+  @ApiProperty() confirmedLast30Days!: number;
+  @ApiProperty({ description: 'Total confirmado de los últimos 30 días' })
+  confirmedAmountLast30Days!: string;
+  @ApiProperty() draftCount!: number;
+  @ApiProperty({ description: 'Total acumulado en borradores' }) draftAmount!: string;
+  @ApiProperty({ type: PurchaseSummaryResponseDto, isArray: true })
+  recentPurchases!: PurchaseSummaryResponseDto[];
+  @ApiProperty({ type: PurchaseCostVariationResponseDto, isArray: true })
+  importantVariations!: PurchaseCostVariationResponseDto[];
+}
