@@ -2,6 +2,7 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 import { QueryRunner } from 'typeorm';
 import { AuthenticatedUser } from '../../common/types/authenticated-user';
 import { quoteIdentifier } from '../../database/schema-name';
+import { PermissionsService } from '../../permissions/permissions.service';
 import { TenantSessionService } from '../tenant-session.service';
 import {
   DashboardActivityResponseDto,
@@ -101,19 +102,25 @@ interface InventoryMovementActivityRow {
 
 @Injectable()
 export class DashboardService {
-  constructor(private readonly tenant: TenantSessionService) {}
+  constructor(
+    private readonly tenant: TenantSessionService,
+    private readonly permissions: PermissionsService,
+  ) {}
 
   summary(user: AuthenticatedUser): Promise<DashboardSummaryResponseDto> {
     const subscription = user.subscription;
     if (!subscription) throw new ForbiddenException('Se requiere una suscripción de compañía');
-    const includesFinancials = subscription.features.includes('profitability');
-    const includesLowStock = subscription.features.includes('inventory');
+    const includesFinancials =
+      subscription.features.includes('profitability') &&
+      this.permissions.has(user, 'profitability.view');
+    const includesLowStock =
+      subscription.features.includes('inventory') && this.permissions.has(user, 'inventory.view');
+    const includesRevenue =
+      this.permissions.has(user, 'orders.manage_payment') || includesFinancials;
     return this.tenant.run(user, async (runner, schemaName) => {
       const schema = quoteIdentifier(schemaName);
       const operations = await this.operations(runner, schema);
-      const financials = includesFinancials
-        ? await this.financials(runner, schema)
-        : null;
+      const financials = includesFinancials ? await this.financials(runner, schema) : null;
       const lowStock = includesLowStock ? await this.lowStock(runner, schema) : null;
       return {
         period: {
@@ -133,9 +140,9 @@ export class DashboardService {
           completedPaidCount: operations.completed_paid_count,
         },
         revenue: {
-          generated: operations.generated,
-          collected: operations.collected,
-          outstanding: operations.outstanding,
+          generated: includesRevenue ? operations.generated : '0.00',
+          collected: includesRevenue ? operations.collected : '0.00',
+          outstanding: includesRevenue ? operations.outstanding : '0.00',
         },
         financials,
         lowStock,
@@ -146,16 +153,24 @@ export class DashboardService {
   activity(user: AuthenticatedUser): Promise<DashboardActivityResponseDto> {
     const subscription = user.subscription;
     if (!subscription) throw new ForbiddenException('Se requiere una suscripción de compañía');
-    const includesInventory = subscription.features.includes('inventory');
-    const includesExpenses = subscription.features.includes('expenses');
+    const includesOrders = this.permissions.has(user, 'orders.view');
+    const includesCollections = this.permissions.has(user, 'orders.manage_payment');
+    const includesPurchases =
+      subscription.features.includes('inventory') &&
+      this.permissions.has(user, 'purchases.view') &&
+      this.permissions.has(user, 'catalog.view_costs');
+    const includesInventory =
+      subscription.features.includes('inventory') && this.permissions.has(user, 'inventory.view');
+    const includesExpenses =
+      subscription.features.includes('expenses') && this.permissions.has(user, 'expenses.view');
     return this.tenant.run(user, async (runner, schemaName) => {
       const schema = quoteIdentifier(schemaName);
-      const recentOrders = await this.recentOrders(runner, schema);
-      const oldestInProgress = await this.oldestInProgress(runner, schema);
-      const pendingCollection = await this.pendingCollection(runner, schema);
-      const recentPurchases = includesInventory
-        ? await this.recentPurchases(runner, schema)
-        : null;
+      const recentOrders = includesOrders ? await this.recentOrders(runner, schema) : [];
+      const oldestInProgress = includesOrders ? await this.oldestInProgress(runner, schema) : [];
+      const pendingCollection = includesCollections
+        ? await this.pendingCollection(runner, schema)
+        : [];
+      const recentPurchases = includesPurchases ? await this.recentPurchases(runner, schema) : null;
       const recentExpenses = includesExpenses ? await this.recentExpenses(runner, schema) : null;
       const recentInventoryMovements = includesInventory
         ? await this.recentInventoryMovements(runner, schema)
@@ -253,7 +268,10 @@ export class DashboardService {
     };
   }
 
-  private async lowStock(runner: QueryRunner, schema: string): Promise<DashboardLowStockResponseDto> {
+  private async lowStock(
+    runner: QueryRunner,
+    schema: string,
+  ): Promise<DashboardLowStockResponseDto> {
     const rows = (await runner.query(
       `SELECT concept.id, concept.sku, concept.name, unit.symbol AS unit_symbol,
          concept.stock::text, concept.minimum_stock::text,

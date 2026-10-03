@@ -11,16 +11,18 @@ import {
   UserPermissionProfileDto,
 } from './dto/permission.dto';
 import { PermissionsService } from './permissions.service';
+import { PermissionGuard, RequiresPermissions } from './permission.guard';
 
 @ApiTags('permissions')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionGuard)
 @Roles(PlatformRole.CompanyAdmin, PlatformRole.Admin)
 @Controller('permissions')
 export class PermissionsController {
   constructor(private readonly permissions: PermissionsService) {}
 
   @Get()
+  @RequiresPermissions('permissions.manage')
   @ApiOperation({ summary: 'Consultar catálogo de permisos por módulo y acción' })
   @ApiOkResponse({ type: PermissionCatalogItemDto, isArray: true })
   catalog(): Promise<PermissionCatalogItemDto[]> {
@@ -28,6 +30,7 @@ export class PermissionsController {
   }
 
   @Get('templates')
+  @RequiresPermissions('permissions.manage')
   @ApiOperation({ summary: 'Consultar plantillas de permisos disponibles' })
   @ApiOkResponse({ type: PermissionTemplateDto, isArray: true })
   templates(): Promise<PermissionTemplateDto[]> {
@@ -35,6 +38,7 @@ export class PermissionsController {
   }
 
   @Get('users/:userId')
+  @RequiresPermissions('permissions.manage')
   @ApiOperation({ summary: 'Consultar permisos asignados a un usuario' })
   @ApiOkResponse({ type: UserPermissionProfileDto })
   profile(
@@ -45,6 +49,7 @@ export class PermissionsController {
   }
 
   @Put('users/:userId')
+  @RequiresPermissions('permissions.manage')
   @ApiOperation({ summary: 'Aplicar una plantilla o permisos personalizados a un usuario' })
   @ApiOkResponse({ type: UserPermissionProfileDto })
   updateProfile(

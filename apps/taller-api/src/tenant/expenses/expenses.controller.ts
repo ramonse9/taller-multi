@@ -22,6 +22,8 @@ import { JwtAuthGuard } from '../../auth/roles';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../../common/types/authenticated-user';
 import { RequiresFeature, SubscriptionGuard } from '../../subscriptions/subscription.guard';
+import { PermissionGuard, RequiresPermissions } from '../../permissions/permission.guard';
+import { PermissionsService } from '../../permissions/permissions.service';
 import {
   ChangeExpenseStatusDto,
   CreateExpenseDto,
@@ -32,18 +34,23 @@ import {
   ExpenseResponseDto,
   PaginatedExpensesResponseDto,
   UpdateExpenseDto,
+  ExpenseStatus,
 } from './dto/expense.dto';
 import { ExpensesService } from './expenses.service';
 
 @ApiTags('expenses')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, SubscriptionGuard)
+@UseGuards(JwtAuthGuard, SubscriptionGuard, PermissionGuard)
 @RequiresFeature('expenses')
 @Controller('expenses')
 export class ExpensesController {
-  constructor(private readonly expenses: ExpensesService) {}
+  constructor(
+    private readonly expenses: ExpensesService,
+    private readonly permissions: PermissionsService,
+  ) {}
 
   @Get('categories')
+  @RequiresPermissions('expenses.view')
   @ApiOperation({ summary: 'Consultar categorías disponibles para gastos' })
   @ApiOkResponse({ type: ExpenseCategoryResponseDto, isArray: true })
   categories(@CurrentUser() user: AuthenticatedUser): Promise<ExpenseCategoryResponseDto[]> {
@@ -51,6 +58,7 @@ export class ExpensesController {
   }
 
   @Get('summary')
+  @RequiresPermissions('expenses.view')
   @ApiOperation({ summary: 'Consultar resumen mensual y comparación contra el mes anterior' })
   @ApiOkResponse({ type: ExpenseMonthlySummaryResponseDto })
   summary(
@@ -61,6 +69,7 @@ export class ExpensesController {
   }
 
   @Get()
+  @RequiresPermissions('expenses.view')
   @ApiOperation({ summary: 'Listar y buscar gastos de la compañía' })
   @ApiOkResponse({ type: PaginatedExpensesResponseDto })
   list(
@@ -71,6 +80,7 @@ export class ExpensesController {
   }
 
   @Get(':id')
+  @RequiresPermissions('expenses.view')
   @ApiOperation({ summary: 'Consultar un gasto y su historial de estados' })
   @ApiOkResponse({ type: ExpenseResponseDto })
   getOne(
@@ -81,6 +91,7 @@ export class ExpensesController {
   }
 
   @Post()
+  @RequiresPermissions('expenses.create')
   @ApiOperation({ summary: 'Registrar un gasto en borrador' })
   @ApiCreatedResponse({ type: ExpenseResponseDto })
   create(
@@ -91,6 +102,7 @@ export class ExpensesController {
   }
 
   @Patch(':id')
+  @RequiresPermissions('expenses.edit')
   @ApiOperation({ summary: 'Editar un gasto mientras permanece en borrador' })
   @ApiOkResponse({ type: ExpenseResponseDto })
   update(
@@ -110,6 +122,10 @@ export class ExpensesController {
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() input: ChangeExpenseStatusDto,
   ): Promise<ExpenseResponseDto> {
+    this.permissions.assert(
+      user,
+      input.status === ExpenseStatus.Confirmed ? 'expenses.confirm' : 'expenses.cancel',
+    );
     return this.expenses.changeStatus(user, id, input);
   }
 }

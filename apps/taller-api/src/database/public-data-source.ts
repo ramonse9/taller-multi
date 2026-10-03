@@ -25,6 +25,7 @@ import { PurchaseStatusHistory1700000020000 } from './migrations/public/17000000
 import { ExpenseModel1700000021000 } from './migrations/public/1700000021000-expense-model';
 import { TenantAdminRole1700000022000 } from './migrations/public/1700000022000-tenant-admin-role';
 import { UserPermissions1700000023000 } from './migrations/public/1700000023000-user-permissions';
+import { SensitiveActionPermissions1700000024000 } from './migrations/public/1700000024000-sensitive-action-permissions';
 
 export default new DataSource({
   type: 'postgres',
@@ -56,6 +57,7 @@ export default new DataSource({
     ExpenseModel1700000021000,
     TenantAdminRole1700000022000,
     UserPermissions1700000023000,
+    SensitiveActionPermissions1700000024000,
   ],
   migrationsTableName: 'public_schema_migrations',
   synchronize: false,

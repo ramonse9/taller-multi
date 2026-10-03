@@ -2,6 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsString, Length, Matches } from 'class-validator';
 import { SubscriptionResponseDto } from '../../subscriptions/dto/subscription.dto';
+import { PERMISSION_CODES, PermissionCode } from '../../permissions/permission.types';
 
 export class LoginDto {
   @ApiProperty({ example: 'yovany@melkars' })
@@ -33,6 +34,7 @@ export class LoginUserResponseDto {
   @ApiProperty() mustChangePassword!: boolean;
   @ApiProperty({ nullable: true, type: SubscriptionResponseDto })
   subscription!: SubscriptionResponseDto | null;
+  @ApiProperty({ enum: PERMISSION_CODES, isArray: true }) permissions!: PermissionCode[];
 }
 
 export class LoginResponseDto {

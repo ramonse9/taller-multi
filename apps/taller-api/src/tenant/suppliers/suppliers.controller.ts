@@ -21,6 +21,7 @@ import { JwtAuthGuard } from '../../auth/roles';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../../common/types/authenticated-user';
 import { RequiresFeature, SubscriptionGuard } from '../../subscriptions/subscription.guard';
+import { PermissionGuard, RequiresPermissions } from '../../permissions/permission.guard';
 import {
   CreateSupplierDto,
   PaginatedSuppliersResponseDto,
@@ -32,13 +33,14 @@ import { SuppliersService } from './suppliers.service';
 
 @ApiTags('suppliers')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, SubscriptionGuard)
+@UseGuards(JwtAuthGuard, SubscriptionGuard, PermissionGuard)
 @RequiresFeature('item_catalog')
 @Controller('suppliers')
 export class SuppliersController {
   constructor(private readonly suppliers: SuppliersService) {}
 
   @Get()
+  @RequiresPermissions('suppliers.view')
   @ApiOperation({ summary: 'Listar proveedores de la compañía' })
   @ApiOkResponse({ type: PaginatedSuppliersResponseDto })
   list(
@@ -49,6 +51,7 @@ export class SuppliersController {
   }
 
   @Get(':id')
+  @RequiresPermissions('suppliers.view')
   @ApiOperation({ summary: 'Consultar un proveedor' })
   @ApiOkResponse({ type: SupplierResponseDto })
   getOne(
@@ -59,6 +62,7 @@ export class SuppliersController {
   }
 
   @Post()
+  @RequiresPermissions('suppliers.manage')
   @ApiOperation({ summary: 'Registrar un proveedor' })
   @ApiCreatedResponse({ type: SupplierResponseDto })
   @ApiConflictResponse({ description: 'Nombre comercial o RFC duplicado' })
@@ -70,6 +74,7 @@ export class SuppliersController {
   }
 
   @Patch(':id')
+  @RequiresPermissions('suppliers.manage')
   @ApiOperation({ summary: 'Editar, activar o desactivar un proveedor' })
   @ApiOkResponse({ type: SupplierResponseDto })
   update(

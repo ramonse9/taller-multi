@@ -8,6 +8,7 @@ import { AuthenticatedUser } from '../common/types/authenticated-user';
 import { Company } from '../companies/entities/company.entity';
 import { PlatformRole, PlatformUser } from '../platform-users/entities/platform-user.entity';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+import { PermissionsService } from '../permissions/permissions.service';
 
 interface JwtPayload {
   sub: string;
@@ -22,6 +23,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     @InjectRepository(Company) private readonly companies: Repository<Company>,
     private readonly dataSource: DataSource,
     private readonly subscriptions: SubscriptionsService,
+    private readonly permissions: PermissionsService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -66,6 +68,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         mustChangePassword: user.mustChangePassword,
         sessionId: payload.jti,
         subscription: null,
+        permissions: [],
       };
     }
     if (!user.companyId) throw new UnauthorizedException('Compañía requerida');
@@ -86,6 +89,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       mustChangePassword: user.mustChangePassword,
       sessionId: payload.jti,
       subscription: await this.subscriptions.getByCompanyId(company.id),
+      permissions: await this.permissions.forUser(user.id, user.role),
     };
   }
 }

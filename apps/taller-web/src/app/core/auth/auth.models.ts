@@ -14,6 +14,7 @@ export interface SessionUser {
   companyId: string | null;
   mustChangePassword: boolean;
   subscription: SubscriptionSummary | null;
+  permissions: string[];
 }
 
 export interface LoginResponse {

@@ -36,18 +36,20 @@ import {
 } from './dto/vehicle-catalog.dto';
 import { VehicleCatalogService } from './vehicle-catalog.service';
 import { RequiresSubscription, SubscriptionGuard } from '../subscriptions/subscription.guard';
+import { PermissionGuard, RequiresPermissions } from '../permissions/permission.guard';
 
 const CATALOG_ADMIN_ROLES = [PlatformRole.PlatformAdmin, PlatformRole.CompanyAdmin];
 
 @ApiTags('vehicle-catalogs')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard, SubscriptionGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, SubscriptionGuard, PermissionGuard)
 @RequiresSubscription()
 @Controller('catalogs')
 export class VehicleCatalogController {
   constructor(private readonly catalog: VehicleCatalogService) {}
 
   @Get('vehicle-brands')
+  @RequiresPermissions('vehicle_catalog.view')
   @ApiOperation({ summary: 'Listar marcas de vehículos' })
   @ApiOkResponse({ type: PaginatedVehicleBrandsDto })
   listBrands(@Query() query: VehicleCatalogQueryDto): Promise<PaginatedVehicleBrandsDto> {
@@ -55,6 +57,7 @@ export class VehicleCatalogController {
   }
 
   @Get('vehicle-brands/:id')
+  @RequiresPermissions('vehicle_catalog.view')
   @ApiOperation({ summary: 'Consultar una marca' })
   @ApiOkResponse({ type: VehicleBrandResponseDto })
   getBrand(
@@ -65,6 +68,7 @@ export class VehicleCatalogController {
 
   @Post('vehicle-brands')
   @Roles(...CATALOG_ADMIN_ROLES)
+  @RequiresPermissions('vehicle_catalog.manage')
   @ApiOperation({ summary: 'Crear una marca global' })
   @ApiCreatedResponse({ type: VehicleBrandResponseDto })
   @ApiConflictResponse({ description: 'La marca ya existe' })
@@ -77,6 +81,7 @@ export class VehicleCatalogController {
 
   @Patch('vehicle-brands/:id')
   @Roles(...CATALOG_ADMIN_ROLES)
+  @RequiresPermissions('vehicle_catalog.manage')
   @ApiOperation({ summary: 'Editar o reactivar una marca' })
   @ApiOkResponse({ type: VehicleBrandResponseDto })
   updateBrand(
@@ -89,6 +94,7 @@ export class VehicleCatalogController {
 
   @Delete('vehicle-brands/:id')
   @Roles(...CATALOG_ADMIN_ROLES)
+  @RequiresPermissions('vehicle_catalog.manage')
   @ApiOperation({ summary: 'Desactivar una marca sin eliminarla' })
   @ApiOkResponse({ type: VehicleBrandResponseDto })
   deactivateBrand(
@@ -99,6 +105,7 @@ export class VehicleCatalogController {
   }
 
   @Get('vehicle-models')
+  @RequiresPermissions('vehicle_catalog.view')
   @ApiOperation({ summary: 'Listar modelos de una marca' })
   @ApiOkResponse({ type: PaginatedVehicleModelsDto })
   listModels(@Query() query: VehicleModelQueryDto): Promise<PaginatedVehicleModelsDto> {
@@ -106,6 +113,7 @@ export class VehicleCatalogController {
   }
 
   @Get('vehicle-models/:id')
+  @RequiresPermissions('vehicle_catalog.view')
   @ApiOperation({ summary: 'Consultar un modelo' })
   @ApiOkResponse({ type: VehicleModelResponseDto })
   getModel(
@@ -116,6 +124,7 @@ export class VehicleCatalogController {
 
   @Post('vehicle-models')
   @Roles(...CATALOG_ADMIN_ROLES)
+  @RequiresPermissions('vehicle_catalog.manage')
   @ApiOperation({ summary: 'Crear un modelo dentro de una marca' })
   @ApiCreatedResponse({ type: VehicleModelResponseDto })
   @ApiConflictResponse({ description: 'El modelo ya existe para esa marca' })
@@ -128,6 +137,7 @@ export class VehicleCatalogController {
 
   @Patch('vehicle-models/:id')
   @Roles(...CATALOG_ADMIN_ROLES)
+  @RequiresPermissions('vehicle_catalog.manage')
   @ApiOperation({ summary: 'Editar o reactivar un modelo' })
   @ApiOkResponse({ type: VehicleModelResponseDto })
   updateModel(
@@ -140,6 +150,7 @@ export class VehicleCatalogController {
 
   @Delete('vehicle-models/:id')
   @Roles(...CATALOG_ADMIN_ROLES)
+  @RequiresPermissions('vehicle_catalog.manage')
   @ApiOperation({ summary: 'Desactivar un modelo sin eliminarlo' })
   @ApiOkResponse({ type: VehicleModelResponseDto })
   deactivateModel(

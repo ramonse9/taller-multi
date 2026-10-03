@@ -14,6 +14,8 @@ import { JwtAuthGuard } from '../../auth/roles';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../../common/types/authenticated-user';
 import { RequiresFeature, SubscriptionGuard } from '../../subscriptions/subscription.guard';
+import { PermissionGuard, RequiresPermissions } from '../../permissions/permission.guard';
+import { PermissionsService } from '../../permissions/permissions.service';
 import {
   CreateVehicleDto,
   UpdateVehicleDto,
@@ -25,13 +27,17 @@ import { VehiclesService } from './vehicles.service';
 
 @ApiTags('vehicles')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, SubscriptionGuard)
+@UseGuards(JwtAuthGuard, SubscriptionGuard, PermissionGuard)
 @RequiresFeature('vehicle_history')
 @Controller('clients/:clientId/vehicles')
 export class VehiclesController {
-  constructor(private readonly vehicles: VehiclesService) {}
+  constructor(
+    private readonly vehicles: VehiclesService,
+    private readonly permissions: PermissionsService,
+  ) {}
 
   @Get()
+  @RequiresPermissions('vehicles.view')
   @ApiOkResponse({ type: VehicleResponseDto, isArray: true })
   list(
     @CurrentUser() user: AuthenticatedUser,
@@ -41,6 +47,7 @@ export class VehiclesController {
   }
 
   @Get(':id')
+  @RequiresPermissions('vehicles.view')
   @ApiOkResponse({ type: VehicleResponseDto })
   getOne(
     @CurrentUser() user: AuthenticatedUser,
@@ -51,6 +58,7 @@ export class VehiclesController {
   }
 
   @Post()
+  @RequiresPermissions('vehicles.create')
   @ApiCreatedResponse({ type: VehicleResponseDto })
   create(
     @CurrentUser() user: AuthenticatedUser,
@@ -68,19 +76,25 @@ export class VehiclesController {
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() input: UpdateVehicleDto,
   ): Promise<VehicleResponseDto> {
+    const editsData = Object.entries(input).some(
+      ([field, value]) => field !== 'isActive' && value !== undefined,
+    );
+    if (editsData) this.permissions.assert(user, 'vehicles.edit');
+    if (input.isActive !== undefined) this.permissions.assert(user, 'vehicles.deactivate');
     return this.vehicles.update(user, clientId, id, input);
   }
 }
 
 @ApiTags('vehicles')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, SubscriptionGuard)
+@UseGuards(JwtAuthGuard, SubscriptionGuard, PermissionGuard)
 @RequiresFeature('vehicle_history')
 @Controller('vehicles')
 export class VehicleHistoryController {
   constructor(private readonly vehicles: VehiclesService) {}
 
   @Get('history')
+  @RequiresPermissions('vehicles.view')
   @ApiOkResponse({ type: VehicleHistoryResponseDto })
   history(
     @CurrentUser() user: AuthenticatedUser,

@@ -22,6 +22,8 @@ import { JwtAuthGuard } from '../../auth/roles';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../../common/types/authenticated-user';
 import { RequiresFeature, SubscriptionGuard } from '../../subscriptions/subscription.guard';
+import { PermissionGuard, RequiresPermissions } from '../../permissions/permission.guard';
+import { PermissionsService } from '../../permissions/permissions.service';
 import {
   ChangePurchaseStatusDto,
   CreatePurchaseDto,
@@ -30,18 +32,23 @@ import {
   PurchaseQueryDto,
   PurchaseResponseDto,
   UpdatePurchaseDto,
+  PurchaseStatus,
 } from './dto/purchase.dto';
 import { PurchasesService } from './purchases.service';
 
 @ApiTags('purchases')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, SubscriptionGuard)
+@UseGuards(JwtAuthGuard, SubscriptionGuard, PermissionGuard)
 @RequiresFeature('inventory')
 @Controller('purchases')
 export class PurchasesController {
-  constructor(private readonly purchases: PurchasesService) {}
+  constructor(
+    private readonly purchases: PurchasesService,
+    private readonly permissions: PermissionsService,
+  ) {}
 
   @Get('indicators')
+  @RequiresPermissions('purchases.view', 'catalog.view_costs')
   @ApiOperation({ summary: 'Consultar resumen reciente y variaciones de costos' })
   @ApiOkResponse({ type: PurchaseIndicatorsResponseDto })
   indicators(@CurrentUser() user: AuthenticatedUser): Promise<PurchaseIndicatorsResponseDto> {
@@ -49,6 +56,7 @@ export class PurchasesController {
   }
 
   @Get()
+  @RequiresPermissions('purchases.view', 'catalog.view_costs')
   @ApiOperation({ summary: 'Listar y buscar compras de la compañía' })
   @ApiOkResponse({ type: PaginatedPurchasesResponseDto })
   list(
@@ -59,6 +67,7 @@ export class PurchasesController {
   }
 
   @Get(':id')
+  @RequiresPermissions('purchases.view', 'catalog.view_costs')
   @ApiOperation({ summary: 'Consultar una compra y sus productos' })
   @ApiOkResponse({ type: PurchaseResponseDto })
   getOne(
@@ -69,6 +78,7 @@ export class PurchasesController {
   }
 
   @Post()
+  @RequiresPermissions('purchases.create', 'catalog.view_costs')
   @ApiOperation({ summary: 'Crear una compra en borrador con folio automático' })
   @ApiCreatedResponse({ type: PurchaseResponseDto })
   create(
@@ -79,6 +89,7 @@ export class PurchasesController {
   }
 
   @Patch(':id')
+  @RequiresPermissions('purchases.edit', 'catalog.view_costs')
   @ApiOperation({ summary: 'Editar una compra mientras permanece en borrador' })
   @ApiOkResponse({ type: PurchaseResponseDto })
   update(
@@ -98,6 +109,10 @@ export class PurchasesController {
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() input: ChangePurchaseStatusDto,
   ): Promise<PurchaseResponseDto> {
+    this.permissions.assert(
+      user,
+      input.status === PurchaseStatus.Confirmed ? 'purchases.confirm' : 'purchases.cancel',
+    );
     return this.purchases.changeStatus(user, id, input);
   }
 }

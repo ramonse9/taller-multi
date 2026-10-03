@@ -53,6 +53,20 @@ const USER_FORBIDDEN_PERMISSION_CODES = new Set<PermissionCode>(ADMIN_PERMISSION
 export class PermissionsService {
   constructor(private readonly dataSource: DataSource) {}
 
+  has(user: AuthenticatedUser, permission: PermissionCode): boolean {
+    return (
+      user.role === PlatformRole.PlatformAdmin ||
+      user.role === PlatformRole.CompanyAdmin ||
+      user.permissions.includes(permission)
+    );
+  }
+
+  assert(user: AuthenticatedUser, permission: PermissionCode): void {
+    if (!this.has(user, permission)) {
+      throw new ForbiddenException(`Permiso requerido: ${permission}`);
+    }
+  }
+
   async catalog(): Promise<PermissionCatalogItem[]> {
     const rows = await this.dataSource.query<PermissionRow[]>(
       `SELECT code, module, action, name, description, sort_order
@@ -120,6 +134,7 @@ export class PermissionsService {
     input: UpdateUserPermissionsDto,
   ): Promise<UserPermissionProfile> {
     if (!actor.companyId) throw new ForbiddenException('Se requiere una compañía');
+    this.assert(actor, 'permissions.manage');
     const runner = this.dataSource.createQueryRunner();
     await runner.connect();
     await runner.startTransaction('SERIALIZABLE');

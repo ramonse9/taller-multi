@@ -1,5 +1,6 @@
 import { PlatformRole } from '../../platform-users/entities/platform-user.entity';
 import { SubscriptionSummary } from '../../subscriptions/subscription.types';
+import { PermissionCode } from '../../permissions/permission.types';
 
 export interface AuthenticatedUser {
   id: string;
@@ -16,4 +17,5 @@ export interface AuthenticatedUser {
   mustChangePassword: boolean;
   sessionId: string;
   subscription: SubscriptionSummary | null;
+  permissions: PermissionCode[];
 }

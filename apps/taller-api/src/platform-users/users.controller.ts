@@ -39,10 +39,11 @@ import {
   RequiresSubscription,
   SubscriptionGuard,
 } from '../subscriptions/subscription.guard';
+import { PermissionGuard, RequiresPermissions } from '../permissions/permission.guard';
 
 @ApiTags('users')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard, SubscriptionGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, SubscriptionGuard, PermissionGuard)
 @RequiresSubscription()
 @Controller('users')
 export class UsersController {
@@ -50,6 +51,7 @@ export class UsersController {
 
   @Get()
   @Roles(PlatformRole.CompanyAdmin, PlatformRole.Admin)
+  @RequiresPermissions('users.view')
   @ApiOperation({ summary: 'Listar usuarios de la compañía autenticada' })
   @ApiOkResponse({ type: PaginatedUsersResponseDto })
   list(
@@ -61,6 +63,7 @@ export class UsersController {
 
   @Get(':id')
   @Roles(PlatformRole.CompanyAdmin, PlatformRole.Admin)
+  @RequiresPermissions('users.view')
   @ApiOperation({ summary: 'Consultar un usuario de la compañía' })
   @ApiOkResponse({ type: UserResponseDto })
   getOne(
@@ -72,6 +75,7 @@ export class UsersController {
 
   @Post()
   @Roles(PlatformRole.CompanyAdmin, PlatformRole.Admin)
+  @RequiresPermissions('users.manage')
   @ApiOperation({ summary: 'Crear un usuario en la compañía' })
   @ApiCreatedResponse({ type: UserResponseDto })
   create(
@@ -96,6 +100,7 @@ export class UsersController {
 
   @Patch(':id/password')
   @Roles(PlatformRole.CompanyAdmin, PlatformRole.Admin)
+  @RequiresPermissions('users.manage')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Restablecer la contraseña de otro usuario' })
   @ApiNoContentResponse()
@@ -109,6 +114,7 @@ export class UsersController {
 
   @Patch(':id')
   @Roles(PlatformRole.CompanyAdmin, PlatformRole.Admin)
+  @RequiresPermissions('users.manage')
   @ApiOperation({ summary: 'Actualizar datos, rol o activación de un usuario' })
   @ApiOkResponse({ type: UserResponseDto })
   update(
@@ -121,6 +127,7 @@ export class UsersController {
 
   @Delete(':id')
   @Roles(PlatformRole.CompanyAdmin, PlatformRole.Admin)
+  @RequiresPermissions('users.manage')
   @ApiOperation({ summary: 'Desactivar un usuario sin eliminar su historial' })
   @ApiOkResponse({ type: UserResponseDto })
   deactivate(

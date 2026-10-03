@@ -31,6 +31,7 @@ import { PurchaseStatusHistory1700000020000 } from '../../src/database/migration
 import { ExpenseModel1700000021000 } from '../../src/database/migrations/public/1700000021000-expense-model';
 import { TenantAdminRole1700000022000 } from '../../src/database/migrations/public/1700000022000-tenant-admin-role';
 import { UserPermissions1700000023000 } from '../../src/database/migrations/public/1700000023000-user-permissions';
+import { SensitiveActionPermissions1700000024000 } from '../../src/database/migrations/public/1700000024000-sensitive-action-permissions';
 import { quoteIdentifier } from '../../src/database/schema-name';
 import { seedPublicCatalogs } from '../../src/database/seeds/public-catalogs.seed';
 
@@ -50,6 +51,7 @@ interface LoginResponse {
     role: string;
     companyId: string | null;
     mustChangePassword: boolean;
+    permissions: string[];
   };
 }
 
@@ -160,7 +162,9 @@ interface ConceptResponse {
   name: string;
   description: string | null;
   unit: MeasurementUnitResponse;
-  cost: string;
+  cost: string | null;
+  lastCost: string | null;
+  averageCost: string | null;
   price: string;
   tracksInventory: boolean;
   stock: string;
@@ -545,6 +549,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         ExpenseModel1700000021000,
         TenantAdminRole1700000022000,
         UserPermissions1700000023000,
+        SensitiveActionPermissions1700000024000,
       ],
       migrationsTableName: 'public_schema_migrations',
       synchronize: false,
@@ -910,7 +915,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       { token: tenant.accessToken },
     );
     expect(catalog.status).toBe(200);
-    expect(catalog.body).toHaveLength(37);
+    expect(catalog.body).toHaveLength(40);
     expect(catalog.body).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ code: 'orders.create', module: 'orders', action: 'create' }),
@@ -1016,6 +1021,211 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     );
     expect(preserved.status).toBe(200);
     expect(preserved.body.permissionCodes).toEqual(reception.permissionCodes);
+  });
+
+  it('combina plan, rol y permiso sin permitir escalamiento ni acceso entre compañías', async () => {
+    const tenant = await provisionAndLogin('Permission Security Integration', 'secure@test.local');
+    await request<unknown>('PATCH', `/subscriptions/companies/${tenant.company.id}`, {
+      token: platformToken,
+      body: { planCode: 'control', status: 'active', reason: 'Prueba de permisos' },
+    });
+    const operator = await request<UserResponse>('POST', '/users', {
+      token: tenant.accessToken,
+      body: {
+        fullName: 'Operador Restringido',
+        username: 'restringido',
+        phone: '+526671110030',
+        password: USER_PASSWORD,
+        timezoneCode: 'America/Mazatlan',
+        role: 'user',
+      },
+    });
+    expect(operator.status).toBe(201);
+    const restrictedCodes = [
+      'dashboard.view',
+      'clients.view',
+      'orders.view',
+      'orders.change_status',
+      'catalog.view',
+      'inventory.view',
+    ];
+    expect(
+      (
+        await request<UserPermissionProfileResponse>(
+          'PUT',
+          `/permissions/users/${operator.body.id}`,
+          {
+            token: tenant.accessToken,
+            body: { templateCode: null, permissionCodes: restrictedCodes },
+          },
+        )
+      ).status,
+    ).toBe(200);
+
+    const temporaryLogin = await login(`restringido@${tenant.company.loginCode}`, USER_PASSWORD);
+    await request<unknown>('PATCH', '/users/me/password', {
+      token: temporaryLogin.body.accessToken,
+      body: { currentPassword: USER_PASSWORD, newPassword: PERMANENT_PASSWORD },
+    });
+    const operatorLogin = await login(
+      `restringido@${tenant.company.loginCode}`,
+      PERMANENT_PASSWORD,
+    );
+    expect(operatorLogin.status).toBe(200);
+    expect(operatorLogin.body.user).toMatchObject({ role: 'user' });
+    expect(operatorLogin.body.user.permissions).toEqual(restrictedCodes);
+
+    expect((await listClients(operatorLogin.body.accessToken)).status).toBe(200);
+    expect(
+      (
+        await request<unknown>('POST', '/clients', {
+          token: operatorLogin.body.accessToken,
+          body: { type: 'person', displayName: 'Cliente no permitido' },
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await request<unknown>('GET', '/profitability', {
+          token: operatorLogin.body.accessToken,
+        })
+      ).status,
+    ).toBe(403);
+
+    const fakeId = '11111111-1111-4111-8111-111111111111';
+    expect(
+      (
+        await request<unknown>('POST', `/orders/${fakeId}/status`, {
+          token: operatorLogin.body.accessToken,
+          body: { status: 'cancelled' },
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await request<unknown>('PATCH', `/orders/${fakeId}/payment-status`, {
+          token: operatorLogin.body.accessToken,
+          body: { isPaid: true },
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await request<unknown>('POST', '/inventory/movements', {
+          token: operatorLogin.body.accessToken,
+          body: {
+            productId: fakeId,
+            type: 'adjustment',
+            quantity: 1,
+            unitCost: 10,
+            reason: 'Ajuste no autorizado',
+          },
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await request<unknown>('POST', `/purchases/${fakeId}/status`, {
+          token: operatorLogin.body.accessToken,
+          body: { status: 'confirmed' },
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await request<unknown>('POST', `/expenses/${fakeId}/status`, {
+          token: operatorLogin.body.accessToken,
+          body: { status: 'cancelled' },
+        })
+      ).status,
+    ).toBe(403);
+
+    const units = await request<MeasurementUnitResponse[]>('GET', '/catalogs/units', {
+      token: tenant.accessToken,
+    });
+    const concept = await request<ConceptResponse>('POST', '/catalogs/concepts', {
+      token: tenant.accessToken,
+      body: {
+        kind: 'product',
+        sku: 'SEC-001',
+        name: 'Producto con costo protegido',
+        unitId: units.body[0]!.id,
+        cost: 125.5,
+        price: 180,
+        tracksInventory: false,
+        minimumStock: 0,
+      },
+    });
+    expect(concept.status).toBe(201);
+    const redacted = await request<ConceptResponse>(
+      'GET',
+      `/catalogs/concepts/${concept.body.id}`,
+      {
+        token: operatorLogin.body.accessToken,
+      },
+    );
+    expect(redacted.status).toBe(200);
+    expect(redacted.body).toMatchObject({ cost: null, lastCost: null, averageCost: null });
+
+    const dashboard = await request<{ financials: unknown }>('GET', '/dashboard/summary', {
+      token: operatorLogin.body.accessToken,
+    });
+    expect(dashboard.status).toBe(200);
+    expect(dashboard.body.financials).toBeNull();
+
+    await request<unknown>('PATCH', `/subscriptions/companies/${tenant.company.id}`, {
+      token: platformToken,
+      body: { planCode: 'basic', status: 'active', reason: 'Validar intersección con plan' },
+    });
+    expect(
+      (
+        await request<unknown>('GET', '/inventory/products', {
+          token: operatorLogin.body.accessToken,
+        })
+      ).status,
+    ).toBe(403);
+
+    const manager = await request<UserResponse>('POST', '/users', {
+      token: tenant.accessToken,
+      body: {
+        fullName: 'Administrador sin privilegio global',
+        username: 'admin_limitado',
+        phone: '+526671110031',
+        password: USER_PASSWORD,
+        timezoneCode: 'America/Mazatlan',
+        role: 'admin',
+      },
+    });
+    expect(manager.status).toBe(201);
+    const managerTemporaryLogin = await login(
+      `admin_limitado@${tenant.company.loginCode}`,
+      USER_PASSWORD,
+    );
+    await request<unknown>('PATCH', '/users/me/password', {
+      token: managerTemporaryLogin.body.accessToken,
+      body: { currentPassword: USER_PASSWORD, newPassword: PERMANENT_PASSWORD },
+    });
+    const managerLogin = await login(
+      `admin_limitado@${tenant.company.loginCode}`,
+      PERMANENT_PASSWORD,
+    );
+    expect(
+      (
+        await request<unknown>('PUT', `/permissions/users/${operator.body.id}`, {
+          token: managerLogin.body.accessToken,
+          body: { templateCode: null, permissionCodes: ['vehicle_catalog.manage'] },
+        })
+      ).status,
+    ).toBe(403);
+
+    const foreign = await provisionAndLogin('Foreign Permission Integration', 'foreign@test.local');
+    expect(
+      (
+        await request<unknown>('GET', `/permissions/users/${foreign.user.id}`, {
+          token: tenant.accessToken,
+        })
+      ).status,
+    ).toBe(404);
   });
 
   it('invalida sesiones y logins de usuarios o compañías desactivadas', async () => {

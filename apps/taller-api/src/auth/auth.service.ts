@@ -8,6 +8,7 @@ import { Company } from '../companies/entities/company.entity';
 import { PlatformRole, PlatformUser } from '../platform-users/entities/platform-user.entity';
 import { LoginDto, LoginResponseDto } from './dto/login.dto';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+import { PermissionsService } from '../permissions/permissions.service';
 
 @Injectable()
 export class AuthService {
@@ -23,6 +24,7 @@ export class AuthService {
     private readonly config: ConfigService,
     private readonly dataSource: DataSource,
     private readonly subscriptions: SubscriptionsService,
+    private readonly permissions: PermissionsService,
   ) {}
 
   async login(input: LoginDto): Promise<LoginResponseDto> {
@@ -69,7 +71,10 @@ export class AuthService {
         id: user.id,
         email: user.email,
         username: user.username,
-        loginName: user.role === PlatformRole.PlatformAdmin ? user.email! : `${user.username}@${company!.loginCode}`,
+        loginName:
+          user.role === PlatformRole.PlatformAdmin
+            ? user.email!
+            : `${user.username}@${company!.loginCode}`,
         phone: user.phone,
         phoneVerifiedAt: user.phoneVerifiedAt,
         fullName: user.fullName,
@@ -77,6 +82,7 @@ export class AuthService {
         companyId: user.companyId,
         mustChangePassword: user.mustChangePassword,
         subscription: company ? await this.subscriptions.getByCompanyId(company.id) : null,
+        permissions: await this.permissions.forUser(user.id, user.role),
       },
     };
   }
