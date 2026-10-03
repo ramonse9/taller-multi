@@ -601,7 +601,7 @@ export class OrderWizardPage implements OnInit {
         validators: [Validators.required, Validators.maxLength(300)],
       }),
       quantity: new FormControl<number | null>(value.quantity ?? 1, {
-        validators: [Validators.required, Validators.min(0.001)],
+        validators: [Validators.required, Validators.min(1)],
       }),
       unitPrice: new FormControl<number | null>(value.unitPrice ?? null, {
         validators: [Validators.min(0)],
