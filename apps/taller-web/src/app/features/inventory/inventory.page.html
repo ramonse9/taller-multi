@@ -19,14 +19,14 @@
       <button class="theme-toggle" type="button" (click)="theme.toggle()">
         {{ theme.isDark() ? '☀' : '◐' }}
       </button>
-      <button
+      @if ((auth.hasPermission('inventory.move') || auth.hasPermission('inventory.adjust')) && auth.hasPermission('catalog.view_costs')) { <button
         class="primary"
         type="button"
         [disabled]="!selectedProduct()"
         (click)="openMovementEditor()"
       >
         ＋ Movimiento
-      </button>
+      </button> }
     </div>
   </header>
 
@@ -169,22 +169,22 @@
               <h2 class="section-title">Movimientos</h2>
               <p class="section-copy">
                 @if (selectedProduct(); as product) { {{ product.name }} ·
-                Existencia {{ product.stock }} {{ product.unitSymbol }} · Último
+                Existencia {{ product.stock }} {{ product.unitSymbol }} @if (auth.hasPermission('catalog.view_costs')) { · Último
                 costo {{ product.lastCost === null ? '—' :
                 money(product.lastCost) }} · Promedio {{ product.averageCost ===
-                null ? '—' : money(product.averageCost) }} } @else { Selecciona
+                null ? '—' : money(product.averageCost) }} } } @else { Selecciona
                 un producto }
               </p>
             </div>
           </div>
-          <button
+          @if ((auth.hasPermission('inventory.move') || auth.hasPermission('inventory.adjust')) && auth.hasPermission('catalog.view_costs')) { <button
             class="small-action-tw"
             type="button"
             [disabled]="!selectedProduct()"
             (click)="openMovementEditor()"
           >
             Registrar
-          </button>
+          </button> }
         </header>
         <div class="border-b border-[#dcd9cf] p-4 dark:border-[#3d4d44]">
           <select
@@ -206,7 +206,7 @@
             Selecciona un producto para consultar su historial.
           </div>
           } @else {
-          <div class="divide-y divide-[#ece9df] dark:divide-[#35433b]">
+          @if (auth.hasPermission('catalog.view_costs')) { <div class="divide-y divide-[#ece9df] dark:divide-[#35433b]">
             @for (movement of movements().items; track movement.id) {
             <article
               class="grid gap-3 p-5 sm:grid-cols-[7rem_minmax(0,1fr)_8rem] sm:items-center"
@@ -247,7 +247,9 @@
               Todavía no hay movimientos.
             </p>
             } }
-          </div>
+          </div> } @else {
+          <p class="p-12 text-center text-sm text-[#68746d] dark:text-[#aab7af]">Puedes consultar existencias, pero no tienes permiso para ver costos ni movimientos valorizados.</p>
+          }
           } @if (loadingMovements()) {
           <div class="loader-tw" aria-label="Cargando">
             <span></span><span></span><span></span>
@@ -278,7 +280,7 @@
       </section>
     </div>
 
-    <section class="form-card-tw mt-6 overflow-hidden">
+    @if (auth.hasPermission('catalog.view_costs')) { <section class="form-card-tw mt-6 overflow-hidden">
       <header class="form-card-header flex-wrap justify-between">
         <div class="flex items-center gap-3">
           <span class="section-number">03</span>
@@ -388,7 +390,7 @@
         Selecciona un producto para consultar sus lotes.
       </p>
       }
-    </section>
+    </section> }
   </section>
 </main>
 
@@ -427,9 +429,13 @@
           formControlName="type"
           (change)="movementFormTypeChanged()"
         >
+          @if (auth.hasPermission('inventory.move')) {
           <option value="entry">Entrada</option>
           <option value="exit">Salida</option>
+          }
+          @if (auth.hasPermission('inventory.adjust')) {
           <option value="adjustment">Ajuste</option>
+          }
         </select>
       </div>
       <div>

@@ -26,6 +26,7 @@ import { ClientsService } from "./clients.service";
 import { ThemeService } from "../../core/theme/theme.service";
 import { apiErrorMessage } from "../../core/http/api-error";
 import { formatShortDate } from "../../core/dates/date-format";
+import { AuthService } from "../../core/auth/auth.service";
 
 @Component({
   selector: "app-clients-page",
@@ -42,6 +43,7 @@ export class ClientsPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
   readonly theme = inject(ThemeService);
+  readonly auth = inject(AuthService);
   readonly formatShortDate = formatShortDate;
 
   readonly loading = signal(true);
@@ -200,7 +202,12 @@ export class ClientsPage implements OnInit {
     };
     const current = this.editing();
     const request = current
-      ? this.clients.update(current.id, { ...input, isActive: raw.isActive })
+      ? this.clients.update(current.id, {
+          ...input,
+          ...(this.auth.hasPermission("clients.deactivate")
+            ? { isActive: raw.isActive }
+            : {}),
+        })
       : this.clients.create(input);
     request
       .pipe(

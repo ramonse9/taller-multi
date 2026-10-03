@@ -19,11 +19,13 @@ import {
   finalize,
   forkJoin,
   merge,
+  of,
 } from "rxjs";
 import { ActivatedRoute } from "@angular/router";
 import { formatShortDate } from "../../core/dates/date-format";
 import { apiErrorMessage } from "../../core/http/api-error";
 import { ThemeService } from "../../core/theme/theme.service";
+import { AuthService } from "../../core/auth/auth.service";
 import { Supplier } from "../suppliers/supplier.models";
 import { SuppliersService } from "../suppliers/suppliers.service";
 import {
@@ -86,6 +88,7 @@ export class ExpensesPage implements OnInit {
   private readonly suppliersService = inject(SuppliersService);
   private readonly destroyRef = inject(DestroyRef);
   readonly theme = inject(ThemeService);
+  readonly auth = inject(AuthService);
   readonly formatShortDate = formatShortDate;
 
   readonly data = signal<PaginatedExpenses>(emptyExpenses());
@@ -325,7 +328,9 @@ export class ExpensesPage implements OnInit {
       expenses: this.expensesService.list({ page: 1, limit: 20 }),
       summary: this.expensesService.monthlySummary(this.summaryMonth.value),
       categories: this.expensesService.categories(),
-      suppliers: this.suppliersService.list({ page: 1, limit: 100, isActive: true }),
+      suppliers: this.auth.hasPermission("suppliers.view")
+        ? this.suppliersService.list({ page: 1, limit: 100, isActive: true })
+        : of({ items: [] as Supplier[] }),
     })
       .pipe(
         finalize(() => {

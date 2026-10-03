@@ -18,6 +18,7 @@ import { ActivatedRoute } from "@angular/router";
 import { formatShortDate } from "../../core/dates/date-format";
 import { apiErrorMessage } from "../../core/http/api-error";
 import { ThemeService } from "../../core/theme/theme.service";
+import { AuthService } from "../../core/auth/auth.service";
 import {
   InventoryLot,
   InventoryMovement,
@@ -58,6 +59,7 @@ export class InventoryPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
   readonly theme = inject(ThemeService);
+  readonly auth = inject(AuthService);
   readonly formatShortDate = formatShortDate;
 
   readonly products = signal<PaginatedInventoryProducts>(emptyProducts());
@@ -168,6 +170,10 @@ export class InventoryPage implements OnInit {
   }
 
   loadLots(): void {
+    if (!this.auth.hasPermission("catalog.view_costs")) {
+      this.lots.set([]);
+      return;
+    }
     const product = this.selectedProduct();
     if (!product) {
       this.lots.set([]);
@@ -192,6 +198,10 @@ export class InventoryPage implements OnInit {
   }
 
   loadMovements(page = this.movements().page): void {
+    if (!this.auth.hasPermission("catalog.view_costs")) {
+      this.movements.set(emptyMovements());
+      return;
+    }
     const product = this.selectedProduct();
     if (!product) {
       this.movements.set(emptyMovements());
@@ -222,10 +232,18 @@ export class InventoryPage implements OnInit {
   openMovementEditor(
     product: InventoryProduct = this.selectedProduct()!,
   ): void {
-    if (!product) return;
+    if (
+      !product ||
+      !this.auth.hasPermission("catalog.view_costs") ||
+      (!this.auth.hasPermission("inventory.move") &&
+        !this.auth.hasPermission("inventory.adjust"))
+    ) return;
+    const initialType: InventoryMovementType = this.auth.hasPermission("inventory.move")
+      ? "entry"
+      : "adjustment";
     this.selectedProduct.set(product);
     this.movementForm.reset({
-      type: "entry",
+      type: initialType,
       quantity: null,
       unitCost: null,
       reason: "",
@@ -259,6 +277,8 @@ export class InventoryPage implements OnInit {
       return;
     }
     const raw = this.movementForm.getRawValue();
+    const requiredPermission = raw.type === "adjustment" ? "inventory.adjust" : "inventory.move";
+    if (!this.auth.hasPermission(requiredPermission)) return;
     if (raw.quantity === null || raw.quantity === 0) {
       this.movementForm.controls.quantity.setErrors({ nonZero: true });
       return;

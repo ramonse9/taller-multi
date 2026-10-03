@@ -19,9 +19,9 @@
       <button class="theme-toggle" type="button" (click)="theme.toggle()">
         {{ theme.isDark() ? '☀' : '◐' }}
       </button>
-      <a class="primary no-underline" routerLink="/orders/new"
+      @if (auth.hasPermission('orders.create') && auth.hasPermission('clients.view') && auth.hasPermission('vehicles.view') && auth.hasPermission('vehicle_catalog.view')) { <a class="primary no-underline" routerLink="/orders/new"
         >＋ Nueva orden</a
-      >
+      > }
     </div>
   </header>
 

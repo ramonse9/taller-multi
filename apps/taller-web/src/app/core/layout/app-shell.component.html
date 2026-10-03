@@ -26,20 +26,22 @@
           </a>
         }
         @case ("company_admin") {
+          @if (auth.hasPermission("dashboard.view")) {
           <a class="nav-item" routerLink="/dashboard" routerLinkActive="active">
             <span>01</span> Tablero
           </a>
-          @if (auth.hasFeature("service_orders")) {
+          }
+          @if (auth.hasFeature("service_orders") && auth.hasPermission("orders.view")) {
             <a class="nav-item" routerLink="/orders" routerLinkActive="active">
               <span>02</span> Órdenes
             </a>
           }
-          @if (auth.hasFeature("customer_history")) {
+          @if (auth.hasFeature("customer_history") && auth.hasPermission("clients.view")) {
             <a class="nav-item" routerLink="/clients" routerLinkActive="active">
               <span>03</span> Clientes
             </a>
           }
-          @if (auth.hasFeature("item_catalog")) {
+          @if (auth.hasFeature("item_catalog") && auth.hasPermission("catalog.view")) {
             <a
               class="nav-item"
               routerLink="/concept-catalog"
@@ -48,7 +50,7 @@
               <span>04</span> Productos y servicios
             </a>
           }
-          @if (auth.hasFeature("inventory")) {
+          @if (auth.hasFeature("inventory") && auth.hasPermission("inventory.view")) {
             <a
               class="nav-item"
               routerLink="/inventory"
@@ -58,7 +60,7 @@
             </a>
           }
           @if (auth.hasFeature("item_catalog")) {
-            @if (auth.hasFeature("inventory")) {
+            @if (auth.hasFeature("inventory") && auth.hasPermission("purchases.view") && auth.hasPermission("catalog.view_costs")) {
               <a
                 class="nav-item"
                 routerLink="/purchases"
@@ -67,15 +69,15 @@
                 <span>06</span> Compras
               </a>
             }
-            <a
+            @if (auth.hasPermission("suppliers.view")) { <a
               class="nav-item"
               routerLink="/suppliers"
               routerLinkActive="active"
             >
               <span>07</span> Proveedores
-            </a>
+            </a> }
           }
-          @if (auth.hasFeature("expenses")) {
+          @if (auth.hasFeature("expenses") && auth.hasPermission("expenses.view")) {
             <a
               class="nav-item"
               routerLink="/expenses"
@@ -84,7 +86,7 @@
               <span>08</span> Gastos
             </a>
           }
-          @if (auth.hasFeature("profitability")) {
+          @if (auth.hasFeature("profitability") && auth.hasPermission("profitability.view")) {
             <a
               class="nav-item"
               routerLink="/profitability"
@@ -93,35 +95,37 @@
               <span>09</span> Utilidad
             </a>
           }
-          <a
+          @if (auth.hasPermission("vehicle_catalog.view")) { <a
             class="nav-item"
             routerLink="/vehicle-catalog"
             routerLinkActive="active"
           >
             <span>10</span> Marcas y modelos
-          </a>
-          <a class="nav-item" routerLink="/users" routerLinkActive="active">
+          </a> }
+          @if (auth.hasPermission("users.view")) { <a class="nav-item" routerLink="/users" routerLinkActive="active">
             <span>11</span> Usuarios
-          </a>
+          </a> }
           <a class="nav-item" routerLink="/account" routerLinkActive="active">
             <span>12</span> Seguridad
           </a>
         }
         @default {
+          @if (auth.hasPermission("dashboard.view")) {
           <a class="nav-item" routerLink="/dashboard" routerLinkActive="active">
             <span>01</span> Tablero
           </a>
-          @if (auth.hasFeature("service_orders")) {
+          }
+          @if (auth.hasFeature("service_orders") && auth.hasPermission("orders.view")) {
             <a class="nav-item" routerLink="/orders" routerLinkActive="active">
               <span>02</span> Órdenes
             </a>
           }
-          @if (auth.hasFeature("customer_history")) {
+          @if (auth.hasFeature("customer_history") && auth.hasPermission("clients.view")) {
             <a class="nav-item" routerLink="/clients" routerLinkActive="active">
               <span>03</span> Clientes
             </a>
           }
-          @if (auth.hasFeature("item_catalog")) {
+          @if (auth.hasFeature("item_catalog") && auth.hasPermission("catalog.view")) {
             <a
               class="nav-item"
               routerLink="/concept-catalog"
@@ -130,7 +134,7 @@
               <span>04</span> Productos y servicios
             </a>
           }
-          @if (auth.hasFeature("inventory")) {
+          @if (auth.hasFeature("inventory") && auth.hasPermission("inventory.view")) {
             <a
               class="nav-item"
               routerLink="/inventory"
@@ -140,7 +144,7 @@
             </a>
           }
           @if (auth.hasFeature("item_catalog")) {
-            @if (auth.hasFeature("inventory")) {
+            @if (auth.hasFeature("inventory") && auth.hasPermission("purchases.view") && auth.hasPermission("catalog.view_costs")) {
               <a
                 class="nav-item"
                 routerLink="/purchases"
@@ -149,15 +153,15 @@
                 <span>06</span> Compras
               </a>
             }
-            <a
+            @if (auth.hasPermission("suppliers.view")) { <a
               class="nav-item"
               routerLink="/suppliers"
               routerLinkActive="active"
             >
               <span>07</span> Proveedores
-            </a>
+            </a> }
           }
-          @if (auth.hasFeature("expenses")) {
+          @if (auth.hasFeature("expenses") && auth.hasPermission("expenses.view")) {
             <a
               class="nav-item"
               routerLink="/expenses"
@@ -166,7 +170,7 @@
               <span>08</span> Gastos
             </a>
           }
-          @if (auth.hasFeature("profitability")) {
+          @if (auth.hasFeature("profitability") && auth.hasPermission("profitability.view")) {
             <a
               class="nav-item"
               routerLink="/profitability"
@@ -175,7 +179,7 @@
               <span>09</span> Utilidad
             </a>
           }
-          @if (auth.user()?.role === "admin") {
+          @if (auth.user()?.role === "admin" && auth.hasPermission("users.view")) {
             <a class="nav-item" routerLink="/users" routerLinkActive="active">
               <span>10</span> Usuarios
             </a>

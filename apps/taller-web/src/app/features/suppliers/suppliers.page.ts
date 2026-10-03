@@ -16,6 +16,7 @@ import {
 import { debounceTime, distinctUntilChanged, finalize } from "rxjs";
 import { apiErrorMessage } from "../../core/http/api-error";
 import { ThemeService } from "../../core/theme/theme.service";
+import { AuthService } from "../../core/auth/auth.service";
 import { PaginatedSuppliers, Supplier } from "./supplier.models";
 import { SuppliersService } from "./suppliers.service";
 
@@ -39,6 +40,7 @@ export class SuppliersPage implements OnInit {
   private readonly suppliersService = inject(SuppliersService);
   private readonly destroyRef = inject(DestroyRef);
   readonly theme = inject(ThemeService);
+  readonly auth = inject(AuthService);
 
   readonly suppliers = signal<PaginatedSuppliers>(emptySuppliers());
   readonly active = signal(true);

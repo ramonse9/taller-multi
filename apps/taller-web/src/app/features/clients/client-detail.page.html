@@ -26,12 +26,14 @@
       }
     </div>
     <div class="flex items-center gap-2">
+      @if (auth.hasPermission('orders.view')) {
       <a
         class="secondary-tw no-underline max-sm:hidden"
         routerLink="/orders"
         [queryParams]="{ customerId: clientId }"
         >Historial de órdenes</a
       >
+      }
       <button
         type="button"
         class="theme-toggle"
@@ -41,7 +43,7 @@
       >
         {{ theme.isDark() ? '☀' : '◐' }}
       </button>
-      <button
+      @if (auth.hasPermission('vehicles.create')) { <button
         class="primary max-sm:px-3"
         type="button"
         [disabled]="!client()?.isActive"
@@ -49,7 +51,7 @@
       >
         <span class="mr-1 text-xl">＋</span
         ><span class="max-[480px]:hidden">Nuevo </span>vehículo
-      </button>
+      </button> }
     </div>
   </header>
 
@@ -190,12 +192,12 @@
           class="flex items-center justify-between gap-3 border-t border-[#ece9df] px-5 py-3 dark:border-[#35433b]"
         >
           <div class="flex items-center gap-3">
-            <a
+            @if (auth.hasPermission('orders.view')) { <a
               class="text-xs font-bold text-[#b94718] underline underline-offset-4 dark:text-[#ff9a6f]"
               routerLink="/orders"
               [queryParams]="{ customerId: clientId, vehicleId: vehicle.id }"
               >Órdenes</a
-            >
+            > }
             @if (vehicle.numeroSerie) {
             <button
               class="bg-transparent p-0 text-xs font-bold text-[#b94718] underline underline-offset-4 dark:text-[#ff9a6f]"
@@ -206,13 +208,13 @@
             </button>
             }
           </div>
-          <button
+          @if (auth.hasPermission('vehicles.edit')) { <button
             class="bg-transparent p-0 text-xs font-bold text-[#b94718] underline underline-offset-4 dark:text-[#ff9a6f]"
             type="button"
             (click)="openEdit(vehicle)"
           >
             Editar
-          </button>
+          </button> }
         </footer>
       </article>
       } @empty { @if (!loading()) {
@@ -227,14 +229,14 @@
           <p class="mb-5 mt-1 text-sm text-[#68746d] dark:text-[#aab7af]">
             Registra el primero para comenzar su historial de servicio.
           </p>
-          <button
+          @if (auth.hasPermission('vehicles.create')) { <button
             class="secondary-tw"
             type="button"
             [disabled]="!client()?.isActive"
             (click)="openCreate()"
           >
             Registrar vehículo
-          </button>
+          </button> }
         </div>
       </div>
       } } @if (loading()) {
@@ -442,7 +444,7 @@
           (input)="formatPlate()"
         />
       </div>
-      @if (editing()) {
+      @if (editing() && auth.hasPermission('vehicles.deactivate')) {
       <label class="col-span-full flex items-center gap-3 text-sm"
         ><input
           class="size-auto accent-[#e86a33]"

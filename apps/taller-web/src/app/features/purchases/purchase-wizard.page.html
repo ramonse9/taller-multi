@@ -71,7 +71,7 @@
           </div>
         }
 
-        <footer class="mt-6 flex flex-wrap items-center justify-between gap-3"><button class="small-action-tw" type="button" [disabled]="step() === 1 || saving()" (click)="previous()">← Anterior</button>@if (step() < 3) {<button class="primary" type="button" [disabled]="loading()" (click)="next()">Continuar →</button>} @else {<div class="ml-auto flex flex-wrap gap-2"><button class="small-action-tw" type="submit" [disabled]="saving()">{{ isEditing() ? 'Guardar cambios' : 'Guardar borrador' }}</button><button class="primary" type="button" [disabled]="saving()" (click)="save(true)">{{ saving() ? 'Procesando…' : 'Guardar y confirmar' }}</button></div>}</footer>
+        <footer class="mt-6 flex flex-wrap items-center justify-between gap-3"><button class="small-action-tw" type="button" [disabled]="step() === 1 || saving()" (click)="previous()">← Anterior</button>@if (step() < 3) {<button class="primary" type="button" [disabled]="loading()" (click)="next()">Continuar →</button>} @else {<div class="ml-auto flex flex-wrap gap-2"><button class="small-action-tw" type="submit" [disabled]="saving()">{{ isEditing() ? 'Guardar cambios' : 'Guardar borrador' }}</button>@if (auth.hasPermission('purchases.confirm')) {<button class="primary" type="button" [disabled]="saving()" (click)="save(true)">{{ saving() ? 'Procesando…' : 'Guardar y confirmar' }}</button>}</div>}</footer>
       </form>
     }
   </section>
@@ -100,7 +100,7 @@
           </div>
           @if (searchingProducts()) { <div class="loader-tw" aria-label="Buscando productos"><span></span><span></span><span></span></div> }
         </div>
-        <footer class="dialog-footer flex-wrap"><button class="small-action-tw" type="button" (click)="closeProductPicker()">Cerrar</button><button class="primary" type="button" (click)="startQuickProduct()">＋ Crear producto rápido</button></footer>
+        <footer class="dialog-footer flex-wrap"><button class="small-action-tw" type="button" (click)="closeProductPicker()">Cerrar</button>@if (auth.hasPermission('catalog.manage')) {<button class="primary" type="button" (click)="startQuickProduct()">＋ Crear producto rápido</button>}</footer>
       } @else {
         <p class="eyebrow">PRODUCTO RÁPIDO</p>
         <h2>Crear sin salir de la compra</h2>

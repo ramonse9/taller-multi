@@ -14,6 +14,7 @@ import { finalize } from "rxjs";
 import { formatShortDate } from "../../core/dates/date-format";
 import { apiErrorMessage } from "../../core/http/api-error";
 import { ThemeService } from "../../core/theme/theme.service";
+import { AuthService } from "../../core/auth/auth.service";
 import {
   ORDER_STATUS_NAMES,
   Order,
@@ -40,6 +41,7 @@ export class OrderDetailPage implements OnInit {
   private readonly orders = inject(OrdersService);
   private readonly destroyRef = inject(DestroyRef);
   readonly theme = inject(ThemeService);
+  readonly auth = inject(AuthService);
   readonly formatShortDate = formatShortDate;
   readonly orderId = this.route.snapshot.paramMap.get("id") ?? "";
   readonly order = signal<Order | null>(null);
@@ -57,12 +59,23 @@ export class OrderDetailPage implements OnInit {
   readonly transitions = computed(() => {
     const order = this.order();
     return order
-      ? TRANSITIONS[order.status].filter((status) => !(order.isPaid && status === "cancelled"))
+      ? TRANSITIONS[order.status].filter(
+          (status) =>
+            !(order.isPaid && status === "cancelled") &&
+            (status !== "cancelled" || this.auth.hasPermission("orders.cancel")),
+        )
       : [];
   });
   readonly editable = computed(() => {
     const order = this.order();
-    return order?.status === "in_progress" && !order.isPaid;
+    return (
+      this.auth.hasPermission("orders.edit") &&
+      this.auth.hasPermission("clients.view") &&
+      this.auth.hasPermission("vehicles.view") &&
+      this.auth.hasPermission("vehicle_catalog.view") &&
+      order?.status === "in_progress" &&
+      !order.isPaid
+    );
   });
 
   ngOnInit(): void {

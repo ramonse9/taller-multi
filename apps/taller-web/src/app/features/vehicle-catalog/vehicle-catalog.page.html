@@ -3,7 +3,7 @@
     <div><p class="eyebrow">CATÁLOGOS / VEHÍCULOS</p><h1 class="m-0 font-[var(--display)] text-[clamp(2.4rem,4vw,4rem)] font-semibold leading-[0.9] tracking-[-0.05em]">Marcas y modelos</h1></div>
     <div class="flex items-center gap-2">
       <button type="button" class="theme-toggle" (click)="theme.toggle()" [attr.aria-label]="theme.isDark() ? 'Usar tema claro' : 'Usar tema oscuro'" [title]="theme.isDark() ? 'Usar tema claro' : 'Usar tema oscuro'">{{ theme.isDark() ? '☀' : '◐' }}</button>
-      <button class="primary max-sm:px-3" type="button" (click)="openBrandEditor()"><span class="mr-1 text-xl">＋</span><span class="max-[430px]:hidden">Nueva </span>marca</button>
+      @if (auth.hasPermission('vehicle_catalog.manage')) { <button class="primary max-sm:px-3" type="button" (click)="openBrandEditor()"><span class="mr-1 text-xl">＋</span><span class="max-[430px]:hidden">Nueva </span>marca</button> }
     </div>
   </header>
 
@@ -20,7 +20,7 @@
       <section class="catalog-panel-tw">
         <header class="catalog-heading">
           <div class="flex items-center gap-3"><span class="section-number">01</span><div><h2 class="section-title">Marcas</h2><p class="section-copy">{{ brands().totalItems }} resultados</p></div></div>
-          <button class="small-action-tw" type="button" (click)="openBrandEditor()">Agregar</button>
+          @if (auth.hasPermission('vehicle_catalog.manage')) { <button class="small-action-tw" type="button" (click)="openBrandEditor()">Agregar</button> }
         </header>
         <div class="catalog-tools">
           <label class="catalog-search">
@@ -38,10 +38,10 @@
           @for (brand of brands().items; track brand.id) {
             <article class="catalog-row cursor-pointer" [class.catalog-row-selected]="selectedBrand()?.id === brand.id" (click)="selectBrand(brand)">
               <button class="catalog-item-main" type="button"><span class="brand-mark-tw">{{ brand.name.slice(0, 2).toUpperCase() }}</span><span class="min-w-0"><strong>{{ brand.name }}</strong><small>{{ brand.isActive ? 'Activa' : 'Inactiva' }}</small></span></button>
-              <div class="catalog-actions"><button type="button" (click)="$event.stopPropagation(); openBrandEditor(brand)">Editar</button><button type="button" [class.catalog-danger]="brand.isActive" (click)="$event.stopPropagation(); changeBrandStatus(brand)">{{ brand.isActive ? 'Desactivar' : 'Reactivar' }}</button></div>
+              @if (auth.hasPermission('vehicle_catalog.manage')) { <div class="catalog-actions"><button type="button" (click)="$event.stopPropagation(); openBrandEditor(brand)">Editar</button><button type="button" [class.catalog-danger]="brand.isActive" (click)="$event.stopPropagation(); changeBrandStatus(brand)">{{ brand.isActive ? 'Desactivar' : 'Reactivar' }}</button></div> }
             </article>
           } @empty { @if (!loadingBrands()) {
-            <div class="catalog-empty"><span>◇</span><h3>{{ brandActive() ? 'Aún no hay marcas' : 'No hay marcas inactivas' }}</h3>@if (brandActive()) { <p>Registra la primera cuando la necesites.</p><button class="secondary-tw" type="button" (click)="openBrandEditor()">Crear marca</button> }</div>
+            <div class="catalog-empty"><span>◇</span><h3>{{ brandActive() ? 'Aún no hay marcas' : 'No hay marcas inactivas' }}</h3>@if (brandActive()) { <p>Registra la primera cuando la necesites.</p>@if (auth.hasPermission('vehicle_catalog.manage')) { <button class="secondary-tw" type="button" (click)="openBrandEditor()">Crear marca</button> } }</div>
           } }
           @if (loadingBrands()) { <div class="loader-tw" aria-label="Cargando"><span></span><span></span><span></span></div> }
         </div>
@@ -51,7 +51,7 @@
       <section class="catalog-panel-tw">
         <header class="catalog-heading">
           <div class="flex items-center gap-3"><span class="section-number">02</span><div><h2 class="section-title">Modelos</h2><p class="section-copy">@if (selectedBrand()) { {{ selectedBrand()?.name }} · {{ models().totalItems }} resultados } @else { Selecciona una marca }</p></div></div>
-          <button class="small-action-tw" type="button" [disabled]="!selectedBrand() || !selectedBrand()?.isActive" (click)="openModelEditor()">Agregar</button>
+          @if (auth.hasPermission('vehicle_catalog.manage')) { <button class="small-action-tw" type="button" [disabled]="!selectedBrand() || !selectedBrand()?.isActive" (click)="openModelEditor()">Agregar</button> }
         </header>
         <div class="catalog-tools">
           <label class="catalog-search">
@@ -69,9 +69,9 @@
           @if (!selectedBrand()) { <div class="catalog-empty"><span class="text-[#e86a33]">←</span><h3>Elige una marca</h3><p>Sus modelos aparecerán en este espacio.</p></div> }
           @else {
             @for (model of models().items; track model.id) {
-              <article class="catalog-row"><div class="catalog-item-main"><span class="model-mark-tw">{{ model.name.slice(0, 1).toUpperCase() }}</span><span class="min-w-0"><strong>{{ model.name }}</strong><small>{{ model.brandName }}</small></span></div><div class="catalog-actions"><button type="button" (click)="openModelEditor(model)">Editar</button><button type="button" [class.catalog-danger]="model.isActive" (click)="changeModelStatus(model)">{{ model.isActive ? 'Desactivar' : 'Reactivar' }}</button></div></article>
+              <article class="catalog-row"><div class="catalog-item-main"><span class="model-mark-tw">{{ model.name.slice(0, 1).toUpperCase() }}</span><span class="min-w-0"><strong>{{ model.name }}</strong><small>{{ model.brandName }}</small></span></div>@if (auth.hasPermission('vehicle_catalog.manage')) { <div class="catalog-actions"><button type="button" (click)="openModelEditor(model)">Editar</button><button type="button" [class.catalog-danger]="model.isActive" (click)="changeModelStatus(model)">{{ model.isActive ? 'Desactivar' : 'Reactivar' }}</button></div> }</article>
             } @empty { @if (!loadingModels()) {
-              <div class="catalog-empty"><span>○</span><h3>{{ modelActive() ? 'Aún no hay modelos' : 'No hay modelos inactivos' }}</h3>@if (modelActive() && selectedBrand()?.isActive) { <p>Agrega el primero para {{ selectedBrand()?.name }}.</p><button class="secondary-tw" type="button" (click)="openModelEditor()">Crear modelo</button> }</div>
+              <div class="catalog-empty"><span>○</span><h3>{{ modelActive() ? 'Aún no hay modelos' : 'No hay modelos inactivos' }}</h3>@if (modelActive() && selectedBrand()?.isActive) { <p>Agrega el primero para {{ selectedBrand()?.name }}.</p>@if (auth.hasPermission('vehicle_catalog.manage')) { <button class="secondary-tw" type="button" (click)="openModelEditor()">Crear modelo</button> } }</div>
             } }
           }
           @if (loadingModels()) { <div class="loader-tw" aria-label="Cargando"><span></span><span></span><span></span></div> }

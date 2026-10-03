@@ -176,13 +176,13 @@
             >
               <div>
                 <strong class="block">{{ item.description }}</strong>
-                @if (item.costAmount !== null) {
+                @if (auth.hasPermission('catalog.view_costs') && item.costAmount !== null) {
                 <small class="text-[#68746d] dark:text-[#aab7af]"
                   >{{ itemCostLabel(current, item) }}: {{ money(item.unitCost)
                   }} × {{ item.quantity }} {{ item.unitSymbol }} =
                   <strong>{{ money(item.costAmount) }}</strong></small
                 >
-                } @if (item.costLayers.length > 0) {
+                } @if (auth.hasPermission('catalog.view_costs') && item.costLayers.length > 0) {
                 <div class="mt-2 flex flex-wrap gap-1.5">
                   @for (layer of item.costLayers; track layer.lotId) {
                   <span
@@ -209,13 +209,14 @@
               class="ml-auto grid max-w-md grid-cols-2 gap-x-8 gap-y-2 text-right"
             >
               <span>Venta</span><strong>{{ money(current.total) }}</strong>
-              @if (current.totalCost !== null) {
+              @if (auth.hasPermission('catalog.view_costs') && current.totalCost !== null) {
               <span
                 >{{ hasActualCosts(current) ? 'Costo real' : 'Costo estimado'
                 }}</span
               ><strong>{{ money(current.totalCost) }}</strong>
-              <span>Utilidad bruta</span
-              ><strong class="text-lg">{{ money(current.grossProfit) }}</strong>
+              }
+              @if (auth.hasPermission('profitability.view') && current.grossProfit !== null) {
+              <span>Utilidad bruta</span><strong class="text-lg">{{ money(current.grossProfit) }}</strong>
               }
             </div>
           </footer>
@@ -228,10 +229,10 @@
             <div><h2 class="m-0 font-[var(--display)] text-2xl font-semibold">{{ current.isPaid ? 'Pagada' : 'Pendiente' }}</h2><p class="mb-0 mt-1 text-sm text-[#68746d] dark:text-[#aab7af]">{{ current.isPaid ? 'El servicio se considera cobrado.' : 'El importe permanece por cobrar.' }}</p></div>
             <span class="px-3 py-1 text-xs font-bold" [class.bg-[#e7f2eb]]="current.isPaid" [class.text-[#245b3b]]="current.isPaid" [class.bg-[#fff1d6]]="!current.isPaid" [class.text-[#805719]]="!current.isPaid">{{ current.isPaid ? 'PAGADA' : 'PENDIENTE' }}</span>
           </div>
-          <button class="secondary-tw mt-4 w-full" type="button" [disabled]="saving() || current.status === 'cancelled' || (!current.isPaid && current.total === null)" (click)="changePaymentStatus()">{{ current.isPaid ? 'Marcar como pendiente' : 'Marcar como pagada' }}</button>
+          @if (auth.hasPermission('orders.manage_payment')) { <button class="secondary-tw mt-4 w-full" type="button" [disabled]="saving() || current.status === 'cancelled' || (!current.isPaid && current.total === null)" (click)="changePaymentStatus()">{{ current.isPaid ? 'Marcar como pendiente' : 'Marcar como pagada' }}</button> }
           @if (current.isPaid) { <small class="mt-2 block text-[#68746d] dark:text-[#aab7af]">Para editar o cancelar la orden, primero márcala como pendiente.</small> }
         </section>
-        <section class="form-card-tw p-5">
+        @if (auth.hasPermission('orders.change_status')) { <section class="form-card-tw p-5">
           <p class="eyebrow">SEGUIMIENTO</p>
           <h2 class="font-[var(--display)] text-2xl font-semibold">
             Cambiar estado
@@ -260,13 +261,13 @@
             >Guardando cambio…</small
           >
           }
-        </section>
+        </section> }
         <section class="form-card-tw p-5">
           <p class="eyebrow">NOTAS</p>
           <h2 class="font-[var(--display)] text-2xl font-semibold">
             Seguimiento interno
           </h2>
-          <textarea
+          @if (auth.hasPermission('orders.add_notes')) { <textarea
             class="field-control mt-4 min-h-24"
             [formControl]="note"
             placeholder="Agrega una observación sobre el servicio"
@@ -278,7 +279,7 @@
             (click)="addNote()"
           >
             Agregar nota
-          </button>
+          </button> }
           <div class="mt-5 space-y-3">
             @for (entry of current.notes.slice().reverse(); track entry.id) {
             <article class="border-l-2 border-[#d0a17c] pl-3">

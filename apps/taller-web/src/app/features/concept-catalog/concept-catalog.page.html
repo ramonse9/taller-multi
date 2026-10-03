@@ -19,9 +19,11 @@
       <button class="theme-toggle" type="button" (click)="theme.toggle()">
         {{ theme.isDark() ? '☀' : '◐' }}
       </button>
+      @if (auth.hasPermission('catalog.manage') && auth.hasPermission('catalog.view_costs')) {
       <button class="primary" type="button" (click)="openConceptEditor()">
         ＋ Nuevo concepto
       </button>
+      }
     </div>
   </header>
 
@@ -52,13 +54,13 @@
               <p class="section-copy">{{ concepts().totalItems }} resultados</p>
             </div>
           </div>
-          <button
+          @if (auth.hasPermission('catalog.manage') && auth.hasPermission('catalog.view_costs')) { <button
             class="small-action-tw"
             type="button"
             (click)="openConceptEditor()"
           >
             Agregar
-          </button>
+          </button> }
         </header>
         <div
           class="grid gap-3 border-b border-[#dcd9cf] p-4 sm:grid-cols-[1fr_11rem] dark:border-[#3d4d44]"
@@ -121,10 +123,10 @@
                 }
               </div>
               <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
-                <span
+                @if (auth.hasPermission('catalog.view_costs')) { <span
                   >Costo
                   <strong class="block">{{ money(concept.cost) }}</strong></span
-                >
+                > }
                 <span
                   >Precio
                   <strong class="block"
@@ -146,7 +148,7 @@
                 >
                 }
               </div>
-              <div class="mt-4 flex gap-4 text-xs font-bold">
+              @if (auth.hasPermission('catalog.manage') && auth.hasPermission('catalog.view_costs')) { <div class="mt-4 flex gap-4 text-xs font-bold">
                 <button
                   class="bg-transparent p-0 text-[#b94718] dark:text-[#ff9a6f]"
                   type="button"
@@ -161,7 +163,7 @@
                 >
                   {{ concept.isActive ? 'Desactivar' : 'Reactivar' }}
                 </button>
-              </div>
+              </div> }
             </article>
             } @empty { @if (!loading()) {
             <p
@@ -180,7 +182,7 @@
                 <tr>
                   <th class="p-4">Concepto</th>
                   <th class="p-4">Unidad</th>
-                  <th class="p-4 text-right">Costo</th>
+                  @if (auth.hasPermission('catalog.view_costs')) { <th class="p-4 text-right">Costo</th> }
                   <th class="p-4 text-right">Precio</th>
                   <th class="p-4">Inventario</th>
                   <th class="p-4"></th>
@@ -202,10 +204,10 @@
                       >{{ concept.unit.symbol }}</small
                     >
                   </td>
-                  <td class="p-4 text-right">{{ money(concept.cost) }}</td>
-                  <td class="p-4 text-right">
+                  @if (auth.hasPermission('catalog.view_costs')) { <td class="p-4 text-right">{{ money(concept.cost) }}</td> }
+                  @if (auth.hasPermission('catalog.manage') && auth.hasPermission('catalog.view_costs')) { <td class="p-4 text-right">
                     <strong>{{ money(concept.price) }}</strong>
-                  </td>
+                  </td> }
                   <td class="p-4">
                     @if (concept.tracksInventory) {
                     <strong

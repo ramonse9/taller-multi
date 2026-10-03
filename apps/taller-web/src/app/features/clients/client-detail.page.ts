@@ -51,7 +51,7 @@ export class ClientDetailPage implements OnInit {
   private readonly vehiclesService = inject(VehiclesService);
   private readonly catalog = inject(VehicleCatalogService);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly auth = inject(AuthService);
+  readonly auth = inject(AuthService);
   readonly theme = inject(ThemeService);
   readonly formatShortDate = formatShortDate;
 
@@ -73,10 +73,9 @@ export class ClientDetailPage implements OnInit {
   readonly editing = signal<Vehicle | null>(null);
   readonly history = signal<VehicleHistory | null>(null);
   readonly maxYear = new Date().getFullYear() + 1;
-  readonly canManageCatalog = computed(() => {
-    const role = this.auth.user()?.role;
-    return role === "company_admin" || role === "platform_admin";
-  });
+  readonly canManageCatalog = computed(() =>
+    this.auth.hasPermission("vehicle_catalog.manage"),
+  );
 
   readonly brandSearch = new FormControl("", { nonNullable: true });
   readonly modelSearch = new FormControl("", { nonNullable: true });
@@ -335,7 +334,9 @@ export class ClientDetailPage implements OnInit {
     const request = current
       ? this.vehiclesService.update(this.clientId, current.id, {
           ...input,
-          isActive: raw.isActive,
+          ...(this.auth.hasPermission("vehicles.deactivate")
+            ? { isActive: raw.isActive }
+            : {}),
         })
       : this.vehiclesService.create(this.clientId, input);
     request

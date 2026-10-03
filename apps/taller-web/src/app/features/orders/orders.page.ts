@@ -13,6 +13,7 @@ import { debounceTime, distinctUntilChanged, finalize } from "rxjs";
 import { formatShortDate } from "../../core/dates/date-format";
 import { apiErrorMessage } from "../../core/http/api-error";
 import { ThemeService } from "../../core/theme/theme.service";
+import { AuthService } from "../../core/auth/auth.service";
 import {
   ORDER_STATUS_NAMES,
   OrderStatus,
@@ -44,6 +45,7 @@ export class OrdersPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
   readonly theme = inject(ThemeService);
+  readonly auth = inject(AuthService);
   readonly formatShortDate = formatShortDate;
 
   readonly customerId =

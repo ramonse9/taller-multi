@@ -16,6 +16,7 @@ import {
 import { debounceTime, distinctUntilChanged, finalize } from "rxjs";
 import { apiErrorMessage } from "../../core/http/api-error";
 import { ThemeService } from "../../core/theme/theme.service";
+import { AuthService } from "../../core/auth/auth.service";
 import {
   PaginatedCatalog,
   VehicleBrand,
@@ -46,6 +47,7 @@ export class VehicleCatalogPage implements OnInit {
   private readonly catalog = inject(VehicleCatalogService);
   private readonly destroyRef = inject(DestroyRef);
   readonly theme = inject(ThemeService);
+  readonly auth = inject(AuthService);
 
   readonly brands = signal<PaginatedCatalog<VehicleBrand>>(emptyPage());
   readonly models = signal<PaginatedCatalog<VehicleModel>>(emptyPage());

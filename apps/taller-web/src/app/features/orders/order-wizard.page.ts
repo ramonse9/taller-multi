@@ -50,7 +50,7 @@ export class OrderWizardPage implements OnInit {
   private readonly catalog = inject(VehicleCatalogService);
   private readonly conceptCatalog = inject(ConceptCatalogService);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly auth = inject(AuthService);
+  readonly auth = inject(AuthService);
   readonly theme = inject(ThemeService);
 
   readonly orderId = this.route.snapshot.paramMap.get("id") ?? "";
@@ -76,15 +76,15 @@ export class OrderWizardPage implements OnInit {
   readonly brandSearch = new FormControl("", { nonNullable: true });
   readonly modelSearch = new FormControl("", { nonNullable: true });
   readonly maxYear = new Date().getFullYear() + 1;
-  readonly canManageCatalog = computed(() => {
-    const role = this.auth.user()?.role;
-    return role === "company_admin" || role === "platform_admin";
-  });
+  readonly canManageCatalog = computed(() =>
+    this.auth.hasPermission("vehicle_catalog.manage"),
+  );
   readonly canUseItemCatalog = computed(() =>
-    this.auth.hasFeature("item_catalog"),
+    this.auth.hasFeature("item_catalog") && this.auth.hasPermission("catalog.view"),
   );
   readonly canUseProfitability = computed(() =>
-    this.auth.hasFeature("profitability"),
+    this.auth.hasFeature("profitability") &&
+    this.auth.hasPermission("catalog.view_costs"),
   );
 
   filteredClients(): Client[] {

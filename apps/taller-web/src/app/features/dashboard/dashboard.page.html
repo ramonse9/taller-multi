@@ -25,7 +25,9 @@
       <button class="theme-toggle" type="button" (click)="theme.toggle()">
         {{ theme.isDark() ? '☀' : '◐' }}
       </button>
+      @if (auth.hasPermission('orders.create') && auth.hasPermission('clients.view') && auth.hasPermission('vehicles.view') && auth.hasPermission('vehicle_catalog.view')) {
       <a class="primary no-underline" routerLink="/orders/new">＋ Nueva orden</a>
+      }
     </div>
   </header>
 
@@ -100,10 +102,10 @@
       aria-label="Acciones rápidas"
     >
       <span class="detail-label mr-auto px-2">ACCIONES RÁPIDAS</span>
-      @if (auth.hasFeature('service_orders')) {
+      @if (auth.hasFeature('service_orders') && auth.hasPermission('orders.create') && auth.hasPermission('clients.view') && auth.hasPermission('vehicles.view') && auth.hasPermission('vehicle_catalog.view')) {
       <a class="primary no-underline" routerLink="/orders/new">＋ Crear orden</a>
       }
-      @if (auth.hasFeature('customer_history')) {
+      @if (auth.hasFeature('customer_history') && auth.hasPermission('clients.view') && auth.hasPermission('clients.create')) {
       <a
         class="secondary-tw no-underline"
         routerLink="/clients"
@@ -111,12 +113,12 @@
         >＋ Registrar cliente</a
       >
       }
-      @if (auth.hasFeature('inventory')) {
+      @if (auth.hasFeature('inventory') && auth.hasPermission('purchases.create') && auth.hasPermission('catalog.view') && auth.hasPermission('catalog.view_costs') && auth.hasPermission('suppliers.view')) {
       <a class="secondary-tw no-underline" routerLink="/purchases/new"
         >＋ Registrar compra</a
       >
       }
-      @if (auth.hasFeature('expenses')) {
+      @if (auth.hasFeature('expenses') && auth.hasPermission('expenses.view') && auth.hasPermission('expenses.create')) {
       <a
         class="secondary-tw no-underline"
         routerLink="/expenses"
@@ -133,21 +135,21 @@
         <strong class="mt-2 block text-2xl">{{ money(financials.directCost) }}</strong>
         <small class="text-[#68746d] dark:text-[#aab7af]">Costo histórico del trabajo terminado</small>
       </article>
-      <a class="border border-[#dcd9cf] bg-white p-5 text-inherit no-underline hover:border-[#e86a33] dark:border-[#3d4d44] dark:bg-[#1a251f]" routerLink="/expenses">
+      @if (auth.hasPermission('expenses.view')) { <a class="border border-[#dcd9cf] bg-white p-5 text-inherit no-underline hover:border-[#e86a33] dark:border-[#3d4d44] dark:bg-[#1a251f]" routerLink="/expenses">
         <span class="detail-label">GASTOS DEL MES</span>
         <strong class="mt-2 block text-2xl">{{ money(financials.operatingExpenses) }}</strong>
         <small class="font-bold text-[#b94718] dark:text-[#ff9a6f]">Ver gastos →</small>
-      </a>
+      </a> }
       <a class="border border-[#263c31] bg-[#17251e] p-5 text-white no-underline hover:bg-[#22362b] dark:border-[#50685a] dark:bg-[#213128]" routerLink="/profitability">
         <span class="detail-label !text-[#9fb5a8]">UTILIDAD OPERATIVA</span>
         <strong class="mt-2 block text-2xl" [class.text-[#ff9e8c]]="+financials.operatingProfit < 0">{{ money(financials.operatingProfit) }}</strong>
         <small class="text-[#b8c7be]">Ingresos menos costos y gastos →</small>
       </a>
-      <a class="border p-5 text-inherit no-underline" [class.border-[#e0b4a9]]="(data.lowStock?.totalProducts ?? 0) > 0" [class.bg-[#fff0ea]]="(data.lowStock?.totalProducts ?? 0) > 0" [class.dark:border-[#73483e]]="(data.lowStock?.totalProducts ?? 0) > 0" [class.dark:bg-[#3a211c]]="(data.lowStock?.totalProducts ?? 0) > 0" [class.border-[#dcd9cf]]="(data.lowStock?.totalProducts ?? 0) === 0" [class.bg-white]="(data.lowStock?.totalProducts ?? 0) === 0" [class.dark:border-[#3d4d44]]="(data.lowStock?.totalProducts ?? 0) === 0" [class.dark:bg-[#1a251f]]="(data.lowStock?.totalProducts ?? 0) === 0" routerLink="/inventory">
+      @if (auth.hasPermission('inventory.view')) { <a class="border p-5 text-inherit no-underline" [class.border-[#e0b4a9]]="(data.lowStock?.totalProducts ?? 0) > 0" [class.bg-[#fff0ea]]="(data.lowStock?.totalProducts ?? 0) > 0" [class.dark:border-[#73483e]]="(data.lowStock?.totalProducts ?? 0) > 0" [class.dark:bg-[#3a211c]]="(data.lowStock?.totalProducts ?? 0) > 0" [class.border-[#dcd9cf]]="(data.lowStock?.totalProducts ?? 0) === 0" [class.bg-white]="(data.lowStock?.totalProducts ?? 0) === 0" [class.dark:border-[#3d4d44]]="(data.lowStock?.totalProducts ?? 0) === 0" [class.dark:bg-[#1a251f]]="(data.lowStock?.totalProducts ?? 0) === 0" routerLink="/inventory">
         <span class="detail-label">INVENTARIO BAJO</span>
         <strong class="mt-2 block text-2xl" [class.text-[#a63725]]="(data.lowStock?.totalProducts ?? 0) > 0">{{ data.lowStock?.totalProducts ?? 0 }} productos</strong>
         <small class="font-bold text-[#b94718] dark:text-[#ff9a6f]">Revisar existencias →</small>
-      </a>
+      </a> }
     </div>
     @if (!financials.isComplete) {
     <div class="mt-3 border-l-4 border-[#d6922e] bg-[#fff4dc] px-4 py-3 text-sm text-[#704b14] dark:bg-[#49351b] dark:text-[#ffd18a]">
@@ -163,7 +165,7 @@
       <p class="mx-auto mt-2 max-w-xl text-sm text-[#68746d] dark:text-[#aab7af]">
         Todavía no hay actividad. Cuando registres órdenes, compras o gastos, aquí aparecerán los pendientes y resultados importantes.
       </p>
-      <a class="primary mt-6 inline-block no-underline" routerLink="/orders/new">Registrar la primera orden</a>
+      @if (auth.hasPermission('orders.create') && auth.hasPermission('clients.view') && auth.hasPermission('vehicles.view') && auth.hasPermission('vehicle_catalog.view')) { <a class="primary mt-6 inline-block no-underline" routerLink="/orders/new">Registrar la primera orden</a> }
     </section>
     } @else {
     <div class="mt-8 grid gap-5 xl:grid-cols-2">

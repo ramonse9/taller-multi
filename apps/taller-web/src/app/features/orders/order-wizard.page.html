@@ -95,7 +95,7 @@
           }
         </div>
       </section>
-      <aside class="form-card-tw h-fit p-5 sm:p-7">
+      @if (auth.hasPermission('clients.create')) { <aside class="form-card-tw h-fit p-5 sm:p-7">
         <button
           class="secondary-tw w-full"
           type="button"
@@ -166,7 +166,7 @@
           </button>
         </form>
         }
-      </aside>
+      </aside> }
     </div>
     <div class="mt-6 flex justify-end">
       <button
@@ -224,7 +224,7 @@
           }
         </div>
       </section>
-      <aside class="form-card-tw h-fit p-5 sm:p-7">
+      @if (auth.hasPermission('vehicles.create')) { <aside class="form-card-tw h-fit p-5 sm:p-7">
         <button
           class="secondary-tw w-full"
           type="button"
@@ -379,7 +379,7 @@
           </button>
         </form>
         }
-      </aside>
+      </aside> }
     </div>
     <div class="mt-6 flex justify-between">
       <button class="secondary-tw" type="button" (click)="goTo(1)">

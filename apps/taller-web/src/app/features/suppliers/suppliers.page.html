@@ -20,9 +20,9 @@
       <button class="theme-toggle" type="button" (click)="theme.toggle()">
         {{ theme.isDark() ? '☀' : '◐' }}
       </button>
-      <button class="primary" type="button" (click)="openEditor()">
+      @if (auth.hasPermission('suppliers.manage')) { <button class="primary" type="button" (click)="openEditor()">
         ＋ Nuevo Proveedor
-      </button>
+      </button> }
     </div>
   </header>
 
@@ -120,7 +120,7 @@
               {{ supplier.notes }}
             </p>
             }
-            <footer class="mt-auto flex gap-2 pt-5">
+            @if (auth.hasPermission('suppliers.manage')) { <footer class="mt-auto flex gap-2 pt-5">
               <button
                 class="small-action-tw"
                 type="button"
@@ -138,7 +138,7 @@
                 {{ supplier.isActive ? 'Desactivar' : 'Reactivar' }}
               </button>
               }
-            </footer>
+            </footer> }
           </article>
           } @empty { @if (!loading()) {
           <p

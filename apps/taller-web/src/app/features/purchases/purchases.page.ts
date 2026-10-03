@@ -13,6 +13,7 @@ import { debounceTime, distinctUntilChanged, finalize, forkJoin } from "rxjs";
 import { formatShortDate } from "../../core/dates/date-format";
 import { apiErrorMessage } from "../../core/http/api-error";
 import { ThemeService } from "../../core/theme/theme.service";
+import { AuthService } from "../../core/auth/auth.service";
 import { Supplier } from "../suppliers/supplier.models";
 import { SuppliersService } from "../suppliers/suppliers.service";
 import {
@@ -53,6 +54,7 @@ export class PurchasesPage implements OnInit {
   private readonly suppliersService = inject(SuppliersService);
   private readonly destroyRef = inject(DestroyRef);
   readonly theme = inject(ThemeService);
+  readonly auth = inject(AuthService);
   readonly formatShortDate = formatShortDate;
 
   readonly data = signal<PaginatedPurchases>(emptyPurchases());

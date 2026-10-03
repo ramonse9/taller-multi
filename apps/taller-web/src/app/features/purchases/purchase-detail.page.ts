@@ -12,6 +12,7 @@ import { finalize, forkJoin } from "rxjs";
 import { formatShortDate } from "../../core/dates/date-format";
 import { apiErrorMessage } from "../../core/http/api-error";
 import { ThemeService } from "../../core/theme/theme.service";
+import { AuthService } from "../../core/auth/auth.service";
 import { InventoryLot } from "../inventory/inventory.models";
 import { InventoryService } from "../inventory/inventory.service";
 import {
@@ -35,6 +36,7 @@ export class PurchaseDetailPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
   readonly theme = inject(ThemeService);
+  readonly auth = inject(AuthService);
   readonly formatShortDate = formatShortDate;
 
   readonly purchase = signal<Purchase | null>(null);

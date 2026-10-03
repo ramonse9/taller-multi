@@ -28,6 +28,7 @@ import {
   of,
 } from "rxjs";
 import { apiErrorMessage } from "../../core/http/api-error";
+import { AuthService } from "../../core/auth/auth.service";
 import { ThemeService } from "../../core/theme/theme.service";
 import {
   CatalogConcept,
@@ -69,6 +70,7 @@ export class PurchaseWizardPage implements OnInit {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   readonly theme = inject(ThemeService);
+  readonly auth = inject(AuthService);
   readonly purchaseId = this.route.snapshot.paramMap.get("id");
 
   readonly step = signal(1);

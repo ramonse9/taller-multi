@@ -60,3 +60,14 @@ export const featureGuard: CanActivateFn = (route) => {
   if (user?.subscription?.usable && (!feature || auth.hasFeature(feature))) return true;
   return router.createUrlTree(["/subscription-required"]);
 };
+
+export const permissionGuard: CanActivateFn = (route) => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  const configured = route.data["permission"] as string | string[] | undefined;
+  const required = typeof configured === "string" ? [configured] : configured ?? [];
+  if (required.every((permission) => auth.hasPermission(permission))) return true;
+  return router.createUrlTree(["/access-denied"], {
+    queryParams: { permission: required.join(",") },
+  });
+};

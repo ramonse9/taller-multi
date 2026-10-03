@@ -7,7 +7,7 @@
     </div>
     <div class="flex items-center gap-2">
       <button class="theme-toggle" type="button" (click)="theme.toggle()">{{ theme.isDark() ? '☀' : '◐' }}</button>
-      <a class="primary no-underline" routerLink="/purchases/new">＋ Nueva compra</a>
+      @if (auth.hasPermission('purchases.create') && auth.hasPermission('catalog.view') && auth.hasPermission('catalog.view_costs') && auth.hasPermission('suppliers.view')) { <a class="primary no-underline" routerLink="/purchases/new">＋ Nueva compra</a> }
     </div>
   </header>
 

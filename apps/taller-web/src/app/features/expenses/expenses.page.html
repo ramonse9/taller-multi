@@ -7,7 +7,7 @@
     </div>
     <div class="flex items-center gap-2">
       <button class="theme-toggle" type="button" (click)="theme.toggle()">{{ theme.isDark() ? '☀' : '◐' }}</button>
-      <button class="primary" type="button" (click)="openEditor()">＋ Nuevo gasto</button>
+      @if (auth.hasPermission('expenses.create')) { <button class="primary" type="button" (click)="openEditor()">＋ Nuevo gasto</button> }
     </div>
   </header>
 
@@ -61,7 +61,7 @@
         <select class="field-control" [formControl]="status" aria-label="Filtrar por estado"><option value="">Todos los estados</option><option value="draft">Borrador</option><option value="confirmed">Confirmado</option><option value="cancelled">Cancelado</option></select>
         <select class="field-control" [formControl]="recurrenceType" aria-label="Filtrar por recurrencia"><option value="">Únicos y recurrentes</option><option value="one_time">Único</option><option value="recurring">Recurrente</option></select>
         <select class="field-control" [formControl]="categoryId" aria-label="Filtrar por categoría"><option value="">Todas las categorías</option>@for (category of categories(); track category.id) { <option [value]="category.id">{{ category.name }}</option> }</select>
-        <select class="field-control" [formControl]="supplierId" aria-label="Filtrar por proveedor"><option value="">Todos los proveedores</option>@for (supplier of suppliers(); track supplier.id) { <option [value]="supplier.id">{{ supplier.commercialName }}</option> }</select>
+        @if (auth.hasPermission('suppliers.view')) { <select class="field-control" [formControl]="supplierId" aria-label="Filtrar por proveedor"><option value="">Todos los proveedores</option>@for (supplier of suppliers(); track supplier.id) { <option [value]="supplier.id">{{ supplier.commercialName }}</option> }</select> }
         <div><label class="field-label" for="expense-from">Desde</label><input class="field-control" id="expense-from" type="date" [formControl]="occurredFrom" /></div>
         <div><label class="field-label" for="expense-to">Hasta</label><input class="field-control" id="expense-to" type="date" [formControl]="occurredTo" /></div>
       </div>
@@ -74,8 +74,9 @@
               <dl class="mt-5 grid grid-cols-2 gap-3 border-y border-[#ece9df] py-4 text-sm dark:border-[#35433b]"><div><dt class="detail-label">IMPORTE</dt><dd class="m-0 mt-1 text-lg font-bold">{{ money(expense.amount) }}</dd></div><div><dt class="detail-label">TIPO</dt><dd class="m-0 mt-1">{{ expense.recurrenceType === 'recurring' ? 'Recurrente' : 'Único' }}</dd></div><div class="col-span-2"><dt class="detail-label">PROVEEDOR</dt><dd class="m-0 mt-1 truncate">{{ expense.supplier.commercialName }}</dd></div></dl>
               @if (expense.reference || expense.notes) { <p class="mt-3 line-clamp-2 text-sm text-[#68746d] dark:text-[#aab7af]">{{ expense.reference || expense.notes }}</p> }
               <footer class="mt-auto flex flex-wrap gap-2 pt-5">
-                @if (expense.status === 'draft') { <button class="small-action-tw" type="button" (click)="openEditor(expense)">Editar</button><button class="small-action-tw" type="button" [disabled]="saving()" (click)="changeStatus(expense, 'confirmed')">Confirmar</button> }
-                @if (expense.status !== 'cancelled') { <button class="small-action-tw !text-[#a1362c]" type="button" [disabled]="saving()" (click)="changeStatus(expense, 'cancelled')">Cancelar</button> }
+                @if (expense.status === 'draft' && auth.hasPermission('expenses.edit')) { <button class="small-action-tw" type="button" (click)="openEditor(expense)">Editar</button> }
+                @if (expense.status === 'draft' && auth.hasPermission('expenses.confirm')) { <button class="small-action-tw" type="button" [disabled]="saving()" (click)="changeStatus(expense, 'confirmed')">Confirmar</button> }
+                @if (expense.status !== 'cancelled' && auth.hasPermission('expenses.cancel')) { <button class="small-action-tw !text-[#a1362c]" type="button" [disabled]="saving()" (click)="changeStatus(expense, 'cancelled')">Cancelar</button> }
               </footer>
             </article>
           } @empty { @if (!loading()) { <p class="col-span-full bg-white p-12 text-center text-sm text-[#68746d] dark:bg-[#1a251f] dark:text-[#aab7af]">No hay gastos que coincidan con los filtros.</p> } }
@@ -94,7 +95,7 @@
       @if (error()) { <div class="dialog-error-tw" role="alert">{{ error() }}</div> }
       <form class="mt-6 grid gap-4 sm:grid-cols-2" [formGroup]="form" (ngSubmit)="save()" novalidate>
         <div><label class="field-label" for="expense-category">Categoría <b>*</b></label><select class="field-control" id="expense-category" formControlName="categoryId"><option value="" disabled>Selecciona una categoría</option>@for (category of categories(); track category.id) { <option [value]="category.id">{{ category.name }}</option> }</select>@if (form.controls.categoryId.touched && form.controls.categoryId.invalid) { <small class="field-error">Selecciona una categoría.</small> }</div>
-        <div><label class="field-label" for="expense-supplier">Proveedor</label><select class="field-control" id="expense-supplier" formControlName="supplierId"><option value="">Proveedor general</option>@for (supplier of suppliers(); track supplier.id) { @if (!supplier.isDefault) { <option [value]="supplier.id">{{ supplier.commercialName }}</option> } }</select></div>
+        @if (auth.hasPermission('suppliers.view')) { <div><label class="field-label" for="expense-supplier">Proveedor</label><select class="field-control" id="expense-supplier" formControlName="supplierId"><option value="">Proveedor general</option>@for (supplier of suppliers(); track supplier.id) { @if (!supplier.isDefault) { <option [value]="supplier.id">{{ supplier.commercialName }}</option> } }</select></div> }
         <div><label class="field-label" for="expense-date">Fecha <b>*</b></label><input class="field-control" id="expense-date" type="date" formControlName="occurredOn" /></div>
         <div><label class="field-label" for="expense-recurrence">Tipo <b>*</b></label><select class="field-control" id="expense-recurrence" formControlName="recurrenceType"><option value="one_time">Único</option><option value="recurring">Recurrente</option></select></div>
         <div class="sm:col-span-2"><label class="field-label" for="expense-description">Descripción <b>*</b></label><input class="field-control" id="expense-description" formControlName="description" maxlength="250" placeholder="Renta del taller" />@if (form.controls.description.touched && form.controls.description.invalid) { <small class="field-error">Captura una descripción de hasta 250 caracteres.</small> }</div>
