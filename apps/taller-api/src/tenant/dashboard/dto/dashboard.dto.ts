@@ -69,3 +69,90 @@ export class DashboardSummaryResponseDto {
   @ApiProperty({ type: DashboardLowStockResponseDto, nullable: true })
   lowStock!: DashboardLowStockResponseDto | null;
 }
+
+export class DashboardOrderActivityResponseDto {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty() folio!: string;
+  @ApiProperty({ format: 'uuid' }) customerId!: string;
+  @ApiProperty() customerName!: string;
+  @ApiProperty({ format: 'uuid' }) vehicleId!: string;
+  @ApiProperty() brandName!: string;
+  @ApiProperty() modelName!: string;
+  @ApiProperty({ enum: ['in_progress', 'completed', 'cancelled'] }) status!: string;
+  @ApiProperty() isPaid!: boolean;
+  @ApiProperty({ nullable: true, type: String }) total!: string | null;
+  @ApiProperty() updatedAt!: Date;
+}
+
+export class DashboardOldOrderResponseDto extends DashboardOrderActivityResponseDto {
+  @ApiProperty() openedAt!: Date;
+  @ApiProperty() daysOpen!: number;
+}
+
+export class DashboardReceivableResponseDto {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty() folio!: string;
+  @ApiProperty({ format: 'uuid' }) customerId!: string;
+  @ApiProperty() customerName!: string;
+  @ApiProperty({ format: 'uuid' }) vehicleId!: string;
+  @ApiProperty() brandName!: string;
+  @ApiProperty() modelName!: string;
+  @ApiProperty({ nullable: true, type: String }) total!: string | null;
+  @ApiProperty() completedAt!: Date;
+}
+
+export class DashboardPurchaseActivityResponseDto {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty() folio!: string;
+  @ApiProperty({ format: 'uuid' }) supplierId!: string;
+  @ApiProperty() supplierName!: string;
+  @ApiProperty({ enum: ['draft', 'confirmed', 'cancelled'] }) status!: string;
+  @ApiProperty() total!: string;
+  @ApiProperty() itemCount!: number;
+  @ApiProperty() purchasedAt!: Date;
+  @ApiProperty() updatedAt!: Date;
+}
+
+export class DashboardExpenseActivityResponseDto {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty() description!: string;
+  @ApiProperty() categoryName!: string;
+  @ApiProperty() supplierName!: string;
+  @ApiProperty({ enum: ['draft', 'confirmed', 'cancelled'] }) status!: string;
+  @ApiProperty() amount!: string;
+  @ApiProperty({ format: 'date' }) occurredOn!: string;
+  @ApiProperty() updatedAt!: Date;
+}
+
+export class DashboardInventoryMovementActivityResponseDto {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty({ format: 'uuid' }) productId!: string;
+  @ApiProperty() productName!: string;
+  @ApiProperty({ nullable: true, type: String }) productSku!: string | null;
+  @ApiProperty({ enum: ['entry', 'exit', 'adjustment'] }) type!: string;
+  @ApiProperty() quantity!: string;
+  @ApiProperty() resultingStock!: string;
+  @ApiProperty() reason!: string;
+  @ApiProperty() createdAt!: Date;
+}
+
+export class DashboardActivityResponseDto {
+  @ApiProperty({ type: DashboardOrderActivityResponseDto, isArray: true })
+  recentOrders!: DashboardOrderActivityResponseDto[];
+  @ApiProperty({ type: DashboardOldOrderResponseDto, isArray: true })
+  oldestInProgress!: DashboardOldOrderResponseDto[];
+  @ApiProperty({ type: DashboardReceivableResponseDto, isArray: true })
+  pendingCollection!: DashboardReceivableResponseDto[];
+  @ApiProperty({ type: DashboardPurchaseActivityResponseDto, isArray: true, nullable: true })
+  recentPurchases!: DashboardPurchaseActivityResponseDto[] | null;
+  @ApiProperty({ type: DashboardExpenseActivityResponseDto, isArray: true, nullable: true })
+  recentExpenses!: DashboardExpenseActivityResponseDto[] | null;
+  @ApiProperty({
+    type: DashboardInventoryMovementActivityResponseDto,
+    isArray: true,
+    nullable: true,
+  })
+  recentInventoryMovements!: DashboardInventoryMovementActivityResponseDto[] | null;
+  @ApiProperty({ type: DashboardLowStockResponseDto, nullable: true })
+  lowStock!: DashboardLowStockResponseDto | null;
+}

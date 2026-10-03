@@ -364,6 +364,48 @@ interface DashboardSummaryResponse {
   };
 }
 
+interface DashboardActivityResponse {
+  recentOrders: Array<{
+    id: string;
+    folio: string;
+    status: string;
+    isPaid: boolean;
+    total: string | null;
+  }>;
+  oldestInProgress: Array<{
+    id: string;
+    folio: string;
+    openedAt: string;
+    daysOpen: number;
+  }>;
+  pendingCollection: Array<{
+    id: string;
+    folio: string;
+    total: string | null;
+    completedAt: string;
+  }>;
+  recentPurchases: null | Array<{
+    id: string;
+    folio: string;
+    status: string;
+    total: string;
+  }>;
+  recentExpenses: null | Array<{
+    id: string;
+    description: string;
+    status: string;
+    amount: string;
+  }>;
+  recentInventoryMovements: null | Array<{
+    id: string;
+    productId: string;
+    type: string;
+    quantity: string;
+    resultingStock: string;
+  }>;
+  lowStock: DashboardSummaryResponse['lowStock'];
+}
+
 interface InventoryLotResponse {
   id: string;
   productId: string;
@@ -1728,7 +1770,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       token: tenant.accessToken,
       body: { status: 'completed' },
     });
-    await createOrder('Servicio en proceso', 100, 20);
+    const inProgressOrder = await createOrder('Servicio en proceso', 100, 20);
 
     const basic = await request<DashboardSummaryResponse>('GET', '/dashboard/summary', {
       token: tenant.accessToken,
@@ -1753,6 +1795,21 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     });
     expect(basic.body.financials).toBeNull();
     expect(basic.body.lowStock).toBeNull();
+    const basicActivity = await request<DashboardActivityResponse>('GET', '/dashboard/activity', {
+      token: tenant.accessToken,
+    });
+    expect(basicActivity.status).toBe(200);
+    expect(basicActivity.body.recentOrders).toHaveLength(3);
+    expect(basicActivity.body.oldestInProgress).toEqual([
+      expect.objectContaining({ id: inProgressOrder.body.id, daysOpen: 0 }),
+    ]);
+    expect(basicActivity.body.pendingCollection).toEqual([
+      expect.objectContaining({ id: unpaidOrder.body.id, total: '200.00' }),
+    ]);
+    expect(basicActivity.body.recentPurchases).toBeNull();
+    expect(basicActivity.body.recentExpenses).toBeNull();
+    expect(basicActivity.body.recentInventoryMovements).toBeNull();
+    expect(basicActivity.body.lowStock).toBeNull();
 
     await request<unknown>('PATCH', `/subscriptions/companies/${tenant.company.id}`, {
       token: platformToken,
@@ -1819,6 +1876,57 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
           stock: '0.000',
           minimumStock: '5.000',
         },
+      ],
+    });
+    const movement = await request<InventoryMovementResponse>('POST', '/inventory/movements', {
+      token: tenant.accessToken,
+      body: {
+        productId: lowStockProduct.body.id,
+        type: 'entry',
+        quantity: 2,
+        unitCost: 80,
+        reason: 'Entrada para actividad del tablero',
+      },
+    });
+    const purchase = await request<PurchaseResponse>('POST', '/purchases', {
+      token: tenant.accessToken,
+      body: {
+        reference: 'TAB-ACT-001',
+        items: [{ productId: lowStockProduct.body.id, quantity: 1, unitCost: 85 }],
+      },
+    });
+    const controlActivity = await request<DashboardActivityResponse>(
+      'GET',
+      '/dashboard/activity',
+      { token: tenant.accessToken },
+    );
+    expect(controlActivity.status).toBe(200);
+    expect(controlActivity.body.recentPurchases?.[0]).toMatchObject({
+      id: purchase.body.id,
+      status: 'draft',
+      total: '85.00',
+    });
+    expect(controlActivity.body.recentExpenses?.[0]).toMatchObject({
+      id: expense.body.id,
+      description: 'Gasto para resumen del tablero',
+      status: 'confirmed',
+      amount: '120.00',
+    });
+    expect(controlActivity.body.recentInventoryMovements?.[0]).toMatchObject({
+      id: movement.body.id,
+      productId: lowStockProduct.body.id,
+      type: 'entry',
+      quantity: '2.000',
+      resultingStock: '2.000',
+    });
+    expect(controlActivity.body.lowStock).toMatchObject({
+      totalProducts: 1,
+      products: [
+        expect.objectContaining({
+          id: lowStockProduct.body.id,
+          stock: '2.000',
+          minimumStock: '5.000',
+        }),
       ],
     });
   });
