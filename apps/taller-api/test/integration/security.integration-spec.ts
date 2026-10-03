@@ -261,6 +261,49 @@ interface ExpenseMonthlySummaryResponse {
   recentExpenses: ExpenseResponse[];
 }
 
+interface ProfitabilityReportResponse {
+  occurredFrom: string;
+  occurredTo: string;
+  totals: {
+    completedOrderCount: number;
+    incompleteOrderCount: number;
+    income: string;
+    directCost: string;
+    fifoProductCost: string;
+    grossProfit: string;
+    operatingExpenses: string;
+    netProfit: string;
+    grossMarginPercent: string | null;
+    netMarginPercent: string | null;
+    isComplete: boolean;
+  };
+  byDay: Array<{ period: string; income: string; operatingExpenses: string; netProfit: string }>;
+  byMonth: Array<{ period: string; income: string; operatingExpenses: string; netProfit: string }>;
+  byCustomer: Array<{
+    customerId: string;
+    customerName: string;
+    completedOrderCount: number;
+    income: string;
+    directCost: string;
+    grossProfit: string;
+  }>;
+  byServiceType: Array<{
+    type: 'service' | 'product' | 'free';
+    name: string;
+    itemCount: number;
+    income: string;
+    directCost: string;
+    grossProfit: string;
+  }>;
+  orders: Array<{
+    id: string;
+    folio: string;
+    fifoProductCost: string;
+    grossProfit: string | null;
+    isComplete: boolean;
+  }>;
+}
+
 interface InventoryLotResponse {
   id: string;
   productId: string;
@@ -1306,13 +1349,12 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       draftCount: 0,
       draftAmount: '0.00',
     });
-    expect(monthly.body.byCategory).toEqual([
-      expect.objectContaining({
-        category: expect.objectContaining({ code: 'utilities' }),
-        count: 1,
-        amount: '1500.00',
-      }),
-    ]);
+    expect(monthly.body.byCategory).toHaveLength(1);
+    expect(monthly.body.byCategory[0]).toMatchObject({
+      category: { code: 'utilities' },
+      count: 1,
+      amount: '1500.00',
+    });
     expect(monthly.body.recentExpenses.map(({ id }) => id)).toEqual(
       expect.arrayContaining([previousMonthExpense.body.id, currentMonthExpense.body.id]),
     );
@@ -1339,6 +1381,187 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       [tenant.company.id],
     );
     expect(versions).toEqual([{ version: 16 }]);
+  });
+
+  it('calcula utilidad con ingresos terminados, FIFO y gastos confirmados', async () => {
+    const tenant = await provisionAndLogin(
+      'Profitability Integration',
+      'profitability.admin@test.local',
+    );
+    expect(
+      (
+        await request<unknown>('GET', '/profitability?occurredFrom=2026-10-01&occurredTo=2026-10-31', {
+          token: tenant.accessToken,
+        })
+      ).status,
+    ).toBe(403);
+    await request<unknown>('PATCH', `/subscriptions/companies/${tenant.company.id}`, {
+      token: platformToken,
+      body: { planCode: 'control', status: 'active', reason: 'Utilidad de integración' },
+    });
+
+    const units = await request<MeasurementUnitResponse[]>('GET', '/catalogs/units', {
+      token: tenant.accessToken,
+    });
+    const piece = units.body.find(({ name }) => name === 'Pieza')!;
+    const serviceUnit = units.body.find(({ name }) => name === 'Servicio')!;
+    const product = await request<ConceptResponse>('POST', '/catalogs/concepts', {
+      token: tenant.accessToken,
+      body: {
+        kind: 'product',
+        sku: 'UTL-FIFO-001',
+        name: 'Producto FIFO utilidad',
+        unitId: piece.id,
+        cost: 0,
+        price: 200,
+        tracksInventory: true,
+      },
+    });
+    const catalogService = await request<ConceptResponse>('POST', '/catalogs/concepts', {
+      token: tenant.accessToken,
+      body: {
+        kind: 'service',
+        name: 'Servicio de utilidad',
+        unitId: serviceUnit.id,
+        cost: 50,
+        price: 300,
+        tracksInventory: false,
+      },
+    });
+    await request<InventoryMovementResponse>('POST', '/inventory/movements', {
+      token: tenant.accessToken,
+      body: {
+        productId: product.body.id,
+        type: 'entry',
+        quantity: 2,
+        unitCost: 80,
+        reason: 'Lote para utilidad',
+      },
+    });
+    const customer = await request<ClientResponse>('POST', '/clients', {
+      token: tenant.accessToken,
+      body: { type: 'person', displayName: 'Cliente Rentable' },
+    });
+    const brand = await request<VehicleBrandResponse>('POST', '/catalogs/vehicle-brands', {
+      token: tenant.accessToken,
+      body: { name: 'Marca Utilidad Integration' },
+    });
+    const model = await request<VehicleModelResponse>('POST', '/catalogs/vehicle-models', {
+      token: tenant.accessToken,
+      body: { brandId: brand.body.id, name: 'Modelo Utilidad Integration' },
+    });
+    const vehicle = await request<VehicleResponse>('POST', `/clients/${customer.body.id}/vehicles`, {
+      token: tenant.accessToken,
+      body: { brandId: brand.body.id, modelId: model.body.id, year: 2025, color: 'Gris' },
+    });
+    const order = await request<OrderResponse>('POST', '/orders', {
+      token: tenant.accessToken,
+      body: {
+        customerId: customer.body.id,
+        vehicleId: vehicle.body.id,
+        items: [
+          { productServiceId: product.body.id, description: product.body.name, quantity: 1 },
+          {
+            productServiceId: catalogService.body.id,
+            description: catalogService.body.name,
+            quantity: 1,
+          },
+          { description: 'Servicio libre', quantity: 1, unitPrice: 200, unitCost: 20 },
+        ],
+      },
+    });
+    expect(order.status).toBe(201);
+    const completed = await request<OrderResponse>('POST', `/orders/${order.body.id}/status`, {
+      token: tenant.accessToken,
+      body: { status: 'completed' },
+    });
+    expect(completed.body).toMatchObject({
+      total: '700.00',
+      totalCost: '150.00',
+      grossProfit: '550.00',
+    });
+    await control.query(
+      `UPDATE ${quoteIdentifier(tenant.company.schemaName)}.orders
+       SET closed_at = '2026-10-02 12:00:00+00' WHERE id = $1`,
+      [order.body.id],
+    );
+
+    const categories = await request<ExpenseCategoryResponse[]>('GET', '/expenses/categories', {
+      token: tenant.accessToken,
+    });
+    const expense = await request<ExpenseResponse>('POST', '/expenses', {
+      token: tenant.accessToken,
+      body: {
+        categoryId: categories.body.find(({ code }) => code === 'utilities')!.id,
+        occurredOn: '2026-10-02',
+        description: 'Gasto operativo de prueba',
+        amount: 120,
+      },
+    });
+    await request<ExpenseResponse>('POST', `/expenses/${expense.body.id}/status`, {
+      token: tenant.accessToken,
+      body: { status: 'confirmed' },
+    });
+
+    const report = await request<ProfitabilityReportResponse>(
+      'GET',
+      '/profitability?occurredFrom=2026-10-01&occurredTo=2026-10-31',
+      { token: tenant.accessToken },
+    );
+    expect(report.status).toBe(200);
+    expect(report.body.totals).toEqual({
+      completedOrderCount: 1,
+      incompleteOrderCount: 0,
+      income: '700.00',
+      directCost: '150.00',
+      fifoProductCost: '80.00',
+      grossProfit: '550.00',
+      operatingExpenses: '120.00',
+      netProfit: '430.00',
+      grossMarginPercent: '78.57',
+      netMarginPercent: '61.43',
+      isComplete: true,
+    });
+    expect(report.body.byDay).toEqual([
+      expect.objectContaining({
+        period: '2026-10-02',
+        income: '700.00',
+        operatingExpenses: '120.00',
+        netProfit: '430.00',
+      }),
+    ]);
+    expect(report.body.byMonth[0]).toMatchObject({
+      period: '2026-10',
+      netProfit: '430.00',
+    });
+    expect(report.body.byCustomer[0]).toMatchObject({
+      customerId: customer.body.id,
+      customerName: 'Cliente Rentable',
+      completedOrderCount: 1,
+      grossProfit: '550.00',
+    });
+    expect(report.body.byServiceType).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: 'product', income: '200.00', directCost: '80.00' }),
+        expect.objectContaining({ type: 'service', income: '300.00', directCost: '50.00' }),
+        expect.objectContaining({ type: 'free', income: '200.00', directCost: '20.00' }),
+      ]),
+    );
+    expect(report.body.orders[0]).toMatchObject({
+      id: order.body.id,
+      fifoProductCost: '80.00',
+      grossProfit: '550.00',
+      isComplete: true,
+    });
+    expect(
+      (
+        await request<unknown>(
+          'GET',
+          '/profitability?occurredFrom=2026-10-31&occurredTo=2026-10-01',
+          { token: tenant.accessToken },
+        )
+      ).status,
+    ).toBe(400);
   });
 
   it('administra compras con folio, totales, proveedor general y entradas de inventario', async () => {

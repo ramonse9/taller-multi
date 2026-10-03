@@ -77,18 +77,23 @@
               <span>07</span> Gastos
             </a>
           }
+          @if (auth.hasFeature("profitability")) {
+            <a class="nav-item" routerLink="/profitability" routerLinkActive="active">
+              <span>08</span> Utilidad
+            </a>
+          }
           <a
             class="nav-item"
             routerLink="/vehicle-catalog"
             routerLinkActive="active"
           >
-            <span>08</span> Marcas y modelos
+            <span>09</span> Marcas y modelos
           </a>
           <a class="nav-item" routerLink="/users" routerLinkActive="active">
-            <span>09</span> Usuarios
+            <span>10</span> Usuarios
           </a>
           <a class="nav-item" routerLink="/account" routerLinkActive="active">
-            <span>10</span> Seguridad
+            <span>11</span> Seguridad
           </a>
         }
         @case ("user") {
@@ -143,8 +148,13 @@
               <span>07</span> Gastos
             </a>
           }
+          @if (auth.hasFeature("profitability")) {
+            <a class="nav-item" routerLink="/profitability" routerLinkActive="active">
+              <span>08</span> Utilidad
+            </a>
+          }
           <a class="nav-item" routerLink="/account" routerLinkActive="active">
-            <span>08</span> Seguridad
+            <span>09</span> Seguridad
           </a>
         }
       }
