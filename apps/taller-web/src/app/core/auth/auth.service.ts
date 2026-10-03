@@ -38,6 +38,15 @@ export class AuthService {
     );
   }
 
+  hasPermission(permission: string): boolean {
+    const user = this.userState();
+    return (
+      user?.role === "platform_admin" ||
+      user?.role === "company_admin" ||
+      !!user?.permissions.includes(permission)
+    );
+  }
+
   completePasswordChange(): void {
     this.userState.update((user) =>
       user ? { ...user, mustChangePassword: false } : user,

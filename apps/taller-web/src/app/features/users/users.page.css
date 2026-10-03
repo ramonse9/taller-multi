@@ -178,6 +178,10 @@ td small {
   margin-top: 0.22rem;
   font-size: 0.68rem;
 }
+.scope {
+  max-width: 15rem;
+  line-height: 1.35;
+}
 .role {
   display: inline-block;
   background: #edf1ee;
@@ -208,6 +212,13 @@ td small {
 }
 .actions .danger {
   color: var(--danger);
+}
+.out-of-scope {
+  display: block;
+  min-width: 8rem;
+  color: #8b938e;
+  font-size: 0.68rem;
+  text-align: right;
 }
 .loader {
   position: absolute;
@@ -284,7 +295,7 @@ td small {
   backdrop-filter: blur(3px);
 }
 .editor {
-  width: min(100%, 39rem);
+  width: min(100%, 58rem);
   height: 100%;
   overflow-y: auto;
   background: var(--paper);

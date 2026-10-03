@@ -4,9 +4,11 @@
       <p class="breadcrumb">ADMINISTRACIÓN / USUARIOS</p>
       <h1>Usuarios</h1>
     </div>
+    @if (canCreateUsers()) {
     <button class="primary" type="button" (click)="openCreate()">
       <span>＋</span> Nuevo usuario
     </button>
+    }
   </header>
 
   <section class="content">
@@ -93,6 +95,7 @@
                 >{{ user.isActive ? 'Acceso activo' : 'Acceso desactivado'
                 }}</small
               >
+              <small class="scope">{{ managementScope(user) }}</small>
             </td>
             <td><span class="timezone">{{ user.timezoneCode }}</span></td>
             <td>{{ formatShortDate(user.createdAt) }}</td>
@@ -112,6 +115,8 @@
                 </button>
                 }
               </div>
+              } @else {
+              <span class="out-of-scope">Fuera de tu alcance</span>
               }
             </td>
           </tr>
@@ -122,9 +127,11 @@
                 <span>◎</span>
                 <h2>No hay usuarios aquí</h2>
                 <p>Cambia los filtros o registra un nuevo acceso.</p>
+                @if (canCreateUsers()) {
                 <button class="secondary" type="button" (click)="openCreate()">
                   Crear usuario
                 </button>
+                }
               </div>
             </td>
           </tr>
@@ -236,7 +243,11 @@
       </div>
       <div class="field">
         <label for="user-role">Rol <b>*</b></label
-        ><select id="user-role" formControlName="role">
+        ><select
+          id="user-role"
+          formControlName="role"
+          (change)="roleChanged()"
+        >
           <option value="user">Usuario</option>
           @if (canAssignRoles()) {
           <option value="admin">Administrador</option>
@@ -270,10 +281,121 @@
         Usuario activo</label
       >
       }
+
+      <section class="permissions-panel full" aria-labelledby="permissions-title">
+        <div class="permissions-heading">
+          <div>
+            <p class="section-kicker">ACCESO POR SECCIONES</p>
+            <h3 id="permissions-title">Permisos</h3>
+            <p>
+              El rol define a quién puede administrar; los permisos controlan
+              cada sección y acción disponible.
+            </p>
+          </div>
+          @if (form.controls.role.value === 'company_admin') {
+          <span class="permission-state automatic">Acceso automático</span>
+          } @else if (permissionsCustomized()) {
+          <span class="permission-state customized">Personalizado</span>
+          } @else {
+          <span class="permission-state">Plantilla</span>
+          }
+        </div>
+
+        @if (form.controls.role.value === 'company_admin') {
+        <div class="permission-callout">
+          <strong>Administrador principal</strong>
+          <span
+            >Tiene acceso completo y puede administrar Administradores y
+            Usuarios. Sus permisos no se modifican individualmente.</span
+          >
+        </div>
+        } @else if (!canManagePermissions()) {
+        <div class="permission-callout">
+          <strong>Sin autorización para modificar permisos</strong>
+          <span>Otro administrador deberá configurar este acceso.</span>
+        </div>
+        } @else {
+        <div class="permission-tools">
+          <label>
+            <span>Plantilla</span>
+            <select
+              [value]="selectedTemplate() ?? ''"
+              (change)="applyTemplate($any($event.target).value)"
+              [disabled]="permissionsLoading()"
+            >
+              @for (template of permissionTemplates(); track template.code) {
+              <option [value]="template.code">
+                {{ template.name }} — {{ template.description }}
+              </option>
+              }
+            </select>
+          </label>
+          <div class="copy-permissions">
+            <label>
+              <span>Copiar desde otro usuario</span>
+              <select
+                [value]="copySourceId()"
+                (change)="copySourceId.set($any($event.target).value)"
+                [disabled]="permissionsLoading()"
+              >
+                <option value="">Selecciona un usuario</option>
+                @for (user of copyCandidates(); track user.id) {
+                <option [value]="user.id">
+                  {{ user.fullName }} · {{ roleLabel(user.role) }}
+                </option>
+                }
+              </select>
+            </label>
+            <button
+              class="secondary"
+              type="button"
+              (click)="copyPermissions()"
+              [disabled]="!copySourceId() || permissionsLoading()"
+            >
+              Copiar
+            </button>
+          </div>
+        </div>
+
+        @if (permissionsLoading()) {
+        <div class="permissions-status">Cargando permisos…</div>
+        } @else {
+        <div class="permissions-summary">
+          <strong>{{ selectedPermissions().length }}</strong> permisos
+          seleccionados. Puedes ajustar cada acción de manera individual.
+        </div>
+        <div class="permission-matrix">
+          @for (group of permissionGroups(); track group.module) {
+          <fieldset>
+            <legend>{{ group.label }}</legend>
+            @for (permission of group.permissions; track permission.code) {
+            <label class="permission-option">
+              <input
+                type="checkbox"
+                [checked]="hasSelectedPermission(permission.code)"
+                [disabled]="permissionLocked(permission.code)"
+                (change)="togglePermission(permission.code, $any($event.target).checked)"
+              />
+              <span>
+                <strong>{{ permission.name }}</strong>
+                <small>{{ permission.description }}</small>
+              </span>
+            </label>
+            }
+          </fieldset>
+          }
+        </div>
+        }
+        }
+      </section>
       <footer>
         <button class="ghost" type="button" (click)="closeEditor()">
           Cancelar</button
-        ><button class="primary" type="submit" [disabled]="saving()">
+        ><button
+          class="primary"
+          type="submit"
+          [disabled]="saving() || permissionsLoading() || (canManagePermissions() && form.controls.role.value !== 'company_admin' && !permissionSelectionReady())"
+        >
           {{ saving() ? 'Guardando…' : 'Guardar usuario' }}
         </button>
       </footer>
