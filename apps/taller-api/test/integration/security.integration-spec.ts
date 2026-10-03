@@ -290,9 +290,11 @@ interface ProfitabilityReportResponse {
     incompleteOrderCount: number;
     paidCompletedOrderCount: number;
     unpaidCompletedOrderCount: number;
+    receivableOrderCount: number;
     income: string;
     collectedIncome: string;
     outstandingIncome: string;
+    receivableAmount: string;
     directCost: string;
     fifoProductCost: string;
     grossProfit: string;
@@ -2091,6 +2093,20 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     });
     expect(paidOrders.body.items.map(({ id }) => id)).toContain(order.body.id);
 
+    const inProgressReceivable = await request<OrderResponse>('POST', '/orders', {
+      token: tenant.accessToken,
+      body: {
+        customerId: customer.body.id,
+        vehicleId: vehicle.body.id,
+        items: [{ description: 'Trabajo todavía en proceso', quantity: 1, unitPrice: 125 }],
+      },
+    });
+    expect(inProgressReceivable.body).toMatchObject({
+      status: 'in_progress',
+      isPaid: false,
+      total: '125.00',
+    });
+
     const report = await request<ProfitabilityReportResponse>(
       'GET',
       '/profitability?occurredFrom=2026-10-01&occurredTo=2026-10-31',
@@ -2102,9 +2118,11 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       incompleteOrderCount: 0,
       paidCompletedOrderCount: 1,
       unpaidCompletedOrderCount: 0,
+      receivableOrderCount: 1,
       income: '700.00',
       collectedIncome: '700.00',
       outstandingIncome: '0.00',
+      receivableAmount: '125.00',
       directCost: '150.00',
       fifoProductCost: '80.00',
       grossProfit: '550.00',
@@ -2169,8 +2187,10 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(pendingReport.body.totals).toMatchObject({
       paidCompletedOrderCount: 0,
       unpaidCompletedOrderCount: 1,
+      receivableOrderCount: 2,
       collectedIncome: '0.00',
       outstandingIncome: '700.00',
+      receivableAmount: '825.00',
       collectedGrossProfit: '0.00',
       collectedNetResult: '-120.00',
     });

@@ -42,7 +42,7 @@
     </div>
     }
 
-    <div class="grid items-start gap-6 xl:grid-cols-[minmax(0,1.6fr)_23rem]">
+    <div>
       <section class="form-card-tw overflow-hidden">
         <header class="form-card-header flex-wrap justify-between">
           <div class="flex items-center gap-3">
@@ -275,79 +275,6 @@
         </footer>
       </section>
 
-      <aside class="form-card-tw overflow-hidden">
-        <header class="form-card-header justify-between">
-          <div class="flex items-center gap-3">
-            <span class="section-number">02</span>
-            <div>
-              <h2 class="section-title">Unidades</h2>
-              <p class="section-copy">{{ units().length }} registradas</p>
-            </div>
-          </div>
-          <button
-            class="small-action-tw"
-            type="button"
-            (click)="openUnitEditor()"
-          >
-            Agregar
-          </button>
-        </header>
-        <div class="segments-tw m-4" aria-label="Estado de unidades">
-          <button
-            type="button"
-            [class.segment-selected]="unitActive()"
-            (click)="filterUnits(true)"
-          >
-            Activas</button
-          ><button
-            type="button"
-            [class.segment-selected]="!unitActive()"
-            (click)="filterUnits(false)"
-          >
-            Inactivas
-          </button>
-        </div>
-        <div
-          class="relative min-h-48 divide-y divide-[#ece9df] dark:divide-[#35433b]"
-          [class.opacity-50]="loadingUnits()"
-        >
-          @for (unit of units(); track unit.id) {
-          <article class="flex items-center justify-between gap-3 p-4">
-            <div>
-              <strong class="block">{{ unit.name }}</strong
-              ><small class="text-[#68746d] dark:text-[#aab7af]"
-                >{{ unit.symbol }} · SAT {{ unit.satCode || 'Sin clave' }} · {{
-                unit.allowsDecimals ? 'Acepta decimales' : 'Solo enteros'
-                }}</small
-              >
-            </div>
-            <div class="shrink-0 text-right">
-              <button
-                class="block bg-transparent p-0 text-xs text-[#b94718] dark:text-[#ff9a6f]"
-                type="button"
-                (click)="openUnitEditor(unit)"
-              >
-                Editar</button
-              ><button
-                class="mt-2 bg-transparent p-0 text-xs text-[#68746d] dark:text-[#aab7af]"
-                type="button"
-                (click)="changeUnitStatus(unit)"
-              >
-                {{ unit.isActive ? 'Desactivar' : 'Reactivar' }}
-              </button>
-            </div>
-          </article>
-          } @empty { @if (!loadingUnits()) {
-          <p class="p-8 text-center text-sm text-[#68746d] dark:text-[#aab7af]">
-            No hay unidades en este estado.
-          </p>
-          } } @if (loadingUnits()) {
-          <div class="loader-tw" aria-label="Cargando">
-            <span></span><span></span><span></span>
-          </div>
-          }
-        </div>
-      </aside>
     </div>
   </section>
 </main>
@@ -509,69 +436,6 @@
           Cancelar</button
         ><button class="primary" type="submit" [disabled]="saving()">
           {{ saving() ? 'Guardando…' : 'Guardar concepto' }}
-        </button>
-      </footer>
-    </form>
-  </section>
-</div>
-} @if (unitEditorOpen()) {
-<div class="dialog-backdrop" role="presentation" (click)="closeUnitEditor()">
-  <section
-    class="dialog-tw"
-    role="dialog"
-    aria-modal="true"
-    (click)="$event.stopPropagation()"
-  >
-    <p class="eyebrow">
-      {{ editingUnit() ? 'EDITAR UNIDAD' : 'NUEVA UNIDAD' }}
-    </p>
-    <h2>{{ editingUnit() ? 'Actualizar unidad' : 'Registrar unidad' }}</h2>
-    @if (error()) {
-    <div class="dialog-error-tw" role="alert">{{ error() }}</div>
-    }
-    <form
-      class="mt-6 space-y-4"
-      [formGroup]="unitForm"
-      (ngSubmit)="saveUnit()"
-      novalidate
-    >
-      <div>
-        <label class="field-label" for="unit-name">Nombre <b>*</b></label
-        ><input
-          class="field-control"
-          id="unit-name"
-          formControlName="name"
-          placeholder="Caja"
-        />
-      </div>
-      <div>
-        <label class="field-label" for="unit-symbol">Símbolo <b>*</b></label
-        ><input
-          class="field-control"
-          id="unit-symbol"
-          formControlName="symbol"
-          placeholder="cja"
-        />
-      </div>
-      <div>
-        <label class="field-label" for="unit-sat">ClaveUnidad SAT</label
-        ><input
-          class="field-control uppercase"
-          id="unit-sat"
-          formControlName="satCode"
-          maxlength="3"
-          placeholder="XBX"
-        />
-      </div>
-      <label class="flex items-center gap-3"
-        ><input type="checkbox" formControlName="allowsDecimals" /> Permitir
-        cantidades decimales</label
-      >
-      <footer class="dialog-footer">
-        <button class="ghost-tw" type="button" (click)="closeUnitEditor()">
-          Cancelar</button
-        ><button class="primary" type="submit" [disabled]="saving()">
-          {{ saving() ? 'Guardando…' : 'Guardar unidad' }}
         </button>
       </footer>
     </form>

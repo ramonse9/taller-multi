@@ -13,7 +13,7 @@ import {
   ReactiveFormsModule,
   Validators,
 } from "@angular/forms";
-import { debounceTime, distinctUntilChanged, finalize, forkJoin } from "rxjs";
+import { debounceTime, distinctUntilChanged, finalize } from "rxjs";
 import { apiErrorMessage } from "../../core/http/api-error";
 import { ThemeService } from "../../core/theme/theme.service";
 import {
@@ -47,18 +47,13 @@ export class ConceptCatalogPage implements OnInit {
 
   readonly concepts = signal<PaginatedConcepts>(emptyConcepts());
   readonly activeUnits = signal<MeasurementUnit[]>([]);
-  readonly units = signal<MeasurementUnit[]>([]);
   readonly loading = signal(true);
-  readonly loadingUnits = signal(true);
   readonly saving = signal(false);
   readonly error = signal("");
   readonly notice = signal("");
   readonly active = signal(true);
-  readonly unitActive = signal(true);
   readonly conceptEditorOpen = signal(false);
-  readonly unitEditorOpen = signal(false);
   readonly editingConcept = signal<CatalogConcept | null>(null);
-  readonly editingUnit = signal<MeasurementUnit | null>(null);
 
   readonly search = new FormControl("", { nonNullable: true });
   readonly kind = new FormControl<ConceptKind | "">("", {
@@ -105,22 +100,6 @@ export class ConceptCatalogPage implements OnInit {
       validators: [Validators.pattern(/^$|^\d{8}$/)],
     }),
   });
-  readonly unitForm = new FormGroup({
-    name: new FormControl("", {
-      nonNullable: true,
-      validators: [Validators.required, Validators.maxLength(80)],
-    }),
-    symbol: new FormControl("", {
-      nonNullable: true,
-      validators: [Validators.required, Validators.maxLength(20)],
-    }),
-    satCode: new FormControl("", {
-      nonNullable: true,
-      validators: [Validators.pattern(/^$|^[A-Z0-9]{1,3}$/)],
-    }),
-    allowsDecimals: new FormControl(true, { nonNullable: true }),
-  });
-
   ngOnInit(): void {
     this.search.valueChanges
       .pipe(
@@ -167,20 +146,15 @@ export class ConceptCatalogPage implements OnInit {
   }
 
   loadUnits(): void {
-    this.loadingUnits.set(true);
     this.error.set("");
-    forkJoin({
-      active: this.catalog.listUnits(true),
-      displayed: this.catalog.listUnits(this.unitActive()),
-    })
+    this.catalog
+      .listUnits(true)
       .pipe(
-        finalize(() => this.loadingUnits.set(false)),
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
-        next: ({ active, displayed }) => {
+        next: (active) => {
           this.activeUnits.set(active);
-          this.units.set(displayed);
           if (
             this.conceptEditorOpen() &&
             this.conceptForm.controls.kind.value === "service"
@@ -193,12 +167,6 @@ export class ConceptCatalogPage implements OnInit {
             apiErrorMessage(error, "No pudimos cargar las unidades."),
           ),
       });
-  }
-
-  filterUnits(isActive: boolean): void {
-    if (this.unitActive() === isActive) return;
-    this.unitActive.set(isActive);
-    this.loadUnits();
   }
 
   openConceptEditor(concept: CatalogConcept | null = null): void {
@@ -323,79 +291,6 @@ export class ConceptCatalogPage implements OnInit {
         error: (error: unknown) =>
           this.error.set(
             apiErrorMessage(error, "No pudimos actualizar el concepto."),
-          ),
-      });
-  }
-
-  openUnitEditor(unit: MeasurementUnit | null = null): void {
-    this.editingUnit.set(unit);
-    this.unitForm.reset({
-      name: unit?.name ?? "",
-      symbol: unit?.symbol ?? "",
-      satCode: unit?.satCode ?? "",
-      allowsDecimals: unit?.allowsDecimals ?? true,
-    });
-    this.unitEditorOpen.set(true);
-    this.error.set("");
-  }
-
-  closeUnitEditor(): void {
-    if (!this.saving()) this.unitEditorOpen.set(false);
-  }
-
-  saveUnit(): void {
-    if (this.unitForm.invalid || this.saving()) {
-      this.unitForm.markAllAsTouched();
-      return;
-    }
-    const raw = this.unitForm.getRawValue();
-    const input = {
-      name: raw.name.trim(),
-      symbol: raw.symbol.trim(),
-      satCode: raw.satCode.trim().toUpperCase() || null,
-      allowsDecimals: raw.allowsDecimals,
-    };
-    const current = this.editingUnit();
-    this.saving.set(true);
-    const request = current
-      ? this.catalog.updateUnit(current.id, input)
-      : this.catalog.createUnit(input);
-    request
-      .pipe(
-        finalize(() => this.saving.set(false)),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe({
-        next: () => {
-          this.unitEditorOpen.set(false);
-          this.showNotice(
-            current ? "Unidad actualizada." : "Unidad registrada.",
-          );
-          this.loadUnits();
-        },
-        error: (error: unknown) =>
-          this.error.set(
-            apiErrorMessage(error, "No pudimos guardar la unidad."),
-          ),
-      });
-  }
-
-  changeUnitStatus(unit: MeasurementUnit): void {
-    if (unit.isActive && !window.confirm(`¿Desactivar la unidad ${unit.name}?`))
-      return;
-    this.catalog
-      .updateUnit(unit.id, { isActive: !unit.isActive })
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: () => {
-          this.showNotice(
-            unit.isActive ? "Unidad desactivada." : "Unidad reactivada.",
-          );
-          this.loadUnits();
-        },
-        error: (error: unknown) =>
-          this.error.set(
-            apiErrorMessage(error, "No pudimos actualizar la unidad."),
           ),
       });
   }

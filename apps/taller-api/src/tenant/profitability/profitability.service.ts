@@ -18,9 +18,11 @@ interface TotalsRow {
   incomplete_order_count: number;
   paid_completed_order_count: number;
   unpaid_completed_order_count: number;
+  receivable_order_count: number;
   income: string;
   collected_income: string;
   outstanding_income: string;
+  receivable_amount: string;
   direct_cost: string;
   fifo_product_cost: string;
   gross_profit: string;
@@ -127,6 +129,14 @@ export class ProfitabilityService {
            FROM bounds LEFT JOIN ${schema}.orders service_order
              ON service_order.status = 'completed'
             AND service_order.closed_at::date BETWEEN bounds.from_date AND bounds.to_date
+         ), receivables AS (
+           SELECT count(service_order.id)::int AS receivable_order_count,
+             COALESCE(sum(service_order.total), 0) AS receivable_amount
+           FROM bounds LEFT JOIN ${schema}.orders service_order
+             ON service_order.status <> 'cancelled'
+            AND service_order.is_paid = false
+            AND service_order.total IS NOT NULL
+            AND service_order.created_at::date <= bounds.to_date
          ), fifo AS (
            SELECT COALESCE(sum(allocation.quantity * allocation.unit_cost), 0) AS fifo_product_cost
            FROM bounds
@@ -150,9 +160,11 @@ export class ProfitabilityService {
          SELECT bounds.from_date::text AS occurred_from, bounds.to_date::text AS occurred_to,
            order_totals.completed_order_count, order_totals.incomplete_order_count,
            order_totals.paid_completed_order_count, order_totals.unpaid_completed_order_count,
+           receivables.receivable_order_count,
            order_totals.income::numeric(14,2)::text AS income,
            order_totals.collected_income::numeric(14,2)::text AS collected_income,
            order_totals.outstanding_income::numeric(14,2)::text AS outstanding_income,
+           receivables.receivable_amount::numeric(14,2)::text AS receivable_amount,
            order_totals.direct_cost::numeric(14,2)::text AS direct_cost,
            fifo.fifo_product_cost::numeric(14,2)::text AS fifo_product_cost,
            order_totals.gross_profit::numeric(14,2)::text AS gross_profit,
@@ -169,7 +181,8 @@ export class ProfitabilityService {
              round((order_totals.gross_profit - expense_totals.operating_expenses)
                / order_totals.income * 100, 2)::text
            END AS net_margin_percent
-         FROM bounds CROSS JOIN order_totals CROSS JOIN fifo CROSS JOIN expense_totals`,
+         FROM bounds CROSS JOIN order_totals CROSS JOIN receivables CROSS JOIN fifo
+         CROSS JOIN expense_totals`,
         parameters,
       )) as TotalsRow[];
       const byDay = await this.periodRows(runner, schema, bounds, parameters, 'day');
@@ -251,9 +264,11 @@ export class ProfitabilityService {
           incompleteOrderCount: totals.incomplete_order_count,
           paidCompletedOrderCount: totals.paid_completed_order_count,
           unpaidCompletedOrderCount: totals.unpaid_completed_order_count,
+          receivableOrderCount: totals.receivable_order_count,
           income: totals.income,
           collectedIncome: totals.collected_income,
           outstandingIncome: totals.outstanding_income,
+          receivableAmount: totals.receivable_amount,
           directCost: totals.direct_cost,
           fifoProductCost: totals.fifo_product_cost,
           grossProfit: totals.gross_profit,

@@ -18,10 +18,14 @@ export class ProfitabilityTotalsResponseDto {
   @ApiProperty() incompleteOrderCount!: number;
   @ApiProperty() paidCompletedOrderCount!: number;
   @ApiProperty() unpaidCompletedOrderCount!: number;
+  @ApiProperty({ description: 'Órdenes no canceladas pendientes de pago a la fecha de corte' })
+  receivableOrderCount!: number;
   @ApiProperty({ description: 'Ingresos de órdenes terminadas con importe definido' })
   income!: string;
   @ApiProperty() collectedIncome!: string;
   @ApiProperty() outstandingIncome!: string;
+  @ApiProperty({ description: 'Importe de órdenes no canceladas pendientes de pago' })
+  receivableAmount!: string;
   @ApiProperty({ description: 'Costos directos históricos de las órdenes terminadas' })
   directCost!: string;
   @ApiProperty({ description: 'Parte del costo directo proveniente de consumos FIFO' })

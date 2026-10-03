@@ -3,9 +3,11 @@ export interface ProfitabilityTotals {
   incompleteOrderCount: number;
   paidCompletedOrderCount: number;
   unpaidCompletedOrderCount: number;
+  receivableOrderCount: number;
   income: string;
   collectedIncome: string;
   outstandingIncome: string;
+  receivableAmount: string;
   directCost: string;
   fifoProductCost: string;
   grossProfit: string;
