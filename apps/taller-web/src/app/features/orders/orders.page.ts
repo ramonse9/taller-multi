@@ -44,6 +44,7 @@ export class OrdersPage implements OnInit {
   readonly status = new FormControl<OrderStatus | "">("", {
     nonNullable: true,
   });
+  readonly isPaid = new FormControl<boolean | "">("", { nonNullable: true });
   readonly loading = signal(true);
   readonly error = signal("");
   readonly data = signal<PaginatedOrders>({
@@ -66,6 +67,9 @@ export class OrdersPage implements OnInit {
     this.status.valueChanges
       .pipe(distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.load(1));
+    this.isPaid.valueChanges
+      .pipe(distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.load(1));
     this.load();
   }
 
@@ -80,6 +84,7 @@ export class OrdersPage implements OnInit {
         status: this.status.value,
         customerId: this.customerId || undefined,
         vehicleId: this.vehicleId || undefined,
+        isPaid: this.isPaid.value,
       })
       .pipe(
         finalize(() => this.loading.set(false)),

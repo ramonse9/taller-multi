@@ -70,6 +70,7 @@ export interface OrderSummary {
   grossProfit: string | null;
   inventoryAppliedAt: string | null;
   hasUnpricedItems: boolean;
+  isPaid: boolean;
   openedAt: string;
   closedAt: string | null;
   createdByUserId: string;
@@ -119,6 +120,7 @@ export interface OrderListOptions {
   status?: OrderStatus | "";
   customerId?: string;
   vehicleId?: string;
+  isPaid?: boolean | "";
 }
 
 export const ORDER_STATUS_NAMES: Record<OrderStatus, string> = {

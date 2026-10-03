@@ -25,6 +25,7 @@ import { AuthenticatedUser } from '../../common/types/authenticated-user';
 import { RequiresFeature, SubscriptionGuard } from '../../subscriptions/subscription.guard';
 import {
   ChangeOrderStatusDto,
+  ChangeOrderPaymentStatusDto,
   CreateOrderDto,
   CreateOrderNoteDto,
   OrderNoteResponseDto,
@@ -97,6 +98,17 @@ export class OrdersController {
     @Body() input: ChangeOrderStatusDto,
   ): Promise<OrderResponseDto> {
     return this.orders.changeStatus(user, id, input);
+  }
+
+  @Patch(':id/payment-status')
+  @ApiOperation({ summary: 'Marcar una orden como pagada o pendiente' })
+  @ApiOkResponse({ type: OrderResponseDto })
+  changePaymentStatus(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @Body() input: ChangeOrderPaymentStatusDto,
+  ): Promise<OrderResponseDto> {
+    return this.orders.changePaymentStatus(user, id, input);
   }
 
   @Post(':id/notes')

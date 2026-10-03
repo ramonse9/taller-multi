@@ -4,6 +4,7 @@ import {
   ArrayMaxSize,
   ArrayMinSize,
   IsArray,
+  IsBoolean,
   IsEnum,
   IsInt,
   IsNumber,
@@ -22,6 +23,12 @@ const trimString = ({ value }: { value: unknown }): unknown =>
 
 const nullablePrice = ({ value }: { value: unknown }): unknown =>
   value === '' || value === null ? null : value;
+
+const booleanQuery = ({ value }: { value: unknown }): unknown => {
+  if (value === 'true') return true;
+  if (value === 'false') return false;
+  return value;
+};
 
 export enum OrderStatus {
   InProgress = 'in_progress',
@@ -123,6 +130,12 @@ export class ChangeOrderStatusDto {
   status!: OrderStatus;
 }
 
+export class ChangeOrderPaymentStatusDto {
+  @ApiProperty({ description: 'Indica si la orden está completamente pagada' })
+  @IsBoolean()
+  isPaid!: boolean;
+}
+
 export class CreateOrderNoteDto {
   @ApiProperty({ maxLength: 2000 })
   @Transform(trimString)
@@ -165,6 +178,12 @@ export class OrderQueryDto {
   @IsOptional()
   @IsUUID()
   vehicleId?: string;
+
+  @ApiPropertyOptional({ description: 'Filtrar órdenes pagadas o pendientes' })
+  @Transform(booleanQuery)
+  @IsOptional()
+  @IsBoolean()
+  isPaid?: boolean;
 }
 
 export class OrderItemCostLayerResponseDto {
@@ -240,6 +259,7 @@ export class OrderSummaryResponseDto {
   @ApiProperty({ nullable: true, type: String }) grossProfit!: string | null;
   @ApiProperty({ nullable: true, type: Date }) inventoryAppliedAt!: Date | null;
   @ApiProperty() hasUnpricedItems!: boolean;
+  @ApiProperty() isPaid!: boolean;
   @ApiProperty() openedAt!: Date;
   @ApiProperty({ nullable: true, type: Date }) closedAt!: Date | null;
   @ApiProperty({ format: 'uuid' }) createdByUserId!: string;

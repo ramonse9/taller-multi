@@ -16,12 +16,18 @@ interface TotalsRow {
   occurred_to: string;
   completed_order_count: number;
   incomplete_order_count: number;
+  paid_completed_order_count: number;
+  unpaid_completed_order_count: number;
   income: string;
+  collected_income: string;
+  outstanding_income: string;
   direct_cost: string;
   fifo_product_cost: string;
   gross_profit: string;
+  collected_gross_profit: string;
   operating_expenses: string;
   net_profit: string;
+  collected_net_result: string;
   gross_margin_percent: string | null;
   net_margin_percent: string | null;
 }
@@ -30,10 +36,13 @@ interface PeriodRow {
   period: string;
   completed_order_count: number;
   income: string;
+  collected_income: string;
+  outstanding_income: string;
   direct_cost: string;
   gross_profit: string;
   operating_expenses: string;
   net_profit: string;
+  collected_net_result: string;
 }
 
 interface CustomerRow {
@@ -42,6 +51,8 @@ interface CustomerRow {
   customer_type: 'person' | 'company';
   completed_order_count: number;
   income: string;
+  collected_income: string;
+  outstanding_income: string;
   direct_cost: string;
   gross_profit: string;
 }
@@ -64,6 +75,7 @@ interface OrderRow {
   direct_cost: string | null;
   fifo_product_cost: string;
   gross_profit: string | null;
+  is_paid: boolean;
 }
 
 @Injectable()
@@ -85,19 +97,33 @@ export class ProfitabilityService {
         COALESCE($2::date, current_date) AS to_date`;
       const totalsRows = (await runner.query(
         `WITH bounds AS (${bounds}), order_totals AS (
-           SELECT count(*)::int AS completed_order_count,
+           SELECT count(service_order.id)::int AS completed_order_count,
              count(*) FILTER (
-               WHERE service_order.total IS NULL OR service_order.total_cost IS NULL
-                 OR service_order.gross_profit IS NULL
+               WHERE service_order.id IS NOT NULL
+                 AND (service_order.total IS NULL OR service_order.total_cost IS NULL
+                   OR service_order.gross_profit IS NULL)
              )::int AS incomplete_order_count,
+             count(*) FILTER (WHERE service_order.is_paid = true)::int
+               AS paid_completed_order_count,
+             count(*) FILTER (WHERE service_order.is_paid = false)::int
+               AS unpaid_completed_order_count,
              COALESCE(sum(service_order.total) FILTER (WHERE service_order.total IS NOT NULL), 0)
                AS income,
+             COALESCE(sum(service_order.total) FILTER (
+               WHERE service_order.is_paid = true AND service_order.total IS NOT NULL
+             ), 0) AS collected_income,
+             COALESCE(sum(service_order.total) FILTER (
+               WHERE service_order.is_paid = false AND service_order.total IS NOT NULL
+             ), 0) AS outstanding_income,
              COALESCE(sum(service_order.total_cost) FILTER (
                WHERE service_order.total_cost IS NOT NULL
              ), 0) AS direct_cost,
              COALESCE(sum(service_order.gross_profit) FILTER (
                WHERE service_order.gross_profit IS NOT NULL
-             ), 0) AS gross_profit
+             ), 0) AS gross_profit,
+             COALESCE(sum(service_order.gross_profit) FILTER (
+               WHERE service_order.is_paid = true AND service_order.gross_profit IS NOT NULL
+             ), 0) AS collected_gross_profit
            FROM bounds LEFT JOIN ${schema}.orders service_order
              ON service_order.status = 'completed'
             AND service_order.closed_at::date BETWEEN bounds.from_date AND bounds.to_date
@@ -123,13 +149,19 @@ export class ProfitabilityService {
          )
          SELECT bounds.from_date::text AS occurred_from, bounds.to_date::text AS occurred_to,
            order_totals.completed_order_count, order_totals.incomplete_order_count,
+           order_totals.paid_completed_order_count, order_totals.unpaid_completed_order_count,
            order_totals.income::numeric(14,2)::text AS income,
+           order_totals.collected_income::numeric(14,2)::text AS collected_income,
+           order_totals.outstanding_income::numeric(14,2)::text AS outstanding_income,
            order_totals.direct_cost::numeric(14,2)::text AS direct_cost,
            fifo.fifo_product_cost::numeric(14,2)::text AS fifo_product_cost,
            order_totals.gross_profit::numeric(14,2)::text AS gross_profit,
+           order_totals.collected_gross_profit::numeric(14,2)::text AS collected_gross_profit,
            expense_totals.operating_expenses::numeric(14,2)::text AS operating_expenses,
            (order_totals.gross_profit - expense_totals.operating_expenses)::numeric(14,2)::text
              AS net_profit,
+           (order_totals.collected_gross_profit - expense_totals.operating_expenses)
+             ::numeric(14,2)::text AS collected_net_result,
            CASE WHEN order_totals.income = 0 THEN NULL ELSE
              round(order_totals.gross_profit / order_totals.income * 100, 2)::text
            END AS gross_margin_percent,
@@ -147,6 +179,10 @@ export class ProfitabilityService {
          SELECT customer.id AS customer_id, customer.display_name AS customer_name,
            customer.customer_type, count(*)::int AS completed_order_count,
            COALESCE(sum(service_order.total), 0)::numeric(14,2)::text AS income,
+           COALESCE(sum(service_order.total) FILTER (WHERE service_order.is_paid), 0)
+             ::numeric(14,2)::text AS collected_income,
+           COALESCE(sum(service_order.total) FILTER (WHERE NOT service_order.is_paid), 0)
+             ::numeric(14,2)::text AS outstanding_income,
            COALESCE(sum(service_order.total_cost), 0)::numeric(14,2)::text AS direct_cost,
            COALESCE(sum(service_order.gross_profit), 0)::numeric(14,2)::text AS gross_profit
          FROM bounds
@@ -196,7 +232,7 @@ export class ProfitabilityService {
            customer.display_name AS customer_name, service_order.closed_at AS completed_at,
            service_order.total::text AS income, service_order.total_cost::text AS direct_cost,
            COALESCE(fifo.fifo_product_cost, 0)::numeric(14,2)::text AS fifo_product_cost,
-           service_order.gross_profit::text AS gross_profit
+           service_order.gross_profit::text AS gross_profit, service_order.is_paid
          FROM bounds
          JOIN ${schema}.orders service_order
            ON service_order.status = 'completed'
@@ -213,12 +249,18 @@ export class ProfitabilityService {
         totals: {
           completedOrderCount: totals.completed_order_count,
           incompleteOrderCount: totals.incomplete_order_count,
+          paidCompletedOrderCount: totals.paid_completed_order_count,
+          unpaidCompletedOrderCount: totals.unpaid_completed_order_count,
           income: totals.income,
+          collectedIncome: totals.collected_income,
+          outstandingIncome: totals.outstanding_income,
           directCost: totals.direct_cost,
           fifoProductCost: totals.fifo_product_cost,
           grossProfit: totals.gross_profit,
+          collectedGrossProfit: totals.collected_gross_profit,
           operatingExpenses: totals.operating_expenses,
           netProfit: totals.net_profit,
+          collectedNetResult: totals.collected_net_result,
           grossMarginPercent: totals.gross_margin_percent,
           netMarginPercent: totals.net_margin_percent,
           isComplete: totals.incomplete_order_count === 0,
@@ -245,8 +287,14 @@ export class ProfitabilityService {
          SELECT date_trunc('${granularity}', service_order.closed_at)::date AS period,
            count(*)::int AS completed_order_count,
            COALESCE(sum(service_order.total), 0) AS income,
+           COALESCE(sum(service_order.total) FILTER (WHERE service_order.is_paid), 0)
+             AS collected_income,
+           COALESCE(sum(service_order.total) FILTER (WHERE NOT service_order.is_paid), 0)
+             AS outstanding_income,
            COALESCE(sum(service_order.total_cost), 0) AS direct_cost,
-           COALESCE(sum(service_order.gross_profit), 0) AS gross_profit
+           COALESCE(sum(service_order.gross_profit), 0) AS gross_profit,
+           COALESCE(sum(service_order.gross_profit) FILTER (WHERE service_order.is_paid), 0)
+             AS collected_gross_profit
          FROM bounds JOIN ${schema}.orders service_order
            ON service_order.status = 'completed'
           AND service_order.closed_at::date BETWEEN bounds.from_date AND bounds.to_date
@@ -262,12 +310,17 @@ export class ProfitabilityService {
        SELECT to_char(COALESCE(order_period.period, expense_period.period), '${format}') AS period,
          COALESCE(order_period.completed_order_count, 0)::int AS completed_order_count,
          COALESCE(order_period.income, 0)::numeric(14,2)::text AS income,
+         COALESCE(order_period.collected_income, 0)::numeric(14,2)::text AS collected_income,
+         COALESCE(order_period.outstanding_income, 0)::numeric(14,2)::text AS outstanding_income,
          COALESCE(order_period.direct_cost, 0)::numeric(14,2)::text AS direct_cost,
          COALESCE(order_period.gross_profit, 0)::numeric(14,2)::text AS gross_profit,
          COALESCE(expense_period.operating_expenses, 0)::numeric(14,2)::text
            AS operating_expenses,
          (COALESCE(order_period.gross_profit, 0)
-           - COALESCE(expense_period.operating_expenses, 0))::numeric(14,2)::text AS net_profit
+           - COALESCE(expense_period.operating_expenses, 0))::numeric(14,2)::text AS net_profit,
+         (COALESCE(order_period.collected_gross_profit, 0)
+           - COALESCE(expense_period.operating_expenses, 0))::numeric(14,2)::text
+           AS collected_net_result
        FROM order_period FULL JOIN expense_period USING (period)
        ORDER BY COALESCE(order_period.period, expense_period.period)`,
       parameters,
@@ -276,10 +329,13 @@ export class ProfitabilityService {
       period: row.period,
       completedOrderCount: row.completed_order_count,
       income: row.income,
+      collectedIncome: row.collected_income,
+      outstandingIncome: row.outstanding_income,
       directCost: row.direct_cost,
       grossProfit: row.gross_profit,
       operatingExpenses: row.operating_expenses,
       netProfit: row.net_profit,
+      collectedNetResult: row.collected_net_result,
     }));
   }
 
@@ -290,6 +346,8 @@ export class ProfitabilityService {
       customerType: row.customer_type,
       completedOrderCount: row.completed_order_count,
       income: row.income,
+      collectedIncome: row.collected_income,
+      outstandingIncome: row.outstanding_income,
       directCost: row.direct_cost,
       grossProfit: row.gross_profit,
     };
@@ -319,6 +377,7 @@ export class ProfitabilityService {
       fifoProductCost: row.fifo_product_cost,
       grossProfit: row.gross_profit,
       isComplete: row.income !== null && row.direct_cost !== null && row.gross_profit !== null,
+      isPaid: row.is_paid,
     };
   }
 }

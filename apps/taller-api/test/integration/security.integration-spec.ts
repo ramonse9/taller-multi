@@ -267,23 +267,47 @@ interface ProfitabilityReportResponse {
   totals: {
     completedOrderCount: number;
     incompleteOrderCount: number;
+    paidCompletedOrderCount: number;
+    unpaidCompletedOrderCount: number;
     income: string;
+    collectedIncome: string;
+    outstandingIncome: string;
     directCost: string;
     fifoProductCost: string;
     grossProfit: string;
+    collectedGrossProfit: string;
     operatingExpenses: string;
     netProfit: string;
+    collectedNetResult: string;
     grossMarginPercent: string | null;
     netMarginPercent: string | null;
     isComplete: boolean;
   };
-  byDay: Array<{ period: string; income: string; operatingExpenses: string; netProfit: string }>;
-  byMonth: Array<{ period: string; income: string; operatingExpenses: string; netProfit: string }>;
+  byDay: Array<{
+    period: string;
+    income: string;
+    collectedIncome: string;
+    outstandingIncome: string;
+    operatingExpenses: string;
+    netProfit: string;
+    collectedNetResult: string;
+  }>;
+  byMonth: Array<{
+    period: string;
+    income: string;
+    collectedIncome: string;
+    outstandingIncome: string;
+    operatingExpenses: string;
+    netProfit: string;
+    collectedNetResult: string;
+  }>;
   byCustomer: Array<{
     customerId: string;
     customerName: string;
     completedOrderCount: number;
     income: string;
+    collectedIncome: string;
+    outstandingIncome: string;
     directCost: string;
     grossProfit: string;
   }>;
@@ -298,6 +322,7 @@ interface ProfitabilityReportResponse {
   orders: Array<{
     id: string;
     folio: string;
+    isPaid: boolean;
     fifoProductCost: string;
     grossProfit: string | null;
     isComplete: boolean;
@@ -344,6 +369,7 @@ interface OrderResponse {
   id: string;
   folio: string;
   status: string;
+  isPaid: boolean;
   customer: { id: string; type: string; displayName: string };
   vehicle: { id: string; brandName: string; modelName: string };
   subtotal: string | null;
@@ -1479,6 +1505,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       total: '700.00',
       totalCost: '150.00',
       grossProfit: '550.00',
+      isPaid: false,
     });
     await control.query(
       `UPDATE ${quoteIdentifier(tenant.company.schemaName)}.orders
@@ -1503,6 +1530,33 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       body: { status: 'confirmed' },
     });
 
+    const paid = await request<OrderResponse>('PATCH', `/orders/${order.body.id}/payment-status`, {
+      token: tenant.accessToken,
+      body: { isPaid: true },
+    });
+    expect(paid.status).toBe(200);
+    expect(paid.body.isPaid).toBe(true);
+    expect(
+      (
+        await request<unknown>('POST', `/orders/${order.body.id}/status`, {
+          token: tenant.accessToken,
+          body: { status: 'cancelled' },
+        })
+      ).status,
+    ).toBe(400);
+    expect(
+      (
+        await request<unknown>('PATCH', `/orders/${order.body.id}`, {
+          token: tenant.accessToken,
+          body: { notes: 'No debe editar una orden pagada' },
+        })
+      ).status,
+    ).toBe(400);
+    const paidOrders = await request<{ items: OrderResponse[] }>('GET', '/orders?isPaid=true', {
+      token: tenant.accessToken,
+    });
+    expect(paidOrders.body.items.map(({ id }) => id)).toContain(order.body.id);
+
     const report = await request<ProfitabilityReportResponse>(
       'GET',
       '/profitability?occurredFrom=2026-10-01&occurredTo=2026-10-31',
@@ -1512,12 +1566,18 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(report.body.totals).toEqual({
       completedOrderCount: 1,
       incompleteOrderCount: 0,
+      paidCompletedOrderCount: 1,
+      unpaidCompletedOrderCount: 0,
       income: '700.00',
+      collectedIncome: '700.00',
+      outstandingIncome: '0.00',
       directCost: '150.00',
       fifoProductCost: '80.00',
       grossProfit: '550.00',
+      collectedGrossProfit: '550.00',
       operatingExpenses: '120.00',
       netProfit: '430.00',
+      collectedNetResult: '430.00',
       grossMarginPercent: '78.57',
       netMarginPercent: '61.43',
       isComplete: true,
@@ -1526,18 +1586,24 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       expect.objectContaining({
         period: '2026-10-02',
         income: '700.00',
+        collectedIncome: '700.00',
+        outstandingIncome: '0.00',
         operatingExpenses: '120.00',
         netProfit: '430.00',
+        collectedNetResult: '430.00',
       }),
     ]);
     expect(report.body.byMonth[0]).toMatchObject({
       period: '2026-10',
       netProfit: '430.00',
+      collectedNetResult: '430.00',
     });
     expect(report.body.byCustomer[0]).toMatchObject({
       customerId: customer.body.id,
       customerName: 'Cliente Rentable',
       completedOrderCount: 1,
+      collectedIncome: '700.00',
+      outstandingIncome: '0.00',
       grossProfit: '550.00',
     });
     expect(report.body.byServiceType).toEqual(
@@ -1549,9 +1615,30 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     );
     expect(report.body.orders[0]).toMatchObject({
       id: order.body.id,
+      isPaid: true,
       fifoProductCost: '80.00',
       grossProfit: '550.00',
       isComplete: true,
+    });
+
+    const pending = await request<OrderResponse>(
+      'PATCH',
+      `/orders/${order.body.id}/payment-status`,
+      { token: tenant.accessToken, body: { isPaid: false } },
+    );
+    expect(pending.body.isPaid).toBe(false);
+    const pendingReport = await request<ProfitabilityReportResponse>(
+      'GET',
+      '/profitability?occurredFrom=2026-10-01&occurredTo=2026-10-31',
+      { token: tenant.accessToken },
+    );
+    expect(pendingReport.body.totals).toMatchObject({
+      paidCompletedOrderCount: 0,
+      unpaidCompletedOrderCount: 1,
+      collectedIncome: '0.00',
+      outstandingIncome: '700.00',
+      collectedGrossProfit: '0.00',
+      collectedNetResult: '-120.00',
     });
     expect(
       (
@@ -2496,6 +2583,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(created.body).toMatchObject({
       folio: '1',
       status: 'in_progress',
+      isPaid: false,
       hasUnpricedItems: true,
       subtotal: null,
       total: null,
@@ -2521,6 +2609,14 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(created.body.statusHistory).toEqual([
       expect.objectContaining({ previousStatus: null, newStatus: 'in_progress' }),
     ]);
+    expect(
+      (
+        await request<unknown>('PATCH', `/orders/${created.body.id}/payment-status`, {
+          token: tenant.accessToken,
+          body: { isPaid: true },
+        })
+      ).status,
+    ).toBe(400);
 
     const updated = await request<OrderResponse>('PATCH', `/orders/${created.body.id}`, {
       token: tenant.accessToken,

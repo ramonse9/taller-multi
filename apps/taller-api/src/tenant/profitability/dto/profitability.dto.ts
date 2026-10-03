@@ -16,15 +16,22 @@ export class ProfitabilityQueryDto {
 export class ProfitabilityTotalsResponseDto {
   @ApiProperty() completedOrderCount!: number;
   @ApiProperty() incompleteOrderCount!: number;
+  @ApiProperty() paidCompletedOrderCount!: number;
+  @ApiProperty() unpaidCompletedOrderCount!: number;
   @ApiProperty({ description: 'Ingresos de órdenes terminadas con importe definido' })
   income!: string;
+  @ApiProperty() collectedIncome!: string;
+  @ApiProperty() outstandingIncome!: string;
   @ApiProperty({ description: 'Costos directos históricos de las órdenes terminadas' })
   directCost!: string;
   @ApiProperty({ description: 'Parte del costo directo proveniente de consumos FIFO' })
   fifoProductCost!: string;
   @ApiProperty() grossProfit!: string;
+  @ApiProperty() collectedGrossProfit!: string;
   @ApiProperty() operatingExpenses!: string;
   @ApiProperty() netProfit!: string;
+  @ApiProperty({ description: 'Utilidad bruta cobrada menos gastos confirmados' })
+  collectedNetResult!: string;
   @ApiProperty({ nullable: true, type: String }) grossMarginPercent!: string | null;
   @ApiProperty({ nullable: true, type: String }) netMarginPercent!: string | null;
   @ApiProperty() isComplete!: boolean;
@@ -34,10 +41,13 @@ export class ProfitabilityPeriodRowResponseDto {
   @ApiProperty() period!: string;
   @ApiProperty() completedOrderCount!: number;
   @ApiProperty() income!: string;
+  @ApiProperty() collectedIncome!: string;
+  @ApiProperty() outstandingIncome!: string;
   @ApiProperty() directCost!: string;
   @ApiProperty() grossProfit!: string;
   @ApiProperty() operatingExpenses!: string;
   @ApiProperty() netProfit!: string;
+  @ApiProperty() collectedNetResult!: string;
 }
 
 export class ProfitabilityCustomerRowResponseDto {
@@ -46,6 +56,8 @@ export class ProfitabilityCustomerRowResponseDto {
   @ApiProperty({ enum: ['person', 'company'] }) customerType!: 'person' | 'company';
   @ApiProperty() completedOrderCount!: number;
   @ApiProperty() income!: string;
+  @ApiProperty() collectedIncome!: string;
+  @ApiProperty() outstandingIncome!: string;
   @ApiProperty() directCost!: string;
   @ApiProperty() grossProfit!: string;
 }
@@ -71,6 +83,7 @@ export class ProfitabilityOrderRowResponseDto {
   @ApiProperty() fifoProductCost!: string;
   @ApiProperty({ nullable: true, type: String }) grossProfit!: string | null;
   @ApiProperty() isComplete!: boolean;
+  @ApiProperty() isPaid!: boolean;
 }
 
 export class ProfitabilityReportResponseDto {

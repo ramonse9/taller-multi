@@ -55,12 +55,14 @@ export class OrderDetailPage implements OnInit {
     validators: [Validators.required, Validators.maxLength(2000)],
   });
   readonly transitions = computed(() => {
-    const status = this.order()?.status;
-    return status ? TRANSITIONS[status] : [];
+    const order = this.order();
+    return order
+      ? TRANSITIONS[order.status].filter((status) => !(order.isPaid && status === "cancelled"))
+      : [];
   });
   readonly editable = computed(() => {
-    const status = this.order()?.status;
-    return status === "in_progress";
+    const order = this.order();
+    return order?.status === "in_progress" && !order.isPaid;
   });
 
   ngOnInit(): void {
@@ -139,6 +141,27 @@ export class OrderDetailPage implements OnInit {
         },
         error: (error: unknown) =>
           this.error.set(apiErrorMessage(error, "No pudimos agregar la nota.")),
+      });
+  }
+
+  changePaymentStatus(): void {
+    const current = this.order();
+    if (!current || current.status === "cancelled" || this.saving()) return;
+    this.saving.set(true);
+    this.error.set("");
+    this.orders
+      .changePaymentStatus(this.orderId, !current.isPaid)
+      .pipe(
+        finalize(() => this.saving.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (order) => {
+          this.order.set(order);
+          this.showNotice(order.isPaid ? "Orden marcada como pagada." : "Orden marcada como pendiente.");
+        },
+        error: (error: unknown) =>
+          this.error.set(apiErrorMessage(error, "No pudimos cambiar el estado de pago.")),
       });
   }
 

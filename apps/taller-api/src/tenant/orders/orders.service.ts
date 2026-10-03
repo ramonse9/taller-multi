@@ -10,6 +10,7 @@ import { quoteIdentifier } from '../../database/schema-name';
 import { TenantSessionService } from '../tenant-session.service';
 import {
   ChangeOrderStatusDto,
+  ChangeOrderPaymentStatusDto,
   CreateOrderDto,
   CreateOrderNoteDto,
   OrderItemInputDto,
@@ -45,6 +46,7 @@ interface OrderRow {
   gross_profit: string | null;
   inventory_applied_at: Date | null;
   has_unpriced_items: boolean;
+  is_paid: boolean;
   item_count: string;
   opened_at: Date;
   closed_at: Date | null;
@@ -61,6 +63,8 @@ interface LockedOrderRow {
   vehicle_id: string;
   status: OrderStatus;
   inventory_applied_at: Date | null;
+  is_paid: boolean;
+  total: string | null;
 }
 
 interface OrderItemRow {
@@ -161,6 +165,7 @@ export class OrdersService {
         query.customerId ?? null,
         query.vehicleId ?? null,
         filter,
+        query.isPaid ?? null,
       ];
       const where = `($1::text IS NULL OR service_order.status = $1)
         AND ($2::uuid IS NULL OR service_order.customer_id = $2)
@@ -170,7 +175,8 @@ export class OrdersService {
           OR COALESCE(vehicle.license_plate, '') ILIKE $4 ESCAPE '\\'
           OR COALESCE(vehicle.serial_number, '') ILIKE $4 ESCAPE '\\'
           OR brand.name ILIKE $4 ESCAPE '\\'
-          OR model.name ILIKE $4 ESCAPE '\\')`;
+          OR model.name ILIKE $4 ESCAPE '\\')
+        AND ($5::boolean IS NULL OR service_order.is_paid = $5)`;
       const countRows = (await runner.query(
         `SELECT COUNT(*) AS total
          FROM ${schema}.orders service_order
@@ -184,7 +190,7 @@ export class OrdersService {
       const totalItems = Number(countRows[0]?.total ?? 0);
       const rows = (await runner.query(
         `${this.orderSelect(schema)} WHERE ${where}
-         ORDER BY service_order.created_at DESC, service_order.id DESC LIMIT $5 OFFSET $6`,
+         ORDER BY service_order.created_at DESC, service_order.id DESC LIMIT $6 OFFSET $7`,
         [...parameters, query.limit, offset],
       )) as OrderRow[];
       return {
@@ -234,6 +240,9 @@ export class OrdersService {
       const schema = quoteIdentifier(schemaName);
       const order = await this.lockOrder(runner, schema, id);
       this.assertEditable(order.status);
+      if (order.is_paid) {
+        throw new BadRequestException('Marca la orden como pendiente antes de modificarla');
+      }
       if (
         input.customerId === undefined &&
         input.vehicleId === undefined &&
@@ -273,6 +282,9 @@ export class OrdersService {
           `No se puede cambiar una orden de ${order.status} a ${input.status}`,
         );
       }
+      if (input.status === OrderStatus.Cancelled && order.is_paid) {
+        throw new BadRequestException('Marca la orden como pendiente antes de cancelarla');
+      }
       if (input.status === OrderStatus.Completed) {
         await this.applyInventory(runner, schema, order, user.id);
       } else if (order.status === OrderStatus.Completed) {
@@ -291,6 +303,35 @@ export class OrdersService {
            order_id, previous_status, new_status, changed_by_user_id
          ) VALUES ($1, $2, $3, $4)`,
         [id, order.status, input.status, user.id],
+      );
+      return this.getOrder(runner, schema, id);
+    });
+  }
+
+  changePaymentStatus(
+    user: AuthenticatedUser,
+    id: string,
+    input: ChangeOrderPaymentStatusDto,
+  ): Promise<OrderResponseDto> {
+    return this.tenant.run(user, async (runner, schemaName) => {
+      const schema = quoteIdentifier(schemaName);
+      const order = await this.lockOrder(runner, schema, id);
+      if (order.status === OrderStatus.Cancelled && input.isPaid) {
+        throw new BadRequestException('Una orden cancelada no puede marcarse como pagada');
+      }
+      if (order.is_paid === input.isPaid) {
+        throw new BadRequestException(
+          input.isPaid ? 'La orden ya está pagada' : 'La orden ya está pendiente de pago',
+        );
+      }
+      if (input.isPaid && order.total === null) {
+        throw new BadRequestException('Define todos los precios antes de marcar la orden como pagada');
+      }
+      await runner.query(
+        `UPDATE ${schema}.orders
+         SET is_paid = $2, updated_by_user_id = $3, updated_at = now()
+         WHERE id = $1`,
+        [id, input.isPaid, user.id],
       );
       return this.getOrder(runner, schema, id);
     });
@@ -583,7 +624,8 @@ export class OrdersService {
     id: string,
   ): Promise<LockedOrderRow> {
     const rows = (await runner.query(
-      `SELECT id, folio::text AS folio, customer_id, vehicle_id, status, inventory_applied_at
+      `SELECT id, folio::text AS folio, customer_id, vehicle_id, status, inventory_applied_at,
+              is_paid, total::text
        FROM ${schema}.orders WHERE id = $1 FOR UPDATE`,
       [id],
     )) as LockedOrderRow[];
@@ -881,6 +923,7 @@ export class OrdersService {
       vehicle.model_year, vehicle.color, vehicle.serial_number, vehicle.license_plate,
       service_order.status, service_order.subtotal, service_order.total,
       service_order.total_cost, service_order.gross_profit, service_order.inventory_applied_at,
+      service_order.is_paid,
       EXISTS(
         SELECT 1 FROM ${schema}.order_items unpriced
         WHERE unpriced.order_id = service_order.id AND unpriced.unit_price IS NULL
@@ -922,6 +965,7 @@ export class OrdersService {
       grossProfit: row.gross_profit,
       inventoryAppliedAt: row.inventory_applied_at,
       hasUnpricedItems: row.has_unpriced_items,
+      isPaid: row.is_paid,
       openedAt: row.opened_at,
       closedAt: row.closed_at,
       createdByUserId: row.created_by_user_id,

@@ -223,6 +223,15 @@
       </div>
       <aside class="space-y-6">
         <section class="form-card-tw p-5">
+          <p class="eyebrow">PAGO</p>
+          <div class="mt-2 flex items-center justify-between gap-4">
+            <div><h2 class="m-0 font-[var(--display)] text-2xl font-semibold">{{ current.isPaid ? 'Pagada' : 'Pendiente' }}</h2><p class="mb-0 mt-1 text-sm text-[#68746d] dark:text-[#aab7af]">{{ current.isPaid ? 'El servicio se considera cobrado.' : 'El importe permanece por cobrar.' }}</p></div>
+            <span class="px-3 py-1 text-xs font-bold" [class.bg-[#e7f2eb]]="current.isPaid" [class.text-[#245b3b]]="current.isPaid" [class.bg-[#fff1d6]]="!current.isPaid" [class.text-[#805719]]="!current.isPaid">{{ current.isPaid ? 'PAGADA' : 'PENDIENTE' }}</span>
+          </div>
+          <button class="secondary-tw mt-4 w-full" type="button" [disabled]="saving() || current.status === 'cancelled' || (!current.isPaid && current.total === null)" (click)="changePaymentStatus()">{{ current.isPaid ? 'Marcar como pendiente' : 'Marcar como pagada' }}</button>
+          @if (current.isPaid) { <small class="mt-2 block text-[#68746d] dark:text-[#aab7af]">Para editar o cancelar la orden, primero márcala como pendiente.</small> }
+        </section>
+        <section class="form-card-tw p-5">
           <p class="eyebrow">SEGUIMIENTO</p>
           <h2 class="font-[var(--display)] text-2xl font-semibold">
             Cambiar estado

@@ -41,7 +41,7 @@
       >
     </div>
     }
-    <div class="mb-6 grid gap-3 sm:grid-cols-[minmax(0,1fr)_14rem]">
+    <div class="mb-6 grid gap-3 sm:grid-cols-[minmax(0,1fr)_14rem_14rem]">
       <div class="relative">
         <span
           class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#768079]"
@@ -63,6 +63,11 @@
         <option value="in_progress">En proceso</option>
         <option value="completed">Terminada</option>
         <option value="cancelled">Cancelada</option>
+      </select>
+      <select class="field-control" [formControl]="isPaid" aria-label="Filtrar por pago">
+        <option value="">Pagadas y pendientes</option>
+        <option [ngValue]="true">Pagadas</option>
+        <option [ngValue]="false">Pendientes de pago</option>
       </select>
     </div>
 
@@ -105,6 +110,14 @@
               [class.order-status-completed]="order.status === 'completed'"
               [class.order-status-cancelled]="order.status === 'cancelled'"
               >{{ statusName(order.status) }}</span
+            >
+            <span
+              class="shrink-0 px-2 py-1 text-xs font-bold"
+              [class.bg-[#e7f2eb]]="order.isPaid"
+              [class.text-[#245b3b]]="order.isPaid"
+              [class.bg-[#fff1d6]]="!order.isPaid"
+              [class.text-[#805719]]="!order.isPaid"
+              >{{ order.isPaid ? 'Pagada' : 'Pendiente' }}</span
             >
           </div>
 
@@ -180,6 +193,7 @@
               <th class="p-4">Vehículo</th>
               <th class="p-4">Conceptos</th>
               <th class="p-4">Estado</th>
+              <th class="p-4">Pago</th>
               <th class="p-4 text-right">Total</th>
               <th class="p-4"></th>
             </tr>
@@ -222,6 +236,16 @@
                   >{{ statusName(order.status) }}</span
                 >
               </td>
+              <td class="p-4">
+                <span
+                  class="px-2 py-1 text-xs font-bold"
+                  [class.bg-[#e7f2eb]]="order.isPaid"
+                  [class.text-[#245b3b]]="order.isPaid"
+                  [class.bg-[#fff1d6]]="!order.isPaid"
+                  [class.text-[#805719]]="!order.isPaid"
+                  >{{ order.isPaid ? 'Pagada' : 'Pendiente' }}</span
+                >
+              </td>
               <td class="p-4 text-right">
                 <strong>{{ money(order.total) }}</strong>@if
                 (order.hasUnpricedItems) {<span
@@ -241,7 +265,7 @@
             <tr>
               <td
                 class="p-12 text-center text-[#68746d] dark:text-[#aab7af]"
-                colspan="7"
+                colspan="8"
               >
                 No hay órdenes que coincidan con la búsqueda.
               </td>
