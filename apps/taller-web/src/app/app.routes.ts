@@ -163,6 +163,15 @@ export const routes: Routes = [
           ),
       },
       {
+        path: "expenses",
+        canActivate: [roleGuard, featureGuard],
+        data: { roles: ["company_admin", "user"], feature: "expenses" },
+        loadComponent: () =>
+          import("./features/expenses/expenses.page").then(
+            (m) => m.ExpensesPage,
+          ),
+      },
+      {
         path: "vehicle-catalog",
         canActivate: [roleGuard, featureGuard],
         data: { roles: ["platform_admin", "company_admin"] },

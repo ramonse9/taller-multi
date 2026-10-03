@@ -7,6 +7,7 @@ import {
   IsInt,
   IsNumber,
   IsOptional,
+  Matches,
   IsString,
   IsUUID,
   Length,
@@ -129,6 +130,23 @@ export class ExpenseQueryDto {
   @IsOptional()
   @IsUUID('4')
   supplierId?: string;
+
+  @ApiPropertyOptional({ format: 'date' })
+  @IsOptional()
+  @IsDateString({ strict: true })
+  occurredFrom?: string;
+
+  @ApiPropertyOptional({ format: 'date' })
+  @IsOptional()
+  @IsDateString({ strict: true })
+  occurredTo?: string;
+}
+
+export class ExpenseMonthlySummaryQueryDto {
+  @ApiPropertyOptional({ example: '2026-10', description: 'Mes a comparar; por defecto, el actual' })
+  @IsOptional()
+  @Matches(/^\d{4}-(0[1-9]|1[0-2])$/)
+  month?: string;
 }
 
 export class ExpenseCategoryResponseDto {
@@ -189,4 +207,31 @@ export class PaginatedExpensesResponseDto {
   @ApiProperty() hasNextPage!: boolean;
   @ApiProperty({ type: ExpenseSummaryResponseDto, isArray: true })
   items!: ExpenseSummaryResponseDto[];
+}
+
+export class ExpenseCategoryAmountResponseDto {
+  @ApiProperty({ type: ExpenseCategoryResponseDto }) category!: ExpenseCategoryResponseDto;
+  @ApiProperty() count!: number;
+  @ApiProperty({ description: 'Importe monetario entregado como texto' }) amount!: string;
+}
+
+export class ExpenseMonthlySummaryResponseDto {
+  @ApiProperty({ example: '2026-10' }) month!: string;
+  @ApiProperty({ example: '2026-09' }) previousMonth!: string;
+  @ApiProperty() confirmedCount!: number;
+  @ApiProperty({ description: 'Total confirmado del mes' }) confirmedAmount!: string;
+  @ApiProperty() previousConfirmedCount!: number;
+  @ApiProperty({ description: 'Total confirmado del mes anterior' })
+  previousConfirmedAmount!: string;
+  @ApiProperty({ description: 'Diferencia contra el mes anterior' }) changeAmount!: string;
+  @ApiProperty({ nullable: true, type: String, description: 'Null cuando el mes anterior fue cero' })
+  changePercent!: string | null;
+  @ApiProperty({ enum: ['increase', 'decrease', 'same'] })
+  direction!: 'increase' | 'decrease' | 'same';
+  @ApiProperty() draftCount!: number;
+  @ApiProperty({ description: 'Total de borradores del mes seleccionado' }) draftAmount!: string;
+  @ApiProperty({ type: ExpenseCategoryAmountResponseDto, isArray: true })
+  byCategory!: ExpenseCategoryAmountResponseDto[];
+  @ApiProperty({ type: ExpenseSummaryResponseDto, isArray: true })
+  recentExpenses!: ExpenseSummaryResponseDto[];
 }

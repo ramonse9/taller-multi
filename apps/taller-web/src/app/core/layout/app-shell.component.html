@@ -72,18 +72,23 @@
               <span>06</span> Proveedores
             </a>
           }
+          @if (auth.hasFeature("expenses")) {
+            <a class="nav-item" routerLink="/expenses" routerLinkActive="active">
+              <span>07</span> Gastos
+            </a>
+          }
           <a
             class="nav-item"
             routerLink="/vehicle-catalog"
             routerLinkActive="active"
           >
-            <span>07</span> Marcas y modelos
+            <span>08</span> Marcas y modelos
           </a>
           <a class="nav-item" routerLink="/users" routerLinkActive="active">
-            <span>08</span> Usuarios
+            <span>09</span> Usuarios
           </a>
           <a class="nav-item" routerLink="/account" routerLinkActive="active">
-            <span>09</span> Seguridad
+            <span>10</span> Seguridad
           </a>
         }
         @case ("user") {
@@ -133,8 +138,13 @@
               <span>06</span> Proveedores
             </a>
           }
+          @if (auth.hasFeature("expenses")) {
+            <a class="nav-item" routerLink="/expenses" routerLinkActive="active">
+              <span>07</span> Gastos
+            </a>
+          }
           <a class="nav-item" routerLink="/account" routerLinkActive="active">
-            <span>07</span> Seguridad
+            <span>08</span> Seguridad
           </a>
         }
       }

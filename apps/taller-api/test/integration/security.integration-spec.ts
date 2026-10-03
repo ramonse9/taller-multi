@@ -245,6 +245,22 @@ interface ExpenseResponse {
   }>;
 }
 
+interface ExpenseMonthlySummaryResponse {
+  month: string;
+  previousMonth: string;
+  confirmedCount: number;
+  confirmedAmount: string;
+  previousConfirmedCount: number;
+  previousConfirmedAmount: string;
+  changeAmount: string;
+  changePercent: string | null;
+  direction: 'increase' | 'decrease' | 'same';
+  draftCount: number;
+  draftAmount: string;
+  byCategory: Array<{ category: ExpenseCategoryResponse; count: number; amount: string }>;
+  recentExpenses: ExpenseResponse[];
+}
+
 interface InventoryLotResponse {
   id: string;
   productId: string;
@@ -1242,6 +1258,81 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       'draft',
       'cancelled',
     ]);
+
+    const utilities = categories.body.find(({ code }) => code === 'utilities')!;
+    const previousMonthExpense = await request<ExpenseResponse>('POST', '/expenses', {
+      token: tenant.accessToken,
+      body: {
+        categoryId: utilities.id,
+        occurredOn: '2026-09-20',
+        description: 'Electricidad septiembre',
+        amount: 1000,
+      },
+    });
+    await request<ExpenseResponse>('POST', `/expenses/${previousMonthExpense.body.id}/status`, {
+      token: tenant.accessToken,
+      body: { status: 'confirmed' },
+    });
+    const currentMonthExpense = await request<ExpenseResponse>('POST', '/expenses', {
+      token: tenant.accessToken,
+      body: {
+        categoryId: utilities.id,
+        occurredOn: '2026-10-02',
+        description: 'Electricidad octubre',
+        amount: 1500,
+      },
+    });
+    await request<ExpenseResponse>('POST', `/expenses/${currentMonthExpense.body.id}/status`, {
+      token: tenant.accessToken,
+      body: { status: 'confirmed' },
+    });
+
+    const monthly = await request<ExpenseMonthlySummaryResponse>(
+      'GET',
+      '/expenses/summary?month=2026-10',
+      { token: tenant.accessToken },
+    );
+    expect(monthly.status).toBe(200);
+    expect(monthly.body).toMatchObject({
+      month: '2026-10',
+      previousMonth: '2026-09',
+      confirmedCount: 1,
+      confirmedAmount: '1500.00',
+      previousConfirmedCount: 1,
+      previousConfirmedAmount: '1000.00',
+      changeAmount: '500.00',
+      changePercent: '50.00',
+      direction: 'increase',
+      draftCount: 0,
+      draftAmount: '0.00',
+    });
+    expect(monthly.body.byCategory).toEqual([
+      expect.objectContaining({
+        category: expect.objectContaining({ code: 'utilities' }),
+        count: 1,
+        amount: '1500.00',
+      }),
+    ]);
+    expect(monthly.body.recentExpenses.map(({ id }) => id)).toEqual(
+      expect.arrayContaining([previousMonthExpense.body.id, currentMonthExpense.body.id]),
+    );
+
+    const octoberFiltered = await request<{ totalItems: number; items: ExpenseResponse[] }>(
+      'GET',
+      `/expenses?occurredFrom=2026-10-01&occurredTo=2026-10-31&categoryId=${utilities.id}&status=confirmed`,
+      { token: tenant.accessToken },
+    );
+    expect(octoberFiltered.body.totalItems).toBe(1);
+    expect(octoberFiltered.body.items[0]?.id).toBe(currentMonthExpense.body.id);
+    expect(
+      (
+        await request<unknown>(
+          'GET',
+          '/expenses?occurredFrom=2026-10-31&occurredTo=2026-10-01',
+          { token: tenant.accessToken },
+        )
+      ).status,
+    ).toBe(400);
 
     const versions = await control.query<Array<{ version: number }>>(
       'SELECT version FROM public.tenant_schema_versions WHERE company_id = $1 AND version = 16',

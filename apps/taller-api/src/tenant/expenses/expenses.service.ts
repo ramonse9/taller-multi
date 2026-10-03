@@ -12,6 +12,9 @@ import {
   ChangeExpenseStatusDto,
   CreateExpenseDto,
   ExpenseCategoryResponseDto,
+  ExpenseCategoryAmountResponseDto,
+  ExpenseMonthlySummaryQueryDto,
+  ExpenseMonthlySummaryResponseDto,
   ExpenseQueryDto,
   ExpenseRecurrenceType,
   ExpenseResponseDto,
@@ -85,6 +88,9 @@ export class ExpensesService {
   }
 
   list(user: AuthenticatedUser, query: ExpenseQueryDto): Promise<PaginatedExpensesResponseDto> {
+    if (query.occurredFrom && query.occurredTo && query.occurredFrom > query.occurredTo) {
+      throw new BadRequestException('La fecha inicial no puede ser posterior a la fecha final');
+    }
     return this.tenant.run(user, async (runner, schemaName) => {
       const schema = quoteIdentifier(schemaName);
       const search = `%${this.escapeLike(query.search)}%`;
@@ -94,6 +100,8 @@ export class ExpensesService {
         query.categoryId ?? null,
         query.supplierId ?? null,
         search,
+        query.occurredFrom ?? null,
+        query.occurredTo ?? null,
       ];
       const where = `($1::varchar IS NULL OR expense.status = $1)
         AND ($2::varchar IS NULL OR expense.recurrence_type = $2)
@@ -102,7 +110,9 @@ export class ExpensesService {
         AND ($5 = '%%' OR expense.description ILIKE $5 ESCAPE '\\'
           OR COALESCE(expense.reference, '') ILIKE $5 ESCAPE '\\'
           OR category.name ILIKE $5 ESCAPE '\\'
-          OR supplier.name ILIKE $5 ESCAPE '\\')`;
+          OR supplier.name ILIKE $5 ESCAPE '\\')
+        AND ($6::date IS NULL OR expense.occurred_on >= $6)
+        AND ($7::date IS NULL OR expense.occurred_on <= $7)`;
       const countRows = (await runner.query(
         `SELECT count(*)::int AS total
          FROM ${schema}.expenses expense
@@ -116,7 +126,7 @@ export class ExpensesService {
       const rows = (await runner.query(
         `${this.expenseSelect(schema)} WHERE ${where}
          ORDER BY expense.occurred_on DESC, expense.created_at DESC, expense.id DESC
-         LIMIT $6 OFFSET $7`,
+         LIMIT $8 OFFSET $9`,
         [...parameters, query.limit, offset],
       )) as ExpenseRow[];
       return {
@@ -126,6 +136,141 @@ export class ExpensesService {
         totalPages: totalItems === 0 ? 0 : Math.ceil(totalItems / query.limit),
         hasNextPage: offset + rows.length < totalItems,
         items: rows.map((row) => this.toSummary(row)),
+      };
+    });
+  }
+
+  monthlySummary(
+    user: AuthenticatedUser,
+    query: ExpenseMonthlySummaryQueryDto,
+  ): Promise<ExpenseMonthlySummaryResponseDto> {
+    return this.tenant.run(user, async (runner, schemaName) => {
+      const schema = quoteIdentifier(schemaName);
+      const summaryRows = (await runner.query(
+        `WITH period AS (
+           SELECT COALESCE(
+             to_date($1, 'YYYY-MM'), date_trunc('month', current_date)::date
+           ) AS starts_on
+         ), totals AS (
+           SELECT period.starts_on,
+             count(*) FILTER (
+               WHERE expense.status = 'confirmed'
+                 AND expense.occurred_on >= period.starts_on
+                 AND expense.occurred_on < period.starts_on + interval '1 month'
+             )::int AS confirmed_count,
+             COALESCE(sum(expense.amount) FILTER (
+               WHERE expense.status = 'confirmed'
+                 AND expense.occurred_on >= period.starts_on
+                 AND expense.occurred_on < period.starts_on + interval '1 month'
+             ), 0) AS confirmed_amount,
+             count(*) FILTER (
+               WHERE expense.status = 'confirmed'
+                 AND expense.occurred_on >= period.starts_on - interval '1 month'
+                 AND expense.occurred_on < period.starts_on
+             )::int AS previous_confirmed_count,
+             COALESCE(sum(expense.amount) FILTER (
+               WHERE expense.status = 'confirmed'
+                 AND expense.occurred_on >= period.starts_on - interval '1 month'
+                 AND expense.occurred_on < period.starts_on
+             ), 0) AS previous_confirmed_amount,
+             count(*) FILTER (
+               WHERE expense.status = 'draft'
+                 AND expense.occurred_on >= period.starts_on
+                 AND expense.occurred_on < period.starts_on + interval '1 month'
+             )::int AS draft_count,
+             COALESCE(sum(expense.amount) FILTER (
+               WHERE expense.status = 'draft'
+                 AND expense.occurred_on >= period.starts_on
+                 AND expense.occurred_on < period.starts_on + interval '1 month'
+             ), 0) AS draft_amount
+           FROM period LEFT JOIN ${schema}.expenses expense ON true
+           GROUP BY period.starts_on
+         )
+         SELECT to_char(starts_on, 'YYYY-MM') AS month,
+           to_char(starts_on - interval '1 month', 'YYYY-MM') AS previous_month,
+           confirmed_count, confirmed_amount::numeric(14,2)::text,
+           previous_confirmed_count, previous_confirmed_amount::numeric(14,2)::text,
+           (confirmed_amount - previous_confirmed_amount)::numeric(14,2)::text AS change_amount,
+           CASE WHEN previous_confirmed_amount = 0 THEN NULL
+             ELSE round(
+               ((confirmed_amount - previous_confirmed_amount) / previous_confirmed_amount) * 100,
+               2
+             )::text END AS change_percent,
+           CASE WHEN confirmed_amount > previous_confirmed_amount THEN 'increase'
+             WHEN confirmed_amount < previous_confirmed_amount THEN 'decrease'
+             ELSE 'same' END AS direction,
+           draft_count, draft_amount::numeric(14,2)::text
+         FROM totals`,
+        [query.month ?? null],
+      )) as Array<{
+        month: string;
+        previous_month: string;
+        confirmed_count: number;
+        confirmed_amount: string;
+        previous_confirmed_count: number;
+        previous_confirmed_amount: string;
+        change_amount: string;
+        change_percent: string | null;
+        direction: 'increase' | 'decrease' | 'same';
+        draft_count: number;
+        draft_amount: string;
+      }>;
+      const categoryRows = (await runner.query(
+        `WITH period AS (
+           SELECT COALESCE(
+             to_date($1, 'YYYY-MM'), date_trunc('month', current_date)::date
+           ) AS starts_on
+         )
+         SELECT category.id, category.code, category.name, category.is_active,
+           category.is_system, count(*)::int AS count, sum(expense.amount)::text AS amount
+         FROM period
+         JOIN ${schema}.expenses expense
+           ON expense.occurred_on >= period.starts_on
+          AND expense.occurred_on < period.starts_on + interval '1 month'
+          AND expense.status = 'confirmed'
+         JOIN ${schema}.expense_categories category ON category.id = expense.category_id
+         GROUP BY category.id, category.code, category.name, category.is_active, category.is_system
+         ORDER BY sum(expense.amount) DESC, category.name`,
+        [query.month ?? null],
+      )) as Array<{
+        id: string;
+        code: string;
+        name: string;
+        is_active: boolean;
+        is_system: boolean;
+        count: number;
+        amount: string;
+      }>;
+      const recentRows = (await runner.query(
+        `${this.expenseSelect(schema)}
+         ORDER BY expense.occurred_on DESC, expense.created_at DESC, expense.id DESC LIMIT 5`,
+      )) as ExpenseRow[];
+      const summary = summaryRows[0]!;
+      const byCategory: ExpenseCategoryAmountResponseDto[] = categoryRows.map((row) => ({
+        category: {
+          id: row.id,
+          code: row.code,
+          name: row.name,
+          isActive: row.is_active,
+          isSystem: row.is_system,
+        },
+        count: row.count,
+        amount: row.amount,
+      }));
+      return {
+        month: summary.month,
+        previousMonth: summary.previous_month,
+        confirmedCount: summary.confirmed_count,
+        confirmedAmount: summary.confirmed_amount,
+        previousConfirmedCount: summary.previous_confirmed_count,
+        previousConfirmedAmount: summary.previous_confirmed_amount,
+        changeAmount: summary.change_amount,
+        changePercent: summary.change_percent,
+        direction: summary.direction,
+        draftCount: summary.draft_count,
+        draftAmount: summary.draft_amount,
+        byCategory,
+        recentExpenses: recentRows.map((row) => this.toSummary(row)),
       };
     });
   }

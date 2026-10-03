@@ -26,6 +26,8 @@ import {
   ChangeExpenseStatusDto,
   CreateExpenseDto,
   ExpenseCategoryResponseDto,
+  ExpenseMonthlySummaryQueryDto,
+  ExpenseMonthlySummaryResponseDto,
   ExpenseQueryDto,
   ExpenseResponseDto,
   PaginatedExpensesResponseDto,
@@ -46,6 +48,16 @@ export class ExpensesController {
   @ApiOkResponse({ type: ExpenseCategoryResponseDto, isArray: true })
   categories(@CurrentUser() user: AuthenticatedUser): Promise<ExpenseCategoryResponseDto[]> {
     return this.expenses.categories(user);
+  }
+
+  @Get('summary')
+  @ApiOperation({ summary: 'Consultar resumen mensual y comparación contra el mes anterior' })
+  @ApiOkResponse({ type: ExpenseMonthlySummaryResponseDto })
+  summary(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: ExpenseMonthlySummaryQueryDto,
+  ): Promise<ExpenseMonthlySummaryResponseDto> {
+    return this.expenses.monthlySummary(user, query);
   }
 
   @Get()
