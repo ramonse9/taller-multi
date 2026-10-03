@@ -15,6 +15,8 @@ import { SuppliersController } from './suppliers/suppliers.controller';
 import { SuppliersService } from './suppliers/suppliers.service';
 import { PurchasesController } from './purchases/purchases.controller';
 import { PurchasesService } from './purchases/purchases.service';
+import { ExpensesController } from './expenses/expenses.controller';
+import { ExpensesService } from './expenses/expenses.service';
 
 @Global()
 @Module({
@@ -28,6 +30,7 @@ import { PurchasesService } from './purchases/purchases.service';
     InventoryController,
     SuppliersController,
     PurchasesController,
+    ExpensesController,
   ],
   providers: [
     TenantSessionService,
@@ -38,6 +41,7 @@ import { PurchasesService } from './purchases/purchases.service';
     InventoryService,
     SuppliersService,
     PurchasesService,
+    ExpensesService,
   ],
   exports: [TenantSessionService],
 })

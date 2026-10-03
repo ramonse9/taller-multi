@@ -28,6 +28,7 @@ import { SupplierCatalog1700000017000 } from '../../src/database/migrations/publ
 import { PurchaseModel1700000018000 } from '../../src/database/migrations/public/1700000018000-purchase-model';
 import { PurchaseInventoryTraceability1700000019000 } from '../../src/database/migrations/public/1700000019000-purchase-inventory-traceability';
 import { PurchaseStatusHistory1700000020000 } from '../../src/database/migrations/public/1700000020000-purchase-status-history';
+import { ExpenseModel1700000021000 } from '../../src/database/migrations/public/1700000021000-expense-model';
 import { quoteIdentifier } from '../../src/database/schema-name';
 import { seedPublicCatalogs } from '../../src/database/seeds/public-catalogs.seed';
 
@@ -215,6 +216,35 @@ interface PurchaseResponse {
   }>;
 }
 
+interface ExpenseCategoryResponse {
+  id: string;
+  code: string;
+  name: string;
+  isActive: boolean;
+  isSystem: boolean;
+}
+
+interface ExpenseResponse {
+  id: string;
+  category: ExpenseCategoryResponse;
+  supplier: { id: string; commercialName: string; isDefault: boolean };
+  status: 'draft' | 'confirmed' | 'cancelled';
+  recurrenceType: 'one_time' | 'recurring';
+  occurredOn: string;
+  description: string;
+  reference: string | null;
+  amount: string;
+  notes: string | null;
+  receiptFileKey: string | null;
+  confirmedAt: string | null;
+  cancelledAt: string | null;
+  statusHistory: Array<{
+    previousStatus: 'draft' | 'confirmed' | 'cancelled' | null;
+    newStatus: 'draft' | 'confirmed' | 'cancelled';
+    changedByUserId: string;
+  }>;
+}
+
 interface InventoryLotResponse {
   id: string;
   productId: string;
@@ -333,6 +363,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         PurchaseModel1700000018000,
         PurchaseInventoryTraceability1700000019000,
         PurchaseStatusHistory1700000020000,
+        ExpenseModel1700000021000,
       ],
       migrationsTableName: 'public_schema_migrations',
       synchronize: false,
@@ -1043,6 +1074,180 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       commercialName: 'Proveedor general',
       isDefault: true,
     });
+  });
+
+  it('administra gastos, categorías, recurrencia, proveedor general e historial', async () => {
+    const tenant = await provisionAndLogin('Expense Integration', 'expense.admin@test.local');
+    expect(
+      (
+        await request<unknown>('GET', '/expenses/categories', {
+          token: tenant.accessToken,
+        })
+      ).status,
+    ).toBe(403);
+    await request<unknown>('PATCH', `/subscriptions/companies/${tenant.company.id}`, {
+      token: platformToken,
+      body: { planCode: 'control', status: 'active', reason: 'Gastos de integración' },
+    });
+
+    const categories = await request<ExpenseCategoryResponse[]>('GET', '/expenses/categories', {
+      token: tenant.accessToken,
+    });
+    expect(categories.status).toBe(200);
+    expect(categories.body).toHaveLength(6);
+    expect(categories.body.map(({ code }) => code).sort()).toEqual([
+      'other',
+      'payroll',
+      'rent',
+      'tools',
+      'transportation',
+      'utilities',
+    ]);
+    expect(categories.body.every(({ isActive, isSystem }) => isActive && isSystem)).toBe(true);
+    const rent = categories.body.find(({ code }) => code === 'rent')!;
+
+    const invalidAmount = await request<unknown>('POST', '/expenses', {
+      token: tenant.accessToken,
+      body: {
+        categoryId: rent.id,
+        occurredOn: '2026-10-01',
+        description: 'Importe inválido',
+        amount: 100.555,
+      },
+    });
+    expect(invalidAmount.status).toBe(400);
+
+    const created = await request<ExpenseResponse>('POST', '/expenses', {
+      token: tenant.accessToken,
+      body: {
+        categoryId: rent.id,
+        occurredOn: '2026-10-01',
+        description: 'Renta del taller',
+        reference: 'REN-OCT-2026',
+        amount: 12500.5,
+        notes: 'Pago mensual',
+        recurrenceType: 'recurring',
+      },
+    });
+    expect(created.status).toBe(201);
+    expect(created.body).toMatchObject({
+      category: { code: 'rent', name: 'Renta' },
+      supplier: { commercialName: 'Proveedor general', isDefault: true },
+      status: 'draft',
+      recurrenceType: 'recurring',
+      occurredOn: '2026-10-01',
+      description: 'Renta del taller',
+      reference: 'REN-OCT-2026',
+      amount: '12500.50',
+      notes: 'Pago mensual',
+      receiptFileKey: null,
+      statusHistory: [
+        { previousStatus: null, newStatus: 'draft', changedByUserId: tenant.user.id },
+      ],
+    });
+
+    const edited = await request<ExpenseResponse>('PATCH', `/expenses/${created.body.id}`, {
+      token: tenant.accessToken,
+      body: { amount: 12750, reference: null, notes: 'Renta actualizada' },
+    });
+    expect(edited.body).toMatchObject({
+      amount: '12750.00',
+      reference: null,
+      notes: 'Renta actualizada',
+    });
+
+    const confirmed = await request<ExpenseResponse>(
+      'POST',
+      `/expenses/${created.body.id}/status`,
+      { token: tenant.accessToken, body: { status: 'confirmed' } },
+    );
+    expect(confirmed.body.status).toBe('confirmed');
+    expect(confirmed.body.confirmedAt).not.toBeNull();
+    expect(confirmed.body.statusHistory.map(({ newStatus }) => newStatus)).toEqual([
+      'draft',
+      'confirmed',
+    ]);
+    expect(
+      (
+        await request<unknown>('PATCH', `/expenses/${created.body.id}`, {
+          token: tenant.accessToken,
+          body: { amount: 1 },
+        })
+      ).status,
+    ).toBe(400);
+    expect(
+      (
+        await request<unknown>('POST', `/expenses/${created.body.id}/status`, {
+          token: tenant.accessToken,
+          body: { status: 'confirmed' },
+        })
+      ).status,
+    ).toBe(400);
+
+    const cancelled = await request<ExpenseResponse>(
+      'POST',
+      `/expenses/${created.body.id}/status`,
+      { token: tenant.accessToken, body: { status: 'cancelled' } },
+    );
+    expect(cancelled.body.status).toBe('cancelled');
+    expect(cancelled.body.cancelledAt).not.toBeNull();
+    expect(cancelled.body.statusHistory.map(({ newStatus }) => newStatus)).toEqual([
+      'draft',
+      'confirmed',
+      'cancelled',
+    ]);
+
+    const unfiltered = await request<{ totalItems: number; items: ExpenseResponse[] }>(
+      'GET',
+      '/expenses',
+      { token: tenant.accessToken },
+    );
+    expect(unfiltered.body.totalItems).toBe(1);
+    for (const query of [
+      'search=renta',
+      'status=cancelled',
+      'recurrenceType=recurring',
+      `categoryId=${rent.id}`,
+    ]) {
+      const filtered = await request<{ totalItems: number }>('GET', `/expenses?${query}`, {
+        token: tenant.accessToken,
+      });
+      expect({ query, totalItems: filtered.body.totalItems }).toEqual({ query, totalItems: 1 });
+    }
+    const listed = await request<{ totalItems: number; items: ExpenseResponse[] }>(
+      'GET',
+      `/expenses?search=renta&status=cancelled&recurrenceType=recurring&categoryId=${rent.id}`,
+      { token: tenant.accessToken },
+    );
+    expect(listed.status).toBe(200);
+    expect(listed.body.totalItems).toBe(1);
+    expect(listed.body.items[0]?.id).toBe(created.body.id);
+
+    const draft = await request<ExpenseResponse>('POST', '/expenses', {
+      token: tenant.accessToken,
+      body: {
+        categoryId: categories.body.find(({ code }) => code === 'other')!.id,
+        occurredOn: '2026-10-02',
+        description: 'Gasto único',
+        amount: 250,
+      },
+    });
+    expect(draft.body.recurrenceType).toBe('one_time');
+    const draftCancelled = await request<ExpenseResponse>(
+      'POST',
+      `/expenses/${draft.body.id}/status`,
+      { token: tenant.accessToken, body: { status: 'cancelled' } },
+    );
+    expect(draftCancelled.body.statusHistory.map(({ newStatus }) => newStatus)).toEqual([
+      'draft',
+      'cancelled',
+    ]);
+
+    const versions = await control.query<Array<{ version: number }>>(
+      'SELECT version FROM public.tenant_schema_versions WHERE company_id = $1 AND version = 16',
+      [tenant.company.id],
+    );
+    expect(versions).toEqual([{ version: 16 }]);
   });
 
   it('administra compras con folio, totales, proveedor general y entradas de inventario', async () => {

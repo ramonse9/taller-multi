@@ -8,8 +8,8 @@ export interface TenantMigration {
   up(queryRunner: QueryRunner, schemaName: string): Promise<void>;
 }
 
-export const TENANT_BASE_VERSION = 15;
-export const TENANT_BASE_NAME = 'tenant-base-v15';
+export const TENANT_BASE_VERSION = 16;
+export const TENANT_BASE_NAME = 'tenant-base-v16';
 
 /**
  * Dynamic tenant migrations deliberately use qualified identifiers everywhere.
@@ -264,17 +264,40 @@ export class TenantMigrator {
         total numeric(14,2) NOT NULL CHECK (total >= 0)
       )`,
       `CREATE TABLE ${s}.expense_categories (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid(), name varchar(120) NOT NULL UNIQUE,
-        is_active boolean NOT NULL DEFAULT true, created_at timestamptz NOT NULL DEFAULT now()
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(), code varchar(30) NOT NULL UNIQUE,
+        name varchar(120) NOT NULL, is_active boolean NOT NULL DEFAULT true,
+        is_system boolean NOT NULL DEFAULT true, created_at timestamptz NOT NULL DEFAULT now()
       )`,
+      `CREATE UNIQUE INDEX expense_categories_name_unique ON ${s}.expense_categories(lower(name))`,
+      `INSERT INTO ${s}.expense_categories(code, name) VALUES
+        ('rent', 'Renta'), ('payroll', 'Nómina'), ('utilities', 'Servicios'),
+        ('tools', 'Herramientas'), ('transportation', 'Transporte'), ('other', 'Otros')`,
       `CREATE TABLE ${s}.expenses (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(), category_id uuid NOT NULL REFERENCES ${s}.expense_categories(id),
         description varchar(250) NOT NULL, amount numeric(14,2) NOT NULL CHECK (amount > 0),
-        occurred_on date NOT NULL, supplier_id uuid REFERENCES ${s}.suppliers(id),
+        occurred_on date NOT NULL, supplier_id uuid NOT NULL REFERENCES ${s}.suppliers(id),
+        reference varchar(120), notes text,
+        status varchar(20) NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','confirmed','cancelled')),
+        recurrence_type varchar(20) NOT NULL DEFAULT 'one_time'
+          CHECK (recurrence_type IN ('one_time','recurring')),
+        receipt_file_key varchar(500), confirmed_at timestamptz, cancelled_at timestamptz,
         created_by_user_id uuid NOT NULL REFERENCES public.users(id),
+        updated_by_user_id uuid NOT NULL REFERENCES public.users(id),
         created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now()
       )`,
-      `CREATE INDEX expenses_occurred_on_idx ON ${s}.expenses(occurred_on DESC)`,
+      `CREATE INDEX expenses_status_date_idx ON ${s}.expenses(status, occurred_on DESC, id DESC)`,
+      `CREATE INDEX expenses_category_date_idx ON ${s}.expenses(category_id, occurred_on DESC, id DESC)`,
+      `CREATE INDEX expenses_supplier_date_idx ON ${s}.expenses(supplier_id, occurred_on DESC, id DESC)`,
+      `CREATE TABLE ${s}.expense_status_history (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        expense_id uuid NOT NULL REFERENCES ${s}.expenses(id) ON DELETE CASCADE,
+        previous_status varchar(20) CHECK (previous_status IS NULL OR previous_status IN ('draft','confirmed','cancelled')),
+        new_status varchar(20) NOT NULL CHECK (new_status IN ('draft','confirmed','cancelled')),
+        changed_by_user_id uuid NOT NULL REFERENCES public.users(id),
+        changed_at timestamptz NOT NULL DEFAULT now()
+      )`,
+      `CREATE INDEX expense_status_history_expense_date_idx
+       ON ${s}.expense_status_history(expense_id, changed_at, id)`,
       `CREATE TABLE ${s}.employees (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(), employee_number bigint GENERATED ALWAYS AS IDENTITY UNIQUE,
         full_name varchar(180) NOT NULL, email citext, phone varchar(30), hired_on date NOT NULL,
