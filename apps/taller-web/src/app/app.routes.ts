@@ -32,6 +32,13 @@ export const routes: Routes = [
     children: [
       { path: "", pathMatch: "full", canActivate: [homeGuard], children: [] },
       {
+        path: "dashboard",
+        canActivate: [roleGuard, featureGuard],
+        data: { roles: ["company_admin", "user"] },
+        loadComponent: () =>
+          import("./features/dashboard/dashboard.page").then((m) => m.DashboardPage),
+      },
+      {
         path: "companies",
         canActivate: [roleGuard],
         data: { roles: ["platform_admin"] },

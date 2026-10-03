@@ -26,14 +26,17 @@
           </a>
         }
         @case ("company_admin") {
+          <a class="nav-item" routerLink="/dashboard" routerLinkActive="active">
+            <span>01</span> Tablero
+          </a>
           @if (auth.hasFeature("service_orders")) {
             <a class="nav-item" routerLink="/orders" routerLinkActive="active">
-              <span>01</span> Órdenes
+              <span>02</span> Órdenes
             </a>
           }
           @if (auth.hasFeature("customer_history")) {
             <a class="nav-item" routerLink="/clients" routerLinkActive="active">
-              <span>02</span> Clientes
+              <span>03</span> Clientes
             </a>
           }
           @if (auth.hasFeature("item_catalog")) {
@@ -42,7 +45,7 @@
               routerLink="/concept-catalog"
               routerLinkActive="active"
             >
-              <span>03</span> Productos y servicios
+              <span>04</span> Productos y servicios
             </a>
           }
           @if (auth.hasFeature("inventory")) {
@@ -51,7 +54,7 @@
               routerLink="/inventory"
               routerLinkActive="active"
             >
-              <span>04</span> Inventario
+              <span>05</span> Inventario
             </a>
           }
           @if (auth.hasFeature("item_catalog")) {
@@ -61,7 +64,7 @@
                 routerLink="/purchases"
                 routerLinkActive="active"
               >
-                <span>05</span> Compras
+                <span>06</span> Compras
               </a>
             }
             <a
@@ -69,17 +72,17 @@
               routerLink="/suppliers"
               routerLinkActive="active"
             >
-              <span>06</span> Proveedores
+              <span>07</span> Proveedores
             </a>
           }
           @if (auth.hasFeature("expenses")) {
             <a class="nav-item" routerLink="/expenses" routerLinkActive="active">
-              <span>07</span> Gastos
+              <span>08</span> Gastos
             </a>
           }
           @if (auth.hasFeature("profitability")) {
             <a class="nav-item" routerLink="/profitability" routerLinkActive="active">
-              <span>08</span> Utilidad
+              <span>09</span> Utilidad
             </a>
           }
           <a
@@ -87,24 +90,27 @@
             routerLink="/vehicle-catalog"
             routerLinkActive="active"
           >
-            <span>09</span> Marcas y modelos
+            <span>10</span> Marcas y modelos
           </a>
           <a class="nav-item" routerLink="/users" routerLinkActive="active">
-            <span>10</span> Usuarios
+            <span>11</span> Usuarios
           </a>
           <a class="nav-item" routerLink="/account" routerLinkActive="active">
-            <span>11</span> Seguridad
+            <span>12</span> Seguridad
           </a>
         }
         @case ("user") {
+          <a class="nav-item" routerLink="/dashboard" routerLinkActive="active">
+            <span>01</span> Tablero
+          </a>
           @if (auth.hasFeature("service_orders")) {
             <a class="nav-item" routerLink="/orders" routerLinkActive="active">
-              <span>01</span> Órdenes
+              <span>02</span> Órdenes
             </a>
           }
           @if (auth.hasFeature("customer_history")) {
             <a class="nav-item" routerLink="/clients" routerLinkActive="active">
-              <span>02</span> Clientes
+              <span>03</span> Clientes
             </a>
           }
           @if (auth.hasFeature("item_catalog")) {
@@ -113,7 +119,7 @@
               routerLink="/concept-catalog"
               routerLinkActive="active"
             >
-              <span>03</span> Productos y servicios
+              <span>04</span> Productos y servicios
             </a>
           }
           @if (auth.hasFeature("inventory")) {
@@ -122,7 +128,7 @@
               routerLink="/inventory"
               routerLinkActive="active"
             >
-              <span>04</span> Inventario
+              <span>05</span> Inventario
             </a>
           }
           @if (auth.hasFeature("item_catalog")) {
@@ -132,7 +138,7 @@
                 routerLink="/purchases"
                 routerLinkActive="active"
               >
-                <span>05</span> Compras
+                <span>06</span> Compras
               </a>
             }
             <a
@@ -140,21 +146,21 @@
               routerLink="/suppliers"
               routerLinkActive="active"
             >
-              <span>06</span> Proveedores
+              <span>07</span> Proveedores
             </a>
           }
           @if (auth.hasFeature("expenses")) {
             <a class="nav-item" routerLink="/expenses" routerLinkActive="active">
-              <span>07</span> Gastos
+              <span>08</span> Gastos
             </a>
           }
           @if (auth.hasFeature("profitability")) {
             <a class="nav-item" routerLink="/profitability" routerLinkActive="active">
-              <span>08</span> Utilidad
+              <span>09</span> Utilidad
             </a>
           }
           <a class="nav-item" routerLink="/account" routerLinkActive="active">
-            <span>09</span> Seguridad
+            <span>10</span> Seguridad
           </a>
         }
       }

@@ -20,6 +20,7 @@ import {
   forkJoin,
   merge,
 } from "rxjs";
+import { ActivatedRoute } from "@angular/router";
 import { formatShortDate } from "../../core/dates/date-format";
 import { apiErrorMessage } from "../../core/http/api-error";
 import { ThemeService } from "../../core/theme/theme.service";
@@ -81,6 +82,7 @@ const emptySummary = (): ExpenseMonthlySummary => ({
 })
 export class ExpensesPage implements OnInit {
   private readonly expensesService = inject(ExpensesService);
+  private readonly route = inject(ActivatedRoute);
   private readonly suppliersService = inject(SuppliersService);
   private readonly destroyRef = inject(DestroyRef);
   readonly theme = inject(ThemeService);
@@ -98,7 +100,9 @@ export class ExpensesPage implements OnInit {
   readonly error = signal("");
   readonly notice = signal("");
 
-  readonly search = new FormControl("", { nonNullable: true });
+  readonly search = new FormControl(this.route.snapshot.queryParamMap.get("search") ?? "", {
+    nonNullable: true,
+  });
   readonly status = new FormControl<ExpenseStatus | "">("", { nonNullable: true });
   readonly categoryId = new FormControl("", { nonNullable: true });
   readonly supplierId = new FormControl("", { nonNullable: true });

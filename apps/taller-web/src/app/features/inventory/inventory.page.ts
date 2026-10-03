@@ -14,6 +14,7 @@ import {
   Validators,
 } from "@angular/forms";
 import { debounceTime, distinctUntilChanged, finalize } from "rxjs";
+import { ActivatedRoute } from "@angular/router";
 import { formatShortDate } from "../../core/dates/date-format";
 import { apiErrorMessage } from "../../core/http/api-error";
 import { ThemeService } from "../../core/theme/theme.service";
@@ -54,6 +55,7 @@ const emptyMovements = (): PaginatedInventoryMovements => ({
 })
 export class InventoryPage implements OnInit {
   private readonly inventory = inject(InventoryService);
+  private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
   readonly theme = inject(ThemeService);
   readonly formatShortDate = formatShortDate;
@@ -71,7 +73,10 @@ export class InventoryPage implements OnInit {
   readonly error = signal("");
   readonly notice = signal("");
 
-  readonly search = new FormControl("", { nonNullable: true });
+  readonly search = new FormControl(this.route.snapshot.queryParamMap.get("search") ?? "", {
+    nonNullable: true,
+  });
+  private readonly initialProductId = this.route.snapshot.queryParamMap.get("productId") ?? "";
   readonly movementType = new FormControl<InventoryMovementType | "">("", {
     nonNullable: true,
   });
@@ -127,7 +132,7 @@ export class InventoryPage implements OnInit {
       .subscribe({
         next: (products) => {
           this.products.set(products);
-          const selectedId = this.selectedProduct()?.id;
+          const selectedId = this.selectedProduct()?.id || this.initialProductId;
           const selected =
             products.items.find(({ id }) => id === selectedId) ??
             products.items[0] ??

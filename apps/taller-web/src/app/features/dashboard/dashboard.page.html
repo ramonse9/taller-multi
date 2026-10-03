@@ -1,0 +1,226 @@
+<main
+  class="min-h-screen bg-[#f9f7f0] text-[#17251e] transition-colors dark:bg-[#101713] dark:text-[#edf3ef]"
+>
+  <header
+    class="flex flex-wrap items-end justify-between gap-5 border-b border-[#dcd9cf] px-[clamp(1.25rem,4vw,4rem)] py-8 dark:border-[#34423a]"
+  >
+    <div>
+      <p class="eyebrow">RESUMEN OPERATIVO</p>
+      <h1
+        class="m-0 font-[var(--display)] text-[clamp(2.5rem,5vw,4.5rem)] font-semibold leading-[.9] tracking-[-.05em]"
+      >
+        Tablero del taller
+      </h1>
+      @if (summary(); as data) {
+      <p class="mt-3 text-sm text-[#68746d] dark:text-[#aab7af]">
+        {{ monthName(data.period.month) }} · Plan {{ data.access.planName }}
+      </p>
+      } @else {
+      <p class="mt-3 text-sm text-[#68746d] dark:text-[#aab7af]">
+        Operación, cobros y alertas en un solo lugar.
+      </p>
+      }
+    </div>
+    <div class="flex items-center gap-2">
+      <button class="theme-toggle" type="button" (click)="theme.toggle()">
+        {{ theme.isDark() ? '☀' : '◐' }}
+      </button>
+      <a class="primary no-underline" routerLink="/orders/new">＋ Nueva orden</a>
+    </div>
+  </header>
+
+  <section class="px-[clamp(1.25rem,4vw,4rem)] pb-16 pt-7">
+    @if (error()) {
+    <div
+      class="mb-6 flex flex-wrap items-center justify-between gap-3 bg-[#fff0ea] px-4 py-3 text-sm text-[#8e3214] dark:bg-[#4a241b] dark:text-[#ffb89d]"
+      role="alert"
+    >
+      <span>{{ error() }}</span>
+      <button class="bg-transparent p-0 font-bold underline" type="button" (click)="load()">
+        Reintentar
+      </button>
+    </div>
+    }
+
+    @if (loading()) {
+    <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Cargando tablero">
+      @for (item of [1, 2, 3, 4]; track item) {
+      <div
+        class="h-36 animate-pulse border border-[#dcd9cf] bg-white dark:border-[#3d4d44] dark:bg-[#1a251f]"
+      ></div>
+      }
+    </div>
+    <div class="mt-6 grid gap-5 xl:grid-cols-2">
+      <div class="h-80 animate-pulse bg-[#ece9df] dark:bg-[#243129]"></div>
+      <div class="h-80 animate-pulse bg-[#ece9df] dark:bg-[#243129]"></div>
+    </div>
+    } @else if (summary(); as data) { @if (activity(); as feed) {
+    <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <a
+        class="group border border-[#bad7c6] bg-[#edf7f1] p-5 text-inherit no-underline transition hover:-translate-y-0.5 hover:border-[#459568] dark:border-[#315b43] dark:bg-[#183326]"
+        routerLink="/orders"
+        [queryParams]="{status: 'in_progress'}"
+      >
+        <div class="flex items-center justify-between gap-3">
+          <span class="detail-label !text-[#397550] dark:!text-[#9ed5b3]">EN PROCESO</span>
+          <span class="size-2.5 rounded-full bg-[#459568]"></span>
+        </div>
+        <strong class="mt-3 block font-[var(--display)] text-4xl">{{ data.orders.inProgressCount }}</strong>
+        <small class="text-[#527060] dark:text-[#a9c7b5]">Órdenes trabajando ahora →</small>
+      </a>
+
+      <a
+        class="group border border-[#e4c99d] bg-[#fff7e7] p-5 text-inherit no-underline transition hover:-translate-y-0.5 hover:border-[#d6922e] dark:border-[#6e542b] dark:bg-[#392d19]"
+        routerLink="/orders"
+        [queryParams]="{status: 'completed', isPaid: false}"
+      >
+        <div class="flex items-center justify-between gap-3">
+          <span class="detail-label !text-[#805719] dark:!text-[#ffd18a]">PENDIENTE DE COBRO</span>
+          <span class="size-2.5 rounded-full bg-[#d6922e]"></span>
+        </div>
+        <strong class="mt-3 block font-[var(--display)] text-4xl">{{ data.orders.completedUnpaidCount }}</strong>
+        <small class="text-[#805719] dark:text-[#ffd18a]">{{ money(data.revenue.outstanding) }} este mes →</small>
+      </a>
+
+      <article class="border border-[#bed1df] bg-[#eef6fb] p-5 dark:border-[#38556a] dark:bg-[#192d3a]">
+        <span class="detail-label !text-[#366d96] dark:!text-[#9ec9e8]">GENERADO EN EL MES</span>
+        <strong class="mt-3 block font-[var(--display)] text-4xl">{{ money(data.revenue.generated) }}</strong>
+        <small class="text-[#587184] dark:text-[#a9c3d5]">Órdenes terminadas en {{ monthName(data.period.month) }}</small>
+      </article>
+
+      <article class="border border-[#bcd6c6] bg-white p-5 dark:border-[#3b5a47] dark:bg-[#1a251f]">
+        <span class="detail-label !text-[#397550] dark:!text-[#9ed5b3]">COBRADO EN EL MES</span>
+        <strong class="mt-3 block font-[var(--display)] text-4xl text-[#245b3b] dark:text-[#9ed5b3]">{{ money(data.revenue.collected) }}</strong>
+        <small class="text-[#68746d] dark:text-[#aab7af]">{{ data.orders.completedPaidCount }} órdenes terminadas pagadas</small>
+      </article>
+    </div>
+
+    @if (data.financials; as financials) {
+    <div class="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <article class="border border-[#dcd9cf] bg-white p-5 dark:border-[#3d4d44] dark:bg-[#1a251f]">
+        <span class="detail-label">COSTO DIRECTO</span>
+        <strong class="mt-2 block text-2xl">{{ money(financials.directCost) }}</strong>
+        <small class="text-[#68746d] dark:text-[#aab7af]">Costo histórico del trabajo terminado</small>
+      </article>
+      <a class="border border-[#dcd9cf] bg-white p-5 text-inherit no-underline hover:border-[#e86a33] dark:border-[#3d4d44] dark:bg-[#1a251f]" routerLink="/expenses">
+        <span class="detail-label">GASTOS DEL MES</span>
+        <strong class="mt-2 block text-2xl">{{ money(financials.operatingExpenses) }}</strong>
+        <small class="font-bold text-[#b94718] dark:text-[#ff9a6f]">Ver gastos →</small>
+      </a>
+      <a class="border border-[#263c31] bg-[#17251e] p-5 text-white no-underline hover:bg-[#22362b] dark:border-[#50685a] dark:bg-[#213128]" routerLink="/profitability">
+        <span class="detail-label !text-[#9fb5a8]">UTILIDAD OPERATIVA</span>
+        <strong class="mt-2 block text-2xl" [class.text-[#ff9e8c]]="+financials.operatingProfit < 0">{{ money(financials.operatingProfit) }}</strong>
+        <small class="text-[#b8c7be]">Ingresos menos costos y gastos →</small>
+      </a>
+      <a class="border p-5 text-inherit no-underline" [class.border-[#e0b4a9]]="(data.lowStock?.totalProducts ?? 0) > 0" [class.bg-[#fff0ea]]="(data.lowStock?.totalProducts ?? 0) > 0" [class.dark:border-[#73483e]]="(data.lowStock?.totalProducts ?? 0) > 0" [class.dark:bg-[#3a211c]]="(data.lowStock?.totalProducts ?? 0) > 0" [class.border-[#dcd9cf]]="(data.lowStock?.totalProducts ?? 0) === 0" [class.bg-white]="(data.lowStock?.totalProducts ?? 0) === 0" [class.dark:border-[#3d4d44]]="(data.lowStock?.totalProducts ?? 0) === 0" [class.dark:bg-[#1a251f]]="(data.lowStock?.totalProducts ?? 0) === 0" routerLink="/inventory">
+        <span class="detail-label">INVENTARIO BAJO</span>
+        <strong class="mt-2 block text-2xl" [class.text-[#a63725]]="(data.lowStock?.totalProducts ?? 0) > 0">{{ data.lowStock?.totalProducts ?? 0 }} productos</strong>
+        <small class="font-bold text-[#b94718] dark:text-[#ff9a6f]">Revisar existencias →</small>
+      </a>
+    </div>
+    @if (!financials.isComplete) {
+    <div class="mt-3 border-l-4 border-[#d6922e] bg-[#fff4dc] px-4 py-3 text-sm text-[#704b14] dark:bg-[#49351b] dark:text-[#ffd18a]">
+      {{ financials.incompleteOrderCount }} {{ financials.incompleteOrderCount === 1 ? 'orden terminada necesita' : 'órdenes terminadas necesitan' }} completar precio o costo para obtener una utilidad exacta.
+    </div>
+    }
+    }
+
+    @if (empty()) {
+    <section class="mt-8 border border-dashed border-[#c9c5ba] bg-white px-6 py-16 text-center dark:border-[#45544b] dark:bg-[#1a251f]">
+      <span class="mx-auto grid size-14 place-items-center rounded-full bg-[#edf7f1] text-2xl dark:bg-[#203c2c]">✓</span>
+      <h2 class="mt-5 font-[var(--display)] text-3xl font-semibold">El tablero está listo</h2>
+      <p class="mx-auto mt-2 max-w-xl text-sm text-[#68746d] dark:text-[#aab7af]">
+        Todavía no hay actividad. Cuando registres órdenes, compras o gastos, aquí aparecerán los pendientes y resultados importantes.
+      </p>
+      <a class="primary mt-6 inline-block no-underline" routerLink="/orders/new">Registrar la primera orden</a>
+    </section>
+    } @else {
+    <div class="mt-8 grid gap-5 xl:grid-cols-2">
+      <section class="overflow-hidden border border-[#dcd9cf] bg-white dark:border-[#3d4d44] dark:bg-[#1a251f]">
+        <header class="flex items-center justify-between gap-4 border-b border-[#ece9df] bg-[#f2f0e9] px-5 py-4 dark:border-[#35433b] dark:bg-[#222f27]">
+          <div><p class="eyebrow">PRIORIDAD</p><h2 class="section-title">Más tiempo en proceso</h2></div>
+          <a class="text-xs font-bold text-[#b94718] dark:text-[#ff9a6f]" routerLink="/orders" [queryParams]="{status: 'in_progress'}">Ver todas →</a>
+        </header>
+        <div class="divide-y divide-[#ece9df] dark:divide-[#35433b]">
+          @for (order of feed.oldestInProgress; track order.id) {
+          <a class="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 p-4 text-inherit no-underline transition hover:bg-[#fbfaf6] dark:hover:bg-[#202c25]" [routerLink]="['/orders', order.id]">
+            <span class="grid size-10 place-items-center bg-[#e7f2eb] font-[var(--mono)] text-xs font-bold text-[#245b3b] dark:bg-[#203c2c] dark:text-[#9ed5b3]">{{ order.daysOpen }}d</span>
+            <span class="min-w-0"><strong class="block truncate">#{{ order.folio }} · {{ order.customerName }}</strong><small class="block truncate text-[#68746d] dark:text-[#aab7af]">{{ order.brandName }} {{ order.modelName }} · Abierta {{ formatShortDate(order.openedAt) }}</small></span>
+            <span class="text-[#b94718] dark:text-[#ff9a6f]">→</span>
+          </a>
+          } @empty {
+          <p class="p-8 text-center text-sm text-[#68746d] dark:text-[#aab7af]">No hay órdenes en proceso.</p>
+          }
+        </div>
+      </section>
+
+      <section class="overflow-hidden border border-[#dcd9cf] bg-white dark:border-[#3d4d44] dark:bg-[#1a251f]">
+        <header class="flex items-center justify-between gap-4 border-b border-[#ece9df] bg-[#f2f0e9] px-5 py-4 dark:border-[#35433b] dark:bg-[#222f27]">
+          <div><p class="eyebrow">COBRANZA</p><h2 class="section-title">Pendientes de cobro</h2></div>
+          <a class="text-xs font-bold text-[#b94718] dark:text-[#ff9a6f]" routerLink="/orders" [queryParams]="{status: 'completed', isPaid: false}">Ver todas →</a>
+        </header>
+        <div class="divide-y divide-[#ece9df] dark:divide-[#35433b]">
+          @for (order of feed.pendingCollection; track order.id) {
+          <a class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-l-4 border-[#d6922e] p-4 text-inherit no-underline transition hover:bg-[#fffaf0] dark:hover:bg-[#30291b]" [routerLink]="['/orders', order.id]">
+            <span class="min-w-0"><strong class="block truncate">#{{ order.folio }} · {{ order.customerName }}</strong><small class="block truncate text-[#68746d] dark:text-[#aab7af]">Terminada {{ formatShortDate(order.completedAt) }} · {{ order.brandName }} {{ order.modelName }}</small></span>
+            <span class="text-right"><strong class="block text-[#805719] dark:text-[#ffd18a]">{{ money(order.total) }}</strong><small class="font-bold text-[#b94718] dark:text-[#ff9a6f]">Cobrar →</small></span>
+          </a>
+          } @empty {
+          <p class="p-8 text-center text-sm text-[#68746d] dark:text-[#aab7af]">No hay órdenes pendientes de cobro.</p>
+          }
+        </div>
+      </section>
+    </div>
+
+    <section class="mt-5 overflow-hidden border border-[#dcd9cf] bg-white dark:border-[#3d4d44] dark:bg-[#1a251f]">
+      <header class="flex items-center justify-between gap-4 border-b border-[#ece9df] bg-[#f2f0e9] px-5 py-4 dark:border-[#35433b] dark:bg-[#222f27]">
+        <div><p class="eyebrow">ACTIVIDAD</p><h2 class="section-title">Órdenes recientes</h2></div>
+        <a class="text-xs font-bold text-[#b94718] dark:text-[#ff9a6f]" routerLink="/orders">Ver historial →</a>
+      </header>
+      <div class="grid gap-px bg-[#ece9df] sm:grid-cols-2 xl:grid-cols-5 dark:bg-[#35433b]">
+        @for (order of feed.recentOrders; track order.id) {
+        <a class="bg-white p-4 text-inherit no-underline transition hover:bg-[#fbfaf6] dark:bg-[#1a251f] dark:hover:bg-[#202c25]" [routerLink]="['/orders', order.id]">
+          <div class="flex items-start justify-between gap-2"><strong class="font-[var(--mono)]">#{{ order.folio }}</strong><span class="size-2.5 rounded-full" [class.bg-[#459568]]="order.status === 'in_progress'" [class.bg-[#4388c5]]="order.status === 'completed'" [class.bg-[#c84d3b]]="order.status === 'cancelled'"></span></div>
+          <strong class="mt-4 block truncate">{{ order.customerName }}</strong>
+          <small class="block truncate text-[#68746d] dark:text-[#aab7af]">{{ order.brandName }} {{ order.modelName }}</small>
+          <div class="mt-4 flex items-end justify-between gap-2"><span class="text-xs font-bold" [class.text-[#397550]]="order.status === 'in_progress'" [class.text-[#366d96]]="order.status === 'completed'" [class.text-[#a63725]]="order.status === 'cancelled'">{{ orderStatusName(order.status) }}</span><strong>{{ money(order.total) }}</strong></div>
+        </a>
+        } @empty {
+        <p class="col-span-full bg-white p-10 text-center text-sm text-[#68746d] dark:bg-[#1a251f] dark:text-[#aab7af]">No hay órdenes recientes.</p>
+        }
+      </div>
+    </section>
+
+    @if (feed.recentPurchases !== null || feed.recentExpenses !== null || feed.recentInventoryMovements !== null) {
+    <div class="mt-5 grid gap-5 xl:grid-cols-3">
+      @if (feed.recentPurchases !== null) {
+      <section class="overflow-hidden border border-[#dcd9cf] bg-white dark:border-[#3d4d44] dark:bg-[#1a251f]">
+        <header class="flex items-center justify-between border-b border-[#ece9df] px-5 py-4 dark:border-[#35433b]"><h2 class="section-title">Compras recientes</h2><a class="text-xs font-bold text-[#b94718] dark:text-[#ff9a6f]" routerLink="/purchases">Ver todas →</a></header>
+        <div class="divide-y divide-[#ece9df] dark:divide-[#35433b]">@for (purchase of feed.recentPurchases; track purchase.id) {<a class="flex items-center justify-between gap-3 p-4 text-inherit no-underline hover:bg-[#fbfaf6] dark:hover:bg-[#202c25]" [routerLink]="['/purchases', purchase.id]"><span class="min-w-0"><strong class="block truncate">Compra #{{ purchase.folio }}</strong><small class="block truncate text-[#68746d] dark:text-[#aab7af]">{{ purchase.supplierName }} · <b [class.text-[#805719]]="purchase.status === 'draft'" [class.text-[#245b3b]]="purchase.status === 'confirmed'" [class.text-[#a63725]]="purchase.status === 'cancelled'">{{ recordStatusName(purchase.status) }}</b></small></span><strong>{{ money(purchase.total) }}</strong></a>} @empty {<p class="p-8 text-center text-sm text-[#68746d]">Sin compras recientes.</p>}</div>
+      </section>
+      }
+      @if (feed.recentExpenses !== null) {
+      <section class="overflow-hidden border border-[#dcd9cf] bg-white dark:border-[#3d4d44] dark:bg-[#1a251f]">
+        <header class="flex items-center justify-between border-b border-[#ece9df] px-5 py-4 dark:border-[#35433b]"><h2 class="section-title">Gastos recientes</h2><a class="text-xs font-bold text-[#b94718] dark:text-[#ff9a6f]" routerLink="/expenses">Ver todos →</a></header>
+        <div class="divide-y divide-[#ece9df] dark:divide-[#35433b]">@for (expense of feed.recentExpenses; track expense.id) {<a class="flex items-center justify-between gap-3 p-4 text-inherit no-underline hover:bg-[#fbfaf6] dark:hover:bg-[#202c25]" routerLink="/expenses" [queryParams]="{search: expense.description}"><span class="min-w-0"><strong class="block truncate">{{ expense.description }}</strong><small class="block truncate text-[#68746d] dark:text-[#aab7af]">{{ expense.categoryName }} · <b [class.text-[#805719]]="expense.status === 'draft'" [class.text-[#245b3b]]="expense.status === 'confirmed'" [class.text-[#a63725]]="expense.status === 'cancelled'">{{ recordStatusName(expense.status) }}</b></small></span><strong>{{ money(expense.amount) }}</strong></a>} @empty {<p class="p-8 text-center text-sm text-[#68746d]">Sin gastos recientes.</p>}</div>
+      </section>
+      }
+      @if (feed.recentInventoryMovements !== null) {
+      <section class="overflow-hidden border border-[#dcd9cf] bg-white dark:border-[#3d4d44] dark:bg-[#1a251f]">
+        <header class="flex items-center justify-between border-b border-[#ece9df] px-5 py-4 dark:border-[#35433b]"><h2 class="section-title">Movimientos recientes</h2><a class="text-xs font-bold text-[#b94718] dark:text-[#ff9a6f]" routerLink="/inventory">Ver inventario →</a></header>
+        <div class="divide-y divide-[#ece9df] dark:divide-[#35433b]">@for (movement of feed.recentInventoryMovements; track movement.id) {<a class="flex items-center justify-between gap-3 p-4 text-inherit no-underline hover:bg-[#fbfaf6] dark:hover:bg-[#202c25]" routerLink="/inventory" [queryParams]="{search: movement.productName, productId: movement.productId}"><span class="min-w-0"><strong class="block truncate">{{ movement.productName }}</strong><small class="block truncate text-[#68746d] dark:text-[#aab7af]">{{ movementName(movement.type) }} · {{ movement.reason }}</small></span><strong [class.text-[#245b3b]]="movement.type === 'entry'" [class.text-[#a63725]]="movement.type === 'exit'">{{ +movement.quantity > 0 ? '+' : '' }}{{ number(movement.quantity) }}</strong></a>} @empty {<p class="p-8 text-center text-sm text-[#68746d]">Sin movimientos recientes.</p>}</div>
+      </section>
+      }
+    </div>
+    }
+
+    @if (feed.lowStock; as lowStock) { @if (lowStock.totalProducts > 0) {
+    <section class="mt-5 overflow-hidden border border-[#e0b4a9] bg-[#fff7f3] dark:border-[#73483e] dark:bg-[#321f1a]">
+      <header class="flex items-center justify-between gap-4 border-b border-[#efcfc6] px-5 py-4 dark:border-[#684037]"><div><p class="eyebrow !text-[#a63725] dark:!text-[#ff9e8c]">ALERTA</p><h2 class="section-title">Existencia baja</h2></div><a class="text-xs font-bold text-[#b94718] dark:text-[#ff9a6f]" routerLink="/inventory">Revisar {{ lowStock.totalProducts }} productos →</a></header>
+      <div class="grid gap-px bg-[#efcfc6] sm:grid-cols-2 xl:grid-cols-5 dark:bg-[#684037]">@for (product of lowStock.products; track product.id) {<a class="bg-[#fffaf7] p-4 text-inherit no-underline dark:bg-[#291d19]" routerLink="/inventory" [queryParams]="{search: product.name, productId: product.id}"><strong class="block truncate">{{ product.name }}</strong><small class="text-[#8a5b50] dark:text-[#d8aca2]">{{ product.sku || 'Sin SKU' }}</small><div class="mt-3 flex items-end justify-between gap-3"><span class="detail-label">EXISTENCIA</span><strong class="text-[#a63725] dark:text-[#ff9e8c]">{{ number(product.stock) }} / {{ number(product.minimumStock) }} {{ product.unitSymbol }}</strong></div></a>}</div>
+    </section>
+    } }
+    }
+    } }
+  </section>
+</main>

@@ -20,6 +20,15 @@ import {
 } from "./order.models";
 import { OrdersService } from "./orders.service";
 
+const orderStatusFromQuery = (value: string | null): OrderStatus | "" =>
+  value === "in_progress" || value === "completed" || value === "cancelled" ? value : "";
+
+const paymentStatusFromQuery = (value: string | null): boolean | "" => {
+  if (value === "true") return true;
+  if (value === "false") return false;
+  return "";
+};
+
 @Component({
   selector: "app-orders-page",
   imports: [ReactiveFormsModule, RouterLink],
@@ -41,10 +50,18 @@ export class OrdersPage implements OnInit {
     this.route.snapshot.queryParamMap.get("customerId") ?? "";
   readonly vehicleId = this.route.snapshot.queryParamMap.get("vehicleId") ?? "";
   readonly search = new FormControl("", { nonNullable: true });
-  readonly status = new FormControl<OrderStatus | "">("", {
-    nonNullable: true,
-  });
-  readonly isPaid = new FormControl<boolean | "">("", { nonNullable: true });
+  readonly status = new FormControl<OrderStatus | "">(
+    orderStatusFromQuery(this.route.snapshot.queryParamMap.get("status")),
+    {
+      nonNullable: true,
+    },
+  );
+  readonly isPaid = new FormControl<boolean | "">(
+    paymentStatusFromQuery(this.route.snapshot.queryParamMap.get("isPaid")),
+    {
+      nonNullable: true,
+    },
+  );
   readonly loading = signal(true);
   readonly error = signal("");
   readonly data = signal<PaginatedOrders>({

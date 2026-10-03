@@ -27,7 +27,7 @@ export class AuthService {
     if (user && user.role !== "platform_admin" && !user.subscription?.usable) {
       return "/subscription-required";
     }
-    return user?.role === "platform_admin" ? "/companies" : "/clients";
+    return user?.role === "platform_admin" ? "/companies" : "/dashboard";
   }
 
   hasFeature(feature: SubscriptionFeature): boolean {
