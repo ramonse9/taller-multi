@@ -30,6 +30,7 @@ import { PurchaseInventoryTraceability1700000019000 } from '../../src/database/m
 import { PurchaseStatusHistory1700000020000 } from '../../src/database/migrations/public/1700000020000-purchase-status-history';
 import { ExpenseModel1700000021000 } from '../../src/database/migrations/public/1700000021000-expense-model';
 import { TenantAdminRole1700000022000 } from '../../src/database/migrations/public/1700000022000-tenant-admin-role';
+import { UserPermissions1700000023000 } from '../../src/database/migrations/public/1700000023000-user-permissions';
 import { quoteIdentifier } from '../../src/database/schema-name';
 import { seedPublicCatalogs } from '../../src/database/seeds/public-catalogs.seed';
 
@@ -73,6 +74,20 @@ interface UserResponse {
   phone: string | null;
   companyId: string;
   isActive: boolean;
+}
+
+interface PermissionTemplateResponse {
+  code: string;
+  permissionCodes: string[];
+}
+
+interface UserPermissionProfileResponse {
+  userId: string;
+  role: string;
+  templateCode: string | null;
+  isCustomized: boolean;
+  automatic: boolean;
+  permissionCodes: string[];
 }
 
 interface ClientResponse {
@@ -529,6 +544,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         PurchaseStatusHistory1700000020000,
         ExpenseModel1700000021000,
         TenantAdminRole1700000022000,
+        UserPermissions1700000023000,
       ],
       migrationsTableName: 'public_schema_migrations',
       synchronize: false,
@@ -881,6 +897,125 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         })
       ).status,
     ).toBe(403);
+  });
+
+  it('conserva permisos por usuario, plantillas y acceso automático del Administrador principal', async () => {
+    const tenant = await provisionAndLogin(
+      'Permission Model Integration',
+      'permissions@test.local',
+    );
+    const catalog = await request<Array<{ code: string; module: string; action: string }>>(
+      'GET',
+      '/permissions',
+      { token: tenant.accessToken },
+    );
+    expect(catalog.status).toBe(200);
+    expect(catalog.body).toHaveLength(37);
+    expect(catalog.body).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'orders.create', module: 'orders', action: 'create' }),
+        expect.objectContaining({ code: 'profitability.view' }),
+        expect.objectContaining({ code: 'permissions.manage' }),
+      ]),
+    );
+
+    const templates = await request<PermissionTemplateResponse[]>('GET', '/permissions/templates', {
+      token: tenant.accessToken,
+    });
+    expect(templates.status).toBe(200);
+    expect(templates.body.map(({ code }) => code)).toEqual([
+      'reception',
+      'mechanic',
+      'warehouse',
+      'administration',
+    ]);
+
+    const principal = await request<UserPermissionProfileResponse>(
+      'GET',
+      `/permissions/users/${tenant.user.id}`,
+      { token: tenant.accessToken },
+    );
+    expect(principal.status).toBe(200);
+    expect(principal.body).toMatchObject({
+      role: 'company_admin',
+      automatic: true,
+      templateCode: null,
+      isCustomized: false,
+    });
+    expect(principal.body.permissionCodes).toHaveLength(catalog.body.length);
+
+    const manager = await request<UserResponse>('POST', '/users', {
+      token: tenant.accessToken,
+      body: {
+        fullName: 'Administrador con permisos',
+        username: 'admin_permisos',
+        phone: '+526671110020',
+        password: USER_PASSWORD,
+        timezoneCode: 'America/Mazatlan',
+        role: 'admin',
+      },
+    });
+    const operator = await request<UserResponse>('POST', '/users', {
+      token: tenant.accessToken,
+      body: {
+        fullName: 'Usuario con permisos',
+        username: 'user_permisos',
+        phone: '+526671110021',
+        password: USER_PASSWORD,
+        timezoneCode: 'America/Mazatlan',
+        role: 'user',
+      },
+    });
+    expect(manager.status).toBe(201);
+    expect(operator.status).toBe(201);
+
+    const managerProfile = await request<UserPermissionProfileResponse>(
+      'GET',
+      `/permissions/users/${manager.body.id}`,
+      { token: tenant.accessToken },
+    );
+    expect(managerProfile.body).toMatchObject({
+      role: 'admin',
+      templateCode: 'administration',
+      isCustomized: true,
+      automatic: false,
+    });
+    expect(managerProfile.body.permissionCodes).toEqual(
+      expect.arrayContaining(['users.view', 'users.manage', 'permissions.manage']),
+    );
+
+    const reception = templates.body.find(({ code }) => code === 'reception')!;
+    const assigned = await request<UserPermissionProfileResponse>(
+      'PUT',
+      `/permissions/users/${operator.body.id}`,
+      {
+        token: tenant.accessToken,
+        body: { templateCode: 'reception', permissionCodes: reception.permissionCodes },
+      },
+    );
+    expect(assigned.status).toBe(200);
+    expect(assigned.body).toMatchObject({
+      templateCode: 'reception',
+      isCustomized: false,
+      automatic: false,
+    });
+    expect(assigned.body.permissionCodes).toEqual(reception.permissionCodes);
+
+    await request<unknown>('PATCH', `/subscriptions/companies/${tenant.company.id}`, {
+      token: platformToken,
+      body: { planCode: 'control', status: 'active', reason: 'Cambio temporal de plan' },
+    });
+    await request<unknown>('PATCH', `/subscriptions/companies/${tenant.company.id}`, {
+      token: platformToken,
+      body: { planCode: 'basic', status: 'active', reason: 'Regreso al plan original' },
+    });
+    const preserved = await request<UserPermissionProfileResponse>(
+      'GET',
+      `/permissions/users/${operator.body.id}`,
+      { token: tenant.accessToken },
+    );
+    expect(preserved.status).toBe(200);
+    expect(preserved.body.permissionCodes).toEqual(reception.permissionCodes);
   });
 
   it('invalida sesiones y logins de usuarios o compañías desactivadas', async () => {

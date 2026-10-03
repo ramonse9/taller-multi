@@ -24,6 +24,7 @@ import { PurchaseInventoryTraceability1700000019000 } from './migrations/public/
 import { PurchaseStatusHistory1700000020000 } from './migrations/public/1700000020000-purchase-status-history';
 import { ExpenseModel1700000021000 } from './migrations/public/1700000021000-expense-model';
 import { TenantAdminRole1700000022000 } from './migrations/public/1700000022000-tenant-admin-role';
+import { UserPermissions1700000023000 } from './migrations/public/1700000023000-user-permissions';
 
 export default new DataSource({
   type: 'postgres',
@@ -54,6 +55,7 @@ export default new DataSource({
     PurchaseStatusHistory1700000020000,
     ExpenseModel1700000021000,
     TenantAdminRole1700000022000,
+    UserPermissions1700000023000,
   ],
   migrationsTableName: 'public_schema_migrations',
   synchronize: false,

@@ -22,6 +22,7 @@ import {
 import { PlatformRole } from './entities/platform-user.entity';
 import { tenantLoginName } from '../database/login-name';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+import { PermissionsService } from '../permissions/permissions.service';
 
 interface UserRow {
   id: string;
@@ -49,6 +50,7 @@ export class UsersService {
   constructor(
     private readonly dataSource: DataSource,
     @Optional() private readonly subscriptions?: SubscriptionsService,
+    @Optional() private readonly permissions?: PermissionsService,
   ) {}
 
   async list(user: AuthenticatedUser, query: UserQueryDto): Promise<PaginatedUsersResponseDto> {
@@ -136,6 +138,7 @@ export class UsersService {
       )) as UserRow[];
       const created = rows[0];
       if (!created) throw new Error('No se pudo crear el usuario');
+      await this.permissions?.assignInitialPermissions(runner, created.id, created.role, user.id);
       const response = this.toResponse(created);
       await runner.commitTransaction();
       return response;
@@ -208,6 +211,15 @@ export class UsersService {
       )) as [UserRow[], number];
       const updated = result[0][0];
       if (!updated) throw new NotFoundException('Usuario no encontrado');
+      if (input.role !== undefined) {
+        await this.permissions?.syncRolePermissions(
+          runner,
+          updated.id,
+          target.role,
+          updated.role,
+          user.id,
+        );
+      }
       const response = this.toResponse(updated);
       await runner.commitTransaction();
       return response;
