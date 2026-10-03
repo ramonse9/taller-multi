@@ -29,6 +29,7 @@ import { PurchaseModel1700000018000 } from '../../src/database/migrations/public
 import { PurchaseInventoryTraceability1700000019000 } from '../../src/database/migrations/public/1700000019000-purchase-inventory-traceability';
 import { PurchaseStatusHistory1700000020000 } from '../../src/database/migrations/public/1700000020000-purchase-status-history';
 import { ExpenseModel1700000021000 } from '../../src/database/migrations/public/1700000021000-expense-model';
+import { TenantAdminRole1700000022000 } from '../../src/database/migrations/public/1700000022000-tenant-admin-role';
 import { quoteIdentifier } from '../../src/database/schema-name';
 import { seedPublicCatalogs } from '../../src/database/seeds/public-catalogs.seed';
 
@@ -68,6 +69,7 @@ interface UserResponse {
   email: string | null;
   username: string;
   loginName: string;
+  role: string;
   phone: string | null;
   companyId: string;
   isActive: boolean;
@@ -526,6 +528,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         PurchaseInventoryTraceability1700000019000,
         PurchaseStatusHistory1700000020000,
         ExpenseModel1700000021000,
+        TenantAdminRole1700000022000,
       ],
       migrationsTableName: 'public_schema_migrations',
       synchronize: false,
@@ -775,6 +778,109 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     const restored = await listClients(tenant.accessToken);
     expect(restored.status).toBe(200);
     expect(restored.body.items.map(({ id }) => id)).toContain(client.body.id);
+  });
+
+  it('aplica la jerarquía company_admin → admin → user al administrar cuentas', async () => {
+    const tenant = await provisionAndLogin('Role Hierarchy Integration', 'roles.admin@test.local');
+    await request<unknown>('PATCH', `/subscriptions/companies/${tenant.company.id}`, {
+      token: platformToken,
+      body: { planCode: 'control', status: 'active', reason: 'Prueba de jerarquía' },
+    });
+
+    const manager = await request<UserResponse>('POST', '/users', {
+      token: tenant.accessToken,
+      body: {
+        fullName: 'Administrador Operativo',
+        username: 'operaciones',
+        phone: '+526671110010',
+        password: USER_PASSWORD,
+        timezoneCode: 'America/Mazatlan',
+        role: 'admin',
+      },
+    });
+    expect(manager.status).toBe(201);
+    expect(manager.body.role).toBe('admin');
+
+    const temporaryLogin = await login(`operaciones@${tenant.company.loginCode}`, USER_PASSWORD);
+    expect(temporaryLogin.status).toBe(200);
+    expect(
+      (
+        await request<unknown>('PATCH', '/users/me/password', {
+          token: temporaryLogin.body.accessToken,
+          body: { currentPassword: USER_PASSWORD, newPassword: PERMANENT_PASSWORD },
+        })
+      ).status,
+    ).toBe(204);
+    const managerLogin = await login(`operaciones@${tenant.company.loginCode}`, PERMANENT_PASSWORD);
+    expect(managerLogin.status).toBe(200);
+    expect(
+      (await request<unknown>('GET', '/users', { token: managerLogin.body.accessToken })).status,
+    ).toBe(200);
+
+    const operator = await request<UserResponse>('POST', '/users', {
+      token: managerLogin.body.accessToken,
+      body: {
+        fullName: 'Usuario Operativo',
+        username: 'operador_roles',
+        phone: '+526671110011',
+        password: USER_PASSWORD,
+        timezoneCode: 'America/Mazatlan',
+        role: 'user',
+      },
+    });
+    expect(operator.status).toBe(201);
+    expect(operator.body.role).toBe('user');
+
+    const forbiddenCreation = await request<unknown>('POST', '/users', {
+      token: managerLogin.body.accessToken,
+      body: {
+        fullName: 'Administrador Indebido',
+        username: 'admin_indebido',
+        phone: '+526671110012',
+        password: USER_PASSWORD,
+        timezoneCode: 'America/Mazatlan',
+        role: 'admin',
+      },
+    });
+    expect(forbiddenCreation.status).toBe(403);
+    expect(
+      (
+        await request<unknown>('PATCH', `/users/${operator.body.id}`, {
+          token: managerLogin.body.accessToken,
+          body: { role: 'admin' },
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await request<unknown>('PATCH', `/users/${tenant.user.id}`, {
+          token: managerLogin.body.accessToken,
+          body: { fullName: 'Cambio no autorizado' },
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await request<unknown>('DELETE', `/users/${tenant.user.id}`, {
+          token: managerLogin.body.accessToken,
+        })
+      ).status,
+    ).toBe(403);
+
+    const promoted = await request<UserResponse>('PATCH', `/users/${operator.body.id}`, {
+      token: tenant.accessToken,
+      body: { role: 'admin' },
+    });
+    expect(promoted.status).toBe(200);
+    expect(promoted.body.role).toBe('admin');
+    expect(
+      (
+        await request<unknown>('PATCH', `/users/${operator.body.id}`, {
+          token: managerLogin.body.accessToken,
+          body: { fullName: 'Tampoco permitido' },
+        })
+      ).status,
+    ).toBe(403);
   });
 
   it('invalida sesiones y logins de usuarios o compañías desactivadas', async () => {
@@ -1471,11 +1577,9 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(octoberFiltered.body.items[0]?.id).toBe(currentMonthExpense.body.id);
     expect(
       (
-        await request<unknown>(
-          'GET',
-          '/expenses?occurredFrom=2026-10-31&occurredTo=2026-10-01',
-          { token: tenant.accessToken },
-        )
+        await request<unknown>('GET', '/expenses?occurredFrom=2026-10-31&occurredTo=2026-10-01', {
+          token: tenant.accessToken,
+        })
       ).status,
     ).toBe(400);
 
@@ -1493,9 +1597,13 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     );
     expect(
       (
-        await request<unknown>('GET', '/profitability?occurredFrom=2026-10-01&occurredTo=2026-10-31', {
-          token: tenant.accessToken,
-        })
+        await request<unknown>(
+          'GET',
+          '/profitability?occurredFrom=2026-10-01&occurredTo=2026-10-31',
+          {
+            token: tenant.accessToken,
+          },
+        )
       ).status,
     ).toBe(403);
     await request<unknown>('PATCH', `/subscriptions/companies/${tenant.company.id}`, {
@@ -1553,10 +1661,14 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       token: tenant.accessToken,
       body: { brandId: brand.body.id, name: 'Modelo Utilidad Integration' },
     });
-    const vehicle = await request<VehicleResponse>('POST', `/clients/${customer.body.id}/vehicles`, {
-      token: tenant.accessToken,
-      body: { brandId: brand.body.id, modelId: model.body.id, year: 2025, color: 'Gris' },
-    });
+    const vehicle = await request<VehicleResponse>(
+      'POST',
+      `/clients/${customer.body.id}/vehicles`,
+      {
+        token: tenant.accessToken,
+        body: { brandId: brand.body.id, modelId: model.body.id, year: 2025, color: 'Gris' },
+      },
+    );
     const order = await request<OrderResponse>('POST', '/orders', {
       token: tenant.accessToken,
       body: {
@@ -1742,10 +1854,14 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       token: tenant.accessToken,
       body: { brandId: brand.body.id, name: 'Modelo Dashboard Integration' },
     });
-    const vehicle = await request<VehicleResponse>('POST', `/clients/${customer.body.id}/vehicles`, {
-      token: tenant.accessToken,
-      body: { brandId: brand.body.id, modelId: model.body.id, year: 2026, color: 'Azul' },
-    });
+    const vehicle = await request<VehicleResponse>(
+      'POST',
+      `/clients/${customer.body.id}/vehicles`,
+      {
+        token: tenant.accessToken,
+        body: { brandId: brand.body.id, modelId: model.body.id, year: 2026, color: 'Azul' },
+      },
+    );
     const createOrder = (description: string, unitPrice: number, unitCost: number) =>
       request<OrderResponse>('POST', '/orders', {
         token: tenant.accessToken,
@@ -1895,11 +2011,9 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         items: [{ productId: lowStockProduct.body.id, quantity: 1, unitCost: 85 }],
       },
     });
-    const controlActivity = await request<DashboardActivityResponse>(
-      'GET',
-      '/dashboard/activity',
-      { token: tenant.accessToken },
-    );
+    const controlActivity = await request<DashboardActivityResponse>('GET', '/dashboard/activity', {
+      token: tenant.accessToken,
+    });
     expect(controlActivity.status).toBe(200);
     expect(controlActivity.body.recentPurchases?.[0]).toMatchObject({
       id: purchase.body.id,
@@ -1965,11 +2079,9 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       token: platformToken,
       body: { planCode: 'invoicing', status: 'active', reason: 'Tablero de facturación' },
     });
-    const invoicingSummary = await request<DashboardSummaryResponse>(
-      'GET',
-      '/dashboard/summary',
-      { token: tenant.accessToken },
-    );
+    const invoicingSummary = await request<DashboardSummaryResponse>('GET', '/dashboard/summary', {
+      token: tenant.accessToken,
+    });
     expect(invoicingSummary.body.access).toMatchObject({
       planCode: 'invoicing',
       planName: 'Facturación',
@@ -2142,11 +2254,11 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(lots.body).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-        receivedQuantity: '4.000',
-        remainingQuantity: '4.000',
-        unitCost: '95.00',
-        sourceType: 'purchase',
-        sourceReference: 'Compra #1',
+          receivedQuantity: '4.000',
+          remainingQuantity: '4.000',
+          unitCost: '95.00',
+          sourceType: 'purchase',
+          sourceReference: 'Compra #1',
         }),
       ]),
     );

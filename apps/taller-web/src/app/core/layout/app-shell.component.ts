@@ -25,6 +25,8 @@ export class AppShellComponent {
       case "platform_admin":
         return "Plataforma";
       case "company_admin":
+        return "Administrador principal";
+      case "admin":
         return "Administrador";
       default:
         return "Usuario";

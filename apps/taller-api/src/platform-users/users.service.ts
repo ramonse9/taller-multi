@@ -52,7 +52,7 @@ export class UsersService {
   ) {}
 
   async list(user: AuthenticatedUser, query: UserQueryDto): Promise<PaginatedUsersResponseDto> {
-    const companyId = this.companyIdForAdmin(user);
+    const companyId = this.companyIdForManager(user);
     const search = query.search.trim();
     const escapedSearch = search.replace(/[\\%_]/g, '\\$&');
     const filter = `%${escapedSearch}%`;
@@ -93,7 +93,7 @@ export class UsersService {
   }
 
   async getOne(user: AuthenticatedUser, id: string): Promise<UserResponseDto> {
-    const companyId = this.companyIdForAdmin(user);
+    const companyId = this.companyIdForManager(user);
     const rows = await this.dataSource.query<UserRow[]>(
       `SELECT id, email, username, phone, phone_verified_at, full_name, role, company_id, timezone_code,
               (SELECT login_code FROM public.companies WHERE id = company_id) AS login_code,
@@ -106,7 +106,8 @@ export class UsersService {
   }
 
   async create(user: AuthenticatedUser, input: CreateUserDto): Promise<UserResponseDto> {
-    const companyId = this.companyIdForAdmin(user);
+    const companyId = this.companyIdForManager(user);
+    this.assertCanAssignRole(user, input.role);
     await this.subscriptions?.assertCanCreateUser(companyId);
     const passwordHash = await argon2.hash(input.password, { type: argon2.argon2id });
     const runner = this.dataSource.createQueryRunner();
@@ -152,17 +153,23 @@ export class UsersService {
     id: string,
     input: UpdateUserDto,
   ): Promise<UserResponseDto> {
-    const companyId = this.companyIdForAdmin(user);
+    const companyId = this.companyIdForManager(user);
     const runner = this.dataSource.createQueryRunner();
     await runner.connect();
     await runner.startTransaction('SERIALIZABLE');
     try {
       const target = await this.lockUser(runner, companyId, id);
-      if (id === user.id && (input.isActive === false || input.role === PlatformRole.User)) {
+      this.assertCanManageTarget(user, target);
+      if (
+        id === user.id &&
+        (input.isActive === false ||
+          (input.role !== undefined && input.role !== PlatformRole.CompanyAdmin))
+      ) {
         throw new BadRequestException(
           'No puedes desactivar ni remover tu propio rol administrador',
         );
       }
+      if (input.role !== undefined) this.assertCanAssignRole(user, input.role);
       if (input.timezoneCode !== undefined) {
         await this.validateTimezone(runner, input.timezoneCode);
       }
@@ -246,11 +253,12 @@ export class UsersService {
   }
 
   async resetPassword(user: AuthenticatedUser, id: string, input: ResetPasswordDto): Promise<void> {
-    const companyId = this.companyIdForAdmin(user);
+    const companyId = this.companyIdForManager(user);
     if (id === user.id) {
       throw new BadRequestException('Usa el cambio de contraseña personal para tu cuenta');
     }
-    await this.getOne(user, id);
+    const target = await this.getOne(user, id);
+    this.assertCanManageTarget(user, target);
     const passwordHash = await argon2.hash(input.password, { type: argon2.argon2id });
     await this.dataSource.query(
       `UPDATE public.users
@@ -261,11 +269,28 @@ export class UsersService {
     );
   }
 
-  private companyIdForAdmin(user: AuthenticatedUser): string {
-    if (user.role !== PlatformRole.CompanyAdmin || !user.companyId) {
-      throw new ForbiddenException('Se requiere un administrador de compañía');
+  private companyIdForManager(user: AuthenticatedUser): string {
+    if (
+      (user.role !== PlatformRole.CompanyAdmin && user.role !== PlatformRole.Admin) ||
+      !user.companyId
+    ) {
+      throw new ForbiddenException('Se requiere un administrador de la compañía');
     }
     return user.companyId;
+  }
+
+  private assertCanAssignRole(user: AuthenticatedUser, role: PlatformRole): void {
+    if (user.role === PlatformRole.Admin && role !== PlatformRole.User) {
+      throw new ForbiddenException('Un administrador solo puede asignar el rol Usuario');
+    }
+  }
+
+  private assertCanManageTarget(actor: AuthenticatedUser, target: Pick<UserRow, 'role'>): void {
+    if (actor.role === PlatformRole.Admin && target.role !== PlatformRole.User) {
+      throw new ForbiddenException(
+        'Un administrador solo puede gestionar usuarios con rol Usuario',
+      );
+    }
   }
 
   private companyIdForTenant(user: AuthenticatedUser): string {
@@ -299,7 +324,7 @@ export class UsersService {
     const removesActiveAdmin =
       current.role === PlatformRole.CompanyAdmin &&
       current.is_active &&
-      (nextRole === PlatformRole.User || nextActive === false);
+      ((nextRole !== undefined && nextRole !== PlatformRole.CompanyAdmin) || nextActive === false);
     if (!removesActiveAdmin) return;
 
     const rows = (await runner.query(

@@ -10,6 +10,7 @@ import {
 export enum PlatformRole {
   PlatformAdmin = 'platform_admin',
   CompanyAdmin = 'company_admin',
+  Admin = 'admin',
   User = 'user',
 }
 

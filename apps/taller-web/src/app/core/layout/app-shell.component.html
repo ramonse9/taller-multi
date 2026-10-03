@@ -76,12 +76,20 @@
             </a>
           }
           @if (auth.hasFeature("expenses")) {
-            <a class="nav-item" routerLink="/expenses" routerLinkActive="active">
+            <a
+              class="nav-item"
+              routerLink="/expenses"
+              routerLinkActive="active"
+            >
               <span>08</span> Gastos
             </a>
           }
           @if (auth.hasFeature("profitability")) {
-            <a class="nav-item" routerLink="/profitability" routerLinkActive="active">
+            <a
+              class="nav-item"
+              routerLink="/profitability"
+              routerLinkActive="active"
+            >
               <span>09</span> Utilidad
             </a>
           }
@@ -99,7 +107,7 @@
             <span>12</span> Seguridad
           </a>
         }
-        @case ("user") {
+        @default {
           <a class="nav-item" routerLink="/dashboard" routerLinkActive="active">
             <span>01</span> Tablero
           </a>
@@ -150,17 +158,31 @@
             </a>
           }
           @if (auth.hasFeature("expenses")) {
-            <a class="nav-item" routerLink="/expenses" routerLinkActive="active">
+            <a
+              class="nav-item"
+              routerLink="/expenses"
+              routerLinkActive="active"
+            >
               <span>08</span> Gastos
             </a>
           }
           @if (auth.hasFeature("profitability")) {
-            <a class="nav-item" routerLink="/profitability" routerLinkActive="active">
+            <a
+              class="nav-item"
+              routerLink="/profitability"
+              routerLinkActive="active"
+            >
               <span>09</span> Utilidad
             </a>
           }
+          @if (auth.user()?.role === "admin") {
+            <a class="nav-item" routerLink="/users" routerLinkActive="active">
+              <span>10</span> Usuarios
+            </a>
+          }
           <a class="nav-item" routerLink="/account" routerLinkActive="active">
-            <span>10</span> Seguridad
+            <span>{{ auth.user()?.role === "admin" ? "11" : "10" }}</span>
+            Seguridad
           </a>
         }
       }

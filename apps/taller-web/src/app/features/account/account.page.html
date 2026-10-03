@@ -80,7 +80,8 @@
           <div>
             <dt>Rol</dt>
             <dd>
-              {{ auth.user()?.role === 'company_admin' ? 'Administrador' :
+              {{ auth.user()?.role === 'company_admin' ? 'Administrador
+              principal' : auth.user()?.role === 'admin' ? 'Administrador' :
               'Usuario' }}
             </dd>
           </div>

@@ -27,7 +27,7 @@ export class SubscriptionsController {
   }
 
   @Get('current')
-  @Roles(PlatformRole.CompanyAdmin, PlatformRole.User)
+  @Roles(PlatformRole.CompanyAdmin, PlatformRole.Admin, PlatformRole.User)
   @ApiOperation({ summary: 'Consultar la suscripción de la compañía autenticada' })
   @ApiOkResponse({ type: SubscriptionResponseDto })
   current(@CurrentUser() user: AuthenticatedUser) {

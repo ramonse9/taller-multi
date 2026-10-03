@@ -87,7 +87,7 @@
               </div>
             </td>
             <td>
-              <span class="role" [class.admin]="user.role === 'company_admin'"
+              <span class="role" [class.admin]="user.role !== 'user'"
                 >{{ roleLabel(user.role) }}</span
               ><small
                 >{{ user.isActive ? 'Acceso activo' : 'Acceso desactivado'
@@ -97,6 +97,7 @@
             <td><span class="timezone">{{ user.timezoneCode }}</span></td>
             <td>{{ formatShortDate(user.createdAt) }}</td>
             <td>
+              @if (canManage(user)) {
               <div class="actions">
                 <button type="button" (click)="openEdit(user)">Editar</button
                 ><button
@@ -111,6 +112,7 @@
                 </button>
                 }
               </div>
+              }
             </td>
           </tr>
           } @empty { @if (!loading()) {
@@ -236,7 +238,10 @@
         <label for="user-role">Rol <b>*</b></label
         ><select id="user-role" formControlName="role">
           <option value="user">Usuario</option>
-          <option value="company_admin">Administrador</option>
+          @if (canAssignRoles()) {
+          <option value="admin">Administrador</option>
+          <option value="company_admin">Administrador principal</option>
+          }
         </select>
       </div>
       <div class="field">

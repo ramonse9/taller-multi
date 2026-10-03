@@ -49,7 +49,7 @@ export class UsersController {
   constructor(private readonly users: UsersService) {}
 
   @Get()
-  @Roles(PlatformRole.CompanyAdmin)
+  @Roles(PlatformRole.CompanyAdmin, PlatformRole.Admin)
   @ApiOperation({ summary: 'Listar usuarios de la compañía autenticada' })
   @ApiOkResponse({ type: PaginatedUsersResponseDto })
   list(
@@ -60,7 +60,7 @@ export class UsersController {
   }
 
   @Get(':id')
-  @Roles(PlatformRole.CompanyAdmin)
+  @Roles(PlatformRole.CompanyAdmin, PlatformRole.Admin)
   @ApiOperation({ summary: 'Consultar un usuario de la compañía' })
   @ApiOkResponse({ type: UserResponseDto })
   getOne(
@@ -71,7 +71,7 @@ export class UsersController {
   }
 
   @Post()
-  @Roles(PlatformRole.CompanyAdmin)
+  @Roles(PlatformRole.CompanyAdmin, PlatformRole.Admin)
   @ApiOperation({ summary: 'Crear un usuario en la compañía' })
   @ApiCreatedResponse({ type: UserResponseDto })
   create(
@@ -95,7 +95,7 @@ export class UsersController {
   }
 
   @Patch(':id/password')
-  @Roles(PlatformRole.CompanyAdmin)
+  @Roles(PlatformRole.CompanyAdmin, PlatformRole.Admin)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Restablecer la contraseña de otro usuario' })
   @ApiNoContentResponse()
@@ -108,7 +108,7 @@ export class UsersController {
   }
 
   @Patch(':id')
-  @Roles(PlatformRole.CompanyAdmin)
+  @Roles(PlatformRole.CompanyAdmin, PlatformRole.Admin)
   @ApiOperation({ summary: 'Actualizar datos, rol o activación de un usuario' })
   @ApiOkResponse({ type: UserResponseDto })
   update(
@@ -120,7 +120,7 @@ export class UsersController {
   }
 
   @Delete(':id')
-  @Roles(PlatformRole.CompanyAdmin)
+  @Roles(PlatformRole.CompanyAdmin, PlatformRole.Admin)
   @ApiOperation({ summary: 'Desactivar un usuario sin eliminar su historial' })
   @ApiOkResponse({ type: UserResponseDto })
   deactivate(

@@ -1,6 +1,6 @@
 import { SubscriptionSummary } from "../subscriptions/subscription.models";
 
-export type UserRole = "platform_admin" | "company_admin" | "user";
+export type UserRole = "platform_admin" | "company_admin" | "admin" | "user";
 
 export interface SessionUser {
   id: string;

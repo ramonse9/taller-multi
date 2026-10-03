@@ -167,7 +167,8 @@ export class UsersPage implements OnInit {
 
   openCreate(): void {
     this.editing.set(null);
-    this.form.controls.role.enable();
+    if (this.canAssignRoles()) this.form.controls.role.enable();
+    else this.form.controls.role.disable();
     this.form.controls.isActive.enable();
     this.form.controls.password.setValidators([
       Validators.required,
@@ -190,12 +191,14 @@ export class UsersPage implements OnInit {
   }
 
   openEdit(user: TenantUser): void {
+    if (!this.canManage(user)) return;
     this.editing.set(user);
     if (user.id === this.auth.user()?.id) {
       this.form.controls.role.disable();
       this.form.controls.isActive.disable();
     } else {
-      this.form.controls.role.enable();
+      if (this.canAssignRoles()) this.form.controls.role.enable();
+      else this.form.controls.role.disable();
       this.form.controls.isActive.enable();
     }
     this.form.controls.password.clearValidators();
@@ -264,6 +267,7 @@ export class UsersPage implements OnInit {
   }
 
   openPasswordReset(user: TenantUser): void {
+    if (!this.canManage(user) || user.id === this.auth.user()?.id) return;
     this.passwordTarget.set(user);
     this.passwordForm.reset({ password: "", confirmation: "" });
   }
@@ -299,6 +303,7 @@ export class UsersPage implements OnInit {
   }
 
   deactivate(user: TenantUser): void {
+    if (!this.canManage(user) || user.id === this.auth.user()?.id) return;
     if (
       !window.confirm(
         `¿Desactivar a ${user.fullName}? Ya no podrá iniciar sesión.`,
@@ -345,7 +350,19 @@ export class UsersPage implements OnInit {
   }
 
   roleLabel(role: TenantRole): string {
-    return role === "company_admin" ? "Administrador" : "Usuario";
+    if (role === "company_admin") return "Administrador principal";
+    return role === "admin" ? "Administrador" : "Usuario";
+  }
+
+  canAssignRoles(): boolean {
+    return this.auth.user()?.role === "company_admin";
+  }
+
+  canManage(user: TenantUser): boolean {
+    const role = this.auth.user()?.role;
+    return (
+      role === "company_admin" || (role === "admin" && user.role === "user")
+    );
   }
 
   companyLoginSuffix(): string {

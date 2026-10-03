@@ -31,7 +31,13 @@ const PHONE_PATTERN = /^\+[1-9]\d{7,14}$/;
 const trimString = ({ value }: { value: unknown }): unknown =>
   typeof value === 'string' ? value.trim() : value;
 
-export const TENANT_ROLES = [PlatformRole.CompanyAdmin, PlatformRole.User] as const;
+export const TENANT_ROLES = [
+  PlatformRole.CompanyAdmin,
+  PlatformRole.Admin,
+  PlatformRole.User,
+] as const;
+
+export type TenantRole = PlatformRole.CompanyAdmin | PlatformRole.Admin | PlatformRole.User;
 
 export class CreateTenantAdminDto {
   @ApiProperty({ example: 'María López' })
@@ -79,7 +85,7 @@ export class CreateUserDto extends CreateTenantAdminDto {
     default: PlatformRole.User,
   })
   @IsIn(TENANT_ROLES)
-  role: PlatformRole.CompanyAdmin | PlatformRole.User = PlatformRole.User;
+  role: TenantRole = PlatformRole.User;
 }
 
 export class UpdateUserDto {
@@ -113,7 +119,7 @@ export class UpdateUserDto {
   @ApiPropertyOptional({ enum: TENANT_ROLES })
   @IsOptional()
   @IsIn(TENANT_ROLES)
-  role?: PlatformRole.CompanyAdmin | PlatformRole.User;
+  role?: TenantRole;
 
   @ApiPropertyOptional({ example: 'America/Mazatlan' })
   @IsOptional()

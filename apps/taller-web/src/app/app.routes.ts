@@ -34,9 +34,11 @@ export const routes: Routes = [
       {
         path: "dashboard",
         canActivate: [roleGuard, featureGuard],
-        data: { roles: ["company_admin", "user"] },
+        data: { roles: ["company_admin", "admin", "user"] },
         loadComponent: () =>
-          import("./features/dashboard/dashboard.page").then((m) => m.DashboardPage),
+          import("./features/dashboard/dashboard.page").then(
+            (m) => m.DashboardPage,
+          ),
       },
       {
         path: "companies",
@@ -50,7 +52,10 @@ export const routes: Routes = [
       {
         path: "clients/:id",
         canActivate: [roleGuard, featureGuard],
-        data: { roles: ["company_admin", "user"], feature: "customer_history" },
+        data: {
+          roles: ["company_admin", "admin", "user"],
+          feature: "customer_history",
+        },
         loadComponent: () =>
           import("./features/clients/client-detail.page").then(
             (m) => m.ClientDetailPage,
@@ -59,14 +64,20 @@ export const routes: Routes = [
       {
         path: "clients",
         canActivate: [roleGuard, featureGuard],
-        data: { roles: ["company_admin", "user"], feature: "customer_history" },
+        data: {
+          roles: ["company_admin", "admin", "user"],
+          feature: "customer_history",
+        },
         loadComponent: () =>
           import("./features/clients/clients.page").then((m) => m.ClientsPage),
       },
       {
         path: "orders/new",
         canActivate: [roleGuard, featureGuard],
-        data: { roles: ["company_admin", "user"], feature: "service_orders" },
+        data: {
+          roles: ["company_admin", "admin", "user"],
+          feature: "service_orders",
+        },
         loadComponent: () =>
           import("./features/orders/order-wizard.page").then(
             (m) => m.OrderWizardPage,
@@ -75,7 +86,10 @@ export const routes: Routes = [
       {
         path: "orders/:id/edit",
         canActivate: [roleGuard, featureGuard],
-        data: { roles: ["company_admin", "user"], feature: "service_orders" },
+        data: {
+          roles: ["company_admin", "admin", "user"],
+          feature: "service_orders",
+        },
         loadComponent: () =>
           import("./features/orders/order-wizard.page").then(
             (m) => m.OrderWizardPage,
@@ -84,7 +98,10 @@ export const routes: Routes = [
       {
         path: "orders/:id",
         canActivate: [roleGuard, featureGuard],
-        data: { roles: ["company_admin", "user"], feature: "service_orders" },
+        data: {
+          roles: ["company_admin", "admin", "user"],
+          feature: "service_orders",
+        },
         loadComponent: () =>
           import("./features/orders/order-detail.page").then(
             (m) => m.OrderDetailPage,
@@ -93,7 +110,10 @@ export const routes: Routes = [
       {
         path: "orders",
         canActivate: [roleGuard, featureGuard],
-        data: { roles: ["company_admin", "user"], feature: "service_orders" },
+        data: {
+          roles: ["company_admin", "admin", "user"],
+          feature: "service_orders",
+        },
         loadComponent: () =>
           import("./features/orders/orders.page").then((m) => m.OrdersPage),
       },
@@ -101,7 +121,7 @@ export const routes: Routes = [
         path: "concept-catalog",
         canActivate: [roleGuard, featureGuard],
         data: {
-          roles: ["company_admin", "user"],
+          roles: ["company_admin", "admin", "user"],
           feature: "item_catalog",
         },
         loadComponent: () =>
@@ -113,7 +133,7 @@ export const routes: Routes = [
         path: "inventory",
         canActivate: [roleGuard, featureGuard],
         data: {
-          roles: ["company_admin", "user"],
+          roles: ["company_admin", "admin", "user"],
           feature: "inventory",
         },
         loadComponent: () =>
@@ -124,7 +144,10 @@ export const routes: Routes = [
       {
         path: "purchases/new",
         canActivate: [roleGuard, featureGuard],
-        data: { roles: ["company_admin", "user"], feature: "inventory" },
+        data: {
+          roles: ["company_admin", "admin", "user"],
+          feature: "inventory",
+        },
         loadComponent: () =>
           import("./features/purchases/purchase-wizard.page").then(
             (m) => m.PurchaseWizardPage,
@@ -133,7 +156,10 @@ export const routes: Routes = [
       {
         path: "purchases/:id/edit",
         canActivate: [roleGuard, featureGuard],
-        data: { roles: ["company_admin", "user"], feature: "inventory" },
+        data: {
+          roles: ["company_admin", "admin", "user"],
+          feature: "inventory",
+        },
         loadComponent: () =>
           import("./features/purchases/purchase-wizard.page").then(
             (m) => m.PurchaseWizardPage,
@@ -142,7 +168,10 @@ export const routes: Routes = [
       {
         path: "purchases/:id",
         canActivate: [roleGuard, featureGuard],
-        data: { roles: ["company_admin", "user"], feature: "inventory" },
+        data: {
+          roles: ["company_admin", "admin", "user"],
+          feature: "inventory",
+        },
         loadComponent: () =>
           import("./features/purchases/purchase-detail.page").then(
             (m) => m.PurchaseDetailPage,
@@ -151,7 +180,10 @@ export const routes: Routes = [
       {
         path: "purchases",
         canActivate: [roleGuard, featureGuard],
-        data: { roles: ["company_admin", "user"], feature: "inventory" },
+        data: {
+          roles: ["company_admin", "admin", "user"],
+          feature: "inventory",
+        },
         loadComponent: () =>
           import("./features/purchases/purchases.page").then(
             (m) => m.PurchasesPage,
@@ -161,7 +193,7 @@ export const routes: Routes = [
         path: "suppliers",
         canActivate: [roleGuard, featureGuard],
         data: {
-          roles: ["company_admin", "user"],
+          roles: ["company_admin", "admin", "user"],
           feature: "item_catalog",
         },
         loadComponent: () =>
@@ -172,7 +204,10 @@ export const routes: Routes = [
       {
         path: "expenses",
         canActivate: [roleGuard, featureGuard],
-        data: { roles: ["company_admin", "user"], feature: "expenses" },
+        data: {
+          roles: ["company_admin", "admin", "user"],
+          feature: "expenses",
+        },
         loadComponent: () =>
           import("./features/expenses/expenses.page").then(
             (m) => m.ExpensesPage,
@@ -181,7 +216,10 @@ export const routes: Routes = [
       {
         path: "profitability",
         canActivate: [roleGuard, featureGuard],
-        data: { roles: ["company_admin", "user"], feature: "profitability" },
+        data: {
+          roles: ["company_admin", "admin", "user"],
+          feature: "profitability",
+        },
         loadComponent: () =>
           import("./features/profitability/profitability.page").then(
             (m) => m.ProfitabilityPage,
@@ -208,7 +246,7 @@ export const routes: Routes = [
       {
         path: "subscription-required",
         canActivate: [roleGuard],
-        data: { roles: ["company_admin", "user"] },
+        data: { roles: ["company_admin", "admin", "user"] },
         loadComponent: () =>
           import("./features/subscriptions/subscription-required.page").then(
             (m) => m.SubscriptionRequiredPage,
@@ -217,14 +255,14 @@ export const routes: Routes = [
       {
         path: "users",
         canActivate: [roleGuard, featureGuard],
-        data: { roles: ["company_admin"] },
+        data: { roles: ["company_admin", "admin"] },
         loadComponent: () =>
           import("./features/users/users.page").then((m) => m.UsersPage),
       },
       {
         path: "account",
         canActivate: [roleGuard],
-        data: { roles: ["company_admin", "user"] },
+        data: { roles: ["company_admin", "admin", "user"] },
         loadComponent: () =>
           import("./features/account/account.page").then((m) => m.AccountPage),
       },

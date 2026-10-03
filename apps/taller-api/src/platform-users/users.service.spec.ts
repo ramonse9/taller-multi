@@ -64,6 +64,23 @@ describe('UsersService', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
+  it('allows tenant administrators to enter user management but not assign admin roles', async () => {
+    const service = new UsersService({} as DataSource);
+    const manager = { ...admin, role: PlatformRole.Admin };
+
+    await expect(
+      service.create(manager, {
+        fullName: 'Otro administrador',
+        username: 'otro_admin',
+        email: null,
+        phone: '+526671234567',
+        password: 'Clave12',
+        timezoneCode: 'America/Mazatlan',
+        role: PlatformRole.Admin,
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
   it('does not find users from a different company', async () => {
     const query = jest.fn<Promise<unknown[]>, [string, unknown[]?]>().mockResolvedValueOnce([]);
     const service = new UsersService({ query } as unknown as DataSource);
@@ -92,8 +109,36 @@ describe('UsersService', () => {
     } as unknown as DataSource);
 
     await expect(
-      service.update(admin, otherAdminId, { role: PlatformRole.User }),
+      service.update(admin, otherAdminId, { role: PlatformRole.Admin }),
     ).rejects.toBeInstanceOf(ConflictException);
+    expect(rollbackTransaction).toHaveBeenCalledTimes(1);
+    expect(query.mock.calls.some(([sql]) => sql.includes('UPDATE public.users'))).toBe(false);
+  });
+
+  it('prevents tenant administrators from managing another administrator', async () => {
+    const targetId = '49ff085a-da97-4cb9-af28-c6f771c48e1d';
+    const query = jest
+      .fn<Promise<unknown[]>, [string, unknown[]?]>()
+      .mockResolvedValueOnce([{ ...row, id: targetId, role: PlatformRole.Admin }]);
+    const rollbackTransaction = jest.fn();
+    const runner = {
+      query,
+      connect: jest.fn(),
+      startTransaction: jest.fn(),
+      commitTransaction: jest.fn(),
+      rollbackTransaction,
+      release: jest.fn(),
+      isTransactionActive: true,
+    } as unknown as QueryRunner;
+    const service = new UsersService({
+      createQueryRunner: jest.fn().mockReturnValue(runner),
+    } as unknown as DataSource);
+
+    await expect(
+      service.update({ ...admin, role: PlatformRole.Admin }, targetId, {
+        fullName: 'Nombre indebido',
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
     expect(rollbackTransaction).toHaveBeenCalledTimes(1);
     expect(query.mock.calls.some(([sql]) => sql.includes('UPDATE public.users'))).toBe(false);
   });
