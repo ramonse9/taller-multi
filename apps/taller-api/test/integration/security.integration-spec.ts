@@ -329,6 +329,41 @@ interface ProfitabilityReportResponse {
   }>;
 }
 
+interface DashboardSummaryResponse {
+  period: { month: string; startsOn: string; endsOn: string };
+  access: {
+    planCode: 'basic' | 'control' | 'invoicing';
+    planName: string;
+    includesFinancials: boolean;
+    includesLowStock: boolean;
+  };
+  orders: {
+    inProgressCount: number;
+    completedUnpaidCount: number;
+    completedPaidCount: number;
+  };
+  revenue: { generated: string; collected: string; outstanding: string };
+  financials: null | {
+    directCost: string;
+    grossProfit: string;
+    operatingExpenses: string;
+    operatingProfit: string;
+    incompleteOrderCount: number;
+    isComplete: boolean;
+  };
+  lowStock: null | {
+    totalProducts: number;
+    products: Array<{
+      id: string;
+      sku: string | null;
+      name: string;
+      unitSymbol: string;
+      stock: string;
+      minimumStock: string;
+    }>;
+  };
+}
+
 interface InventoryLotResponse {
   id: string;
   productId: string;
@@ -1649,6 +1684,143 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         )
       ).status,
     ).toBe(400);
+  });
+
+  it('resume la operación y limita finanzas e inventario según el plan', async () => {
+    const tenant = await provisionAndLogin('Dashboard Integration', 'dashboard.admin@test.local');
+    const customer = await request<ClientResponse>('POST', '/clients', {
+      token: tenant.accessToken,
+      body: { type: 'person', displayName: 'Cliente del tablero' },
+    });
+    const brand = await request<VehicleBrandResponse>('POST', '/catalogs/vehicle-brands', {
+      token: tenant.accessToken,
+      body: { name: 'Marca Dashboard Integration' },
+    });
+    const model = await request<VehicleModelResponse>('POST', '/catalogs/vehicle-models', {
+      token: tenant.accessToken,
+      body: { brandId: brand.body.id, name: 'Modelo Dashboard Integration' },
+    });
+    const vehicle = await request<VehicleResponse>('POST', `/clients/${customer.body.id}/vehicles`, {
+      token: tenant.accessToken,
+      body: { brandId: brand.body.id, modelId: model.body.id, year: 2026, color: 'Azul' },
+    });
+    const createOrder = (description: string, unitPrice: number, unitCost: number) =>
+      request<OrderResponse>('POST', '/orders', {
+        token: tenant.accessToken,
+        body: {
+          customerId: customer.body.id,
+          vehicleId: vehicle.body.id,
+          items: [{ description, quantity: 1, unitPrice, unitCost }],
+        },
+      });
+
+    const paidOrder = await createOrder('Servicio cobrado', 300, 100);
+    await request<OrderResponse>('POST', `/orders/${paidOrder.body.id}/status`, {
+      token: tenant.accessToken,
+      body: { status: 'completed' },
+    });
+    await request<OrderResponse>('PATCH', `/orders/${paidOrder.body.id}/payment-status`, {
+      token: tenant.accessToken,
+      body: { isPaid: true },
+    });
+    const unpaidOrder = await createOrder('Servicio pendiente', 200, 50);
+    await request<OrderResponse>('POST', `/orders/${unpaidOrder.body.id}/status`, {
+      token: tenant.accessToken,
+      body: { status: 'completed' },
+    });
+    await createOrder('Servicio en proceso', 100, 20);
+
+    const basic = await request<DashboardSummaryResponse>('GET', '/dashboard/summary', {
+      token: tenant.accessToken,
+    });
+    expect(basic.status).toBe(200);
+    expect(basic.body.period.month).toMatch(/^\d{4}-\d{2}$/);
+    expect(basic.body.access).toEqual({
+      planCode: 'basic',
+      planName: 'Básico',
+      includesFinancials: false,
+      includesLowStock: false,
+    });
+    expect(basic.body.orders).toEqual({
+      inProgressCount: 1,
+      completedUnpaidCount: 1,
+      completedPaidCount: 1,
+    });
+    expect(basic.body.revenue).toEqual({
+      generated: '500.00',
+      collected: '300.00',
+      outstanding: '200.00',
+    });
+    expect(basic.body.financials).toBeNull();
+    expect(basic.body.lowStock).toBeNull();
+
+    await request<unknown>('PATCH', `/subscriptions/companies/${tenant.company.id}`, {
+      token: platformToken,
+      body: { planCode: 'control', status: 'active', reason: 'Tablero de integración' },
+    });
+    const units = await request<MeasurementUnitResponse[]>('GET', '/catalogs/units', {
+      token: tenant.accessToken,
+    });
+    const lowStockProduct = await request<ConceptResponse>('POST', '/catalogs/concepts', {
+      token: tenant.accessToken,
+      body: {
+        kind: 'product',
+        sku: 'TAB-LOW-001',
+        name: 'Producto bajo para tablero',
+        unitId: units.body.find(({ name }) => name === 'Pieza')!.id,
+        cost: 80,
+        price: 120,
+        tracksInventory: true,
+        minimumStock: 5,
+      },
+    });
+    const categories = await request<ExpenseCategoryResponse[]>('GET', '/expenses/categories', {
+      token: tenant.accessToken,
+    });
+    const expense = await request<ExpenseResponse>('POST', '/expenses', {
+      token: tenant.accessToken,
+      body: {
+        categoryId: categories.body.find(({ code }) => code === 'utilities')!.id,
+        occurredOn: basic.body.period.startsOn,
+        description: 'Gasto para resumen del tablero',
+        amount: 120,
+      },
+    });
+    await request<ExpenseResponse>('POST', `/expenses/${expense.body.id}/status`, {
+      token: tenant.accessToken,
+      body: { status: 'confirmed' },
+    });
+
+    const controlSummary = await request<DashboardSummaryResponse>('GET', '/dashboard/summary', {
+      token: tenant.accessToken,
+    });
+    expect(controlSummary.status).toBe(200);
+    expect(controlSummary.body.access).toMatchObject({
+      planCode: 'control',
+      includesFinancials: true,
+      includesLowStock: true,
+    });
+    expect(controlSummary.body.financials).toEqual({
+      directCost: '150.00',
+      grossProfit: '350.00',
+      operatingExpenses: '120.00',
+      operatingProfit: '230.00',
+      incompleteOrderCount: 0,
+      isComplete: true,
+    });
+    expect(controlSummary.body.lowStock).toMatchObject({
+      totalProducts: 1,
+      products: [
+        {
+          id: lowStockProduct.body.id,
+          sku: 'TAB-LOW-001',
+          name: 'Producto bajo para tablero',
+          unitSymbol: 'pza',
+          stock: '0.000',
+          minimumStock: '5.000',
+        },
+      ],
+    });
   });
 
   it('administra compras con folio, totales, proveedor general y entradas de inventario', async () => {
