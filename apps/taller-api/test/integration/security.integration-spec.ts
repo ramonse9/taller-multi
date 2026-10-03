@@ -1929,6 +1929,101 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         }),
       ],
     });
+
+    const previousMonthOrder = await createOrder('Servicio del mes anterior', 1000, 200);
+    await request<OrderResponse>('POST', `/orders/${previousMonthOrder.body.id}/status`, {
+      token: tenant.accessToken,
+      body: { status: 'completed' },
+    });
+    await control.query(
+      `UPDATE ${quoteIdentifier(tenant.company.schemaName)}.orders
+       SET closed_at = date_trunc('month', current_date) - interval '1 day'
+       WHERE id = $1`,
+      [previousMonthOrder.body.id],
+    );
+    const periodSummary = await request<DashboardSummaryResponse>('GET', '/dashboard/summary', {
+      token: tenant.accessToken,
+    });
+    expect(periodSummary.body.orders).toEqual({
+      inProgressCount: 1,
+      completedUnpaidCount: 2,
+      completedPaidCount: 1,
+    });
+    expect(periodSummary.body.revenue).toEqual({
+      generated: '500.00',
+      collected: '300.00',
+      outstanding: '200.00',
+    });
+    expect(periodSummary.body.financials).toMatchObject({
+      directCost: '150.00',
+      grossProfit: '350.00',
+      operatingExpenses: '120.00',
+      operatingProfit: '230.00',
+    });
+
+    await request<unknown>('PATCH', `/subscriptions/companies/${tenant.company.id}`, {
+      token: platformToken,
+      body: { planCode: 'invoicing', status: 'active', reason: 'Tablero de facturación' },
+    });
+    const invoicingSummary = await request<DashboardSummaryResponse>(
+      'GET',
+      '/dashboard/summary',
+      { token: tenant.accessToken },
+    );
+    expect(invoicingSummary.body.access).toMatchObject({
+      planCode: 'invoicing',
+      planName: 'Facturación',
+      includesFinancials: true,
+      includesLowStock: true,
+    });
+    const invoicingActivity = await request<DashboardActivityResponse>(
+      'GET',
+      '/dashboard/activity',
+      { token: tenant.accessToken },
+    );
+    expect(invoicingActivity.body.recentPurchases).not.toBeNull();
+    expect(invoicingActivity.body.recentExpenses).not.toBeNull();
+    expect(invoicingActivity.body.recentInventoryMovements).not.toBeNull();
+
+    const isolated = await provisionAndLogin(
+      'Dashboard Isolated Integration',
+      'dashboard.isolated@test.local',
+    );
+    await request<unknown>('PATCH', `/subscriptions/companies/${isolated.company.id}`, {
+      token: platformToken,
+      body: { planCode: 'control', status: 'active', reason: 'Aislamiento del tablero' },
+    });
+    const isolatedSummary = await request<DashboardSummaryResponse>('GET', '/dashboard/summary', {
+      token: isolated.accessToken,
+    });
+    expect(isolatedSummary.body.orders).toEqual({
+      inProgressCount: 0,
+      completedUnpaidCount: 0,
+      completedPaidCount: 0,
+    });
+    expect(isolatedSummary.body.revenue).toEqual({
+      generated: '0.00',
+      collected: '0.00',
+      outstanding: '0.00',
+    });
+    expect(isolatedSummary.body.financials).toMatchObject({
+      directCost: '0.00',
+      grossProfit: '0.00',
+      operatingExpenses: '0.00',
+      operatingProfit: '0.00',
+    });
+    expect(isolatedSummary.body.lowStock).toEqual({ totalProducts: 0, products: [] });
+    const isolatedActivity = await request<DashboardActivityResponse>(
+      'GET',
+      '/dashboard/activity',
+      { token: isolated.accessToken },
+    );
+    expect(isolatedActivity.body.recentOrders).toEqual([]);
+    expect(isolatedActivity.body.oldestInProgress).toEqual([]);
+    expect(isolatedActivity.body.pendingCollection).toEqual([]);
+    expect(isolatedActivity.body.recentPurchases).toEqual([]);
+    expect(isolatedActivity.body.recentExpenses).toEqual([]);
+    expect(isolatedActivity.body.recentInventoryMovements).toEqual([]);
   });
 
   it('administra compras con folio, totales, proveedor general y entradas de inventario', async () => {

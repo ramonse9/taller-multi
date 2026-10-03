@@ -95,6 +95,37 @@
       </article>
     </div>
 
+    <section
+      class="mt-3 flex flex-wrap items-center gap-2 border border-[#dcd9cf] bg-white p-3 dark:border-[#3d4d44] dark:bg-[#1a251f]"
+      aria-label="Acciones rápidas"
+    >
+      <span class="detail-label mr-auto px-2">ACCIONES RÁPIDAS</span>
+      @if (auth.hasFeature('service_orders')) {
+      <a class="primary no-underline" routerLink="/orders/new">＋ Crear orden</a>
+      }
+      @if (auth.hasFeature('customer_history')) {
+      <a
+        class="secondary-tw no-underline"
+        routerLink="/clients"
+        [queryParams]="{new: true}"
+        >＋ Registrar cliente</a
+      >
+      }
+      @if (auth.hasFeature('inventory')) {
+      <a class="secondary-tw no-underline" routerLink="/purchases/new"
+        >＋ Registrar compra</a
+      >
+      }
+      @if (auth.hasFeature('expenses')) {
+      <a
+        class="secondary-tw no-underline"
+        routerLink="/expenses"
+        [queryParams]="{new: true}"
+        >＋ Registrar gasto</a
+      >
+      }
+    </section>
+
     @if (data.financials; as financials) {
     <div class="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <article class="border border-[#dcd9cf] bg-white p-5 dark:border-[#3d4d44] dark:bg-[#1a251f]">

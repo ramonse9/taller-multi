@@ -13,6 +13,7 @@ import { finalize, forkJoin } from "rxjs";
 import { formatShortDate } from "../../core/dates/date-format";
 import { apiErrorMessage } from "../../core/http/api-error";
 import { ThemeService } from "../../core/theme/theme.service";
+import { AuthService } from "../../core/auth/auth.service";
 import {
   DashboardActivity,
   DashboardMovementType,
@@ -32,6 +33,7 @@ import { DashboardService } from "./dashboard.service";
 export class DashboardPage implements OnInit {
   private readonly dashboard = inject(DashboardService);
   private readonly destroyRef = inject(DestroyRef);
+  readonly auth = inject(AuthService);
   readonly theme = inject(ThemeService);
   readonly formatShortDate = formatShortDate;
   readonly summary = signal<DashboardSummary | null>(null);

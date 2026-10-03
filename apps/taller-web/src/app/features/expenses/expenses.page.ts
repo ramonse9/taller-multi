@@ -166,6 +166,7 @@ export class ExpensesPage implements OnInit {
       .pipe(distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
       .subscribe((month) => this.loadSummary(month));
     this.loadInitial();
+    if (this.route.snapshot.queryParamMap.get("new") === "true") this.openEditor();
   }
 
   load(page = this.data().page): void {

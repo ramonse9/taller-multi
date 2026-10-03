@@ -12,7 +12,7 @@ import {
   ReactiveFormsModule,
   Validators,
 } from "@angular/forms";
-import { RouterLink } from "@angular/router";
+import { ActivatedRoute, RouterLink } from "@angular/router";
 import { HttpErrorResponse } from "@angular/common/http";
 import { debounceTime, distinctUntilChanged, finalize } from "rxjs";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
@@ -39,6 +39,7 @@ import { formatShortDate } from "../../core/dates/date-format";
 })
 export class ClientsPage implements OnInit {
   private readonly clients = inject(ClientsService);
+  private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
   readonly theme = inject(ThemeService);
   readonly formatShortDate = formatShortDate;
@@ -109,6 +110,7 @@ export class ClientsPage implements OnInit {
       )
       .subscribe(() => this.load(1));
     this.load();
+    if (this.route.snapshot.queryParamMap.get("new") === "true") this.openCreate();
   }
 
   load(page = this.data().page): void {
