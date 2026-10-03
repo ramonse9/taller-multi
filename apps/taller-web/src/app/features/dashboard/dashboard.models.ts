@@ -26,10 +26,16 @@ export interface DashboardSummary {
   };
   orders: {
     inProgressCount: number;
+    unpaidCount: number;
     completedUnpaidCount: number;
     completedPaidCount: number;
   };
-  revenue: { generated: string; collected: string; outstanding: string };
+  revenue: {
+    generated: string;
+    collected: string;
+    outstanding: string;
+    receivable: string;
+  };
   financials: {
     directCost: string;
     grossProfit: string;
@@ -68,8 +74,10 @@ export interface DashboardReceivable {
   vehicleId: string;
   brandName: string;
   modelName: string;
+  status: "in_progress" | "completed";
   total: string | null;
-  completedAt: string;
+  openedAt: string;
+  completedAt: string | null;
 }
 
 export interface DashboardPurchaseActivity {

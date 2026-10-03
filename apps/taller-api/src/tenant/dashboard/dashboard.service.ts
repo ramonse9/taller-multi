@@ -23,11 +23,13 @@ interface OperationsRow {
   starts_on: string;
   ends_on: string;
   in_progress_count: number;
+  unpaid_count: number;
   completed_unpaid_count: number;
   completed_paid_count: number;
   generated: string;
   collected: string;
   outstanding: string;
+  receivable: string;
 }
 
 interface FinancialsRow {
@@ -136,6 +138,7 @@ export class DashboardService {
         },
         orders: {
           inProgressCount: operations.in_progress_count,
+          unpaidCount: operations.unpaid_count,
           completedUnpaidCount: operations.completed_unpaid_count,
           completedPaidCount: operations.completed_paid_count,
         },
@@ -143,6 +146,7 @@ export class DashboardService {
           generated: includesRevenue ? operations.generated : '0.00',
           collected: includesRevenue ? operations.collected : '0.00',
           outstanding: includesRevenue ? operations.outstanding : '0.00',
+          receivable: includesRevenue ? operations.receivable : '0.00',
         },
         financials,
         lowStock,
@@ -198,6 +202,9 @@ export class DashboardService {
          period.starts_on::text, period.ends_on::text,
          count(*) FILTER (WHERE service_order.status = 'in_progress')::int AS in_progress_count,
          count(*) FILTER (
+           WHERE service_order.status <> 'cancelled' AND service_order.is_paid = false
+         )::int AS unpaid_count,
+         count(*) FILTER (
            WHERE service_order.status = 'completed' AND service_order.is_paid = false
          )::int AS completed_unpaid_count,
          count(*) FILTER (
@@ -217,7 +224,10 @@ export class DashboardService {
            WHERE service_order.status = 'completed' AND service_order.is_paid = false
              AND service_order.closed_at >= period.starts_on
              AND service_order.closed_at < period.starts_on + interval '1 month'
-         ), 0)::numeric(14,2)::text AS outstanding
+         ), 0)::numeric(14,2)::text AS outstanding,
+         COALESCE(sum(service_order.total) FILTER (
+           WHERE service_order.status <> 'cancelled' AND service_order.is_paid = false
+         ), 0)::numeric(14,2)::text AS receivable
        FROM period LEFT JOIN ${schema}.orders service_order ON true
        GROUP BY period.starts_on, period.ends_on`,
     )) as OperationsRow[];
@@ -330,8 +340,9 @@ export class DashboardService {
   ): Promise<DashboardReceivableResponseDto[]> {
     const rows = (await runner.query(
       `${this.orderActivitySelect(schema)}
-       WHERE service_order.status = 'completed' AND service_order.is_paid = false
-       ORDER BY service_order.closed_at, service_order.total DESC NULLS LAST, service_order.id
+       WHERE service_order.status <> 'cancelled' AND service_order.is_paid = false
+       ORDER BY COALESCE(service_order.closed_at, service_order.opened_at),
+         service_order.total DESC NULLS LAST, service_order.id
        LIMIT 5`,
     )) as OrderActivityRow[];
     return rows.map((row) => ({
@@ -342,8 +353,10 @@ export class DashboardService {
       vehicleId: row.vehicle_id,
       brandName: row.brand_name,
       modelName: row.model_name,
+      status: row.status,
       total: row.total,
-      completedAt: row.closed_at!,
+      openedAt: row.opened_at,
+      completedAt: row.closed_at,
     }));
   }
 

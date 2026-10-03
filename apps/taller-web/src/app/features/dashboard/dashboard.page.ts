@@ -46,7 +46,7 @@ export class DashboardPage implements OnInit {
     if (!summary || !activity) return false;
     return (
       summary.orders.inProgressCount === 0 &&
-      summary.orders.completedUnpaidCount === 0 &&
+      summary.orders.unpaidCount === 0 &&
       summary.orders.completedPaidCount === 0 &&
       (activity.recentPurchases?.length ?? 0) === 0 &&
       (activity.recentExpenses?.length ?? 0) === 0 &&

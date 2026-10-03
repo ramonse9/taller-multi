@@ -72,14 +72,14 @@
       <a
         class="group border border-[#e4c99d] bg-[#fff7e7] p-5 text-inherit no-underline transition hover:-translate-y-0.5 hover:border-[#d6922e] dark:border-[#6e542b] dark:bg-[#392d19]"
         routerLink="/orders"
-        [queryParams]="{status: 'completed', isPaid: false}"
+        [queryParams]="{isPaid: false}"
       >
         <div class="flex items-center justify-between gap-3">
           <span class="detail-label !text-[#805719] dark:!text-[#ffd18a]">PENDIENTE DE COBRO</span>
           <span class="size-2.5 rounded-full bg-[#d6922e]"></span>
         </div>
-        <strong class="mt-3 block font-[var(--display)] text-4xl">{{ data.orders.completedUnpaidCount }}</strong>
-        <small class="text-[#805719] dark:text-[#ffd18a]">{{ money(data.revenue.outstanding) }} este mes →</small>
+        <strong class="mt-3 block font-[var(--display)] text-4xl">{{ data.orders.unpaidCount }}</strong>
+        <small class="text-[#805719] dark:text-[#ffd18a]">{{ money(data.revenue.receivable) }} por cobrar →</small>
       </a>
 
       <article class="border border-[#bed1df] bg-[#eef6fb] p-5 dark:border-[#38556a] dark:bg-[#192d3a]">
@@ -188,12 +188,12 @@
       <section class="overflow-hidden border border-[#dcd9cf] bg-white dark:border-[#3d4d44] dark:bg-[#1a251f]">
         <header class="flex items-center justify-between gap-4 border-b border-[#ece9df] bg-[#f2f0e9] px-5 py-4 dark:border-[#35433b] dark:bg-[#222f27]">
           <div><p class="eyebrow">COBRANZA</p><h2 class="section-title">Pendientes de cobro</h2></div>
-          <a class="text-xs font-bold text-[#b94718] dark:text-[#ff9a6f]" routerLink="/orders" [queryParams]="{status: 'completed', isPaid: false}">Ver todas →</a>
+          <a class="text-xs font-bold text-[#b94718] dark:text-[#ff9a6f]" routerLink="/orders" [queryParams]="{isPaid: false}">Ver todas →</a>
         </header>
         <div class="divide-y divide-[#ece9df] dark:divide-[#35433b]">
           @for (order of feed.pendingCollection; track order.id) {
           <a class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-l-4 border-[#d6922e] p-4 text-inherit no-underline transition hover:bg-[#fffaf0] dark:hover:bg-[#30291b]" [routerLink]="['/orders', order.id]">
-            <span class="min-w-0"><strong class="block truncate">#{{ order.folio }} · {{ order.customerName }}</strong><small class="block truncate text-[#68746d] dark:text-[#aab7af]">Terminada {{ formatShortDate(order.completedAt) }} · {{ order.brandName }} {{ order.modelName }}</small></span>
+            <span class="min-w-0"><strong class="block truncate">#{{ order.folio }} · {{ order.customerName }}</strong><small class="block truncate text-[#68746d] dark:text-[#aab7af]">{{ order.status === 'completed' ? 'Terminada' : 'En proceso desde' }} {{ formatShortDate(order.completedAt || order.openedAt) }} · {{ order.brandName }} {{ order.modelName }}</small></span>
             <span class="text-right"><strong class="block text-[#805719] dark:text-[#ffd18a]">{{ money(order.total) }}</strong><small class="font-bold text-[#b94718] dark:text-[#ff9a6f]">Cobrar →</small></span>
           </a>
           } @empty {

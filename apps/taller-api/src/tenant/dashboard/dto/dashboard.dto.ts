@@ -18,6 +18,8 @@ export class DashboardAccessResponseDto {
 export class DashboardOrdersResponseDto {
   @ApiProperty({ description: 'Órdenes que actualmente están en proceso' })
   inProgressCount!: number;
+  @ApiProperty({ description: 'Órdenes no canceladas que continúan pendientes de cobro' })
+  unpaidCount!: number;
   @ApiProperty({ description: 'Órdenes terminadas que continúan pendientes de cobro' })
   completedUnpaidCount!: number;
   @ApiProperty({ description: 'Órdenes terminadas que actualmente están pagadas' })
@@ -31,6 +33,8 @@ export class DashboardRevenueResponseDto {
   collected!: string;
   @ApiProperty({ description: 'Ingreso de órdenes del mes todavía pendientes de cobro' })
   outstanding!: string;
+  @ApiProperty({ description: 'Importe actual de órdenes no canceladas pendientes de cobro' })
+  receivable!: string;
 }
 
 export class DashboardFinancialsResponseDto {
@@ -97,8 +101,10 @@ export class DashboardReceivableResponseDto {
   @ApiProperty({ format: 'uuid' }) vehicleId!: string;
   @ApiProperty() brandName!: string;
   @ApiProperty() modelName!: string;
+  @ApiProperty({ enum: ['in_progress', 'completed'] }) status!: string;
   @ApiProperty({ nullable: true, type: String }) total!: string | null;
-  @ApiProperty() completedAt!: Date;
+  @ApiProperty() openedAt!: Date;
+  @ApiProperty({ nullable: true, type: Date }) completedAt!: Date | null;
 }
 
 export class DashboardPurchaseActivityResponseDto {

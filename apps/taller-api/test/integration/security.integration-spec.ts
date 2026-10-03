@@ -362,10 +362,11 @@ interface DashboardSummaryResponse {
   };
   orders: {
     inProgressCount: number;
+    unpaidCount: number;
     completedUnpaidCount: number;
     completedPaidCount: number;
   };
-  revenue: { generated: string; collected: string; outstanding: string };
+  revenue: { generated: string; collected: string; outstanding: string; receivable: string };
   financials: null | {
     directCost: string;
     grossProfit: string;
@@ -404,8 +405,10 @@ interface DashboardActivityResponse {
   pendingCollection: Array<{
     id: string;
     folio: string;
+    status: 'in_progress' | 'completed';
     total: string | null;
-    completedAt: string;
+    openedAt: string;
+    completedAt: string | null;
   }>;
   recentPurchases: null | Array<{
     id: string;
@@ -2266,6 +2269,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     });
     expect(basic.body.orders).toEqual({
       inProgressCount: 1,
+      unpaidCount: 2,
       completedUnpaidCount: 1,
       completedPaidCount: 1,
     });
@@ -2273,6 +2277,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       generated: '500.00',
       collected: '300.00',
       outstanding: '200.00',
+      receivable: '300.00',
     });
     expect(basic.body.financials).toBeNull();
     expect(basic.body.lowStock).toBeNull();
@@ -2284,9 +2289,22 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(basicActivity.body.oldestInProgress).toEqual([
       expect.objectContaining({ id: inProgressOrder.body.id, daysOpen: 0 }),
     ]);
-    expect(basicActivity.body.pendingCollection).toEqual([
-      expect.objectContaining({ id: unpaidOrder.body.id, total: '200.00' }),
-    ]);
+    expect(basicActivity.body.pendingCollection).toHaveLength(2);
+    expect(basicActivity.body.pendingCollection).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: unpaidOrder.body.id,
+          status: 'completed',
+          total: '200.00',
+        }),
+        expect.objectContaining({
+          id: inProgressOrder.body.id,
+          status: 'in_progress',
+          total: '100.00',
+          completedAt: null,
+        }),
+      ]),
+    );
     expect(basicActivity.body.recentPurchases).toBeNull();
     expect(basicActivity.body.recentExpenses).toBeNull();
     expect(basicActivity.body.recentInventoryMovements).toBeNull();
@@ -2425,6 +2443,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     });
     expect(periodSummary.body.orders).toEqual({
       inProgressCount: 1,
+      unpaidCount: 3,
       completedUnpaidCount: 2,
       completedPaidCount: 1,
     });
@@ -2432,6 +2451,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       generated: '500.00',
       collected: '300.00',
       outstanding: '200.00',
+      receivable: '1300.00',
     });
     expect(periodSummary.body.financials).toMatchObject({
       directCost: '150.00',
@@ -2475,6 +2495,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     });
     expect(isolatedSummary.body.orders).toEqual({
       inProgressCount: 0,
+      unpaidCount: 0,
       completedUnpaidCount: 0,
       completedPaidCount: 0,
     });
@@ -2482,6 +2503,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       generated: '0.00',
       collected: '0.00',
       outstanding: '0.00',
+      receivable: '0.00',
     });
     expect(isolatedSummary.body.financials).toMatchObject({
       directCost: '0.00',

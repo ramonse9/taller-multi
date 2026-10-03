@@ -176,7 +176,10 @@ export class OrdersService {
           OR COALESCE(vehicle.serial_number, '') ILIKE $4 ESCAPE '\\'
           OR brand.name ILIKE $4 ESCAPE '\\'
           OR model.name ILIKE $4 ESCAPE '\\')
-        AND ($5::boolean IS NULL OR service_order.is_paid = $5)`;
+        AND ($5::boolean IS NULL OR (
+          service_order.is_paid = $5
+          AND ($5 = true OR service_order.status <> 'cancelled')
+        ))`;
       const countRows = (await runner.query(
         `SELECT COUNT(*) AS total
          FROM ${schema}.orders service_order
