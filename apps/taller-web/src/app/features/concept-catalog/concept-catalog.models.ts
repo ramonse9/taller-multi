@@ -16,7 +16,7 @@ export interface CatalogConcept {
   name: string;
   description: string | null;
   unit: MeasurementUnit;
-  cost: string;
+  cost: string | null;
   lastCost: string | null;
   averageCost: string | null;
   price: string;

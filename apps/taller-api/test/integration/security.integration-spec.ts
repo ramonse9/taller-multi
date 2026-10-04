@@ -2095,6 +2095,33 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       token: tenant.accessToken,
       body: { status: 'cancelled' },
     });
+    const confirmedZeroCostService = await request<OrderResponse>('POST', '/orders', {
+      token: tenant.accessToken,
+      body: {
+        customerId: customer.body.id,
+        vehicleId: vehicle.body.id,
+        items: [
+          {
+            kind: 'service',
+            description: 'Servicio sin costo para el taller',
+            quantity: 1,
+            unitPrice: 75,
+            unitCost: 0,
+          },
+        ],
+      },
+    });
+    expect(confirmedZeroCostService.body).toMatchObject({
+      total: '75.00',
+      totalCost: '0.00',
+      grossProfit: '75.00',
+      hasUnknownCosts: false,
+      isFinanciallyComplete: true,
+    });
+    await request<OrderResponse>('POST', `/orders/${confirmedZeroCostService.body.id}/status`, {
+      token: tenant.accessToken,
+      body: { status: 'cancelled' },
+    });
     const catalogPriceOverride = await request<OrderResponse>('POST', '/orders', {
       token: tenant.accessToken,
       body: {
@@ -2161,6 +2188,28 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       grossProfit: null,
       hasUnknownCosts: true,
       isFinanciallyComplete: false,
+    });
+    const paidWithoutCost = await request<OrderResponse>(
+      'PATCH',
+      `/orders/${productWithoutCost.body.id}/payment-status`,
+      { token: tenant.accessToken, body: { isPaid: true } },
+    );
+    expect(paidWithoutCost.body).toMatchObject({
+      isPaid: true,
+      total: '100.00',
+      grossProfit: null,
+    });
+    await request<OrderResponse>('PATCH', `/orders/${productWithoutCost.body.id}/payment-status`, {
+      token: tenant.accessToken,
+      body: { isPaid: false },
+    });
+    await request<OrderResponse>('POST', `/orders/${productWithoutCost.body.id}/status`, {
+      token: tenant.accessToken,
+      body: { status: 'in_progress' },
+    });
+    await request<OrderResponse>('POST', `/orders/${productWithoutCost.body.id}/status`, {
+      token: tenant.accessToken,
+      body: { status: 'completed' },
     });
     await request<OrderResponse>('POST', `/orders/${productWithoutCost.body.id}/status`, {
       token: tenant.accessToken,

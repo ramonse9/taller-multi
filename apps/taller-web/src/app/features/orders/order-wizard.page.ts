@@ -446,7 +446,7 @@ export class OrderWizardPage implements OnInit {
       description: concept.name,
       quantity: 1,
       unitPrice: Number(concept.price),
-      unitCost: Number(concept.cost),
+      unitCost: concept.cost === null ? null : Number(concept.cost),
       unitName: concept.unit.name,
       unitSymbol: concept.unit.symbol,
       tracksInventory: concept.tracksInventory,
@@ -480,14 +480,6 @@ export class OrderWizardPage implements OnInit {
     item.get("kind")?.setValue(kind);
     item.get("unitName")?.setValue(kind === "service" ? "Servicio" : "Unidad");
     item.get("unitSymbol")?.setValue(kind === "service" ? "serv" : "u");
-    const cost = item.get("unitCost");
-    if (!cost) return;
-    cost.setValidators(
-      kind === "product"
-        ? [Validators.required, Validators.min(0)]
-        : [Validators.min(0)],
-    );
-    cost.updateValueAndValidity();
   }
 
   isExplicitZeroCost(index: number): boolean {
@@ -633,7 +625,7 @@ export class OrderWizardPage implements OnInit {
         validators: [Validators.required, Validators.min(1)],
       }),
       unitPrice: new FormControl<number | null>(value.unitPrice ?? null, {
-        validators: [Validators.min(0)],
+        validators: [Validators.required, Validators.min(0)],
       }),
       unitCost: new FormControl<number | null>(value.unitCost ?? null, {
         validators: [Validators.min(0)],

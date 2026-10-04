@@ -488,8 +488,6 @@
                   <button
                     type="button"
                     [class.segment-selected]="item.value.kind === 'product'"
-                    [disabled]="!canUseProfitability()"
-                    [title]="!canUseProfitability() ? 'Requiere acceso a costos' : ''"
                     (click)="setItemKind(i, 'product')"
                   >
                     Producto
@@ -497,12 +495,13 @@
                 </div>
                 @if (item.value.kind === 'service') {
                 <p class="mb-3 mt-2 text-xs text-[#63717d] dark:text-[#afbed0]">
-                  Mano de obra o servicio. El costo puede quedar vacío y se
-                  guardará en $0.00.
+                  Mano de obra o servicio. El precio es obligatorio y el costo
+                  es opcional.
                 </p>
                 } @else {
                 <p class="mb-3 mt-2 text-xs text-[#805719] dark:text-[#ffd18a]">
-                  Producto libre: requiere costo y no afecta inventario.
+                  Producto libre sin inventario. El precio es obligatorio y el
+                  costo es opcional.
                 </p>
                 } } @else {
                 <span class="field-label">TIPO DE CONCEPTO</span>
@@ -536,8 +535,8 @@
               <div>
                 @if (canUseProfitability() && !item.value.productServiceId) {
                 <label class="field-label" [for]="'item-cost-' + i"
-                  >Costo unitario @if (item.value.kind === 'product') {
-                  <b>*</b> }</label
+                  >Costo unitario
+                  <span class="font-normal">(opcional)</span></label
                 >
                 <input
                   class="field-control"
@@ -546,15 +545,12 @@
                   min="0"
                   step="0.01"
                   formControlName="unitCost"
-                  [placeholder]="item.value.kind === 'product' ? 'Obligatorio' : 'Vacío = $0.00'"
+                  placeholder="Opcional"
                 />
                 @if (item.get('unitCost')?.touched &&
                 item.get('unitCost')?.invalid) {
-                <small class="field-error"
-                  >Captura el costo del producto.</small
-                >
-                } @else if (item.value.kind === 'service' &&
-                isExplicitZeroCost(i)) {
+                <small class="field-error">Captura un costo válido.</small>
+                } @else if (isExplicitZeroCost(i)) {
                 <small
                   class="mt-1 block text-xs font-bold text-[#285f8a] dark:text-[#b9dcf5]"
                 >
@@ -581,7 +577,7 @@
               </div>
               <div>
                 <label class="field-label" [for]="'item-price-' + i"
-                  >Precio unitario</label
+                  >Precio unitario <b>*</b></label
                 ><input
                   class="field-control"
                   [id]="'item-price-' + i"
@@ -589,9 +585,14 @@
                   min="0"
                   step="0.01"
                   formControlName="unitPrice"
-                  placeholder="Opcional"
-                  [readOnly]="!!item.value.productServiceId"
+                  placeholder="Obligatorio"
                 />
+                @if (item.get('unitPrice')?.touched &&
+                item.get('unitPrice')?.invalid) {
+                <small class="field-error"
+                  >Captura el precio; puede ser $0.00.</small
+                >
+                }
               </div>
               <div>
                 <span class="field-label">IMPORTE</span

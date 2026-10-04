@@ -297,7 +297,11 @@ export class ConceptCatalogPage implements OnInit {
       });
   }
 
-  money(value: string | number): string {
+  money(value: string | number | null): string {
+    if (value === null) {
+      return "Por definir";
+    }
+
     return new Intl.NumberFormat("es-MX", {
       style: "currency",
       currency: "MXN",

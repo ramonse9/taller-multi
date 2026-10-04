@@ -265,7 +265,9 @@ export class PurchaseWizardPage implements OnInit {
     this.rememberProducts([product]);
     const item = this.items.at(index);
     item.controls.productId.setValue(product.id);
-    if (!item.controls.unitCost.value) item.controls.unitCost.setValue(product.cost);
+    if (!item.controls.unitCost.value && product.cost !== null) {
+      item.controls.unitCost.setValue(product.cost);
+    }
     this.validateUniqueProducts();
     this.closeProductPicker();
   }
