@@ -40,4 +40,15 @@ describe('TenantMigrator', () => {
     expect(statements.join('\n')).not.toContain('corporate_customers');
     expect(statements.join('\n')).not.toContain('corporate_customer_id');
   });
+
+  it('stores the historical kind and requires cost for free products', () => {
+    const orderItems = new TenantMigrator()
+      .baseStatements('"tenant_test"')
+      .find((sql) => sql.includes('CREATE TABLE "tenant_test".order_items'));
+
+    expect(orderItems).toContain("kind varchar(10) NOT NULL CHECK (kind IN ('product','service'))");
+    expect(orderItems).toContain(
+      "CHECK (product_service_id IS NOT NULL OR kind <> 'product' OR unit_cost IS NOT NULL)",
+    );
+  });
 });

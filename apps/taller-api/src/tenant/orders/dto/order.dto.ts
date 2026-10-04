@@ -36,6 +36,11 @@ export enum OrderStatus {
   Cancelled = 'cancelled',
 }
 
+export enum OrderItemKind {
+  Product = 'product',
+  Service = 'service',
+}
+
 export class OrderItemInputDto {
   @ApiPropertyOptional({ format: 'uuid', description: 'Renglón existente al editar una orden' })
   @IsOptional()
@@ -49,6 +54,15 @@ export class OrderItemInputDto {
   @IsOptional()
   @IsUUID('4')
   productServiceId?: string | null;
+
+  @ApiPropertyOptional({
+    enum: OrderItemKind,
+    default: OrderItemKind.Service,
+    description: 'Tipo del concepto libre; los conceptos de catálogo copian su propio tipo',
+  })
+  @IsOptional()
+  @IsEnum(OrderItemKind)
+  kind?: OrderItemKind;
 
   @ApiProperty({ example: 'Cambio de balatas delanteras' })
   @ValidateIf(
@@ -199,6 +213,7 @@ export class OrderItemResponseDto {
   @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty({ format: 'uuid', nullable: true, type: String })
   productServiceId!: string | null;
+  @ApiProperty({ enum: OrderItemKind }) kind!: OrderItemKind;
   @ApiProperty() position!: number;
   @ApiProperty() description!: string;
   @ApiProperty() unitName!: string;

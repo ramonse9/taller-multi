@@ -8,8 +8,8 @@ export interface TenantMigration {
   up(queryRunner: QueryRunner, schemaName: string): Promise<void>;
 }
 
-export const TENANT_BASE_VERSION = 16;
-export const TENANT_BASE_NAME = 'tenant-base-v16';
+export const TENANT_BASE_VERSION = 17;
+export const TENANT_BASE_NAME = 'tenant-base-v17';
 
 /**
  * Dynamic tenant migrations deliberately use qualified identifiers everywhere.
@@ -124,6 +124,7 @@ export class TenantMigrator {
       `CREATE TABLE ${s}.order_items (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_id uuid NOT NULL REFERENCES ${s}.orders(id) ON DELETE CASCADE,
         product_service_id uuid REFERENCES ${s}.products_services(id),
+        kind varchar(10) NOT NULL CHECK (kind IN ('product','service')),
         description varchar(300) NOT NULL, quantity numeric(12,3) NOT NULL CHECK (quantity > 0),
         unit_price numeric(14,2) CHECK (unit_price >= 0), total numeric(14,2) CHECK (total >= 0),
         unit_name varchar(80) NOT NULL DEFAULT 'Unidad', unit_symbol varchar(20) NOT NULL DEFAULT 'u',
@@ -131,7 +132,8 @@ export class TenantMigrator {
         cost_total numeric(14,2) CHECK (cost_total IS NULL OR cost_total >= 0),
         tracks_inventory boolean NOT NULL DEFAULT false,
         position integer NOT NULL CHECK (position > 0), created_at timestamptz NOT NULL DEFAULT now(),
-        UNIQUE(order_id, position)
+        UNIQUE(order_id, position),
+        CHECK (product_service_id IS NOT NULL OR kind <> 'product' OR unit_cost IS NOT NULL)
       )`,
       `CREATE TABLE ${s}.order_notes (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_id uuid NOT NULL REFERENCES ${s}.orders(id) ON DELETE CASCADE,

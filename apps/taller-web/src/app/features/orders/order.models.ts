@@ -1,6 +1,7 @@
 import { CustomerType } from "../clients/client.models";
 
 export type OrderStatus = "in_progress" | "completed" | "cancelled";
+export type OrderItemKind = "product" | "service";
 
 export interface OrderCustomer {
   id: string;
@@ -21,6 +22,7 @@ export interface OrderVehicle {
 export interface OrderItem {
   id: string;
   productServiceId: string | null;
+  kind: OrderItemKind;
   position: number;
   description: string;
   unitName: string;
@@ -101,6 +103,7 @@ export interface PaginatedOrders {
 export interface OrderItemInput {
   itemId?: string;
   productServiceId?: string | null;
+  kind?: OrderItemKind;
   description: string;
   quantity: number;
   unitPrice?: number | null;

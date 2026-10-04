@@ -484,6 +484,7 @@ interface OrderResponse {
   items: Array<{
     id: string;
     productServiceId: string | null;
+    kind: 'product' | 'service';
     position: number;
     description: string;
     quantity: string;
@@ -1934,10 +1935,10 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     ).toBe(400);
 
     const versions = await control.query<Array<{ version: number }>>(
-      'SELECT version FROM public.tenant_schema_versions WHERE company_id = $1 AND version = 16',
+      'SELECT version FROM public.tenant_schema_versions WHERE company_id = $1 AND version = 17',
       [tenant.company.id],
     );
-    expect(versions).toEqual([{ version: 16 }]);
+    expect(versions).toEqual([{ version: 17 }]);
   });
 
   it('calcula utilidad con ingresos terminados, FIFO y gastos confirmados', async () => {
@@ -2036,6 +2037,40 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       },
     });
     expect(order.status).toBe(201);
+    expect(order.body.items.map(({ kind, unitCost }) => ({ kind, unitCost }))).toEqual([
+      { kind: 'product', unitCost: '80.00' },
+      { kind: 'service', unitCost: '50.00' },
+      { kind: 'service', unitCost: '20.00' },
+    ]);
+    const zeroCostService = await request<OrderResponse>('POST', '/orders', {
+      token: tenant.accessToken,
+      body: {
+        customerId: customer.body.id,
+        vehicleId: vehicle.body.id,
+        items: [
+          { kind: 'service', description: 'Mano de obra propia', quantity: 1, unitPrice: 250 },
+        ],
+      },
+    });
+    expect(zeroCostService.status).toBe(201);
+    expect(zeroCostService.body.items[0]).toMatchObject({
+      kind: 'service',
+      unitCost: '0.00',
+      costAmount: '0.00',
+    });
+    await request<OrderResponse>('POST', `/orders/${zeroCostService.body.id}/status`, {
+      token: tenant.accessToken,
+      body: { status: 'cancelled' },
+    });
+    const productWithoutCost = await request<unknown>('POST', '/orders', {
+      token: tenant.accessToken,
+      body: {
+        customerId: customer.body.id,
+        vehicleId: vehicle.body.id,
+        items: [{ kind: 'product', description: 'Producto libre', quantity: 1, unitPrice: 100 }],
+      },
+    });
+    expect(productWithoutCost.status).toBe(422);
     const completed = await request<OrderResponse>('POST', `/orders/${order.body.id}/status`, {
       token: tenant.accessToken,
       body: { status: 'completed' },

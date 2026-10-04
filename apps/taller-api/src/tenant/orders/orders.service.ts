@@ -14,6 +14,7 @@ import {
   CreateOrderDto,
   CreateOrderNoteDto,
   OrderItemInputDto,
+  OrderItemKind,
   OrderItemResponseDto,
   OrderListItemResponseDto,
   OrderNoteResponseDto,
@@ -70,6 +71,7 @@ interface LockedOrderRow {
 interface OrderItemRow {
   id: string;
   product_service_id: string | null;
+  kind: OrderItemKind;
   position: number;
   description: string;
   unit_name: string;
@@ -92,6 +94,7 @@ interface OrderItemCostLayerRow {
 
 interface CatalogConceptRow {
   id: string;
+  kind: OrderItemKind;
   name: string;
   cost: string;
   unit_price: string;
@@ -328,7 +331,9 @@ export class OrdersService {
         );
       }
       if (input.isPaid && order.total === null) {
-        throw new BadRequestException('Define todos los precios antes de marcar la orden como pagada');
+        throw new BadRequestException(
+          'Define todos los precios antes de marcar la orden como pagada',
+        );
       }
       await runner.query(
         `UPDATE ${schema}.orders
@@ -381,7 +386,7 @@ export class OrdersService {
     const row = rows[0];
     if (!row) throw new NotFoundException('Orden no encontrada');
     const items = (await runner.query(
-      `SELECT id, product_service_id, position, description, unit_name, unit_symbol,
+      `SELECT id, product_service_id, kind, position, description, unit_name, unit_symbol,
               quantity, unit_price, total, unit_cost, cost_total, tracks_inventory
        FROM ${schema}.order_items WHERE order_id = $1 ORDER BY position`,
       [id],
@@ -434,6 +439,7 @@ export class OrdersService {
       items: items.map<OrderItemResponseDto>((item) => ({
         id: item.id,
         productServiceId: item.product_service_id,
+        kind: item.kind,
         position: item.position,
         description: item.description,
         unitName: item.unit_name,
@@ -477,7 +483,7 @@ export class OrdersService {
     user: AuthenticatedUser,
   ): Promise<void> {
     const existingItems = (await runner.query(
-      `SELECT id, product_service_id, position, description, unit_name, unit_symbol,
+      `SELECT id, product_service_id, kind, position, description, unit_name, unit_symbol,
               quantity, unit_price, total, unit_cost, cost_total, tracks_inventory
        FROM ${schema}.order_items WHERE order_id = $1`,
       [orderId],
@@ -486,9 +492,10 @@ export class OrdersService {
     await runner.query(`DELETE FROM ${schema}.order_items WHERE order_id = $1`, [orderId]);
     for (const [index, item] of items.entries()) {
       let productServiceId: string | null = null;
+      let kind = item.kind ?? OrderItemKind.Service;
       let description = item.description ?? '';
-      let unitName = 'Unidad';
-      let unitSymbol = 'u';
+      let unitName = kind === OrderItemKind.Service ? 'Servicio' : 'Unidad';
+      let unitSymbol = kind === OrderItemKind.Service ? 'serv' : 'u';
       let unitPrice = item.unitPrice ?? null;
       let unitCost = item.unitCost ?? null;
       let tracksInventory = false;
@@ -507,6 +514,7 @@ export class OrdersService {
           );
         }
         productServiceId = existing.product_service_id;
+        kind = existing.kind;
         description = existing.description;
         unitName = existing.unit_name;
         unitSymbol = existing.unit_symbol;
@@ -526,25 +534,44 @@ export class OrdersService {
           );
         }
         productServiceId = concept.id;
+        kind = concept.kind;
         description = concept.name;
         unitName = concept.unit_name;
         unitSymbol = concept.unit_symbol;
         unitPrice = Number(concept.unit_price);
         unitCost = Number(concept.cost);
         tracksInventory = concept.tracks_inventory;
-      } else if (!user.subscription?.features.includes('free_order_items')) {
-        throw new UnprocessableEntityException('El plan actual no permite conceptos libres');
+      } else {
+        if (!user.subscription?.features.includes('free_order_items')) {
+          throw new UnprocessableEntityException('El plan actual no permite conceptos libres');
+        }
+        kind = item.kind ?? existing?.kind ?? OrderItemKind.Service;
+        if (existing && item.unitPrice === undefined) {
+          unitPrice = existing.unit_price === null ? null : Number(existing.unit_price);
+        }
+        if (existing && item.unitCost === undefined) {
+          unitCost = existing.unit_cost === null ? null : Number(existing.unit_cost);
+        }
+        unitName = kind === OrderItemKind.Service ? 'Servicio' : 'Unidad';
+        unitSymbol = kind === OrderItemKind.Service ? 'serv' : 'u';
+        if (kind === OrderItemKind.Product && unitCost === null) {
+          throw new UnprocessableEntityException(
+            `El producto libre ${description} necesita un costo unitario`,
+          );
+        }
+        if (kind === OrderItemKind.Service && unitCost === null) unitCost = 0;
       }
       const amount = unitPrice === null ? null : this.amount(item.quantity, unitPrice);
       const costAmount = unitCost === null ? null : this.amount(item.quantity, unitCost);
       await runner.query(
         `INSERT INTO ${schema}.order_items(
-           order_id, product_service_id, description, unit_name, unit_symbol,
+           order_id, product_service_id, kind, description, unit_name, unit_symbol,
            quantity, unit_price, total, unit_cost, cost_total, tracks_inventory, position
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
         [
           orderId,
           productServiceId,
+          kind,
           description,
           unitName,
           unitSymbol,
@@ -648,7 +675,7 @@ export class OrdersService {
     id: string,
   ): Promise<CatalogConceptRow> {
     const rows = (await runner.query(
-      `SELECT concept.id, concept.name, concept.cost, concept.unit_price,
+      `SELECT concept.id, concept.kind, concept.name, concept.cost, concept.unit_price,
               concept.tracks_inventory, concept.is_active,
               unit.name AS unit_name, unit.symbol AS unit_symbol,
               unit.allows_decimals AS unit_allows_decimals
