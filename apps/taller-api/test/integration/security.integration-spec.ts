@@ -1941,10 +1941,10 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     ).toBe(400);
 
     const versions = await control.query<Array<{ version: number }>>(
-      'SELECT version FROM public.tenant_schema_versions WHERE company_id = $1 AND version = 17',
+      'SELECT version FROM public.tenant_schema_versions WHERE company_id = $1 AND version = 18',
       [tenant.company.id],
     );
-    expect(versions).toEqual([{ version: 17 }]);
+    expect(versions).toEqual([{ version: 18 }]);
   });
 
   it('calcula utilidad con ingresos terminados, FIFO y gastos confirmados', async () => {

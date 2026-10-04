@@ -8,8 +8,8 @@ export interface TenantMigration {
   up(queryRunner: QueryRunner, schemaName: string): Promise<void>;
 }
 
-export const TENANT_BASE_VERSION = 17;
-export const TENANT_BASE_NAME = 'tenant-base-v17';
+export const TENANT_BASE_VERSION = 18;
+export const TENANT_BASE_NAME = 'tenant-base-v18';
 
 /**
  * Dynamic tenant migrations deliberately use qualified identifiers everywhere.
@@ -132,8 +132,7 @@ export class TenantMigrator {
         cost_total numeric(14,2) CHECK (cost_total IS NULL OR cost_total >= 0),
         tracks_inventory boolean NOT NULL DEFAULT false,
         position integer NOT NULL CHECK (position > 0), created_at timestamptz NOT NULL DEFAULT now(),
-        UNIQUE(order_id, position),
-        CHECK (product_service_id IS NOT NULL OR kind <> 'product' OR unit_cost IS NOT NULL)
+        UNIQUE(order_id, position)
       )`,
       `CREATE TABLE ${s}.order_notes (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_id uuid NOT NULL REFERENCES ${s}.orders(id) ON DELETE CASCADE,
