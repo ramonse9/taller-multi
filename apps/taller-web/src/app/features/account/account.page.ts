@@ -16,6 +16,7 @@ import { finalize } from "rxjs";
 import { Router } from "@angular/router";
 import { AuthService } from "../../core/auth/auth.service";
 import { apiErrorMessage } from "../../core/http/api-error";
+import { ThemeService } from "../../core/theme/theme.service";
 import { UsersService } from "../users/users.service";
 
 @Component({
@@ -23,10 +24,12 @@ import { UsersService } from "../users/users.service";
   imports: [ReactiveFormsModule],
   templateUrl: "./account.page.html",
   styleUrl: "./account.page.css",
+  host: { class: "block min-h-screen", "[class.dark]": "theme.isDark()" },
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AccountPage {
   readonly auth = inject(AuthService);
+  readonly theme = inject(ThemeService);
   private readonly users = inject(UsersService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly router = inject(Router);

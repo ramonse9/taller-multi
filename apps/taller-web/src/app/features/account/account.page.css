@@ -1,14 +1,39 @@
 :host {
   display: block;
   min-height: 100vh;
+  --account-bg: #fbfaf7;
+  --account-surface: #ffffff;
+  --account-fill: #eef2f6;
+  --account-fill-strong: #e1e9f1;
+  --account-line: #d5dce3;
+  --account-text: #17251e;
+  --account-muted: #68746d;
+  background: var(--account-bg);
+  color: var(--account-text);
+  transition: background-color 180ms ease, color 180ms ease;
+}
+:host.dark {
+  --account-bg: #111d2e;
+  --account-surface: #19283b;
+  --account-fill: #22364d;
+  --account-fill-strong: #2b425c;
+  --account-line: #38516d;
+  --account-text: #edf4fb;
+  --account-muted: #afbed0;
+}
+main {
+  min-height: 100vh;
+  background: var(--account-bg);
+  color: var(--account-text);
 }
 .topbar {
   min-height: 9rem;
   padding: 2.3rem clamp(1.5rem, 5vw, 5rem);
   display: flex;
   align-items: center;
-  border-bottom: 1px solid var(--line);
-  background: rgba(249, 247, 240, 0.88);
+  justify-content: space-between;
+  border-bottom: 1px solid var(--account-line);
+  background: color-mix(in srgb, var(--account-bg) 92%, transparent);
 }
 .breadcrumb {
   font: 700 0.64rem var(--mono);
@@ -29,7 +54,7 @@ h1 {
   margin: 0;
 }
 .intro > p {
-  color: var(--muted);
+  color: var(--account-muted);
   margin: 0.4rem 0 1.7rem;
 }
 .security-grid {
@@ -41,13 +66,13 @@ h1 {
 }
 .card,
 .session-card {
-  background: white;
-  border: 1px solid var(--line);
+  background: var(--account-surface);
+  border: 1px solid var(--account-line);
 }
 .card > header {
   padding: 1.3rem 1.5rem;
-  background: #f2f0e9;
-  border-bottom: 1px solid var(--line);
+  background: var(--account-fill-strong);
+  border-bottom: 1px solid var(--account-line);
   display: flex;
   gap: 1rem;
 }
@@ -57,7 +82,7 @@ h1 {
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  background: var(--ink);
+  background: #31597f;
   color: white;
   font: 700 0.62rem var(--mono);
 }
@@ -68,7 +93,7 @@ h1 {
 }
 .card header p {
   margin: 0.25rem 0 0;
-  color: var(--muted);
+  color: var(--account-muted);
   font-size: 0.76rem;
 }
 .card form {
@@ -88,6 +113,11 @@ h1 {
 .field input {
   width: 100%;
 }
+:host.dark .field input {
+  border-color: var(--account-line);
+  background: var(--account-fill);
+  color: var(--account-text);
+}
 .field small {
   display: block;
   color: var(--danger);
@@ -104,12 +134,20 @@ h1 {
   font-size: 0.78rem;
 }
 .notice {
-  color: #245b3b;
-  background: #e7f2eb;
+  color: #194d31;
+  background: #cfe9da;
 }
 .error {
-  color: #8e3214;
-  background: #fff0ea;
+  color: #842f1d;
+  background: #ffdcd2;
+}
+:host.dark .notice {
+  color: #c9f0df;
+  background: #294e42;
+}
+:host.dark .error {
+  color: #ffd9d4;
+  background: #633d3d;
 }
 .session-card {
   padding: 1.5rem;
@@ -125,12 +163,12 @@ h1 {
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: #e6eee9;
-  color: #2f5944;
+  background: #cddfeb;
+  color: #244b68;
   font: 600 1.6rem var(--display);
 }
 .session-card > p:not(.breadcrumb) {
-  color: var(--muted);
+  color: var(--account-muted);
   font-size: 0.74rem;
   overflow-wrap: anywhere;
 }
@@ -139,12 +177,12 @@ h1 {
   margin: 1.5rem 0;
 }
 .session-card dl div {
-  border-top: 1px solid #ece9df;
+  border-top: 1px solid var(--account-line);
   padding: 0.65rem 0;
 }
 .session-card dt {
   font: 700 0.55rem var(--mono);
-  color: var(--muted);
+  color: var(--account-muted);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -152,10 +190,42 @@ h1 {
   margin: 0.2rem 0 0;
   font-size: 0.75rem;
 }
+.role-badge {
+  display: inline-block;
+  padding: 0.32rem 0.5rem;
+  background: #cfe7d9;
+  color: #285b3e;
+  font: 700 0.58rem var(--mono);
+  text-transform: uppercase;
+}
+.role-badge.admin {
+  background: #ffd3bf;
+  color: #853819;
+}
+.role-badge.company-admin {
+  background: #f5c5d3;
+  color: #7c2942;
+}
+:host.dark .avatar {
+  background: #365774;
+  color: #e3f2ff;
+}
+:host.dark .role-badge {
+  background: #3b6855;
+  color: #e4f7ec;
+}
+:host.dark .role-badge.admin {
+  background: #7b513e;
+  color: #ffe6d9;
+}
+:host.dark .role-badge.company-admin {
+  background: #74475a;
+  color: #ffe1eb;
+}
 .logout {
   width: 100%;
   padding: 0.7rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--account-line);
   background: transparent;
   color: var(--danger);
 }

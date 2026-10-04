@@ -4,6 +4,15 @@
       <p class="breadcrumb">CUENTA / SEGURIDAD</p>
       <h1>Seguridad</h1>
     </div>
+    <button
+      type="button"
+      class="theme-toggle"
+      (click)="theme.toggle()"
+      [attr.aria-label]="theme.isDark() ? 'Usar tema claro' : 'Usar tema oscuro'"
+      [title]="theme.isDark() ? 'Usar tema claro' : 'Usar tema oscuro'"
+    >
+      {{ theme.isDark() ? '☀' : '◐' }}
+    </button>
   </header>
   <section class="content">
     <div class="intro">
@@ -79,7 +88,11 @@
         <dl>
           <div>
             <dt>Rol</dt>
-            <dd>
+            <dd
+              class="role-badge"
+              [class.admin]="auth.user()?.role === 'admin'"
+              [class.company-admin]="auth.user()?.role === 'company_admin'"
+            >
               {{ auth.user()?.role === 'company_admin' ? 'Administrador
               principal' : auth.user()?.role === 'admin' ? 'Administrador' :
               'Usuario' }}
