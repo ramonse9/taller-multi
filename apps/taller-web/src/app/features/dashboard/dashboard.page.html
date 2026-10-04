@@ -64,7 +64,7 @@
         [queryParams]="{status: 'in_progress'}"
       >
         <div class="flex items-center justify-between gap-3">
-          <span class="detail-label !text-[#397550] dark:!text-[#c9f0df]">EN PROCESO</span>
+          <span class="detail-label !text-[0.7rem] !text-[#397550] dark:!text-[#c9f0df]">EN PROCESO</span>
           <span class="size-2.5 rounded-full bg-[#459568]"></span>
         </div>
         <strong class="mt-3 block font-[var(--display)] text-4xl">{{ data.orders.inProgressCount }}</strong>
@@ -77,7 +77,7 @@
         [queryParams]="{isPaid: false}"
       >
         <div class="flex items-center justify-between gap-3">
-          <span class="detail-label !text-[#805719] dark:!text-[#ffd18a]">PENDIENTE DE COBRO</span>
+          <span class="detail-label !text-[0.7rem] !text-[#805719] dark:!text-[#ffd18a]">PENDIENTE DE COBRO</span>
           <span class="size-2.5 rounded-full bg-[#d6922e]"></span>
         </div>
         <strong class="mt-3 block font-[var(--display)] text-4xl">{{ data.orders.unpaidCount }}</strong>
@@ -85,13 +85,13 @@
       </a>
 
       <article class="border border-[#bed1df] bg-[#eef6fb] p-5 dark:border-[#38556a] dark:bg-[#192d3a]">
-        <span class="detail-label !text-[#366d96] dark:!text-[#9ec9e8]">GENERADO EN EL MES</span>
+        <span class="detail-label !text-[0.7rem] !text-[#366d96] dark:!text-[#9ec9e8]">GENERADO EN EL MES</span>
         <strong class="mt-3 block font-[var(--display)] text-4xl">{{ money(data.revenue.generated) }}</strong>
         <small class="text-[#587184] dark:text-[#a9c3d5]">Órdenes terminadas en {{ monthName(data.period.month) }}</small>
       </article>
 
       <article class="border border-[#bcd6c6] bg-white p-5 dark:border-[#3b5a47] dark:bg-[#19283b]">
-        <span class="detail-label !text-[#397550] dark:!text-[#c9f0df]">COBRADO EN EL MES</span>
+        <span class="detail-label !text-[0.7rem] !text-[#397550] dark:!text-[#c9f0df]">COBRADO EN EL MES</span>
         <strong class="mt-3 block font-[var(--display)] text-4xl text-[#245b3b] dark:text-[#c9f0df]">{{ money(data.revenue.collected) }}</strong>
         <small class="text-[#63717d] dark:text-[#afbed0]">{{ data.orders.completedPaidCount }} órdenes terminadas pagadas</small>
       </article>
@@ -101,7 +101,7 @@
       class="mt-3 flex flex-wrap items-center gap-2 border border-[#d5dce3] bg-white p-3 dark:border-[#38516d] dark:bg-[#19283b]"
       aria-label="Acciones rápidas"
     >
-      <span class="detail-label mr-auto px-2">ACCIONES RÁPIDAS</span>
+      <span class="detail-label mr-auto px-2 !text-[0.7rem]">ACCIONES RÁPIDAS</span>
       @if (auth.hasFeature('service_orders') && auth.hasPermission('orders.create') && auth.hasPermission('clients.view') && auth.hasPermission('vehicles.view') && auth.hasPermission('vehicle_catalog.view')) {
       <a class="primary no-underline" routerLink="/orders/new">＋ Crear orden</a>
       }
@@ -131,22 +131,22 @@
     @if (data.financials; as financials) {
     <div class="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <article class="border border-[#d5dce3] bg-white p-5 dark:border-[#38516d] dark:bg-[#19283b]">
-        <span class="detail-label">COSTO DIRECTO</span>
+        <span class="detail-label !text-[0.7rem]">COSTO DIRECTO</span>
         <strong class="mt-2 block text-2xl">{{ money(financials.directCost) }}</strong>
         <small class="text-[#63717d] dark:text-[#afbed0]">Costo histórico del trabajo terminado</small>
       </article>
       @if (auth.hasPermission('expenses.view')) { <a class="border border-[#d5dce3] bg-white p-5 text-inherit no-underline hover:border-[#e86a33] dark:border-[#38516d] dark:bg-[#19283b]" routerLink="/expenses">
-        <span class="detail-label">GASTOS DEL MES</span>
+        <span class="detail-label !text-[0.7rem]">GASTOS DEL MES</span>
         <strong class="mt-2 block text-2xl">{{ money(financials.operatingExpenses) }}</strong>
         <small class="font-bold text-[#b94718] dark:text-[#ff9a6f]">Ver gastos →</small>
       </a> }
       <a class="border border-[#263c31] bg-[#17251e] p-5 text-white no-underline hover:bg-[#22362b] dark:border-[#50685a] dark:bg-[#20344b]" routerLink="/profitability">
-        <span class="detail-label !text-[#9fb5a8]">UTILIDAD OPERATIVA</span>
+        <span class="detail-label !text-[0.7rem] !text-[#9fb5a8]">UTILIDAD OPERATIVA</span>
         <strong class="mt-2 block text-2xl" [class.text-[#ff9e8c]]="+financials.operatingProfit < 0">{{ money(financials.operatingProfit) }}</strong>
         <small class="text-[#b8c7be]">Ingresos menos costos y gastos →</small>
       </a>
       @if (auth.hasPermission('inventory.view')) { <a class="border p-5 text-inherit no-underline" [class.border-[#e0b4a9]]="(data.lowStock?.totalProducts ?? 0) > 0" [class.bg-[#ffdcd2]]="(data.lowStock?.totalProducts ?? 0) > 0" [class.dark:border-[#73483e]]="(data.lowStock?.totalProducts ?? 0) > 0" [class.dark:bg-[#3a211c]]="(data.lowStock?.totalProducts ?? 0) > 0" [class.border-[#d5dce3]]="(data.lowStock?.totalProducts ?? 0) === 0" [class.bg-white]="(data.lowStock?.totalProducts ?? 0) === 0" [class.dark:border-[#38516d]]="(data.lowStock?.totalProducts ?? 0) === 0" [class.dark:bg-[#19283b]]="(data.lowStock?.totalProducts ?? 0) === 0" routerLink="/inventory">
-        <span class="detail-label">INVENTARIO BAJO</span>
+        <span class="detail-label !text-[0.7rem]">INVENTARIO BAJO</span>
         <strong class="mt-2 block text-2xl" [class.text-[#a63725]]="(data.lowStock?.totalProducts ?? 0) > 0">{{ data.lowStock?.totalProducts ?? 0 }} productos</strong>
         <small class="font-bold text-[#b94718] dark:text-[#ff9a6f]">Revisar existencias →</small>
       </a> }
