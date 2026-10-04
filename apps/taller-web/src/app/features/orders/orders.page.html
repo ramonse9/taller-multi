@@ -113,8 +113,10 @@
             >
             <span
               class="shrink-0 px-2 py-1 text-xs font-bold"
-              [class.bg-[#cfe9da]]="order.isPaid"
-              [class.text-[#245b3b]]="order.isPaid"
+              [class.bg-[#cfe3fb]]="order.isPaid"
+              [class.text-[#285f8a]]="order.isPaid"
+              [class.dark:bg-[#233f58]]="order.isPaid"
+              [class.dark:text-[#b9dcf5]]="order.isPaid"
               [class.bg-[#ffe3ab]]="!order.isPaid"
               [class.text-[#805719]]="!order.isPaid"
               >{{ order.isPaid ? 'Pagada' : 'Pendiente' }}</span
@@ -239,8 +241,10 @@
               <td class="p-4">
                 <span
                   class="px-2 py-1 text-xs font-bold"
-                  [class.bg-[#cfe9da]]="order.isPaid"
-                  [class.text-[#245b3b]]="order.isPaid"
+                  [class.bg-[#cfe3fb]]="order.isPaid"
+                  [class.text-[#285f8a]]="order.isPaid"
+                  [class.dark:bg-[#233f58]]="order.isPaid"
+                  [class.dark:text-[#b9dcf5]]="order.isPaid"
                   [class.bg-[#ffe3ab]]="!order.isPaid"
                   [class.text-[#805719]]="!order.isPaid"
                   >{{ order.isPaid ? 'Pagada' : 'Pendiente' }}</span

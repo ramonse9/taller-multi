@@ -227,7 +227,7 @@
           <p class="eyebrow">PAGO</p>
           <div class="mt-2 flex items-center justify-between gap-4">
             <div><h2 class="m-0 font-[var(--display)] text-2xl font-semibold">{{ current.isPaid ? 'Pagada' : 'Pendiente' }}</h2><p class="mb-0 mt-1 text-sm text-[#63717d] dark:text-[#afbed0]">{{ current.isPaid ? 'El servicio se considera cobrado.' : 'El importe permanece por cobrar.' }}</p></div>
-            <span class="px-3 py-1 text-xs font-bold" [class.bg-[#cfe9da]]="current.isPaid" [class.text-[#245b3b]]="current.isPaid" [class.bg-[#ffe3ab]]="!current.isPaid" [class.text-[#805719]]="!current.isPaid">{{ current.isPaid ? 'PAGADA' : 'PENDIENTE' }}</span>
+            <span class="px-3 py-1 text-xs font-bold" [class.bg-[#cfe3fb]]="current.isPaid" [class.text-[#285f8a]]="current.isPaid" [class.dark:bg-[#233f58]]="current.isPaid" [class.dark:text-[#b9dcf5]]="current.isPaid" [class.bg-[#ffe3ab]]="!current.isPaid" [class.text-[#805719]]="!current.isPaid">{{ current.isPaid ? 'PAGADA' : 'PENDIENTE' }}</span>
           </div>
           @if (auth.hasPermission('orders.manage_payment')) { <button class="secondary-tw mt-4 w-full" type="button" [disabled]="saving() || current.status === 'cancelled' || (!current.isPaid && current.total === null)" (click)="changePaymentStatus()">{{ current.isPaid ? 'Marcar como pendiente' : 'Marcar como pagada' }}</button> }
           @if (current.isPaid) { <small class="mt-2 block text-[#63717d] dark:text-[#afbed0]">Para editar o cancelar la orden, primero márcala como pendiente.</small> }
