@@ -62,7 +62,8 @@ export class OrderDetailPage implements OnInit {
       ? TRANSITIONS[order.status].filter(
           (status) =>
             !(order.isPaid && status === "cancelled") &&
-            (status !== "cancelled" || this.auth.hasPermission("orders.cancel")),
+            (status !== "cancelled" ||
+              this.auth.hasPermission("orders.cancel")),
         )
       : [];
   });
@@ -171,10 +172,16 @@ export class OrderDetailPage implements OnInit {
       .subscribe({
         next: (order) => {
           this.order.set(order);
-          this.showNotice(order.isPaid ? "Orden marcada como pagada." : "Orden marcada como pendiente.");
+          this.showNotice(
+            order.isPaid
+              ? "Orden marcada como pagada."
+              : "Orden marcada como pendiente.",
+          );
         },
         error: (error: unknown) =>
-          this.error.set(apiErrorMessage(error, "No pudimos cambiar el estatus de pago.")),
+          this.error.set(
+            apiErrorMessage(error, "No pudimos cambiar el estatus de pago."),
+          ),
       });
   }
 
@@ -189,6 +196,12 @@ export class OrderDetailPage implements OnInit {
           style: "currency",
           currency: "MXN",
         }).format(Number(value));
+  }
+
+  quantity(value: string): string {
+    return new Intl.NumberFormat("es-MX", {
+      maximumFractionDigits: 3,
+    }).format(Number(value));
   }
 
   hasActualCosts(order: Order): boolean {

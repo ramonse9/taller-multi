@@ -172,7 +172,7 @@
           <div class="divide-y divide-[#e2e7ec] dark:divide-[#38516d]">
             @for (item of current.items; track item.id) {
             <div
-              class="grid gap-3 px-6 py-4 sm:grid-cols-[minmax(0,1fr)_7rem_9rem_9rem]"
+              class="grid gap-3 px-6 py-4 sm:grid-cols-[minmax(0,1fr)_5.5rem_7rem_8rem]"
             >
               <div>
                 <div class="flex flex-wrap items-center gap-2">
@@ -187,7 +187,7 @@
                 !== null) {
                 <small class="text-[#63717d] dark:text-[#afbed0]"
                   >{{ itemCostLabel(current, item) }}: {{ money(item.unitCost)
-                  }} × {{ item.quantity }} {{ item.unitSymbol }} =
+                  }} × {{ quantity(item.quantity) }} =
                   <strong>{{ money(item.costAmount) }}</strong></small
                 >
                 } @if (auth.hasPermission('catalog.view_costs') &&
@@ -196,14 +196,14 @@
                   @for (layer of item.costLayers; track layer.lotId) {
                   <span
                     class="border border-[#d5dce3] bg-[#fbfaf7] px-2 py-1 font-[var(--mono)] text-[.7rem] dark:border-[#38516d] dark:bg-[#22364d]"
-                    >{{ layer.quantity }} × {{ money(layer.unitCost) }} = {{
-                    money(layer.costAmount) }}</span
+                    >{{ quantity(layer.quantity) }} × {{ money(layer.unitCost)
+                    }} = {{ money(layer.costAmount) }}</span
                   >
                   }
                 </div>
                 }
               </div>
-              <span>{{ item.quantity }} {{ item.unitSymbol }}</span
+              <span>{{ quantity(item.quantity) }}</span
               ><span
                 >{{ item.unitPrice === null ? 'Sin precio' :
                 money(item.unitPrice) }}</span
@@ -259,7 +259,21 @@
           </div>
           @if (auth.hasPermission('orders.manage_payment')) {
           <button
-            class="secondary-tw mt-4 w-full"
+            class="mt-4 w-full border px-3 py-2 font-semibold transition disabled:cursor-not-allowed disabled:opacity-50"
+            [class.border-[#e2b95d]]="current.isPaid"
+            [class.bg-[#ffe3ab]]="current.isPaid"
+            [class.text-[#805719]]="current.isPaid"
+            [class.hover:bg-[#ffd98c]]="current.isPaid"
+            [class.dark:border-[#806b3b]]="current.isPaid"
+            [class.dark:bg-[#4d3e22]]="current.isPaid"
+            [class.dark:text-[#ffd18a]]="current.isPaid"
+            [class.border-[#8eb8e6]]="!current.isPaid"
+            [class.bg-[#cfe3fb]]="!current.isPaid"
+            [class.text-[#285f8a]]="!current.isPaid"
+            [class.hover:bg-[#b9d7f7]]="!current.isPaid"
+            [class.dark:border-[#456c8e]]="!current.isPaid"
+            [class.dark:bg-[#233f58]]="!current.isPaid"
+            [class.dark:text-[#b9dcf5]]="!current.isPaid"
             type="button"
             [disabled]="saving() || current.status === 'cancelled' || (!current.isPaid && current.total === null)"
             (click)="changePaymentStatus()"
