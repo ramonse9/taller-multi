@@ -1,6 +1,32 @@
 :host {
   display: block;
   min-height: 100vh;
+  --users-bg: #fbfaf7;
+  --users-surface: #ffffff;
+  --users-fill: #eef2f6;
+  --users-fill-strong: #e1e9f1;
+  --users-line: #d5dce3;
+  --users-text: #17251e;
+  --users-muted: #68746d;
+  --users-row-hover: #f4f7fa;
+  background: var(--users-bg);
+  color: var(--users-text);
+  transition: background-color 180ms ease, color 180ms ease;
+}
+:host.dark {
+  --users-bg: #111d2e;
+  --users-surface: #19283b;
+  --users-fill: #22364d;
+  --users-fill-strong: #2b425c;
+  --users-line: #38516d;
+  --users-text: #edf4fb;
+  --users-muted: #afbed0;
+  --users-row-hover: #20344b;
+}
+main {
+  min-height: 100vh;
+  background: var(--users-bg);
+  color: var(--users-text);
 }
 .topbar {
   min-height: 9rem;
@@ -8,8 +34,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid var(--line);
-  background: rgba(249, 247, 240, 0.88);
+  border-bottom: 1px solid var(--users-line);
+  background: color-mix(in srgb, var(--users-bg) 92%, transparent);
+}
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
 }
 .breadcrumb {
   font: 700 0.64rem var(--mono);
@@ -37,7 +68,7 @@ h1 {
   margin-bottom: 1.7rem;
 }
 .intro-row > p {
-  color: var(--muted);
+  color: var(--users-muted);
   margin: 0;
 }
 .count {
@@ -50,7 +81,7 @@ h1 {
 }
 .count span {
   font: 700 0.58rem var(--mono);
-  color: var(--muted);
+  color: var(--users-muted);
   letter-spacing: 0.1em;
 }
 .toolbar {
@@ -69,7 +100,7 @@ h1 {
   left: 1rem;
   top: 0.72rem;
   font-size: 1.25rem;
-  color: var(--muted);
+  color: var(--users-muted);
 }
 .search input {
   width: 100%;
@@ -77,17 +108,17 @@ h1 {
 }
 .segments {
   display: flex;
-  border: 1px solid var(--line);
+  border: 1px solid var(--users-line);
   padding: 0.2rem;
-  background: white;
+  background: var(--users-surface);
 }
 .segments button {
   background: transparent;
-  color: var(--muted);
+  color: var(--users-muted);
   padding: 0.6rem 0.85rem;
 }
 .segments button.selected {
-  background: var(--ink);
+  background: #31597f;
   color: white;
 }
 .notice,
@@ -97,12 +128,12 @@ h1 {
   font-size: 0.82rem;
 }
 .notice {
-  background: #e7f2eb;
-  color: #245b3b;
+  background: #cfe9da;
+  color: #194d31;
 }
 .error-banner {
-  background: #fff0ea;
-  color: #8e3214;
+  background: #ffdcd2;
+  color: #842f1d;
 }
 .error-banner button {
   float: right;
@@ -112,8 +143,8 @@ h1 {
   text-decoration: underline;
 }
 .table-wrap {
-  background: white;
-  border: 1px solid var(--line);
+  background: var(--users-surface);
+  border: 1px solid var(--users-line);
   min-height: 25rem;
   position: relative;
   overflow-x: auto;
@@ -131,22 +162,22 @@ th {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   text-align: left;
-  color: #68746d;
+  color: var(--users-muted);
   padding: 1rem 1.2rem;
-  background: #f2f0e9;
-  border-bottom: 1px solid var(--line);
+  background: var(--users-fill-strong);
+  border-bottom: 1px solid var(--users-line);
 }
 td {
   padding: 1rem 1.2rem;
-  border-bottom: 1px solid #e9e7df;
+  border-bottom: 1px solid var(--users-line);
   font-size: 0.82rem;
-  color: #3a453f;
+  color: var(--users-text);
 }
 tr:last-child td {
   border-bottom: 0;
 }
 tbody tr:hover {
-  background: #fcfbf7;
+  background: var(--users-row-hover);
 }
 .person {
   display: flex;
@@ -160,8 +191,8 @@ tbody tr:hover {
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: #e6eee9;
-  color: #2f5944;
+  background: #cddfeb;
+  color: #244b68;
   font-size: 0.68rem;
   font-weight: 800;
 }
@@ -170,11 +201,11 @@ td small {
   display: block;
 }
 .person strong {
-  color: var(--ink);
+  color: var(--users-text);
 }
 .person small,
 td small {
-  color: #879089;
+  color: var(--users-muted);
   margin-top: 0.22rem;
   font-size: 0.68rem;
 }
@@ -184,15 +215,43 @@ td small {
 }
 .role {
   display: inline-block;
-  background: #edf1ee;
-  color: #44564c;
+  background: #cfe7d9;
+  color: #285b3e;
   padding: 0.32rem 0.5rem;
   font: 700 0.58rem var(--mono);
   text-transform: uppercase;
 }
 .role.admin {
-  background: #fff0e8;
-  color: #9b421d;
+  background: #ffd3bf;
+  color: #853819;
+}
+.role.company-admin {
+  background: #f5c5d3;
+  color: #7c2942;
+}
+:host.dark .role {
+  background: #3b6855;
+  color: #e4f7ec;
+}
+:host.dark .role.admin {
+  background: #7b513e;
+  color: #ffe6d9;
+}
+:host.dark .role.company-admin {
+  background: #74475a;
+  color: #ffe1eb;
+}
+:host.dark .avatar {
+  background: #365774;
+  color: #e3f2ff;
+}
+:host.dark .notice {
+  background: #294e42;
+  color: #c9f0df;
+}
+:host.dark .error-banner {
+  background: #633d3d;
+  color: #ffd9d4;
 }
 .timezone {
   font: 500 0.69rem var(--mono);
@@ -216,7 +275,7 @@ td small {
 .out-of-scope {
   display: block;
   min-width: 8rem;
-  color: #8b938e;
+  color: var(--users-muted);
   font-size: 0.68rem;
   text-align: right;
 }
@@ -251,20 +310,20 @@ td small {
 }
 .empty > span {
   font-size: 2.5rem;
-  color: #adb5af;
+  color: var(--users-muted);
 }
 .empty h2 {
   margin: 0.5rem 0 0;
   font: 600 1.5rem var(--display);
 }
 .empty p {
-  color: var(--muted);
+  color: var(--users-muted);
   margin: 0.4rem 0 1.2rem;
 }
 .secondary {
-  background: white;
-  color: var(--ink);
-  border: 1px solid var(--line);
+  background: var(--users-surface);
+  color: var(--users-text);
+  border: 1px solid var(--users-line);
   padding: 0.55rem 0.9rem;
 }
 .pagination {
@@ -272,7 +331,7 @@ td small {
   justify-content: space-between;
   align-items: center;
   padding-top: 1rem;
-  color: var(--muted);
+  color: var(--users-muted);
   font-size: 0.75rem;
 }
 .pagination div {
@@ -280,16 +339,16 @@ td small {
   gap: 0.5rem;
 }
 .pagination button {
-  background: white;
-  color: var(--ink);
-  border: 1px solid var(--line);
+  background: var(--users-surface);
+  color: var(--users-text);
+  border: 1px solid var(--users-line);
   padding: 0.55rem 0.9rem;
 }
 .backdrop {
   position: fixed;
   z-index: 20;
   inset: 0;
-  background: rgba(13, 25, 19, 0.58);
+  background: rgba(7, 17, 31, 0.62);
   display: flex;
   justify-content: flex-end;
   backdrop-filter: blur(3px);
@@ -298,7 +357,7 @@ td small {
   width: min(100%, 58rem);
   height: 100%;
   overflow-y: auto;
-  background: var(--paper);
+  background: var(--users-surface);
   box-shadow: -20px 0 60px rgba(0, 0, 0, 0.15);
   animation: slide-in 0.22s ease-out;
 }
@@ -306,7 +365,7 @@ td small {
   padding: 2.2rem 2.4rem 1.6rem;
   display: flex;
   justify-content: space-between;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--users-line);
 }
 .editor h2,
 .password-dialog h2 {
@@ -316,7 +375,7 @@ td small {
 }
 .close {
   background: transparent;
-  color: var(--ink);
+  color: var(--users-text);
   font-size: 2rem;
   padding: 0;
 }
@@ -344,6 +403,16 @@ form footer {
 .field select {
   width: 100%;
 }
+:host.dark .field input,
+:host.dark .field select,
+:host.dark .search input {
+  border-color: var(--users-line);
+  background: var(--users-fill);
+  color: var(--users-text);
+}
+:host.dark input::placeholder {
+  color: #90a4ba;
+}
 .login-name-inputs {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -354,13 +423,22 @@ form footer {
   max-width: 12rem;
   padding: 0 0.8rem;
   overflow: hidden;
-  border: 1px solid #cbc9c0;
+  border: 1px solid var(--users-line);
   border-left: 0;
-  background: #f2f0e9;
-  color: var(--muted);
+  background: var(--users-fill);
+  color: var(--users-muted);
   font: 500 0.72rem var(--mono);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.phone-inputs {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+  gap: 0.55rem;
+}
+.phone-inputs .phone-country-code {
+  text-align: center;
+  font-family: var(--mono);
 }
 .field small {
   color: var(--danger);
@@ -386,8 +464,8 @@ form footer {
 }
 .ghost {
   background: transparent;
-  color: var(--ink);
-  border: 1px solid var(--line);
+  color: var(--users-text);
+  border: 1px solid var(--users-line);
 }
 .backdrop.centered {
   justify-content: center;
@@ -396,11 +474,11 @@ form footer {
 }
 .password-dialog {
   width: min(100%, 30rem);
-  background: var(--paper);
+  background: var(--users-surface);
   padding: 2rem;
 }
 .password-dialog > p:not(.breadcrumb) {
-  color: var(--muted);
+  color: var(--users-muted);
   font-size: 0.82rem;
 }
 .password-dialog form {

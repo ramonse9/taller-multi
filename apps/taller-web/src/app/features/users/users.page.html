@@ -4,11 +4,22 @@
       <p class="breadcrumb">ADMINISTRACIÓN / USUARIOS</p>
       <h1>Usuarios</h1>
     </div>
-    @if (canCreateUsers()) {
-    <button class="primary" type="button" (click)="openCreate()">
-      <span>＋</span> Nuevo usuario
-    </button>
-    }
+    <div class="topbar-actions">
+      <button
+        type="button"
+        class="theme-toggle"
+        (click)="theme.toggle()"
+        [attr.aria-label]="theme.isDark() ? 'Usar tema claro' : 'Usar tema oscuro'"
+        [title]="theme.isDark() ? 'Usar tema claro' : 'Usar tema oscuro'"
+      >
+        {{ theme.isDark() ? '☀' : '◐' }}
+      </button>
+      @if (canCreateUsers()) {
+      <button class="primary" type="button" (click)="openCreate()">
+        <span>＋</span> Nuevo usuario
+      </button>
+      }
+    </div>
   </header>
 
   <section class="content">
@@ -89,7 +100,10 @@
               </div>
             </td>
             <td>
-              <span class="role" [class.admin]="user.role !== 'user'"
+              <span
+                class="role"
+                [class.admin]="user.role === 'admin'"
+                [class.company-admin]="user.role === 'company_admin'"
                 >{{ roleLabel(user.role) }}</span
               ><small
                 >{{ user.isActive ? 'Acceso activo' : 'Acceso desactivado'
@@ -217,17 +231,30 @@
         <small>Usa letras, números, punto, guion o guion bajo.</small> }
       </div>
       <div class="field">
-        <label for="user-phone">Celular <b>*</b></label
-        ><input
-          id="user-phone"
-          type="tel"
-          formControlName="phone"
-          autocomplete="tel"
-          placeholder="+526671234567"
-        />@if (form.controls.phone.touched && form.controls.phone.invalid) {
+        <label for="user-phone">Celular <b>*</b></label>
+        <div class="phone-inputs">
+          <input
+            id="user-phone-country-code"
+            class="phone-country-code"
+            type="tel"
+            formControlName="phoneCountryCode"
+            autocomplete="tel-country-code"
+            aria-label="Lada internacional"
+          />
+          <input
+            id="user-phone"
+            type="tel"
+            formControlName="phone"
+            autocomplete="tel-national"
+            inputmode="numeric"
+            maxlength="13"
+            placeholder="667 122 33 44"
+            (input)="formatPhone()"
+          />
+        </div>
+        @if ((form.controls.phoneCountryCode.touched && form.controls.phoneCountryCode.invalid) || (form.controls.phone.touched && form.controls.phone.invalid)) {
         <small
-          >El celular es obligatorio. Usa formato internacional:
-          +526671234567.</small
+          >Captura una lada válida y los 10 dígitos del celular.</small
         >
         }
       </div>

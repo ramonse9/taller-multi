@@ -28,6 +28,7 @@ import { TimezoneCatalogItem } from "../../core/catalogs/catalog.models";
 import { CatalogsService } from "../../core/catalogs/catalogs.service";
 import { apiErrorMessage } from "../../core/http/api-error";
 import { formatShortDate } from "../../core/dates/date-format";
+import { ThemeService } from "../../core/theme/theme.service";
 import {
   CreateUserInput,
   PaginatedUsers,
@@ -74,10 +75,12 @@ const ADMIN_REQUIRED_PERMISSIONS = [
   imports: [ReactiveFormsModule],
   templateUrl: "./users.page.html",
   styleUrl: "./users.page.css",
+  host: { class: "block min-h-screen", "[class.dark]": "theme.isDark()" },
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class UsersPage implements OnInit {
   readonly auth = inject(AuthService);
+  readonly theme = inject(ThemeService);
   private readonly users = inject(UsersService);
   private readonly permissions = inject(PermissionsService);
   private readonly catalogs = inject(CatalogsService);
@@ -175,11 +178,15 @@ export class UsersPage implements OnInit {
         Validators.pattern(/^[a-z][a-z0-9._-]{1,29}$/),
       ],
     }),
+    phoneCountryCode: new FormControl("+52", {
+      nonNullable: true,
+      validators: [Validators.required, Validators.pattern(/^\+[1-9]\d{0,3}$/)],
+    }),
     phone: new FormControl("", {
       nonNullable: true,
       validators: [
         Validators.required,
-        Validators.pattern(/^\+[1-9]\d{7,14}$/),
+        Validators.pattern(/^\d{3} \d{3} \d{2} \d{2}$/),
       ],
     }),
     role: new FormControl<TenantRole>("user", {
@@ -313,6 +320,7 @@ export class UsersPage implements OnInit {
       fullName: "",
       username: "",
       email: "",
+      phoneCountryCode: "+52",
       phone: "",
       role: "user",
       timezoneCode: "America/Mazatlan",
@@ -327,6 +335,7 @@ export class UsersPage implements OnInit {
   }
 
   openEdit(user: TenantUser): void {
+    const phone = this.splitPhone(user.phone);
     if (!this.canManage(user)) return;
     this.editing.set(user);
     if (user.id === this.auth.user()?.id) {
@@ -343,7 +352,8 @@ export class UsersPage implements OnInit {
       fullName: user.fullName,
       username: user.username,
       email: user.email ?? "",
-      phone: user.phone ?? "",
+      phoneCountryCode: phone.countryCode,
+      phone: phone.national,
       role: user.role,
       timezoneCode: user.timezoneCode,
       password: "",
@@ -385,7 +395,7 @@ export class UsersPage implements OnInit {
           fullName: raw.fullName.trim(),
           username: raw.username.trim().toLowerCase(),
           email: raw.email.trim().toLowerCase() || null,
-          phone: raw.phone.trim(),
+          phone: this.internationalPhone(raw.phoneCountryCode, raw.phone),
           role: raw.role,
           timezoneCode: raw.timezoneCode,
           isActive: raw.isActive,
@@ -394,7 +404,7 @@ export class UsersPage implements OnInit {
           fullName: raw.fullName.trim(),
           username: raw.username.trim().toLowerCase(),
           email: raw.email.trim().toLowerCase() || null,
-          phone: raw.phone.trim(),
+          phone: this.internationalPhone(raw.phoneCountryCode, raw.phone),
           role: raw.role,
           timezoneCode: raw.timezoneCode,
           password: raw.password,
@@ -641,6 +651,45 @@ export class UsersPage implements OnInit {
     const loginName = this.auth.user()?.loginName ?? "";
     const separator = loginName.lastIndexOf("@");
     return separator >= 0 ? loginName.slice(separator) : "@compania";
+  }
+
+  formatPhone(): void {
+    const control = this.form.controls.phone;
+    const digits = control.value.replace(/\D/g, "").slice(0, 10);
+    const sections = [
+      digits.slice(0, 3),
+      digits.slice(3, 6),
+      digits.slice(6, 8),
+      digits.slice(8, 10),
+    ];
+    control.setValue(sections.filter(Boolean).join(" "), { emitEvent: false });
+  }
+
+  private internationalPhone(countryCode: string, nationalPhone: string): string {
+    return `${countryCode.trim()}${nationalPhone.replace(/\D/g, "")}`;
+  }
+
+  private splitPhone(value: string | null): {
+    countryCode: string;
+    national: string;
+  } {
+    if (!value) return { countryCode: "+52", national: "" };
+    const normalized = value.trim();
+    const allDigits = normalized.replace(/\D/g, "");
+    const nationalDigits = allDigits.slice(-10);
+    const countryDigits = normalized.startsWith("+")
+      ? allDigits.slice(0, Math.max(0, allDigits.length - nationalDigits.length))
+      : "52";
+    const sections = [
+      nationalDigits.slice(0, 3),
+      nationalDigits.slice(3, 6),
+      nationalDigits.slice(6, 8),
+      nationalDigits.slice(8, 10),
+    ];
+    return {
+      countryCode: `+${countryDigits || "52"}`,
+      national: sections.filter(Boolean).join(" "),
+    };
   }
 
   private showNotice(message: string): void {
