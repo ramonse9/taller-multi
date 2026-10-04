@@ -31,6 +31,7 @@ export interface ClientInput {
 
 export interface ClientListItem extends Client {
   vehicleCount: number;
+  orderCount: number;
 }
 
 export interface PaginatedClients {

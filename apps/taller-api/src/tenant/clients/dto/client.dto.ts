@@ -138,6 +138,9 @@ export class ClientResponseDto {
 export class ClientListItemResponseDto extends ClientResponseDto {
   @ApiProperty({ minimum: 0, description: 'Cantidad total de vehículos asociados al cliente' })
   vehicleCount!: number;
+
+  @ApiProperty({ minimum: 0, description: 'Cantidad total de órdenes asociadas al cliente' })
+  orderCount!: number;
 }
 
 export class PaginatedClientsResponseDto {

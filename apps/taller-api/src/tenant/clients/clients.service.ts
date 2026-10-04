@@ -38,6 +38,7 @@ interface ClientRow {
 
 interface ClientListRow extends ClientRow {
   vehicle_count: number;
+  order_count: number;
 }
 
 const CLIENT_COLUMNS = `id, customer_type, display_name, legal_name, contact_name,
@@ -72,7 +73,10 @@ export class ClientsService {
         `SELECT ${CLIENT_COLUMNS},
                 (SELECT count(*)::int
                  FROM ${quoteIdentifier(schema)}.vehicles vehicle
-                 WHERE vehicle.customer_id = customer.id) AS vehicle_count
+                 WHERE vehicle.customer_id = customer.id) AS vehicle_count,
+                (SELECT count(*)::int
+                 FROM ${quoteIdentifier(schema)}.orders service_order
+                 WHERE service_order.customer_id = customer.id) AS order_count
          FROM ${table} customer WHERE ${where}
          ORDER BY created_at DESC, id DESC
          LIMIT $${parameters.length + 1} OFFSET $${parameters.length + 2}`,
@@ -229,6 +233,7 @@ export class ClientsService {
     return {
       ...this.toResponse(row),
       vehicleCount: row.vehicle_count,
+      orderCount: row.order_count,
     };
   }
 }

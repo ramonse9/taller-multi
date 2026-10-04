@@ -39,6 +39,7 @@ const row = {
   created_at: new Date('2026-01-01T00:00:00Z'),
   updated_at: new Date('2026-01-01T00:00:00Z'),
   vehicle_count: 2,
+  order_count: 4,
 };
 
 describe('ClientsService', () => {
@@ -70,9 +71,11 @@ describe('ClientsService', () => {
       type: CustomerType.Person,
       displayName: 'Ana López',
       vehicleCount: 2,
+      orderCount: 4,
     });
     expect(query.mock.calls.every(([sql]) => sql.includes('"tenant_alpha".customers'))).toBe(true);
     expect(query.mock.calls[1]?.[0]).toContain('"tenant_alpha".vehicles');
+    expect(query.mock.calls[1]?.[0]).toContain('"tenant_alpha".orders');
     expect(query.mock.calls[0]?.[1]).toEqual([true, '%Ana\\%\\_%']);
   });
 

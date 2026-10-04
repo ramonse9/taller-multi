@@ -154,7 +154,7 @@
                   class="client-action"
                   routerLink="/orders"
                   [queryParams]="{ customerId: client.id }"
-                  >Órdenes</a
+                  >Órdenes ({{ client.orderCount }})</a
                 > }
                 @if (auth.hasPermission('vehicles.view') && auth.hasPermission('vehicle_catalog.view')) { <a class="client-action" [routerLink]="['/clients', client.id]"
                   >Vehículos ({{ client.vehicleCount }})</a
