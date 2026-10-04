@@ -31,7 +31,7 @@ import {
 import { VehicleCatalogService } from "../vehicle-catalog/vehicle-catalog.service";
 import { CreateVehicleInput, Vehicle } from "../vehicles/vehicle.models";
 import { VehiclesService } from "../vehicles/vehicles.service";
-import { Order, OrderInput } from "./order.models";
+import { Order, OrderInput, OrderItemKind } from "./order.models";
 import { OrdersService } from "./orders.service";
 
 @Component({
@@ -79,12 +79,15 @@ export class OrderWizardPage implements OnInit {
   readonly canManageCatalog = computed(() =>
     this.auth.hasPermission("vehicle_catalog.manage"),
   );
-  readonly canUseItemCatalog = computed(() =>
-    this.auth.hasFeature("item_catalog") && this.auth.hasPermission("catalog.view"),
+  readonly canUseItemCatalog = computed(
+    () =>
+      this.auth.hasFeature("item_catalog") &&
+      this.auth.hasPermission("catalog.view"),
   );
-  readonly canUseProfitability = computed(() =>
-    this.auth.hasFeature("profitability") &&
-    this.auth.hasPermission("catalog.view_costs"),
+  readonly canUseProfitability = computed(
+    () =>
+      this.auth.hasFeature("profitability") &&
+      this.auth.hasPermission("catalog.view_costs"),
   );
 
   filteredClients(): Client[] {
@@ -439,6 +442,7 @@ export class OrderWizardPage implements OnInit {
       !this.items.at(0).value["productServiceId"];
     const group = this.createItemGroup({
       productServiceId: concept.id,
+      kind: concept.kind,
       description: concept.name,
       quantity: 1,
       unitPrice: Number(concept.price),
@@ -468,6 +472,26 @@ export class OrderWizardPage implements OnInit {
 
   removeItem(index: number): void {
     if (this.items.length > 1) this.items.removeAt(index);
+  }
+
+  setItemKind(index: number, kind: OrderItemKind): void {
+    const item = this.items.at(index);
+    if (item.get("productServiceId")?.value) return;
+    item.get("kind")?.setValue(kind);
+    item.get("unitName")?.setValue(kind === "service" ? "Servicio" : "Unidad");
+    item.get("unitSymbol")?.setValue(kind === "service" ? "serv" : "u");
+    const cost = item.get("unitCost");
+    if (!cost) return;
+    cost.setValidators(
+      kind === "product"
+        ? [Validators.required, Validators.min(0)]
+        : [Validators.min(0)],
+    );
+    cost.updateValueAndValidity();
+  }
+
+  isExplicitZeroCost(index: number): boolean {
+    return this.items.at(index).get("unitCost")?.value === 0;
   }
 
   itemAmount(index: number): number | null {
@@ -547,6 +571,7 @@ export class OrderWizardPage implements OnInit {
       items: raw.items.map((item) => ({
         itemId: item["itemId"] || undefined,
         productServiceId: item["productServiceId"] || null,
+        kind: item["kind"],
         description: String(item["description"]).trim(),
         quantity: Number(item["quantity"]),
         unitPrice:
@@ -582,6 +607,7 @@ export class OrderWizardPage implements OnInit {
     value: {
       itemId?: string;
       productServiceId?: string | null;
+      kind?: OrderItemKind;
       description?: string;
       quantity?: number;
       unitPrice?: number | null;
@@ -594,6 +620,9 @@ export class OrderWizardPage implements OnInit {
     return new FormGroup({
       itemId: new FormControl(value.itemId ?? "", { nonNullable: true }),
       productServiceId: new FormControl(value.productServiceId ?? "", {
+        nonNullable: true,
+      }),
+      kind: new FormControl<OrderItemKind>(value.kind ?? "service", {
         nonNullable: true,
       }),
       description: new FormControl(value.description ?? "", {
@@ -609,12 +638,18 @@ export class OrderWizardPage implements OnInit {
       unitCost: new FormControl<number | null>(value.unitCost ?? null, {
         validators: [Validators.min(0)],
       }),
-      unitName: new FormControl(value.unitName ?? "Unidad", {
-        nonNullable: true,
-      }),
-      unitSymbol: new FormControl(value.unitSymbol ?? "u", {
-        nonNullable: true,
-      }),
+      unitName: new FormControl(
+        value.unitName ?? (value.kind === "product" ? "Unidad" : "Servicio"),
+        {
+          nonNullable: true,
+        },
+      ),
+      unitSymbol: new FormControl(
+        value.unitSymbol ?? (value.kind === "product" ? "u" : "serv"),
+        {
+          nonNullable: true,
+        },
+      ),
       tracksInventory: new FormControl(value.tracksInventory ?? false, {
         nonNullable: true,
       }),
@@ -644,6 +679,7 @@ export class OrderWizardPage implements OnInit {
       group.patchValue({
         itemId: item.id,
         productServiceId: item.productServiceId ?? "",
+        kind: item.kind,
         description: item.description,
         quantity: Number(item.quantity),
         unitPrice: item.unitPrice === null ? null : Number(item.unitPrice),
@@ -653,6 +689,8 @@ export class OrderWizardPage implements OnInit {
         tracksInventory: item.tracksInventory,
       });
       this.items.push(group);
+      if (!item.productServiceId)
+        this.setItemKind(this.items.length - 1, item.kind);
     });
     this.loadVehicles(order.customer.id, order.vehicle.id);
   }

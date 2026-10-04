@@ -175,14 +175,23 @@
               class="grid gap-3 px-6 py-4 sm:grid-cols-[minmax(0,1fr)_7rem_9rem_9rem]"
             >
               <div>
-                <strong class="block">{{ item.description }}</strong>
-                @if (auth.hasPermission('catalog.view_costs') && item.costAmount !== null) {
+                <div class="flex flex-wrap items-center gap-2">
+                  <strong>{{ item.description }}</strong>
+                  <span
+                    class="inline-flex bg-[#e1e9f1] px-2 py-0.5 text-[.62rem] font-bold uppercase tracking-wider text-[#45627a] dark:bg-[#22364d] dark:text-[#b9dcf5]"
+                    >{{ item.kind === 'product' ? 'Producto' : 'Servicio'
+                    }}</span
+                  >
+                </div>
+                @if (auth.hasPermission('catalog.view_costs') && item.costAmount
+                !== null) {
                 <small class="text-[#63717d] dark:text-[#afbed0]"
                   >{{ itemCostLabel(current, item) }}: {{ money(item.unitCost)
                   }} × {{ item.quantity }} {{ item.unitSymbol }} =
                   <strong>{{ money(item.costAmount) }}</strong></small
                 >
-                } @if (auth.hasPermission('catalog.view_costs') && item.costLayers.length > 0) {
+                } @if (auth.hasPermission('catalog.view_costs') &&
+                item.costLayers.length > 0) {
                 <div class="mt-2 flex flex-wrap gap-1.5">
                   @for (layer of item.costLayers; track layer.lotId) {
                   <span
@@ -209,14 +218,16 @@
               class="ml-auto grid max-w-md grid-cols-2 gap-x-8 gap-y-2 text-right"
             >
               <span>Venta</span><strong>{{ money(current.total) }}</strong>
-              @if (auth.hasPermission('catalog.view_costs') && current.totalCost !== null) {
+              @if (auth.hasPermission('catalog.view_costs') && current.totalCost
+              !== null) {
               <span
                 >{{ hasActualCosts(current) ? 'Costo real' : 'Costo estimado'
                 }}</span
               ><strong>{{ money(current.totalCost) }}</strong>
-              }
-              @if (auth.hasPermission('profitability.view') && current.grossProfit !== null) {
-              <span>Utilidad bruta</span><strong class="text-lg">{{ money(current.grossProfit) }}</strong>
+              } @if (auth.hasPermission('profitability.view') &&
+              current.grossProfit !== null) {
+              <span>Utilidad bruta</span
+              ><strong class="text-lg">{{ money(current.grossProfit) }}</strong>
               }
             </div>
           </footer>
@@ -226,13 +237,45 @@
         <section class="form-card-tw p-5">
           <p class="eyebrow">PAGO</p>
           <div class="mt-2 flex items-center justify-between gap-4">
-            <div><h2 class="m-0 font-[var(--display)] text-2xl font-semibold">{{ current.isPaid ? 'Pagada' : 'Pendiente' }}</h2><p class="mb-0 mt-1 text-sm text-[#63717d] dark:text-[#afbed0]">{{ current.isPaid ? 'El servicio se considera cobrado.' : 'El importe permanece por cobrar.' }}</p></div>
-            <span class="px-3 py-1 text-xs font-bold" [class.bg-[#cfe3fb]]="current.isPaid" [class.text-[#285f8a]]="current.isPaid" [class.dark:bg-[#233f58]]="current.isPaid" [class.dark:text-[#b9dcf5]]="current.isPaid" [class.bg-[#ffe3ab]]="!current.isPaid" [class.text-[#805719]]="!current.isPaid">{{ current.isPaid ? 'PAGADA' : 'PENDIENTE' }}</span>
+            <div>
+              <h2 class="m-0 font-[var(--display)] text-2xl font-semibold">
+                {{ current.isPaid ? 'Pagada' : 'Pendiente' }}
+              </h2>
+              <p class="mb-0 mt-1 text-sm text-[#63717d] dark:text-[#afbed0]">
+                {{ current.isPaid ? 'El servicio se considera cobrado.' : 'El
+                importe permanece por cobrar.' }}
+              </p>
+            </div>
+            <span
+              class="px-3 py-1 text-xs font-bold"
+              [class.bg-[#cfe3fb]]="current.isPaid"
+              [class.text-[#285f8a]]="current.isPaid"
+              [class.dark:bg-[#233f58]]="current.isPaid"
+              [class.dark:text-[#b9dcf5]]="current.isPaid"
+              [class.bg-[#ffe3ab]]="!current.isPaid"
+              [class.text-[#805719]]="!current.isPaid"
+              >{{ current.isPaid ? 'PAGADA' : 'PENDIENTE' }}</span
+            >
           </div>
-          @if (auth.hasPermission('orders.manage_payment')) { <button class="secondary-tw mt-4 w-full" type="button" [disabled]="saving() || current.status === 'cancelled' || (!current.isPaid && current.total === null)" (click)="changePaymentStatus()">{{ current.isPaid ? 'Marcar como pendiente' : 'Marcar como pagada' }}</button> }
-          @if (current.isPaid) { <small class="mt-2 block text-[#63717d] dark:text-[#afbed0]">Para editar o cancelar la orden, primero márcala como pendiente.</small> }
+          @if (auth.hasPermission('orders.manage_payment')) {
+          <button
+            class="secondary-tw mt-4 w-full"
+            type="button"
+            [disabled]="saving() || current.status === 'cancelled' || (!current.isPaid && current.total === null)"
+            (click)="changePaymentStatus()"
+          >
+            {{ current.isPaid ? 'Marcar como pendiente' : 'Marcar como pagada'
+            }}
+          </button>
+          } @if (current.isPaid) {
+          <small class="mt-2 block text-[#63717d] dark:text-[#afbed0]"
+            >Para editar o cancelar la orden, primero márcala como
+            pendiente.</small
+          >
+          }
         </section>
-        @if (auth.hasPermission('orders.change_status')) { <section class="form-card-tw p-5">
+        @if (auth.hasPermission('orders.change_status')) {
+        <section class="form-card-tw p-5">
           <p class="eyebrow">SEGUIMIENTO</p>
           <h2 class="font-[var(--display)] text-2xl font-semibold">
             Cambiar estatus
@@ -261,13 +304,15 @@
             >Guardando cambio…</small
           >
           }
-        </section> }
+        </section>
+        }
         <section class="form-card-tw p-5">
           <p class="eyebrow">NOTAS</p>
           <h2 class="font-[var(--display)] text-2xl font-semibold">
             Seguimiento interno
           </h2>
-          @if (auth.hasPermission('orders.add_notes')) { <textarea
+          @if (auth.hasPermission('orders.add_notes')) {
+          <textarea
             class="field-control mt-4 min-h-24"
             [formControl]="note"
             placeholder="Agrega una observación sobre el servicio"
@@ -279,7 +324,8 @@
             (click)="addNote()"
           >
             Agregar nota
-          </button> }
+          </button>
+          }
           <div class="mt-5 space-y-3">
             @for (entry of current.notes.slice().reverse(); track entry.id) {
             <article class="border-l-2 border-[#d0a17c] pl-3">

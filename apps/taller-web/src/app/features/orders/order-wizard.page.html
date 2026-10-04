@@ -95,7 +95,8 @@
           }
         </div>
       </section>
-      @if (auth.hasPermission('clients.create')) { <aside class="form-card-tw h-fit p-5 sm:p-7">
+      @if (auth.hasPermission('clients.create')) {
+      <aside class="form-card-tw h-fit p-5 sm:p-7">
         <button
           class="secondary-tw w-full"
           type="button"
@@ -166,7 +167,8 @@
           </button>
         </form>
         }
-      </aside> }
+      </aside>
+      }
     </div>
     <div class="mt-6 flex justify-end">
       <button
@@ -224,7 +226,8 @@
           }
         </div>
       </section>
-      @if (auth.hasPermission('vehicles.create')) { <aside class="form-card-tw h-fit p-5 sm:p-7">
+      @if (auth.hasPermission('vehicles.create')) {
+      <aside class="form-card-tw h-fit p-5 sm:p-7">
         <button
           class="secondary-tw w-full"
           type="button"
@@ -379,7 +382,8 @@
           </button>
         </form>
         }
-      </aside> }
+      </aside>
+      }
     </div>
     <div class="mt-6 flex justify-between">
       <button class="secondary-tw" type="button" (click)="goTo(1)">
@@ -467,6 +471,46 @@
             [formGroupName]="i"
           >
             <div>
+              @if (!item.value.productServiceId) {
+              <span class="field-label">TIPO DE CONCEPTO</span>
+              <div
+                class="segments-tw mt-1 inline-flex"
+                [attr.aria-label]="'Tipo del concepto ' + (i + 1)"
+              >
+                <button
+                  type="button"
+                  [class.segment-selected]="item.value.kind === 'service'"
+                  (click)="setItemKind(i, 'service')"
+                >
+                  Servicio
+                </button>
+                <button
+                  type="button"
+                  [class.segment-selected]="item.value.kind === 'product'"
+                  [disabled]="!canUseProfitability()"
+                  [title]="!canUseProfitability() ? 'Requiere acceso a costos' : ''"
+                  (click)="setItemKind(i, 'product')"
+                >
+                  Producto
+                </button>
+              </div>
+              @if (item.value.kind === 'service') {
+              <p class="mb-3 mt-2 text-xs text-[#63717d] dark:text-[#afbed0]">
+                Mano de obra o servicio. El costo puede quedar vacío y se
+                guardará en $0.00.
+              </p>
+              } @else {
+              <p class="mb-3 mt-2 text-xs text-[#805719] dark:text-[#ffd18a]">
+                Producto libre: requiere costo y no afecta inventario.
+              </p>
+              } } @else {
+              <span
+                class="mb-3 inline-flex bg-[#e1e9f1] px-2 py-1 text-[.65rem] font-bold uppercase tracking-wider text-[#45627a] dark:bg-[#22364d] dark:text-[#b9dcf5]"
+              >
+                {{ item.value.kind === 'product' ? 'Producto' : 'Servicio' }} ·
+                Catálogo
+              </span>
+              }
               <label class="field-label" [for]="'item-description-' + i">
                 DESCRIPCIÓN <b>*</b> @if (item.value.productServiceId) {
                 <span class="text-[#b94718] dark:text-[#ff9a6f]"
@@ -482,7 +526,8 @@
               />
               @if (canUseProfitability() && !item.value.productServiceId) {
               <label class="field-label mt-2" [for]="'item-cost-' + i"
-                >Costo unitario</label
+                >Costo unitario @if (item.value.kind === 'product') {
+                <b>*</b> }</label
               >
               <input
                 class="field-control"
@@ -491,10 +536,25 @@
                 min="0"
                 step="0.01"
                 formControlName="unitCost"
-                placeholder="Opcional"
+                [placeholder]="item.value.kind === 'product' ? 'Obligatorio' : 'Vacío = $0.00'"
               />
-              } @else if (canUseProfitability() && item.value.unitCost !== null)
-              {
+              @if (item.get('unitCost')?.touched &&
+              item.get('unitCost')?.invalid) {
+              <small class="field-error">Captura el costo del producto.</small>
+              } @else if (item.value.kind === 'service' && item.value.unitCost
+              === null) {
+              <small class="field-hint"
+                >Sin capturar: se guardará como $0.00.</small
+              >
+              } @else if (item.value.kind === 'service' &&
+              isExplicitZeroCost(i)) {
+              <small
+                class="mt-1 block text-xs font-bold text-[#285f8a] dark:text-[#b9dcf5]"
+              >
+                Costo confirmado en $0.00.
+              </small>
+              } } @else if (canUseProfitability() && item.value.unitCost !==
+              null) {
               <small class="field-hint"
                 >Costo histórico: {{ money(item.value.unitCost) }}</small
               >
@@ -511,9 +571,6 @@
                 step="1"
                 formControlName="quantity"
               />
-              @if (item.value.unitSymbol && item.value.unitSymbol !== 'u') {
-              <small class="field-hint">{{ item.value.unitSymbol }}</small>
-              }
             </div>
             <div>
               <label class="field-label" [for]="'item-price-' + i"
@@ -603,11 +660,15 @@
           @for (item of items.controls; track item; let i = $index) {
           <div class="flex justify-between gap-4 py-3">
             <span
+              ><span
+                class="mr-2 inline-flex bg-[#e1e9f1] px-2 py-0.5 text-[.62rem] font-bold uppercase tracking-wider text-[#45627a] dark:bg-[#22364d] dark:text-[#b9dcf5]"
+                >{{ item.value.kind === 'product' ? 'Producto' : 'Servicio'
+                }}</span
               >{{ item.value.description }}
               <small class="text-[#63717d] dark:text-[#afbed0]"
                 >× {{ item.value.quantity }}@if (item.value.unitSymbol &&
-                item.value.unitSymbol !== 'u') { {{ item.value.unitSymbol
-                }} }</small
+                item.value.unitSymbol !== 'u') { {{ item.value.unitSymbol }}
+                }</small
               ></span
             ><strong>{{ money(itemAmount(i)) }}</strong>
           </div>
