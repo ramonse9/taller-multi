@@ -7,12 +7,13 @@
   display: grid;
   grid-template-columns: 17rem minmax(0, 1fr);
   background: var(--paper);
+  color: var(--ink);
 }
 .sidebar {
   position: sticky;
   top: 0;
   height: 100vh;
-  background: var(--ink);
+  background: #17283d;
   color: white;
   padding: 2rem 1.25rem 1.25rem;
   display: flex;
@@ -58,7 +59,7 @@ nav {
   border-left: 2px solid transparent;
 }
 .nav-item > span {
-  color: #748078;
+  color: #91a7bd;
   font: 600 0.65rem var(--mono);
 }
 .nav-item.active {
@@ -70,7 +71,7 @@ nav {
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   padding: 1.2rem 0.5rem 0;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 0.7rem;
   min-width: 0;
@@ -86,7 +87,7 @@ nav {
   font-size: 0.76rem;
 }
 .identity span {
-  color: #8e9991;
+  color: #a9bbcc;
   font-size: 0.61rem;
   margin-top: 0.2rem;
 }
@@ -96,16 +97,22 @@ nav {
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: #30463b;
-  color: #ddede3;
+  background: #365774;
+  color: #e3f2ff;
   font-size: 0.7rem;
   font-weight: 800;
 }
 .icon-button {
-  color: #aab4ad;
+  color: #c1cfdd;
   background: transparent;
   padding: 0.25rem;
   font-size: 1.2rem;
+}
+:host-context(.dark) .sidebar {
+  background: #0c1726;
+}
+:host-context(.dark) .nav-item.active {
+  background: rgba(111, 153, 194, 0.16);
 }
 .workspace {
   min-width: 0;

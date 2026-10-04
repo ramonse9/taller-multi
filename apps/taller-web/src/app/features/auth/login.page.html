@@ -1,4 +1,13 @@
 <main class="login-shell">
+  <button
+    class="theme-toggle auth-theme-toggle"
+    type="button"
+    (click)="theme.toggle()"
+    [attr.aria-label]="theme.isDark() ? 'Usar tema claro' : 'Usar tema oscuro'"
+    [title]="theme.isDark() ? 'Usar tema claro' : 'Usar tema oscuro'"
+  >
+    {{ theme.isDark() ? '☀' : '◐' }}
+  </button>
   <section class="brand-panel" aria-label="Taller Multi">
     <div class="brand-mark">TM</div>
     <p class="eyebrow">OPERACIÓN EN ORDEN</p>

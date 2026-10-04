@@ -29,13 +29,13 @@
 .permission-state {
   flex: none;
   padding: 0.35rem 0.55rem;
-  background: #edf1ee;
+  background: #cfe7d9;
   color: #44564c;
   font: 700 0.58rem var(--mono);
   text-transform: uppercase;
 }
 .permission-state.customized {
-  background: #fff0e8;
+  background: #ffd3bf;
   color: #9b421d;
 }
 .permission-state.automatic {
@@ -83,7 +83,7 @@
 .permissions-summary {
   margin-top: 1.2rem;
   padding: 0.8rem 1rem;
-  background: #f2f0e9;
+  background: #e1e9f1;
   color: var(--muted);
   font-size: 0.72rem;
 }
@@ -116,7 +116,7 @@
   gap: 0.55rem;
   align-items: start;
   padding: 0.55rem 0;
-  border-bottom: 1px solid #ece9df;
+  border-bottom: 1px solid #e2e7ec;
   cursor: pointer;
 }
 .permission-option:last-child {

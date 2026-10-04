@@ -13,6 +13,7 @@ import {
 import { RouterLink } from "@angular/router";
 import { finalize } from "rxjs";
 import { AuthService } from "../../core/auth/auth.service";
+import { ThemeService } from "../../core/theme/theme.service";
 
 type RecoveryStep = "request" | "verify" | "password" | "done";
 
@@ -25,6 +26,7 @@ type RecoveryStep = "request" | "verify" | "password" | "done";
 })
 export class PasswordRecoveryPage {
   private readonly auth = inject(AuthService);
+  readonly theme = inject(ThemeService);
   readonly step = signal<RecoveryStep>("request");
   readonly submitting = signal(false);
   readonly error = signal("");

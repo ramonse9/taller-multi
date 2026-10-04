@@ -1,9 +1,9 @@
-<main class="min-h-screen bg-[#f9f7f0] text-[#17251e] dark:bg-[#101713] dark:text-[#edf3ef]">
-  <header class="flex flex-wrap items-end justify-between gap-5 border-b border-[#dcd9cf] px-[clamp(1.5rem,5vw,5rem)] py-8 dark:border-[#34423a]">
+<main class="min-h-screen bg-[#fbfaf7] text-[#17251e] dark:bg-[#111d2e] dark:text-[#edf4fb]">
+  <header class="flex flex-wrap items-end justify-between gap-5 border-b border-[#d5dce3] px-[clamp(1.5rem,5vw,5rem)] py-8 dark:border-[#38516d]">
     <div>
       <p class="eyebrow">CONTROL / FINANZAS</p>
       <h1 class="m-0 font-[var(--display)] text-[clamp(2.4rem,5vw,4.5rem)] font-semibold leading-[.9] tracking-[-.05em]">Gastos</h1>
-      <p class="mt-3 text-sm text-[#68746d] dark:text-[#aab7af]">Registra los egresos del taller y compara su comportamiento mensual.</p>
+      <p class="mt-3 text-sm text-[#63717d] dark:text-[#afbed0]">Registra los egresos del taller y compara su comportamiento mensual.</p>
     </div>
     <div class="flex items-center gap-2">
       <button class="theme-toggle" type="button" (click)="theme.toggle()">{{ theme.isDark() ? '☀' : '◐' }}</button>
@@ -13,10 +13,10 @@
 
   <section class="px-[clamp(1.5rem,5vw,5rem)] pb-16 pt-8">
     @if (notice()) {
-      <div class="mb-4 bg-[#e7f2eb] px-4 py-3 text-sm text-[#245b3b] dark:bg-[#203c2c] dark:text-[#9ed5b3]">✓ {{ notice() }}</div>
+      <div class="mb-4 bg-[#cfe9da] px-4 py-3 text-sm text-[#245b3b] dark:bg-[#294e42] dark:text-[#c9f0df]">✓ {{ notice() }}</div>
     }
     @if (error() && !editorOpen()) {
-      <div class="mb-4 flex justify-between gap-4 bg-[#fff0ea] px-4 py-3 text-sm text-[#8e3214] dark:bg-[#4a241b] dark:text-[#ffb89d]" role="alert">
+      <div class="mb-4 flex justify-between gap-4 bg-[#ffdcd2] px-4 py-3 text-sm text-[#8e3214] dark:bg-[#633d3d] dark:text-[#ffd9d4]" role="alert">
         <span>{{ error() }}</span><button class="bg-transparent p-0 underline" type="button" (click)="refresh()">Reintentar</button>
       </div>
     }
@@ -26,37 +26,37 @@
       <div><label class="field-label" for="expense-summary-month">Mes del resumen</label><input class="field-control" id="expense-summary-month" type="month" [formControl]="summaryMonth" /></div>
     </div>
 
-    <div class="relative mb-8 grid gap-px bg-[#dcd9cf] sm:grid-cols-2 xl:grid-cols-4 dark:bg-[#3d4d44]" [class.opacity-60]="summaryLoading()">
-      <article class="bg-white p-5 dark:bg-[#1a251f]"><span class="detail-label">GASTOS CONFIRMADOS</span><strong class="mt-2 block text-3xl">{{ money(summary().confirmedAmount) }}</strong><small class="text-[#68746d] dark:text-[#aab7af]">{{ summary().confirmedCount }} movimientos</small></article>
-      <article class="bg-white p-5 dark:bg-[#1a251f]"><span class="detail-label">MES ANTERIOR</span><strong class="mt-2 block text-3xl">{{ money(summary().previousConfirmedAmount) }}</strong><small class="capitalize text-[#68746d] dark:text-[#aab7af]">{{ monthName(summary().previousMonth) }}</small></article>
-      <article class="bg-white p-5 dark:bg-[#1a251f]"><span class="detail-label">VARIACIÓN</span><strong class="mt-2 block text-3xl" [class.text-[#a1362c]]="summary().direction === 'increase'" [class.text-[#245b3b]]="summary().direction === 'decrease'">{{ summary().direction === 'increase' ? '↑' : summary().direction === 'decrease' ? '↓' : '→' }} {{ money(summary().changeAmount) }}</strong><small class="text-[#68746d] dark:text-[#aab7af]">{{ comparisonText() }}</small></article>
-      <article class="bg-white p-5 dark:bg-[#1a251f]"><span class="detail-label">BORRADORES DEL MES</span><strong class="mt-2 block text-3xl">{{ money(summary().draftAmount) }}</strong><small class="text-[#68746d] dark:text-[#aab7af]">{{ summary().draftCount }} pendientes de confirmar</small></article>
+    <div class="relative mb-8 grid gap-px bg-[#d5dce3] sm:grid-cols-2 xl:grid-cols-4 dark:bg-[#38516d]" [class.opacity-60]="summaryLoading()">
+      <article class="bg-white p-5 dark:bg-[#19283b]"><span class="detail-label">GASTOS CONFIRMADOS</span><strong class="mt-2 block text-3xl">{{ money(summary().confirmedAmount) }}</strong><small class="text-[#63717d] dark:text-[#afbed0]">{{ summary().confirmedCount }} movimientos</small></article>
+      <article class="bg-white p-5 dark:bg-[#19283b]"><span class="detail-label">MES ANTERIOR</span><strong class="mt-2 block text-3xl">{{ money(summary().previousConfirmedAmount) }}</strong><small class="capitalize text-[#63717d] dark:text-[#afbed0]">{{ monthName(summary().previousMonth) }}</small></article>
+      <article class="bg-white p-5 dark:bg-[#19283b]"><span class="detail-label">VARIACIÓN</span><strong class="mt-2 block text-3xl" [class.text-[#a1362c]]="summary().direction === 'increase'" [class.text-[#245b3b]]="summary().direction === 'decrease'">{{ summary().direction === 'increase' ? '↑' : summary().direction === 'decrease' ? '↓' : '→' }} {{ money(summary().changeAmount) }}</strong><small class="text-[#63717d] dark:text-[#afbed0]">{{ comparisonText() }}</small></article>
+      <article class="bg-white p-5 dark:bg-[#19283b]"><span class="detail-label">BORRADORES DEL MES</span><strong class="mt-2 block text-3xl">{{ money(summary().draftAmount) }}</strong><small class="text-[#63717d] dark:text-[#afbed0]">{{ summary().draftCount }} pendientes de confirmar</small></article>
     </div>
 
     <div class="mb-8 grid gap-5 xl:grid-cols-2">
       <section class="form-card-tw overflow-hidden">
         <header class="form-card-header"><div><p class="eyebrow">ACTIVIDAD</p><h2 class="section-title">Gastos recientes</h2></div></header>
-        <div class="divide-y divide-[#ece9df] dark:divide-[#35433b]">
+        <div class="divide-y divide-[#e2e7ec] dark:divide-[#38516d]">
           @for (expense of summary().recentExpenses; track expense.id) {
             <div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 p-4">
-              <div class="min-w-0"><strong class="block truncate">{{ expense.description }}</strong><small class="text-[#68746d] dark:text-[#aab7af]">{{ formatShortDate(expense.occurredOn) }} · {{ expense.category.name }} · {{ statusName(expense.status) }}</small></div><strong>{{ money(expense.amount) }}</strong>
+              <div class="min-w-0"><strong class="block truncate">{{ expense.description }}</strong><small class="text-[#63717d] dark:text-[#afbed0]">{{ formatShortDate(expense.occurredOn) }} · {{ expense.category.name }} · {{ statusName(expense.status) }}</small></div><strong>{{ money(expense.amount) }}</strong>
             </div>
-          } @empty { <p class="p-8 text-center text-sm text-[#68746d] dark:text-[#aab7af]">Todavía no hay gastos registrados.</p> }
+          } @empty { <p class="p-8 text-center text-sm text-[#63717d] dark:text-[#afbed0]">Todavía no hay gastos registrados.</p> }
         </div>
       </section>
       <section class="form-card-tw overflow-hidden">
-        <header class="form-card-header"><div><p class="eyebrow">DISTRIBUCIÓN</p><h2 class="section-title">Por categoría</h2><small class="text-[#68746d] dark:text-[#aab7af]">Solo gastos confirmados del mes.</small></div></header>
-        <div class="divide-y divide-[#ece9df] dark:divide-[#35433b]">
+        <header class="form-card-header"><div><p class="eyebrow">DISTRIBUCIÓN</p><h2 class="section-title">Por categoría</h2><small class="text-[#63717d] dark:text-[#afbed0]">Solo gastos confirmados del mes.</small></div></header>
+        <div class="divide-y divide-[#e2e7ec] dark:divide-[#38516d]">
           @for (item of summary().byCategory; track item.category.id) {
-            <div class="flex items-center justify-between gap-4 p-4"><span><strong class="block">{{ item.category.name }}</strong><small class="text-[#68746d] dark:text-[#aab7af]">{{ item.count }} {{ item.count === 1 ? 'gasto' : 'gastos' }}</small></span><strong>{{ money(item.amount) }}</strong></div>
-          } @empty { <p class="p-8 text-center text-sm text-[#68746d] dark:text-[#aab7af]">No hay gastos confirmados en este mes.</p> }
+            <div class="flex items-center justify-between gap-4 p-4"><span><strong class="block">{{ item.category.name }}</strong><small class="text-[#63717d] dark:text-[#afbed0]">{{ item.count }} {{ item.count === 1 ? 'gasto' : 'gastos' }}</small></span><strong>{{ money(item.amount) }}</strong></div>
+          } @empty { <p class="p-8 text-center text-sm text-[#63717d] dark:text-[#afbed0]">No hay gastos confirmados en este mes.</p> }
         </div>
       </section>
     </div>
 
     <section class="form-card-tw overflow-hidden">
       <header class="form-card-header flex-wrap justify-between gap-4"><div><p class="eyebrow">REGISTRO</p><h2 class="section-title">{{ data().totalItems }} gastos</h2></div><button class="small-action-tw" type="button" (click)="clearFilters()">Limpiar filtros</button></header>
-      <div class="grid gap-3 border-b border-[#dcd9cf] p-4 md:grid-cols-2 xl:grid-cols-4 dark:border-[#3d4d44]">
+      <div class="grid gap-3 border-b border-[#d5dce3] p-4 md:grid-cols-2 xl:grid-cols-4 dark:border-[#38516d]">
         <div class="relative md:col-span-2"><span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#768079]">⌕</span><input class="field-control !pl-11" type="search" [formControl]="search" placeholder="Buscar descripción, referencia, categoría o proveedor" /></div>
         <select class="field-control" [formControl]="status" aria-label="Filtrar por estado"><option value="">Todos los estados</option><option value="draft">Borrador</option><option value="confirmed">Confirmado</option><option value="cancelled">Cancelado</option></select>
         <select class="field-control" [formControl]="recurrenceType" aria-label="Filtrar por recurrencia"><option value="">Únicos y recurrentes</option><option value="one_time">Único</option><option value="recurring">Recurrente</option></select>
@@ -67,19 +67,19 @@
       </div>
 
       <div class="relative min-h-72" [class.opacity-50]="loading()">
-        <div class="grid gap-px bg-[#ece9df] md:grid-cols-2 xl:grid-cols-3 dark:bg-[#35433b]">
+        <div class="grid gap-px bg-[#e2e7ec] md:grid-cols-2 xl:grid-cols-3 dark:bg-[#38516d]">
           @for (expense of data().items; track expense.id) {
-            <article class="flex min-h-64 flex-col bg-white p-5 dark:bg-[#1a251f]">
-              <div class="flex items-start justify-between gap-3"><div class="min-w-0"><strong class="block truncate text-lg">{{ expense.description }}</strong><small class="text-[#68746d] dark:text-[#aab7af]">{{ formatShortDate(expense.occurredOn) }} · {{ expense.category.name }}</small></div><span class="shrink-0 px-2 py-1 text-xs font-bold" [class.bg-[#fff1d6]]="expense.status === 'draft'" [class.text-[#805719]]="expense.status === 'draft'" [class.bg-[#e5f0ff]]="expense.status === 'confirmed'" [class.text-[#285a91]]="expense.status === 'confirmed'" [class.bg-[#ffe6e2]]="expense.status === 'cancelled'" [class.text-[#a1362c]]="expense.status === 'cancelled'">{{ statusName(expense.status) }}</span></div>
-              <dl class="mt-5 grid grid-cols-2 gap-3 border-y border-[#ece9df] py-4 text-sm dark:border-[#35433b]"><div><dt class="detail-label">IMPORTE</dt><dd class="m-0 mt-1 text-lg font-bold">{{ money(expense.amount) }}</dd></div><div><dt class="detail-label">TIPO</dt><dd class="m-0 mt-1">{{ expense.recurrenceType === 'recurring' ? 'Recurrente' : 'Único' }}</dd></div><div class="col-span-2"><dt class="detail-label">PROVEEDOR</dt><dd class="m-0 mt-1 truncate">{{ expense.supplier.commercialName }}</dd></div></dl>
-              @if (expense.reference || expense.notes) { <p class="mt-3 line-clamp-2 text-sm text-[#68746d] dark:text-[#aab7af]">{{ expense.reference || expense.notes }}</p> }
+            <article class="flex min-h-64 flex-col bg-white p-5 dark:bg-[#19283b]">
+              <div class="flex items-start justify-between gap-3"><div class="min-w-0"><strong class="block truncate text-lg">{{ expense.description }}</strong><small class="text-[#63717d] dark:text-[#afbed0]">{{ formatShortDate(expense.occurredOn) }} · {{ expense.category.name }}</small></div><span class="shrink-0 px-2 py-1 text-xs font-bold" [class.bg-[#ffe3ab]]="expense.status === 'draft'" [class.text-[#805719]]="expense.status === 'draft'" [class.bg-[#cfe3fb]]="expense.status === 'confirmed'" [class.text-[#285a91]]="expense.status === 'confirmed'" [class.bg-[#ffd1cc]]="expense.status === 'cancelled'" [class.text-[#a1362c]]="expense.status === 'cancelled'">{{ statusName(expense.status) }}</span></div>
+              <dl class="mt-5 grid grid-cols-2 gap-3 border-y border-[#e2e7ec] py-4 text-sm dark:border-[#38516d]"><div><dt class="detail-label">IMPORTE</dt><dd class="m-0 mt-1 text-lg font-bold">{{ money(expense.amount) }}</dd></div><div><dt class="detail-label">TIPO</dt><dd class="m-0 mt-1">{{ expense.recurrenceType === 'recurring' ? 'Recurrente' : 'Único' }}</dd></div><div class="col-span-2"><dt class="detail-label">PROVEEDOR</dt><dd class="m-0 mt-1 truncate">{{ expense.supplier.commercialName }}</dd></div></dl>
+              @if (expense.reference || expense.notes) { <p class="mt-3 line-clamp-2 text-sm text-[#63717d] dark:text-[#afbed0]">{{ expense.reference || expense.notes }}</p> }
               <footer class="mt-auto flex flex-wrap gap-2 pt-5">
                 @if (expense.status === 'draft' && auth.hasPermission('expenses.edit')) { <button class="small-action-tw" type="button" (click)="openEditor(expense)">Editar</button> }
                 @if (expense.status === 'draft' && auth.hasPermission('expenses.confirm')) { <button class="small-action-tw" type="button" [disabled]="saving()" (click)="changeStatus(expense, 'confirmed')">Confirmar</button> }
                 @if (expense.status !== 'cancelled' && auth.hasPermission('expenses.cancel')) { <button class="small-action-tw !text-[#a1362c]" type="button" [disabled]="saving()" (click)="changeStatus(expense, 'cancelled')">Cancelar</button> }
               </footer>
             </article>
-          } @empty { @if (!loading()) { <p class="col-span-full bg-white p-12 text-center text-sm text-[#68746d] dark:bg-[#1a251f] dark:text-[#aab7af]">No hay gastos que coincidan con los filtros.</p> } }
+          } @empty { @if (!loading()) { <p class="col-span-full bg-white p-12 text-center text-sm text-[#63717d] dark:bg-[#19283b] dark:text-[#afbed0]">No hay gastos que coincidan con los filtros.</p> } }
         </div>
         @if (loading()) { <div class="loader-tw" aria-label="Cargando gastos"><span></span><span></span><span></span></div> }
       </div>
@@ -102,7 +102,7 @@
         <div><label class="field-label" for="expense-reference">Referencia</label><input class="field-control" id="expense-reference" formControlName="reference" maxlength="120" placeholder="Folio, recibo o referencia" /></div>
         <div><label class="field-label" for="expense-amount">Importe <b>*</b></label><input class="field-control" id="expense-amount" formControlName="amount" inputmode="decimal" placeholder="0.00" />@if (form.controls.amount.touched && form.controls.amount.invalid) { <small class="field-error">Captura un importe positivo con máximo dos decimales.</small> }</div>
         <div class="sm:col-span-2"><label class="field-label" for="expense-notes">Notas</label><textarea class="field-control min-h-24" id="expense-notes" formControlName="notes" maxlength="2000" placeholder="Información adicional"></textarea></div>
-        <p class="sm:col-span-2 m-0 bg-[#f3f0e6] p-3 text-xs text-[#68746d] dark:bg-[#222f27] dark:text-[#aab7af]">El gasto se guardará como borrador. Confírmalo desde el listado para incluirlo en los resúmenes mensuales.</p>
+        <p class="sm:col-span-2 m-0 bg-[#f3f0e6] p-3 text-xs text-[#63717d] dark:bg-[#22364d] dark:text-[#afbed0]">El gasto se guardará como borrador. Confírmalo desde el listado para incluirlo en los resúmenes mensuales.</p>
         <footer class="dialog-footer sm:col-span-2"><button class="ghost-tw" type="button" (click)="closeEditor()">Cerrar</button><button class="primary" type="submit" [disabled]="saving()">{{ saving() ? 'Guardando…' : 'Guardar gasto' }}</button></footer>
       </form>
     </section>

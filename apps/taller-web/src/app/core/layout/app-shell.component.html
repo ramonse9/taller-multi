@@ -206,6 +206,15 @@
       <button
         class="icon-button"
         type="button"
+        [title]="theme.isDark() ? 'Usar tema claro' : 'Usar tema oscuro'"
+        [attr.aria-label]="theme.isDark() ? 'Usar tema claro' : 'Usar tema oscuro'"
+        (click)="theme.toggle()"
+      >
+        {{ theme.isDark() ? '☀' : '◐' }}
+      </button>
+      <button
+        class="icon-button"
+        type="button"
         title="Cerrar sesión"
         (click)="auth.logout()"
       >

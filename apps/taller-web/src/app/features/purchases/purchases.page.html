@@ -1,9 +1,9 @@
-<main class="min-h-screen bg-[#f9f7f0] text-[#17251e] dark:bg-[#101713] dark:text-[#edf3ef]">
-  <header class="flex flex-wrap items-end justify-between gap-5 border-b border-[#dcd9cf] px-[clamp(1.5rem,5vw,5rem)] py-8 dark:border-[#34423a]">
+<main class="min-h-screen bg-[#fbfaf7] text-[#17251e] dark:bg-[#111d2e] dark:text-[#edf4fb]">
+  <header class="flex flex-wrap items-end justify-between gap-5 border-b border-[#d5dce3] px-[clamp(1.5rem,5vw,5rem)] py-8 dark:border-[#38516d]">
     <div>
       <p class="eyebrow">CONTROL / INVENTARIO</p>
       <h1 class="m-0 font-[var(--display)] text-[clamp(2.4rem,5vw,4.5rem)] font-semibold leading-[.9] tracking-[-.05em]">Compras</h1>
-      <p class="mt-3 text-sm text-[#68746d] dark:text-[#aab7af]">Entradas por proveedor con costos y lotes trazables.</p>
+      <p class="mt-3 text-sm text-[#63717d] dark:text-[#afbed0]">Entradas por proveedor con costos y lotes trazables.</p>
     </div>
     <div class="flex items-center gap-2">
       <button class="theme-toggle" type="button" (click)="theme.toggle()">{{ theme.isDark() ? '☀' : '◐' }}</button>
@@ -12,34 +12,34 @@
   </header>
 
   <section class="px-[clamp(1.5rem,5vw,5rem)] pb-16 pt-8">
-    <div class="mb-6 grid gap-px bg-[#dcd9cf] sm:grid-cols-2 xl:grid-cols-4 dark:bg-[#3d4d44]">
-      <article class="bg-white p-5 dark:bg-[#1a251f]"><span class="detail-label">COMPRAS · 30 DÍAS</span><strong class="mt-2 block text-3xl">{{ indicators().confirmedLast30Days }}</strong><small class="text-[#68746d] dark:text-[#aab7af]">Confirmadas</small></article>
-      <article class="bg-white p-5 dark:bg-[#1a251f]"><span class="detail-label">INVERSIÓN · 30 DÍAS</span><strong class="mt-2 block text-3xl">{{ money(indicators().confirmedAmountLast30Days) }}</strong><small class="text-[#68746d] dark:text-[#aab7af]">Solo compras confirmadas</small></article>
-      <article class="bg-white p-5 dark:bg-[#1a251f]"><span class="detail-label">BORRADORES</span><strong class="mt-2 block text-3xl">{{ indicators().draftCount }}</strong><small class="text-[#68746d] dark:text-[#aab7af]">Pendientes de confirmar</small></article>
-      <article class="bg-white p-5 dark:bg-[#1a251f]"><span class="detail-label">TOTAL EN BORRADORES</span><strong class="mt-2 block text-3xl">{{ money(indicators().draftAmount) }}</strong><small class="text-[#68746d] dark:text-[#aab7af]">Todavía no afecta inventario</small></article>
+    <div class="mb-6 grid gap-px bg-[#d5dce3] sm:grid-cols-2 xl:grid-cols-4 dark:bg-[#38516d]">
+      <article class="bg-white p-5 dark:bg-[#19283b]"><span class="detail-label">COMPRAS · 30 DÍAS</span><strong class="mt-2 block text-3xl">{{ indicators().confirmedLast30Days }}</strong><small class="text-[#63717d] dark:text-[#afbed0]">Confirmadas</small></article>
+      <article class="bg-white p-5 dark:bg-[#19283b]"><span class="detail-label">INVERSIÓN · 30 DÍAS</span><strong class="mt-2 block text-3xl">{{ money(indicators().confirmedAmountLast30Days) }}</strong><small class="text-[#63717d] dark:text-[#afbed0]">Solo compras confirmadas</small></article>
+      <article class="bg-white p-5 dark:bg-[#19283b]"><span class="detail-label">BORRADORES</span><strong class="mt-2 block text-3xl">{{ indicators().draftCount }}</strong><small class="text-[#63717d] dark:text-[#afbed0]">Pendientes de confirmar</small></article>
+      <article class="bg-white p-5 dark:bg-[#19283b]"><span class="detail-label">TOTAL EN BORRADORES</span><strong class="mt-2 block text-3xl">{{ money(indicators().draftAmount) }}</strong><small class="text-[#63717d] dark:text-[#afbed0]">Todavía no afecta inventario</small></article>
     </div>
 
     <div class="mb-8 grid gap-5 xl:grid-cols-2">
       <section class="form-card-tw overflow-hidden">
         <header class="form-card-header"><div><p class="eyebrow">ACTIVIDAD</p><h2 class="section-title">Compras recientes</h2></div></header>
-        <div class="divide-y divide-[#ece9df] dark:divide-[#35433b]">
+        <div class="divide-y divide-[#e2e7ec] dark:divide-[#38516d]">
           @for (purchase of indicators().recentPurchases; track purchase.id) {
-            <a class="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 p-4 text-inherit no-underline hover:bg-[#f4f2eb] dark:hover:bg-[#222f27]" [routerLink]="['/purchases', purchase.id]">
-              <strong class="font-[var(--mono)]">#{{ purchase.folio }}</strong><span class="min-w-0"><strong class="block truncate">{{ purchase.supplier.commercialName }}</strong><small class="text-[#68746d] dark:text-[#aab7af]">{{ formatShortDate(purchase.purchasedAt) }} · {{ statusName(purchase.status) }}</small></span><strong>{{ money(purchase.total) }}</strong>
+            <a class="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 p-4 text-inherit no-underline hover:bg-[#edf2f7] dark:hover:bg-[#22364d]" [routerLink]="['/purchases', purchase.id]">
+              <strong class="font-[var(--mono)]">#{{ purchase.folio }}</strong><span class="min-w-0"><strong class="block truncate">{{ purchase.supplier.commercialName }}</strong><small class="text-[#63717d] dark:text-[#afbed0]">{{ formatShortDate(purchase.purchasedAt) }} · {{ statusName(purchase.status) }}</small></span><strong>{{ money(purchase.total) }}</strong>
             </a>
-          } @empty { <p class="p-8 text-center text-sm text-[#68746d] dark:text-[#aab7af]">Todavía no hay compras registradas.</p> }
+          } @empty { <p class="p-8 text-center text-sm text-[#63717d] dark:text-[#afbed0]">Todavía no hay compras registradas.</p> }
         </div>
       </section>
 
       <section class="form-card-tw overflow-hidden">
-        <header class="form-card-header"><div><p class="eyebrow">COSTOS</p><h2 class="section-title">Variaciones importantes</h2><small class="text-[#68746d] dark:text-[#aab7af]">Cambios de 5% o más entre las dos últimas compras confirmadas.</small></div></header>
-        <div class="divide-y divide-[#ece9df] dark:divide-[#35433b]">
+        <header class="form-card-header"><div><p class="eyebrow">COSTOS</p><h2 class="section-title">Variaciones importantes</h2><small class="text-[#63717d] dark:text-[#afbed0]">Cambios de 5% o más entre las dos últimas compras confirmadas.</small></div></header>
+        <div class="divide-y divide-[#e2e7ec] dark:divide-[#38516d]">
           @for (variation of indicators().importantVariations; track variation.productId) {
             <div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 p-4">
-              <div class="min-w-0"><strong class="block truncate">{{ variation.productName }}</strong><small class="text-[#68746d] dark:text-[#aab7af]">{{ variation.productSku || 'Sin SKU' }} · {{ money(variation.previousCost) }} → {{ money(variation.currentCost) }}</small></div>
-              <span class="px-2 py-1 text-sm font-bold" [class.bg-[#ffe6e2]]="variation.direction === 'increase'" [class.text-[#a1362c]]="variation.direction === 'increase'" [class.bg-[#e7f2eb]]="variation.direction === 'decrease'" [class.text-[#245b3b]]="variation.direction === 'decrease'">{{ variation.direction === 'increase' ? '↑' : '↓' }} {{ variation.changePercent }}%</span>
+              <div class="min-w-0"><strong class="block truncate">{{ variation.productName }}</strong><small class="text-[#63717d] dark:text-[#afbed0]">{{ variation.productSku || 'Sin SKU' }} · {{ money(variation.previousCost) }} → {{ money(variation.currentCost) }}</small></div>
+              <span class="px-2 py-1 text-sm font-bold" [class.bg-[#ffd1cc]]="variation.direction === 'increase'" [class.text-[#a1362c]]="variation.direction === 'increase'" [class.bg-[#cfe9da]]="variation.direction === 'decrease'" [class.text-[#245b3b]]="variation.direction === 'decrease'">{{ variation.direction === 'increase' ? '↑' : '↓' }} {{ variation.changePercent }}%</span>
             </div>
-          } @empty { <p class="p-8 text-center text-sm text-[#68746d] dark:text-[#aab7af]">No hay variaciones mayores al 5%.</p> }
+          } @empty { <p class="p-8 text-center text-sm text-[#63717d] dark:text-[#afbed0]">No hay variaciones mayores al 5%.</p> }
         </div>
       </section>
     </div>
@@ -64,7 +64,7 @@
     </div>
 
     @if (error()) {
-      <div class="mb-5 flex justify-between gap-4 bg-[#fff0ea] px-4 py-3 text-sm text-[#8e3214] dark:bg-[#4a241b] dark:text-[#ffb89d]" role="alert">
+      <div class="mb-5 flex justify-between gap-4 bg-[#ffdcd2] px-4 py-3 text-sm text-[#8e3214] dark:bg-[#633d3d] dark:text-[#ffd9d4]" role="alert">
         <span>{{ error() }}</span><button class="bg-transparent p-0 underline" type="button" (click)="load()">Reintentar</button>
       </div>
     }
@@ -72,33 +72,33 @@
     <div class="relative min-h-72" [class.opacity-60]="loading()">
       <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         @for (purchase of data().items; track purchase.id) {
-          <a class="group flex min-h-64 flex-col border border-[#dcd9cf] bg-white p-5 text-inherit no-underline transition hover:border-[#c7a58f] dark:border-[#3d4d44] dark:bg-[#1a251f] dark:hover:border-[#6c7f74]" [routerLink]="['/purchases', purchase.id]">
+          <a class="group flex min-h-64 flex-col border border-[#d5dce3] bg-white p-5 text-inherit no-underline transition hover:border-[#c7a58f] dark:border-[#38516d] dark:bg-[#19283b] dark:hover:border-[#6c7f74]" [routerLink]="['/purchases', purchase.id]">
             <div class="flex items-start justify-between gap-3">
               <div>
                 <strong class="font-[var(--mono)] text-xl">#{{ purchase.folio }}</strong>
-                <span class="mt-1 block text-xs text-[#68746d] dark:text-[#aab7af]">{{ formatShortDate(purchase.purchasedAt) }}</span>
+                <span class="mt-1 block text-xs text-[#63717d] dark:text-[#afbed0]">{{ formatShortDate(purchase.purchasedAt) }}</span>
               </div>
               <span class="px-2 py-1 text-xs font-bold"
-                [class.bg-[#fff1d6]]="purchase.status === 'draft'"
+                [class.bg-[#ffe3ab]]="purchase.status === 'draft'"
                 [class.text-[#805719]]="purchase.status === 'draft'"
-                [class.bg-[#e5f0ff]]="purchase.status === 'confirmed'"
+                [class.bg-[#cfe3fb]]="purchase.status === 'confirmed'"
                 [class.text-[#285a91]]="purchase.status === 'confirmed'"
-                [class.bg-[#ffe6e2]]="purchase.status === 'cancelled'"
+                [class.bg-[#ffd1cc]]="purchase.status === 'cancelled'"
                 [class.text-[#a1362c]]="purchase.status === 'cancelled'">{{ statusName(purchase.status) }}</span>
             </div>
-            <div class="mt-5 border-y border-[#ece9df] py-4 dark:border-[#35433b]">
+            <div class="mt-5 border-y border-[#e2e7ec] py-4 dark:border-[#38516d]">
               <span class="detail-label">PROVEEDOR</span>
               <strong class="mt-1 block">{{ purchase.supplier.commercialName }}</strong>
-              <span class="mt-1 block text-xs text-[#68746d] dark:text-[#aab7af]">{{ purchase.reference || 'Sin referencia' }}</span>
+              <span class="mt-1 block text-xs text-[#63717d] dark:text-[#afbed0]">{{ purchase.reference || 'Sin referencia' }}</span>
             </div>
             <div class="mt-auto flex items-end justify-between gap-4 pt-5">
-              <span class="text-sm text-[#68746d] dark:text-[#aab7af]">{{ purchase.itemCount }} {{ purchase.itemCount === 1 ? 'producto' : 'productos' }}</span>
+              <span class="text-sm text-[#63717d] dark:text-[#afbed0]">{{ purchase.itemCount }} {{ purchase.itemCount === 1 ? 'producto' : 'productos' }}</span>
               <div class="text-right"><span class="detail-label">TOTAL</span><strong class="block text-lg">{{ money(purchase.total) }}</strong></div>
             </div>
             <span class="mt-3 text-right text-xs font-bold text-[#b94718] group-hover:underline dark:text-[#ff9a6f]">Ver detalle →</span>
           </a>
         } @empty { @if (!loading()) {
-          <div class="col-span-full border border-[#dcd9cf] bg-white p-12 text-center text-[#68746d] dark:border-[#3d4d44] dark:bg-[#1a251f] dark:text-[#aab7af]">No hay compras que coincidan con los filtros.</div>
+          <div class="col-span-full border border-[#d5dce3] bg-white p-12 text-center text-[#63717d] dark:border-[#38516d] dark:bg-[#19283b] dark:text-[#afbed0]">No hay compras que coincidan con los filtros.</div>
         } }
       </div>
       @if (loading()) { <div class="loader-tw" aria-label="Cargando compras"><span></span><span></span><span></span></div> }

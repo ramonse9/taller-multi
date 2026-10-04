@@ -7,7 +7,7 @@
   --account-fill-strong: #e1e9f1;
   --account-line: #d5dce3;
   --account-text: #17251e;
-  --account-muted: #68746d;
+  --account-muted: #63717d;
   background: var(--account-bg);
   color: var(--account-text);
   transition: background-color 180ms ease, color 180ms ease;

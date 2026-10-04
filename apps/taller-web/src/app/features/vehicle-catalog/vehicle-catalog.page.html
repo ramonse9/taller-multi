@@ -1,5 +1,5 @@
-<main class="min-h-screen bg-[#f9f7f0] text-[#17251e] transition-colors dark:bg-[#101713] dark:text-[#edf3ef]">
-  <header class="flex min-h-36 items-center justify-between gap-4 border-b border-[#dcd9cf] bg-[#f9f7f0]/90 px-[clamp(1.5rem,5vw,5rem)] py-9 max-sm:min-h-0 max-sm:items-end max-sm:py-6 dark:border-[#34423a] dark:bg-[#151f19]/95">
+<main class="min-h-screen bg-[#fbfaf7] text-[#17251e] transition-colors dark:bg-[#111d2e] dark:text-[#edf4fb]">
+  <header class="flex min-h-36 items-center justify-between gap-4 border-b border-[#d5dce3] bg-[#fbfaf7]/90 px-[clamp(1.5rem,5vw,5rem)] py-9 max-sm:min-h-0 max-sm:items-end max-sm:py-6 dark:border-[#38516d] dark:bg-[#162438]/95">
     <div><p class="eyebrow">CATÁLOGOS / VEHÍCULOS</p><h1 class="m-0 font-[var(--display)] text-[clamp(2.4rem,4vw,4rem)] font-semibold leading-[0.9] tracking-[-0.05em]">Marcas y modelos</h1></div>
     <div class="flex items-center gap-2">
       <button type="button" class="theme-toggle" (click)="theme.toggle()" [attr.aria-label]="theme.isDark() ? 'Usar tema claro' : 'Usar tema oscuro'" [title]="theme.isDark() ? 'Usar tema claro' : 'Usar tema oscuro'">{{ theme.isDark() ? '☀' : '◐' }}</button>
@@ -9,12 +9,12 @@
 
   <section class="px-[clamp(1.5rem,5vw,5rem)] pb-16 pt-9 max-sm:pt-6">
     <div class="mb-6 flex items-end justify-between gap-8 max-sm:items-start">
-      <div><h2 class="m-0 font-[var(--display)] text-[1.7rem] font-semibold">Catálogo compartido</h2><p class="mt-1.5 text-[#68746d] dark:text-[#aab7af]">Lo que registres aquí estará disponible para todas las compañías.</p></div>
+      <div><h2 class="m-0 font-[var(--display)] text-[1.7rem] font-semibold">Catálogo compartido</h2><p class="mt-1.5 text-[#63717d] dark:text-[#afbed0]">Lo que registres aquí estará disponible para todas las compañías.</p></div>
       <span class="tag hidden sm:inline">SIN DATOS PRECARGADOS</span>
     </div>
 
-    @if (notice()) { <div class="mb-4 bg-[#e7f2eb] px-4 py-3 text-sm text-[#245b3b] dark:bg-[#203c2c] dark:text-[#9ed5b3]" role="status">✓ {{ notice() }}</div> }
-    @if (error()) { <div class="mb-4 bg-[#fff0ea] px-4 py-3 text-sm text-[#8e3214] dark:bg-[#4a241b] dark:text-[#ffb89d]" role="alert">{{ error() }}</div> }
+    @if (notice()) { <div class="mb-4 bg-[#cfe9da] px-4 py-3 text-sm text-[#245b3b] dark:bg-[#294e42] dark:text-[#c9f0df]" role="status">✓ {{ notice() }}</div> }
+    @if (error()) { <div class="mb-4 bg-[#ffdcd2] px-4 py-3 text-sm text-[#8e3214] dark:bg-[#633d3d] dark:text-[#ffd9d4]" role="alert">{{ error() }}</div> }
 
     <div class="grid items-start gap-5 min-[1050px]:grid-cols-[minmax(20rem,0.8fr)_minmax(24rem,1.2fr)]">
       <section class="catalog-panel-tw">

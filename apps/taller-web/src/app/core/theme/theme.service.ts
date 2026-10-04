@@ -1,4 +1,4 @@
-import { Injectable, signal } from "@angular/core";
+import { effect, Injectable, signal } from "@angular/core";
 
 type ThemePreference = "light" | "dark";
 
@@ -6,6 +6,13 @@ type ThemePreference = "light" | "dark";
 export class ThemeService {
   private readonly storageKey = "taller-multi-theme";
   readonly isDark = signal(this.initialPreference() === "dark");
+
+  constructor() {
+    effect(() => {
+      document.documentElement.classList.toggle("dark", this.isDark());
+      document.documentElement.style.colorScheme = this.isDark() ? "dark" : "light";
+    });
+  }
 
   toggle(): void {
     this.isDark.update((current) => !current);

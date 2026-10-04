@@ -5,12 +5,12 @@
 @custom-variant dark (&:where(.dark, .dark *));
 :root {
   --ink: #17251e;
-  --paper: #f9f7f0;
-  --cream: #f5f1e6;
+  --paper: #fbfaf7;
+  --cream: #eef2f6;
   --orange: #e86a33;
   --orange-dark: #b94718;
-  --muted: #68746d;
-  --line: #dcd9cf;
+  --muted: #63717d;
+  --line: #d5dce3;
   --danger: #a63725;
   --display: "Newsreader", Georgia, serif;
   --sans: "Manrope", system-ui, sans-serif;
@@ -18,6 +18,15 @@
   font-family: var(--sans);
   color: var(--ink);
   background: var(--paper);
+}
+:root.dark {
+  --ink: #edf4fb;
+  --paper: #111d2e;
+  --cream: #22364d;
+  --orange-dark: #ff9a6f;
+  --muted: #afbed0;
+  --line: #38516d;
+  --danger: #ff9e8c;
 }
 * {
   box-sizing: border-box;
@@ -29,6 +38,9 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
+  background: var(--paper);
+  color: var(--ink);
+  transition: background-color 180ms ease, color 180ms ease;
 }
 button,
 input,
@@ -65,12 +77,23 @@ button:disabled {
 input,
 textarea,
 select {
-  border: 1px solid #cbc9c0;
+  border: 1px solid #cbd4dd;
   background: white;
   color: var(--ink);
   padding: 0.78rem 0.9rem;
   border-radius: 0;
   outline: none;
+}
+:root.dark input,
+:root.dark textarea,
+:root.dark select {
+  border-color: #38516d;
+  background: #22364d;
+  color: #edf4fb;
+}
+:root.dark input::placeholder,
+:root.dark textarea::placeholder {
+  color: #90a4ba;
 }
 input:focus,
 textarea:focus,
@@ -87,7 +110,7 @@ textarea {
 
 @utility field-control {
   width: 100%;
-  border: 1px solid #cbc9c0;
+  border: 1px solid #cbd4dd;
   background: white;
   color: #17251e;
   padding: 0.78rem 0.9rem;
@@ -99,9 +122,9 @@ textarea {
   }
 
   .dark & {
-    border-color: #536259;
-    background: #121b16;
-    color: #edf3ef;
+    border-color: #38516d;
+    background: #22364d;
+    color: #edf4fb;
   }
 
   .dark &:focus {
@@ -136,10 +159,10 @@ textarea {
   margin-top: 0.35rem;
   display: block;
   font-size: 0.65rem;
-  color: #68746d;
+  color: #63717d;
 
   .dark & {
-    color: #aab7af;
+    color: #afbed0;
   }
 }
 
@@ -153,27 +176,27 @@ textarea {
 }
 
 @utility tag {
-  border: 1px solid #dcd9cf;
+  border: 1px solid #d5dce3;
   padding: 0.65rem 0.8rem;
   font-family: var(--mono);
   font-size: 0.6rem;
   font-weight: 700;
   letter-spacing: 0.12em;
-  color: #68746d;
+  color: #63717d;
 
   .dark & {
-    border-color: #46554c;
-    color: #aab7af;
+    border-color: #38516d;
+    color: #afbed0;
   }
 }
 
 @utility form-card-tw {
-  border: 1px solid #dcd9cf;
+  border: 1px solid #d5dce3;
   background: white;
 
   .dark & {
-    border-color: #3d4d44;
-    background: #1a251f;
+    border-color: #38516d;
+    background: #19283b;
   }
 }
 
@@ -181,13 +204,13 @@ textarea {
   display: flex;
   align-items: flex-start;
   gap: 1rem;
-  border-bottom: 1px solid #dcd9cf;
-  background: #f2f0e9;
+  border-bottom: 1px solid #d5dce3;
+  background: #e1e9f1;
   padding: 1.25rem 1.5rem;
 
   .dark & {
-    border-color: #3d4d44;
-    background: #222f27;
+    border-color: #38516d;
+    background: #22364d;
   }
 }
 
@@ -217,11 +240,11 @@ textarea {
 
 @utility section-copy {
   margin: 0.25rem 0 0;
-  color: #68746d;
+  color: #63717d;
   font-size: 0.76rem;
 
   .dark & {
-    color: #aab7af;
+    color: #afbed0;
   }
 }
 
@@ -241,16 +264,16 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #cbc9c0;
-  background: #f2f0e9;
-  color: #68746d;
+  border: 1px solid #cbd4dd;
+  background: #e1e9f1;
+  color: #63717d;
   font-family: var(--mono);
   font-size: 0.72rem;
 
   .dark & {
-    border-color: #536259;
-    background: #26342b;
-    color: #b7c2bb;
+    border-color: #38516d;
+    background: #2b425c;
+    color: #c5d2df;
   }
 }
 
@@ -271,11 +294,11 @@ textarea {
 }
 
 @utility summary-row {
-  border-bottom: 1px solid #ece9df;
+  border-bottom: 1px solid #e2e7ec;
   padding: 0.75rem 0;
 
   & dt {
-    color: #68746d;
+    color: #63717d;
     font: 700 0.56rem var(--mono);
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -286,10 +309,10 @@ textarea {
     font-size: 0.76rem;
   }
   .dark & {
-    border-color: #35433b;
+    border-color: #38516d;
   }
   .dark & dt {
-    color: #aab7af;
+    color: #afbed0;
   }
 }
 
@@ -298,7 +321,7 @@ textarea {
   width: 2.5rem;
   height: 2.5rem;
   place-items: center;
-  border: 1px solid #dcd9cf;
+  border: 1px solid #d5dce3;
   background: white;
   font-size: 1.125rem;
   transition: 150ms;
@@ -308,20 +331,20 @@ textarea {
     color: #e86a33;
   }
   .dark & {
-    border-color: #46554c;
-    background: #1d2922;
+    border-color: #38516d;
+    background: #19283b;
     color: #f4c4ae;
   }
 }
 
 @utility catalog-panel-tw {
   min-width: 0;
-  border: 1px solid #dcd9cf;
+  border: 1px solid #d5dce3;
   background: white;
 
   .dark & {
-    border-color: #3d4d44;
-    background: #1a251f;
+    border-color: #38516d;
+    background: #19283b;
   }
 }
 
@@ -331,18 +354,18 @@ textarea {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  border-bottom: 1px solid #dcd9cf;
-  background: #f2f0e9;
+  border-bottom: 1px solid #d5dce3;
+  background: #e1e9f1;
   padding: 1rem 1.2rem;
 
   .dark & {
-    border-color: #3d4d44;
-    background: #222f27;
+    border-color: #38516d;
+    background: #22364d;
   }
 }
 
 @utility small-action-tw {
-  border: 1px solid #dcd9cf;
+  border: 1px solid #d5dce3;
   background: white;
   padding: 0.45rem 0.65rem;
   color: #b94718;
@@ -351,7 +374,7 @@ textarea {
     opacity: 0.45;
   }
   .dark & {
-    border-color: #536259;
+    border-color: #38516d;
     background: #17221b;
     color: #ff9a6f;
   }
@@ -360,11 +383,11 @@ textarea {
 @utility catalog-tools {
   display: flex;
   gap: 0.6rem;
-  border-bottom: 1px solid #dcd9cf;
+  border-bottom: 1px solid #d5dce3;
   padding: 0.8rem;
 
   .dark & {
-    border-color: #3d4d44;
+    border-color: #38516d;
   }
   @media (width < 40.625rem) {
     flex-direction: column;
@@ -385,7 +408,7 @@ textarea {
     width: 1rem;
     height: 1rem;
     place-items: center;
-    color: #68746d;
+    color: #63717d;
     pointer-events: none;
     transform: translateY(-50%);
   }
@@ -405,7 +428,7 @@ textarea {
     color: #a9afab;
   }
   .dark & > span {
-    color: #aab7af;
+    color: #afbed0;
   }
   .dark & input::placeholder {
     color: #8f9c94;
@@ -417,14 +440,14 @@ textarea {
 
 @utility segments-tw {
   display: flex;
-  border: 1px solid #dcd9cf;
-  background: #f9f7f0;
+  border: 1px solid #d5dce3;
+  background: #fbfaf7;
   padding: 0.15rem;
 
   & button {
     background: transparent;
     padding: 0.45rem 0.6rem;
-    color: #68746d;
+    color: #63717d;
     font-size: 0.67rem;
   }
   & button:disabled {
@@ -435,11 +458,11 @@ textarea {
     color: white;
   }
   .dark & {
-    border-color: #536259;
-    background: #121b16;
+    border-color: #38516d;
+    background: #22364d;
   }
   .dark & button {
-    color: #aab7af;
+    color: #afbed0;
   }
   .dark & button.segment-selected {
     background: #e86a33;
@@ -465,17 +488,17 @@ textarea {
   align-items: center;
   justify-content: space-between;
   gap: 0.8rem;
-  border-bottom: 1px solid #e9e7df;
+  border-bottom: 1px solid #e2e7ec;
   padding: 0.75rem 0.9rem;
 
   &:hover {
     background: #fcfbf7;
   }
   .dark & {
-    border-color: #34423a;
+    border-color: #38516d;
   }
   .dark &:hover {
-    background: #202d25;
+    background: #20344b;
   }
   @media (width < 40.625rem) {
     align-items: flex-start;
@@ -483,11 +506,11 @@ textarea {
 }
 
 @utility catalog-row-selected {
-  background: #edf3ef;
+  background: #edf4fb;
   box-shadow: inset 3px 0 #e86a33;
 
   &:hover {
-    background: #edf3ef;
+    background: #edf4fb;
   }
   .dark & {
     background: #24372c;
@@ -519,14 +542,14 @@ textarea {
   }
   & small {
     margin-top: 0.18rem;
-    color: #68746d;
+    color: #63717d;
     font-size: 0.64rem;
   }
   .dark & {
-    color: #edf3ef;
+    color: #edf4fb;
   }
   .dark & small {
-    color: #aab7af;
+    color: #afbed0;
   }
 }
 
@@ -541,8 +564,8 @@ textarea {
   font: 800 0.66rem var(--mono);
 
   .dark & {
-    background: #2b4938;
-    color: #b8d8c5;
+    background: #365774;
+    color: #d7e7f5;
   }
 }
 
@@ -553,7 +576,7 @@ textarea {
   flex: 0 0 auto;
   place-items: center;
   border-radius: 9999px;
-  background: #fff0e8;
+  background: #ffd3bf;
   color: #9b421d;
   font: 800 0.66rem var(--mono);
 
@@ -609,24 +632,24 @@ textarea {
   }
   & p {
     margin: 0.35rem 0 1rem;
-    color: #68746d;
+    color: #63717d;
     font-size: 0.78rem;
   }
   .dark & p {
-    color: #aab7af;
+    color: #afbed0;
   }
 }
 
 @utility secondary-tw {
-  border: 1px solid #dcd9cf;
+  border: 1px solid #d5dce3;
   background: white;
   padding: 0.5rem 0.8rem;
   color: #17251e;
 
   .dark & {
-    border-color: #536259;
-    background: #202d25;
-    color: #edf3ef;
+    border-color: #38516d;
+    background: #20344b;
+    color: #edf4fb;
   }
 }
 
@@ -635,9 +658,9 @@ textarea {
   min-height: 3.2rem;
   align-items: center;
   justify-content: space-between;
-  border-top: 1px solid #dcd9cf;
+  border-top: 1px solid #d5dce3;
   padding: 0.65rem 0.9rem;
-  color: #68746d;
+  color: #63717d;
   font-size: 0.68rem;
 
   & div {
@@ -647,18 +670,18 @@ textarea {
   & button {
     width: 2rem;
     height: 2rem;
-    border: 1px solid #dcd9cf;
+    border: 1px solid #d5dce3;
     background: white;
     color: #17251e;
   }
   .dark & {
-    border-color: #3d4d44;
-    color: #aab7af;
+    border-color: #38516d;
+    color: #afbed0;
   }
   .dark & button {
-    border-color: #536259;
-    background: #202d25;
-    color: #edf3ef;
+    border-color: #38516d;
+    background: #20344b;
+    color: #edf4fb;
   }
 }
 
@@ -699,7 +722,7 @@ textarea {
 
 @utility dialog-tw {
   width: min(100%, 28rem);
-  background: #f9f7f0;
+  background: #fbfaf7;
   padding: 2rem;
   color: #17251e;
   box-shadow: 16px 16px 0 rgb(0 0 0 / 0.15);
@@ -710,30 +733,30 @@ textarea {
   }
   & > p:not(.eyebrow) {
     margin: 0.65rem 0 1.6rem;
-    color: #68746d;
+    color: #63717d;
     font-size: 0.8rem;
   }
   .dark & {
-    background: #1a251f;
-    color: #edf3ef;
+    background: #19283b;
+    color: #edf4fb;
     box-shadow: 16px 16px 0 rgb(0 0 0 / 0.35);
   }
   .dark & > p:not(.eyebrow) {
-    color: #aab7af;
+    color: #afbed0;
   }
 }
 
 @utility dialog-error-tw {
   margin: -0.7rem 0 1rem;
   border-left: 3px solid #e86a33;
-  background: #fff0ea;
+  background: #ffdcd2;
   padding: 0.7rem 0.8rem;
   color: #8e3214;
   font-size: 0.75rem;
 
   .dark & {
-    background: #4a241b;
-    color: #ffb89d;
+    background: #633d3d;
+    color: #ffd9d4;
   }
 }
 
@@ -747,21 +770,21 @@ textarea {
 @utility ghost-tw {
   background: transparent;
   padding: 0.7rem 0.9rem;
-  color: #68746d;
+  color: #63717d;
 
   .dark & {
-    color: #aab7af;
+    color: #afbed0;
   }
 }
 
 @utility detail-label {
   display: block;
-  color: #68746d;
+  color: #63717d;
   font: 700 0.56rem var(--mono);
   letter-spacing: 0.08em;
 
   .dark & {
-    color: #aab7af;
+    color: #afbed0;
   }
 }
 
@@ -791,13 +814,13 @@ textarea {
 
 @utility order-status-in-progress {
   border-color: #8fc4a4;
-  background: #e7f2eb;
+  background: #cfe9da;
   color: #245b3b;
 
   .dark & {
     border-color: #417757;
-    background: #203c2c;
-    color: #9ed5b3;
+    background: #294e42;
+    color: #c9f0df;
   }
 }
 
@@ -827,14 +850,14 @@ textarea {
 
 @utility client-th {
   padding: 1rem 1.2rem;
-  color: #68746d;
+  color: #63717d;
   font: 700 0.62rem var(--mono);
   letter-spacing: 0.1em;
   text-align: left;
   text-transform: uppercase;
 
   .dark & {
-    color: #aab7af;
+    color: #afbed0;
   }
 }
 

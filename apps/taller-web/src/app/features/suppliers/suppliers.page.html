@@ -1,8 +1,8 @@
 <main
-  class="min-h-screen bg-[#f9f7f0] text-[#17251e] dark:bg-[#101713] dark:text-[#edf3ef]"
+  class="min-h-screen bg-[#fbfaf7] text-[#17251e] dark:bg-[#111d2e] dark:text-[#edf4fb]"
 >
   <header
-    class="flex flex-wrap items-end justify-between gap-5 border-b border-[#dcd9cf] px-[clamp(1.5rem,5vw,5rem)] py-8 dark:border-[#34423a]"
+    class="flex flex-wrap items-end justify-between gap-5 border-b border-[#d5dce3] px-[clamp(1.5rem,5vw,5rem)] py-8 dark:border-[#38516d]"
   >
     <div>
       <p class="eyebrow">CONTROL / COMPRAS</p>
@@ -11,7 +11,7 @@
       >
         Proveedores
       </h1>
-      <p class="mt-3 text-sm text-[#68746d] dark:text-[#aab7af]">
+      <p class="mt-3 text-sm text-[#63717d] dark:text-[#afbed0]">
         Usa Proveedor general para compras rápidas o registra proveedores con
         mayor detalle.
       </p>
@@ -29,13 +29,13 @@
   <section class="px-[clamp(1.5rem,5vw,5rem)] pb-16 pt-8">
     @if (notice()) {
     <div
-      class="mb-4 bg-[#e7f2eb] px-4 py-3 text-sm text-[#245b3b] dark:bg-[#203c2c] dark:text-[#9ed5b3]"
+      class="mb-4 bg-[#cfe9da] px-4 py-3 text-sm text-[#245b3b] dark:bg-[#294e42] dark:text-[#c9f0df]"
     >
       ✓ {{ notice() }}
     </div>
     } @if (error()) {
     <div
-      class="mb-4 bg-[#fff0ea] px-4 py-3 text-sm text-[#8e3214] dark:bg-[#4a241b] dark:text-[#ffb89d]"
+      class="mb-4 bg-[#ffdcd2] px-4 py-3 text-sm text-[#8e3214] dark:bg-[#633d3d] dark:text-[#ffd9d4]"
     >
       {{ error() }}
     </div>
@@ -68,7 +68,7 @@
           </button>
         </div>
       </header>
-      <div class="border-b border-[#dcd9cf] p-4 dark:border-[#3d4d44]">
+      <div class="border-b border-[#d5dce3] p-4 dark:border-[#38516d]">
         <input
           class="field-control"
           type="search"
@@ -78,24 +78,24 @@
       </div>
       <div class="relative min-h-72" [class.opacity-50]="loading()">
         <div
-          class="grid gap-px bg-[#ece9df] md:grid-cols-2 xl:grid-cols-3 dark:bg-[#35433b]"
+          class="grid gap-px bg-[#e2e7ec] md:grid-cols-2 xl:grid-cols-3 dark:bg-[#38516d]"
         >
           @for (supplier of suppliers().items; track supplier.id) {
           <article
-            class="flex min-h-56 flex-col bg-white p-5 dark:bg-[#1a251f]"
+            class="flex min-h-56 flex-col bg-white p-5 dark:bg-[#19283b]"
           >
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
                 <strong class="block truncate text-lg"
                   >{{ supplier.commercialName }}</strong
                 >
-                <small class="text-[#68746d] dark:text-[#aab7af]">
+                <small class="text-[#63717d] dark:text-[#afbed0]">
                   {{ supplier.legalName || 'Sin razón social' }}
                 </small>
               </div>
               @if (supplier.isDefault) {
               <span
-                class="shrink-0 bg-[#edf0f8] px-2 py-1 text-xs font-bold text-[#36598b]"
+                class="shrink-0 bg-[#d9e5f5] px-2 py-1 text-xs font-bold text-[#36598b]"
               >
                 Predeterminado
               </span>
@@ -103,20 +103,20 @@
             </div>
             <dl class="mt-5 grid grid-cols-2 gap-3 text-sm">
               <div>
-                <dt class="text-[#68746d] dark:text-[#aab7af]">RFC</dt>
+                <dt class="text-[#63717d] dark:text-[#afbed0]">RFC</dt>
                 <dd class="m-0">{{ supplier.taxId || '—' }}</dd>
               </div>
               <div>
-                <dt class="text-[#68746d] dark:text-[#aab7af]">Teléfono</dt>
+                <dt class="text-[#63717d] dark:text-[#afbed0]">Teléfono</dt>
                 <dd class="m-0">{{ supplier.phone || '—' }}</dd>
               </div>
               <div class="col-span-2">
-                <dt class="text-[#68746d] dark:text-[#aab7af]">Correo</dt>
+                <dt class="text-[#63717d] dark:text-[#afbed0]">Correo</dt>
                 <dd class="m-0 truncate">{{ supplier.email || '—' }}</dd>
               </div>
             </dl>
             @if (supplier.notes) {
-            <p class="mt-4 text-sm text-[#68746d] dark:text-[#aab7af]">
+            <p class="mt-4 text-sm text-[#63717d] dark:text-[#afbed0]">
               {{ supplier.notes }}
             </p>
             }
@@ -142,7 +142,7 @@
           </article>
           } @empty { @if (!loading()) {
           <p
-            class="col-span-full bg-white p-12 text-center text-sm text-[#68746d] dark:bg-[#1a251f] dark:text-[#aab7af]"
+            class="col-span-full bg-white p-12 text-center text-sm text-[#63717d] dark:bg-[#19283b] dark:text-[#afbed0]"
           >
             {{ active() ? 'No encontramos proveedores activos.' : 'No hay
             proveedores inactivos.' }}
@@ -194,7 +194,7 @@
     </p>
     <h2>{{ editing()?.commercialName || 'Registrar proveedor' }}</h2>
     @if (editing()?.isDefault) {
-    <p class="mt-2 text-sm text-[#68746d] dark:text-[#aab7af]">
+    <p class="mt-2 text-sm text-[#63717d] dark:text-[#afbed0]">
       Este es el proveedor predeterminado y no puede desactivarse ni cambiar de
       nombre.
     </p>

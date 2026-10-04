@@ -1,8 +1,8 @@
 <main
-  class="min-h-screen bg-[#f9f7f0] text-[#17251e] transition-colors dark:bg-[#101713] dark:text-[#edf3ef]"
+  class="min-h-screen bg-[#fbfaf7] text-[#17251e] transition-colors dark:bg-[#111d2e] dark:text-[#edf4fb]"
 >
   <header
-    class="flex flex-wrap items-end justify-between gap-5 border-b border-[#dcd9cf] px-[clamp(1.5rem,5vw,5rem)] py-9 dark:border-[#34423a]"
+    class="flex flex-wrap items-end justify-between gap-5 border-b border-[#d5dce3] px-[clamp(1.5rem,5vw,5rem)] py-9 dark:border-[#38516d]"
   >
     <div>
       <p class="eyebrow">OPERACIÓN / PAQUETE BÁSICO</p>
@@ -11,7 +11,7 @@
       >
         Órdenes
       </h1>
-      <p class="mt-3 text-sm text-[#68746d] dark:text-[#aab7af]">
+      <p class="mt-3 text-sm text-[#63717d] dark:text-[#afbed0]">
         Historial de servicios, conceptos libres y seguimiento del trabajo.
       </p>
     </div>
@@ -73,7 +73,7 @@
 
     @if (error()) {
     <div
-      class="mb-5 flex justify-between gap-4 bg-[#fff0ea] px-4 py-3 text-sm text-[#8e3214] dark:bg-[#4a241b] dark:text-[#ffb89d]"
+      class="mb-5 flex justify-between gap-4 bg-[#ffdcd2] px-4 py-3 text-sm text-[#8e3214] dark:bg-[#633d3d] dark:text-[#ffd9d4]"
       role="alert"
     >
       <span>{{ error() }}</span
@@ -91,7 +91,7 @@
       <div class="grid gap-3 lg:hidden">
         @for (order of data().items; track order.id) {
         <a
-          class="group block border border-[#dcd9cf] bg-white p-5 text-inherit no-underline transition hover:border-[#c7a58f] hover:bg-[#fbfaf6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e86a33] dark:border-[#3d4d44] dark:bg-[#1a251f] dark:hover:border-[#6c7f74] dark:hover:bg-[#202c25]"
+          class="group block border border-[#d5dce3] bg-white p-5 text-inherit no-underline transition hover:border-[#c7a58f] hover:bg-[#f7f9fb] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e86a33] dark:border-[#38516d] dark:bg-[#19283b] dark:hover:border-[#6c7f74] dark:hover:bg-[#20344b]"
           [routerLink]="['/orders', order.id]"
           [attr.aria-label]="'Ver detalle de la orden ' + order.folio"
         >
@@ -100,7 +100,7 @@
               <strong class="block font-[var(--mono)] text-lg tracking-[-.03em]"
                 >#{{ order.folio }}</strong
               >
-              <span class="text-xs text-[#68746d] dark:text-[#aab7af]"
+              <span class="text-xs text-[#63717d] dark:text-[#afbed0]"
                 >{{ formatShortDate(order.createdAt) }}</span
               >
             </div>
@@ -113,23 +113,23 @@
             >
             <span
               class="shrink-0 px-2 py-1 text-xs font-bold"
-              [class.bg-[#e7f2eb]]="order.isPaid"
+              [class.bg-[#cfe9da]]="order.isPaid"
               [class.text-[#245b3b]]="order.isPaid"
-              [class.bg-[#fff1d6]]="!order.isPaid"
+              [class.bg-[#ffe3ab]]="!order.isPaid"
               [class.text-[#805719]]="!order.isPaid"
               >{{ order.isPaid ? 'Pagada' : 'Pendiente' }}</span
             >
           </div>
 
           <div
-            class="mt-5 grid gap-4 border-y border-[#ece9df] py-4 sm:grid-cols-2 dark:border-[#35433b]"
+            class="mt-5 grid gap-4 border-y border-[#e2e7ec] py-4 sm:grid-cols-2 dark:border-[#38516d]"
           >
             <div>
               <span class="detail-label">CLIENTE</span>
               <strong class="mt-1 block"
                 >{{ order.customer.displayName }}</strong
               >
-              <span class="text-xs text-[#68746d] dark:text-[#aab7af]"
+              <span class="text-xs text-[#63717d] dark:text-[#afbed0]"
                 >{{ order.customer.type === 'company' ? 'Empresa' : 'Persona'
                 }}</span
               >
@@ -140,7 +140,7 @@
                 >{{ order.vehicle.brandName }} {{ order.vehicle.modelName
                 }}</strong
               >
-              <span class="text-xs text-[#68746d] dark:text-[#aab7af]"
+              <span class="text-xs text-[#63717d] dark:text-[#afbed0]"
                 >{{ order.vehicle.year }} · {{ order.vehicle.licensePlate ||
                 order.vehicle.color }}</span
               >
@@ -148,7 +148,7 @@
           </div>
 
           <div class="mt-4 flex items-end justify-between gap-4">
-            <div class="text-xs text-[#68746d] dark:text-[#aab7af]">
+            <div class="text-xs text-[#63717d] dark:text-[#afbed0]">
               <span class="block"
                 >{{ order.itemCount }} {{ order.itemCount === 1 ? 'concepto' :
                 'conceptos' }}</span
@@ -173,7 +173,7 @@
         </a>
         } @empty { @if (!loading()) {
         <div
-          class="border border-[#dcd9cf] bg-white p-12 text-center text-[#68746d] dark:border-[#3d4d44] dark:bg-[#1a251f] dark:text-[#aab7af]"
+          class="border border-[#d5dce3] bg-white p-12 text-center text-[#63717d] dark:border-[#38516d] dark:bg-[#19283b] dark:text-[#afbed0]"
         >
           No hay órdenes que coincidan con la búsqueda.
         </div>
@@ -181,11 +181,11 @@
       </div>
 
       <div
-        class="hidden overflow-x-auto border border-[#dcd9cf] bg-white dark:border-[#3d4d44] dark:bg-[#1a251f] lg:block"
+        class="hidden overflow-x-auto border border-[#d5dce3] bg-white dark:border-[#38516d] dark:bg-[#19283b] lg:block"
       >
         <table class="w-full min-w-[850px] border-collapse text-left">
           <thead
-            class="bg-[#f2f0e9] font-[var(--mono)] text-[.62rem] uppercase tracking-[.09em] text-[#68746d] dark:bg-[#222f27] dark:text-[#aab7af]"
+            class="bg-[#e1e9f1] font-[var(--mono)] text-[.62rem] uppercase tracking-[.09em] text-[#63717d] dark:bg-[#22364d] dark:text-[#afbed0]"
           >
             <tr>
               <th class="p-4">Folio / fecha</th>
@@ -201,18 +201,18 @@
           <tbody>
             @for (order of data().items; track order.id) {
             <tr
-              class="border-t border-[#ece9df] hover:bg-[#fbfaf6] dark:border-[#35433b] dark:hover:bg-[#202c25]"
+              class="border-t border-[#e2e7ec] hover:bg-[#f7f9fb] dark:border-[#38516d] dark:hover:bg-[#20344b]"
             >
               <td class="p-4">
                 <strong class="block font-[var(--mono)] text-base"
                   >#{{ order.folio }}</strong
-                ><span class="text-xs text-[#68746d] dark:text-[#aab7af]"
+                ><span class="text-xs text-[#63717d] dark:text-[#afbed0]"
                   >{{ formatShortDate(order.createdAt) }}</span
                 >
               </td>
               <td class="p-4">
                 <strong class="block">{{ order.customer.displayName }}</strong
-                ><span class="text-xs text-[#68746d] dark:text-[#aab7af]"
+                ><span class="text-xs text-[#63717d] dark:text-[#afbed0]"
                   >{{ order.customer.type === 'company' ? 'Empresa' : 'Persona'
                   }}</span
                 >
@@ -221,7 +221,7 @@
                 <strong class="block"
                   >{{ order.vehicle.brandName }} {{ order.vehicle.modelName
                   }}</strong
-                ><span class="text-xs text-[#68746d] dark:text-[#aab7af]"
+                ><span class="text-xs text-[#63717d] dark:text-[#afbed0]"
                   >{{ order.vehicle.year }} · {{ order.vehicle.licensePlate ||
                   order.vehicle.color }}</span
                 >
@@ -239,9 +239,9 @@
               <td class="p-4">
                 <span
                   class="px-2 py-1 text-xs font-bold"
-                  [class.bg-[#e7f2eb]]="order.isPaid"
+                  [class.bg-[#cfe9da]]="order.isPaid"
                   [class.text-[#245b3b]]="order.isPaid"
-                  [class.bg-[#fff1d6]]="!order.isPaid"
+                  [class.bg-[#ffe3ab]]="!order.isPaid"
                   [class.text-[#805719]]="!order.isPaid"
                   >{{ order.isPaid ? 'Pagada' : 'Pendiente' }}</span
                 >
@@ -264,7 +264,7 @@
             } @empty { @if (!loading()) {
             <tr>
               <td
-                class="p-12 text-center text-[#68746d] dark:text-[#aab7af]"
+                class="p-12 text-center text-[#63717d] dark:text-[#afbed0]"
                 colspan="8"
               >
                 No hay órdenes que coincidan con la búsqueda.

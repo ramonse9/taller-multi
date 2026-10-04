@@ -13,6 +13,7 @@ import {
 import { Router, RouterLink } from "@angular/router";
 import { finalize } from "rxjs";
 import { AuthService } from "../../core/auth/auth.service";
+import { ThemeService } from "../../core/theme/theme.service";
 
 @Component({
   selector: "app-login-page",
@@ -23,6 +24,7 @@ import { AuthService } from "../../core/auth/auth.service";
 })
 export class LoginPage {
   private readonly auth = inject(AuthService);
+  readonly theme = inject(ThemeService);
   private readonly router = inject(Router);
   readonly submitting = signal(false);
   readonly error = signal("");

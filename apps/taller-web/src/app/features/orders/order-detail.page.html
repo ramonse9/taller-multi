@@ -1,13 +1,13 @@
 <main
-  class="min-h-screen bg-[#f9f7f0] text-[#17251e] dark:bg-[#101713] dark:text-[#edf3ef]"
+  class="min-h-screen bg-[#fbfaf7] text-[#17251e] dark:bg-[#111d2e] dark:text-[#edf4fb]"
 >
   <header
-    class="border-b border-[#dcd9cf] px-[clamp(1.5rem,5vw,5rem)] py-8 dark:border-[#34423a]"
+    class="border-b border-[#d5dce3] px-[clamp(1.5rem,5vw,5rem)] py-8 dark:border-[#38516d]"
   >
     <div class="flex flex-wrap items-end justify-between gap-5">
       <div>
         <a
-          class="mb-3 inline-block text-xs font-bold text-[#68746d] hover:text-[#e86a33] dark:text-[#aab7af]"
+          class="mb-3 inline-block text-xs font-bold text-[#63717d] hover:text-[#e86a33] dark:text-[#afbed0]"
           routerLink="/orders"
           >← Volver a órdenes</a
         >
@@ -32,13 +32,13 @@
   <section class="px-[clamp(1.5rem,5vw,5rem)] pb-16 pt-8">
     @if (notice()) {
     <div
-      class="mb-4 bg-[#e7f2eb] px-4 py-3 text-sm text-[#245b3b] dark:bg-[#203c2c] dark:text-[#9ed5b3]"
+      class="mb-4 bg-[#cfe9da] px-4 py-3 text-sm text-[#245b3b] dark:bg-[#294e42] dark:text-[#c9f0df]"
     >
       ✓ {{ notice() }}
     </div>
     } @if (error()) {
     <div
-      class="mb-4 flex justify-between gap-4 bg-[#fff0ea] px-4 py-3 text-sm text-[#8e3214] dark:bg-[#4a241b] dark:text-[#ffb89d]"
+      class="mb-4 flex justify-between gap-4 bg-[#ffdcd2] px-4 py-3 text-sm text-[#8e3214] dark:bg-[#633d3d] dark:text-[#ffd9d4]"
     >
       <span>{{ error() }}</span
       ><button
@@ -59,10 +59,10 @@
     <div class="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(20rem,.8fr)]">
       <div class="space-y-6">
         <section
-          class="grid border border-[#dcd9cf] bg-white sm:grid-cols-3 dark:border-[#3d4d44] dark:bg-[#1a251f]"
+          class="grid border border-[#d5dce3] bg-white sm:grid-cols-3 dark:border-[#38516d] dark:bg-[#19283b]"
         >
           <div
-            class="border-b border-[#ece9df] p-5 sm:border-b-0 sm:border-r dark:border-[#35433b]"
+            class="border-b border-[#e2e7ec] p-5 sm:border-b-0 sm:border-r dark:border-[#38516d]"
           >
             <span class="detail-label">ESTADO</span
             ><strong
@@ -74,7 +74,7 @@
             >
           </div>
           <div
-            class="border-b border-[#ece9df] p-5 sm:border-b-0 sm:border-r dark:border-[#35433b]"
+            class="border-b border-[#e2e7ec] p-5 sm:border-b-0 sm:border-r dark:border-[#38516d]"
           >
             <span class="detail-label">FECHA</span
             ><strong class="block text-lg"
@@ -92,10 +92,10 @@
         </section>
         @if (current.totalCost !== null) {
         <section
-          class="grid border border-[#dcd9cf] bg-white sm:grid-cols-3 dark:border-[#3d4d44] dark:bg-[#1a251f]"
+          class="grid border border-[#d5dce3] bg-white sm:grid-cols-3 dark:border-[#38516d] dark:bg-[#19283b]"
         >
           <div
-            class="border-b border-[#ece9df] p-5 sm:border-b-0 sm:border-r dark:border-[#35433b]"
+            class="border-b border-[#e2e7ec] p-5 sm:border-b-0 sm:border-r dark:border-[#38516d]"
           >
             <span class="detail-label"
               >{{ hasActualCosts(current) ? 'COSTO REAL' : 'COSTO ESTIMADO'
@@ -106,7 +106,7 @@
             >
           </div>
           <div
-            class="border-b border-[#ece9df] p-5 sm:border-b-0 sm:border-r dark:border-[#35433b]"
+            class="border-b border-[#e2e7ec] p-5 sm:border-b-0 sm:border-r dark:border-[#38516d]"
           >
             <span class="detail-label">UTILIDAD BRUTA</span>
             <strong class="block text-lg"
@@ -123,10 +123,10 @@
         </section>
         }
         <section
-          class="grid border border-[#dcd9cf] bg-white md:grid-cols-2 dark:border-[#3d4d44] dark:bg-[#1a251f]"
+          class="grid border border-[#d5dce3] bg-white md:grid-cols-2 dark:border-[#38516d] dark:bg-[#19283b]"
         >
           <div
-            class="border-b border-[#ece9df] p-6 md:border-b-0 md:border-r dark:border-[#35433b]"
+            class="border-b border-[#e2e7ec] p-6 md:border-b-0 md:border-r dark:border-[#38516d]"
           >
             <span class="detail-label">CLIENTE</span
             ><a
@@ -146,7 +146,7 @@
               >{{ current.vehicle.brandName }} {{ current.vehicle.modelName
               }}</strong
             >
-            <p class="mt-1 text-sm text-[#68746d] dark:text-[#aab7af]">
+            <p class="mt-1 text-sm text-[#63717d] dark:text-[#afbed0]">
               {{ current.vehicle.year }} · {{ current.vehicle.color }} · {{
               current.vehicle.licensePlate || 'Sin placa' }}
             </p>
@@ -159,17 +159,17 @@
           </div>
         </section>
         <section
-          class="border border-[#dcd9cf] bg-white dark:border-[#3d4d44] dark:bg-[#1a251f]"
+          class="border border-[#d5dce3] bg-white dark:border-[#38516d] dark:bg-[#19283b]"
         >
           <header
-            class="border-b border-[#ece9df] bg-[#f2f0e9] px-6 py-4 dark:border-[#35433b] dark:bg-[#222f27]"
+            class="border-b border-[#e2e7ec] bg-[#e1e9f1] px-6 py-4 dark:border-[#38516d] dark:bg-[#22364d]"
           >
             <p class="eyebrow">CONCEPTOS</p>
             <h2 class="font-[var(--display)] text-2xl font-semibold">
               Trabajo registrado
             </h2>
           </header>
-          <div class="divide-y divide-[#ece9df] dark:divide-[#35433b]">
+          <div class="divide-y divide-[#e2e7ec] dark:divide-[#38516d]">
             @for (item of current.items; track item.id) {
             <div
               class="grid gap-3 px-6 py-4 sm:grid-cols-[minmax(0,1fr)_7rem_9rem_9rem]"
@@ -177,7 +177,7 @@
               <div>
                 <strong class="block">{{ item.description }}</strong>
                 @if (auth.hasPermission('catalog.view_costs') && item.costAmount !== null) {
-                <small class="text-[#68746d] dark:text-[#aab7af]"
+                <small class="text-[#63717d] dark:text-[#afbed0]"
                   >{{ itemCostLabel(current, item) }}: {{ money(item.unitCost)
                   }} × {{ item.quantity }} {{ item.unitSymbol }} =
                   <strong>{{ money(item.costAmount) }}</strong></small
@@ -186,7 +186,7 @@
                 <div class="mt-2 flex flex-wrap gap-1.5">
                   @for (layer of item.costLayers; track layer.lotId) {
                   <span
-                    class="border border-[#dcd9cf] bg-[#f9f7f0] px-2 py-1 font-[var(--mono)] text-[.7rem] dark:border-[#3d4d44] dark:bg-[#222f27]"
+                    class="border border-[#d5dce3] bg-[#fbfaf7] px-2 py-1 font-[var(--mono)] text-[.7rem] dark:border-[#38516d] dark:bg-[#22364d]"
                     >{{ layer.quantity }} × {{ money(layer.unitCost) }} = {{
                     money(layer.costAmount) }}</span
                   >
@@ -203,7 +203,7 @@
             }
           </div>
           <footer
-            class="border-t-2 border-[#17251e] px-6 py-5 dark:border-[#edf3ef]"
+            class="border-t-2 border-[#17251e] px-6 py-5 dark:border-[#edf4fb]"
           >
             <div
               class="ml-auto grid max-w-md grid-cols-2 gap-x-8 gap-y-2 text-right"
@@ -226,18 +226,18 @@
         <section class="form-card-tw p-5">
           <p class="eyebrow">PAGO</p>
           <div class="mt-2 flex items-center justify-between gap-4">
-            <div><h2 class="m-0 font-[var(--display)] text-2xl font-semibold">{{ current.isPaid ? 'Pagada' : 'Pendiente' }}</h2><p class="mb-0 mt-1 text-sm text-[#68746d] dark:text-[#aab7af]">{{ current.isPaid ? 'El servicio se considera cobrado.' : 'El importe permanece por cobrar.' }}</p></div>
-            <span class="px-3 py-1 text-xs font-bold" [class.bg-[#e7f2eb]]="current.isPaid" [class.text-[#245b3b]]="current.isPaid" [class.bg-[#fff1d6]]="!current.isPaid" [class.text-[#805719]]="!current.isPaid">{{ current.isPaid ? 'PAGADA' : 'PENDIENTE' }}</span>
+            <div><h2 class="m-0 font-[var(--display)] text-2xl font-semibold">{{ current.isPaid ? 'Pagada' : 'Pendiente' }}</h2><p class="mb-0 mt-1 text-sm text-[#63717d] dark:text-[#afbed0]">{{ current.isPaid ? 'El servicio se considera cobrado.' : 'El importe permanece por cobrar.' }}</p></div>
+            <span class="px-3 py-1 text-xs font-bold" [class.bg-[#cfe9da]]="current.isPaid" [class.text-[#245b3b]]="current.isPaid" [class.bg-[#ffe3ab]]="!current.isPaid" [class.text-[#805719]]="!current.isPaid">{{ current.isPaid ? 'PAGADA' : 'PENDIENTE' }}</span>
           </div>
           @if (auth.hasPermission('orders.manage_payment')) { <button class="secondary-tw mt-4 w-full" type="button" [disabled]="saving() || current.status === 'cancelled' || (!current.isPaid && current.total === null)" (click)="changePaymentStatus()">{{ current.isPaid ? 'Marcar como pendiente' : 'Marcar como pagada' }}</button> }
-          @if (current.isPaid) { <small class="mt-2 block text-[#68746d] dark:text-[#aab7af]">Para editar o cancelar la orden, primero márcala como pendiente.</small> }
+          @if (current.isPaid) { <small class="mt-2 block text-[#63717d] dark:text-[#afbed0]">Para editar o cancelar la orden, primero márcala como pendiente.</small> }
         </section>
         @if (auth.hasPermission('orders.change_status')) { <section class="form-card-tw p-5">
           <p class="eyebrow">SEGUIMIENTO</p>
           <h2 class="font-[var(--display)] text-2xl font-semibold">
             Cambiar estado
           </h2>
-          <p class="mt-2 text-sm text-[#68746d] dark:text-[#aab7af]">
+          <p class="mt-2 text-sm text-[#63717d] dark:text-[#afbed0]">
             Selecciona el nuevo estado. El cambio se guardará automáticamente.
           </p>
           <select
@@ -257,7 +257,7 @@
             }
           </select>
           @if (saving()) {
-          <small class="mt-2 block text-[#68746d] dark:text-[#aab7af]"
+          <small class="mt-2 block text-[#63717d] dark:text-[#afbed0]"
             >Guardando cambio…</small
           >
           }
@@ -284,13 +284,13 @@
             @for (entry of current.notes.slice().reverse(); track entry.id) {
             <article class="border-l-2 border-[#d0a17c] pl-3">
               <p class="m-0 text-sm">{{ entry.body }}</p>
-              <small class="text-[#68746d] dark:text-[#aab7af]"
+              <small class="text-[#63717d] dark:text-[#afbed0]"
                 >{{ entry.createdByName }} · {{ formatShortDate(entry.createdAt)
                 }}</small
               >
             </article>
             } @empty {
-            <p class="text-sm text-[#68746d] dark:text-[#aab7af]">
+            <p class="text-sm text-[#63717d] dark:text-[#afbed0]">
               Todavía no hay notas.
             </p>
             }
@@ -312,7 +312,7 @@
               ></span
               ><strong class="block text-sm"
                 >{{ statusName(entry.newStatus) }}</strong
-              ><small class="text-[#68746d] dark:text-[#aab7af]"
+              ><small class="text-[#63717d] dark:text-[#afbed0]"
                 >{{ entry.changedByName }} · {{ formatShortDate(entry.changedAt)
                 }}</small
               >
