@@ -16,7 +16,16 @@ import {
   Validators,
 } from "@angular/forms";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
-import { finalize, forkJoin, of } from "rxjs";
+import {
+  catchError,
+  debounceTime,
+  distinctUntilChanged,
+  finalize,
+  forkJoin,
+  map,
+  of,
+  switchMap,
+} from "rxjs";
 import { AuthService } from "../../core/auth/auth.service";
 import { apiErrorMessage } from "../../core/http/api-error";
 import { ThemeService } from "../../core/theme/theme.service";
@@ -65,6 +74,13 @@ export class OrderWizardPage implements OnInit {
   readonly catalogError = signal("");
   readonly catalogNotice = signal("");
   readonly clients = signal<Client[]>([]);
+  readonly clientTotal = signal(0);
+  readonly searchingClients = signal(false);
+  readonly clientListError = signal("");
+  readonly selectedClientSummary = signal<{
+    id: string;
+    displayName: string;
+  } | null>(null);
   readonly vehicles = signal<Vehicle[]>([]);
   readonly brands = signal<VehicleBrand[]>([]);
   readonly models = signal<VehicleModel[]>([]);
@@ -91,22 +107,14 @@ export class OrderWizardPage implements OnInit {
   );
 
   filteredClients(): Client[] {
-    const term = this.clientSearch.value.trim().toLocaleLowerCase("es-MX");
-    return term
-      ? this.clients().filter((client) =>
-          [client.displayName, client.phone ?? "", client.taxId ?? ""]
-            .join(" ")
-            .toLocaleLowerCase("es-MX")
-            .includes(term),
-        )
-      : this.clients();
+    return this.clients();
   }
 
-  selectedClient(): Client | null {
+  selectedClient(): { id: string; displayName: string } | null {
     return (
       this.clients().find(
         ({ id }) => id === this.orderForm.controls.customerId.value,
-      ) ?? null
+      ) ?? this.selectedClientSummary()
     );
   }
 
@@ -186,10 +194,44 @@ export class OrderWizardPage implements OnInit {
   }
 
   ngOnInit(): void {
+    this.clientSearch.valueChanges
+      .pipe(
+        debounceTime(300),
+        distinctUntilChanged(),
+        switchMap((search) => {
+          this.searchingClients.set(true);
+          this.clientListError.set("");
+          return this.clientsService
+            .list({
+              page: 1,
+              limit: 20,
+              search: search.trim(),
+              isActive: true,
+            })
+            .pipe(
+              map((data) => ({ data, error: "" })),
+              catchError((error: unknown) =>
+                of({
+                  data: null,
+                  error: apiErrorMessage(error, "No pudimos buscar clientes."),
+                }),
+              ),
+            );
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(({ data, error }) => {
+        this.searchingClients.set(false);
+        this.clientListError.set(error);
+        if (!data) return;
+        this.clients.set(data.items);
+        this.clientTotal.set(data.totalItems);
+      });
+
     forkJoin({
       clients: this.clientsService.list({
         page: 1,
-        limit: 100,
+        limit: 20,
         search: "",
         isActive: true,
       }),
@@ -207,6 +249,7 @@ export class OrderWizardPage implements OnInit {
       .subscribe({
         next: ({ clients, brands, concepts }) => {
           this.clients.set(clients.items);
+          this.clientTotal.set(clients.totalItems);
           this.brands.set(brands.items);
           this.concepts.set(concepts.items);
           if (this.editing) this.loadOrder();
@@ -223,6 +266,10 @@ export class OrderWizardPage implements OnInit {
 
   selectClient(client: Client): void {
     if (this.orderForm.controls.customerId.value === client.id) return;
+    this.selectedClientSummary.set({
+      id: client.id,
+      displayName: client.displayName,
+    });
     this.orderForm.controls.customerId.setValue(client.id);
     this.orderForm.controls.vehicleId.setValue("");
     this.vehicles.set([]);
@@ -273,6 +320,8 @@ export class OrderWizardPage implements OnInit {
       .subscribe({
         next: (client) => {
           this.clients.update((clients) => [client, ...clients]);
+          this.clientTotal.update((total) => total + 1);
+          this.clientSearch.setValue("");
           this.clientForm.reset({
             type: "person",
             displayName: "",
@@ -663,6 +712,10 @@ export class OrderWizardPage implements OnInit {
   }
 
   private hydrateOrder(order: Order): void {
+    this.selectedClientSummary.set({
+      id: order.customer.id,
+      displayName: order.customer.displayName,
+    });
     this.orderForm.controls.customerId.setValue(order.customer.id);
     this.orderForm.controls.vehicleId.setValue(order.vehicle.id);
     this.items.clear();
