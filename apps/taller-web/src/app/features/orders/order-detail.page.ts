@@ -125,7 +125,7 @@ export class OrderDetailPage implements OnInit {
         error: (error: unknown) => {
           this.statusSelection.setValue(current.status, { emitEvent: false });
           this.error.set(
-            apiErrorMessage(error, "No pudimos cambiar el estado."),
+            apiErrorMessage(error, "No pudimos cambiar el estatus."),
           );
         },
       });
@@ -174,7 +174,7 @@ export class OrderDetailPage implements OnInit {
           this.showNotice(order.isPaid ? "Orden marcada como pagada." : "Orden marcada como pendiente.");
         },
         error: (error: unknown) =>
-          this.error.set(apiErrorMessage(error, "No pudimos cambiar el estado de pago.")),
+          this.error.set(apiErrorMessage(error, "No pudimos cambiar el estatus de pago.")),
       });
   }
 

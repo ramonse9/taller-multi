@@ -288,7 +288,7 @@ export class ExpensesPage implements OnInit {
           this.refresh();
         },
         error: (error: unknown) =>
-          this.error.set(apiErrorMessage(error, "No pudimos cambiar el estado del gasto.")),
+          this.error.set(apiErrorMessage(error, "No pudimos cambiar el estatus del gasto.")),
       });
   }
 

@@ -16,7 +16,7 @@ import { AuthService } from "../../core/auth/auth.service";
         @if (auth.user()?.subscription; as subscription) {
           <dl class="mt-7 grid gap-3 border-y border-[#e2e7ec] py-5 text-sm dark:border-[#38516d] sm:grid-cols-2">
             <div><dt class="text-[#63717d] dark:text-[#afbed0]">Plan</dt><dd class="font-bold">{{ subscription.planName }}</dd></div>
-            <div><dt class="text-[#63717d] dark:text-[#afbed0]">Estado</dt><dd class="font-bold">{{ subscription.status }}</dd></div>
+            <div><dt class="text-[#63717d] dark:text-[#afbed0]">Estatus</dt><dd class="font-bold">{{ subscription.status }}</dd></div>
           </dl>
         }
         <p class="mt-6 text-sm">Solicita al administrador de plataforma la reactivación o el cambio de plan.</p>

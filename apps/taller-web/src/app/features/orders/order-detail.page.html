@@ -64,7 +64,7 @@
           <div
             class="border-b border-[#e2e7ec] p-5 sm:border-b-0 sm:border-r dark:border-[#38516d]"
           >
-            <span class="detail-label">ESTADO</span
+            <span class="detail-label">ESTATUS</span
             ><strong
               class="order-status mt-1"
               [class.order-status-in-progress]="current.status === 'in_progress'"
@@ -235,10 +235,10 @@
         @if (auth.hasPermission('orders.change_status')) { <section class="form-card-tw p-5">
           <p class="eyebrow">SEGUIMIENTO</p>
           <h2 class="font-[var(--display)] text-2xl font-semibold">
-            Cambiar estado
+            Cambiar estatus
           </h2>
           <p class="mt-2 text-sm text-[#63717d] dark:text-[#afbed0]">
-            Selecciona el nuevo estado. El cambio se guardará automáticamente.
+            Selecciona el nuevo estatus. El cambio se guardará automáticamente.
           </p>
           <select
             class="field-control order-status mt-4 w-full"

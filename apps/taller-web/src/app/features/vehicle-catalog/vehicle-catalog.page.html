@@ -29,7 +29,7 @@
             </span>
             <input class="field-control py-2.5! pr-8! pl-11!" [formControl]="brandSearch" type="search" placeholder="Buscar por nombre de marca" aria-label="Buscar por nombre de marca" />
           </label>
-          <div class="segments-tw" aria-label="Estado de marcas">
+          <div class="segments-tw" aria-label="Estatus de marcas">
             <button type="button" [class.segment-selected]="brandActive()" (click)="filterBrands(true)">Activas</button>
             <button type="button" [class.segment-selected]="!brandActive()" (click)="filterBrands(false)">Inactivas</button>
           </div>
@@ -60,7 +60,7 @@
             </span>
             <input class="field-control py-2.5! pr-8! pl-11!" [formControl]="modelSearch" type="search" placeholder="Buscar por nombre de modelo" aria-label="Buscar por nombre de modelo" [disabled]="!selectedBrand()" />
           </label>
-          <div class="segments-tw" aria-label="Estado de modelos">
+          <div class="segments-tw" aria-label="Estatus de modelos">
             <button type="button" [class.segment-selected]="modelActive()" (click)="filterModels(true)" [disabled]="!selectedBrand()">Activos</button>
             <button type="button" [class.segment-selected]="!modelActive()" (click)="filterModels(false)" [disabled]="!selectedBrand()">Inactivos</button>
           </div>

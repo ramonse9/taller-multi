@@ -92,7 +92,7 @@ export class PurchaseDetailPage implements OnInit {
           window.setTimeout(() => this.notice.set(""), 3000);
         },
         error: (error: unknown) =>
-          this.error.set(apiErrorMessage(error, "No pudimos cambiar el estado de la compra.")),
+          this.error.set(apiErrorMessage(error, "No pudimos cambiar el estatus de la compra.")),
       });
   }
 

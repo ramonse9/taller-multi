@@ -203,7 +203,7 @@ export class SuppliersPage implements OnInit {
         },
         error: (error: unknown) =>
           this.error.set(
-            apiErrorMessage(error, "No pudimos cambiar el estado."),
+            apiErrorMessage(error, "No pudimos cambiar el estatus."),
           ),
       });
   }

@@ -68,7 +68,7 @@
         <dl class="my-6 grid gap-0 max-[999px]:grid-cols-3 max-sm:grid-cols-1">
           <div class="summary-row"><dt>Schema</dt><dd>Se asignará al registrar</dd></div>
           <div class="summary-row"><dt>Administrador</dt><dd>{{ form.controls.admin.controls.username.value || 'usuario' }}&#64;{{ form.controls.loginCode.value || 'compania' }}</dd></div>
-          <div class="summary-row"><dt>Estado inicial</dt><dd>{{ form.controls.trialDays.value > 0 ? 'Periodo de prueba' : 'Activo' }}</dd></div>
+          <div class="summary-row"><dt>Estatus inicial</dt><dd>{{ form.controls.trialDays.value > 0 ? 'Periodo de prueba' : 'Activo' }}</dd></div>
           <div class="summary-row"><dt>Suscripción</dt><dd>{{ form.controls.planCode.value }} · {{ form.controls.trialDays.value }} días de prueba</dd></div>
         </dl>
         <div class="flex gap-2.5 bg-[#edf4fb] p-3 text-[#31513f] dark:bg-[#2b425c] dark:text-[#d7e7f5]"><span class="text-[#e86a33]">↳</span><p class="m-0 text-[0.69rem] leading-6">Si algún paso falla, PostgreSQL revierte la compañía, el schema y el usuario.</p></div>
