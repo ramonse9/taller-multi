@@ -54,7 +54,8 @@
       <div class="form-error" role="alert">{{ error() }}</div>
       }
       <button class="primary" type="submit" [disabled]="submitting()">
-        {{ submitting() ? 'Ingresando…' : 'Ingresar' }}
+        {{ submitting() ? (navigationFailed() ? 'Abriendo…' : 'Ingresando…') :
+        (navigationFailed() ? 'Continuar al sistema' : 'Ingresar') }}
       </button>
       <a class="recovery-link" routerLink="/recuperar-contrasena">
         ¿Olvidaste tu contraseña?
