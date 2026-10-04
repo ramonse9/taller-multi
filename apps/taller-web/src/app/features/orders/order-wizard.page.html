@@ -201,12 +201,10 @@
         </h2>
         <div class="mt-5 grid gap-3 sm:grid-cols-2">
           @for (vehicle of vehicles(); track vehicle.id) {<button
-            class="border p-5 text-left"
-            [class.border-[#e86a33]]="orderForm.controls.vehicleId.value === vehicle.id"
+            class="vehicle-option p-5 text-left transition hover:bg-[#fff4eb] dark:hover:bg-[#35271f]"
             [class.bg-[#fff4eb]]="orderForm.controls.vehicleId.value === vehicle.id"
             [class.dark:bg-[#35271f]]="orderForm.controls.vehicleId.value === vehicle.id"
-            [class.border-[#d5dce3]]="orderForm.controls.vehicleId.value !== vehicle.id"
-            [class.dark:border-[#38516d]]="orderForm.controls.vehicleId.value !== vehicle.id"
+            [attr.aria-pressed]="orderForm.controls.vehicleId.value === vehicle.id"
             type="button"
             (click)="selectVehicle(vehicle)"
           >

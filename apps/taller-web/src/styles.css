@@ -40,7 +40,9 @@ body {
   min-height: 100vh;
   background: var(--paper);
   color: var(--ink);
-  transition: background-color 180ms ease, color 180ms ease;
+  transition:
+    background-color 180ms ease,
+    color 180ms ease;
 }
 button,
 input,
@@ -58,6 +60,12 @@ button:disabled {
   opacity: 0.55;
   box-shadow: none;
   transform: none;
+}
+.vehicle-option {
+  border: 1px solid #e86a33;
+}
+:root.dark .vehicle-option {
+  border-color: #ff9a6f;
 }
 .primary {
   background: var(--orange);
