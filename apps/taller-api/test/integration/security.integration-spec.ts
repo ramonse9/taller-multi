@@ -289,7 +289,7 @@ interface ProfitabilityReportResponse {
     completedOrderCount: number;
     incompleteOrderCount: number;
     missingPriceOrderCount: number;
-    missingProductCostOrderCount: number;
+    missingCostOrderCount: number;
     paidCompletedOrderCount: number;
     unpaidCompletedOrderCount: number;
     receivableOrderCount: number;
@@ -376,7 +376,7 @@ interface DashboardSummaryResponse {
     operatingProfit: string;
     incompleteOrderCount: number;
     missingPriceOrderCount: number;
-    missingProductCostOrderCount: number;
+    missingCostOrderCount: number;
     isComplete: boolean;
   };
   lowStock: null | {
@@ -485,7 +485,7 @@ interface OrderResponse {
   grossProfit: string | null;
   inventoryAppliedAt: string | null;
   hasUnpricedItems: boolean;
-  hasUnknownProductCosts: boolean;
+  hasUnknownCosts: boolean;
   isFinanciallyComplete: boolean;
   items: Array<{
     id: string;
@@ -2064,6 +2064,33 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       unitCost: null,
       costAmount: null,
     });
+    const completedUnknownCostService = await request<OrderResponse>(
+      'POST',
+      `/orders/${unknownCostService.body.id}/status`,
+      { token: tenant.accessToken, body: { status: 'completed' } },
+    );
+    expect(completedUnknownCostService.body).toMatchObject({
+      total: '250.00',
+      totalCost: '0.00',
+      grossProfit: null,
+      hasUnknownCosts: true,
+      isFinanciallyComplete: false,
+    });
+    const incompleteReport = await request<ProfitabilityReportResponse>(
+      'GET',
+      '/profitability?occurredFrom=2026-10-01&occurredTo=2026-10-31',
+      { token: tenant.accessToken },
+    );
+    expect(incompleteReport.body.totals).toMatchObject({
+      completedOrderCount: 1,
+      incompleteOrderCount: 1,
+      missingPriceOrderCount: 0,
+      missingCostOrderCount: 1,
+      income: '250.00',
+      directCost: '0.00',
+      grossProfit: '0.00',
+      isComplete: false,
+    });
     await request<OrderResponse>('POST', `/orders/${unknownCostService.body.id}/status`, {
       token: tenant.accessToken,
       body: { status: 'cancelled' },
@@ -2130,8 +2157,10 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(completedWithoutCost.body).toMatchObject({
       status: 'completed',
       total: '100.00',
-      totalCost: null,
+      totalCost: '0.00',
       grossProfit: null,
+      hasUnknownCosts: true,
+      isFinanciallyComplete: false,
     });
     await request<OrderResponse>('POST', `/orders/${productWithoutCost.body.id}/status`, {
       token: tenant.accessToken,
@@ -2221,7 +2250,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       completedOrderCount: 1,
       incompleteOrderCount: 0,
       missingPriceOrderCount: 0,
-      missingProductCostOrderCount: 0,
+      missingCostOrderCount: 0,
       paidCompletedOrderCount: 1,
       unpaidCompletedOrderCount: 0,
       receivableOrderCount: 1,
@@ -2465,7 +2494,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       operatingProfit: '230.00',
       incompleteOrderCount: 0,
       missingPriceOrderCount: 0,
-      missingProductCostOrderCount: 0,
+      missingCostOrderCount: 0,
       isComplete: true,
     });
     expect(controlSummary.body.lowStock).toMatchObject({
@@ -3573,8 +3602,8 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       status: 'in_progress',
       isPaid: false,
       hasUnpricedItems: false,
-      hasUnknownProductCosts: false,
-      isFinanciallyComplete: true,
+      hasUnknownCosts: true,
+      isFinanciallyComplete: false,
       subtotal: '902.50',
       total: '902.50',
       customer: { id: customer.body.id, type: 'company' },
@@ -3614,12 +3643,12 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(updated.status).toBe(200);
     expect(updated.body).toMatchObject({
       hasUnpricedItems: false,
-      hasUnknownProductCosts: false,
-      isFinanciallyComplete: true,
+      hasUnknownCosts: true,
+      isFinanciallyComplete: false,
       subtotal: '2100.00',
       total: '2100.00',
       totalCost: '0.00',
-      grossProfit: '2100.00',
+      grossProfit: null,
     });
 
     const note = await request<{ body: string; createdByUserId: string }>(
@@ -3777,7 +3806,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       total: '450.00',
       totalCost: '100.00',
       grossProfit: '350.00',
-      hasUnknownProductCosts: false,
+      hasUnknownCosts: false,
       isFinanciallyComplete: true,
     });
     const completedManualCosts = await request<OrderResponse>(

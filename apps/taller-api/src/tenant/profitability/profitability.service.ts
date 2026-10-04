@@ -17,7 +17,7 @@ interface TotalsRow {
   completed_order_count: number;
   incomplete_order_count: number;
   missing_price_order_count: number;
-  missing_product_cost_order_count: number;
+  missing_cost_order_count: number;
   paid_completed_order_count: number;
   unpaid_completed_order_count: number;
   receivable_order_count: number;
@@ -109,7 +109,7 @@ export class ProfitabilityService {
                    SELECT 1 FROM ${schema}.order_items item
                    WHERE item.order_id = service_order.id
                      AND (item.unit_price IS NULL
-                       OR (item.kind = 'product' AND item.cost_total IS NULL))
+                       OR item.cost_total IS NULL)
                  )
              )::int AS incomplete_order_count,
              count(*) FILTER (
@@ -124,9 +124,9 @@ export class ProfitabilityService {
                  AND EXISTS (
                    SELECT 1 FROM ${schema}.order_items item
                    WHERE item.order_id = service_order.id
-                     AND item.kind = 'product' AND item.cost_total IS NULL
+                     AND item.cost_total IS NULL
                  )
-             )::int AS missing_product_cost_order_count,
+             )::int AS missing_cost_order_count,
              count(*) FILTER (WHERE service_order.is_paid = true)::int
                AS paid_completed_order_count,
              count(*) FILTER (WHERE service_order.is_paid = false)::int
@@ -182,7 +182,7 @@ export class ProfitabilityService {
          SELECT bounds.from_date::text AS occurred_from, bounds.to_date::text AS occurred_to,
            order_totals.completed_order_count, order_totals.incomplete_order_count,
            order_totals.missing_price_order_count,
-           order_totals.missing_product_cost_order_count,
+           order_totals.missing_cost_order_count,
            order_totals.paid_completed_order_count, order_totals.unpaid_completed_order_count,
            receivables.receivable_order_count,
            order_totals.income::numeric(14,2)::text AS income,
@@ -233,9 +233,8 @@ export class ProfitabilityService {
       )) as CustomerRow[];
       const serviceTypeRows = (await runner.query(
         `WITH bounds AS (${bounds}), typed AS (
-           SELECT item.kind AS type, item.total,
-             CASE WHEN item.kind = 'service' THEN COALESCE(item.cost_total, 0)
-                  ELSE item.cost_total END AS cost_total
+         SELECT item.kind AS type, item.total,
+             item.cost_total
            FROM bounds
            JOIN ${schema}.orders service_order
              ON service_order.status = 'completed'
@@ -273,7 +272,7 @@ export class ProfitabilityService {
              SELECT 1 FROM ${schema}.order_items item
              WHERE item.order_id = service_order.id
                AND (item.unit_price IS NULL
-                 OR (item.kind = 'product' AND item.cost_total IS NULL))
+                 OR item.cost_total IS NULL)
            ) AS is_complete,
            service_order.is_paid
          FROM bounds
@@ -293,7 +292,7 @@ export class ProfitabilityService {
           completedOrderCount: totals.completed_order_count,
           incompleteOrderCount: totals.incomplete_order_count,
           missingPriceOrderCount: totals.missing_price_order_count,
-          missingProductCostOrderCount: totals.missing_product_cost_order_count,
+          missingCostOrderCount: totals.missing_cost_order_count,
           paidCompletedOrderCount: totals.paid_completed_order_count,
           unpaidCompletedOrderCount: totals.unpaid_completed_order_count,
           receivableOrderCount: totals.receivable_order_count,

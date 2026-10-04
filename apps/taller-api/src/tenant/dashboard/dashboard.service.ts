@@ -39,7 +39,7 @@ interface FinancialsRow {
   operating_profit: string;
   incomplete_order_count: number;
   missing_price_order_count: number;
-  missing_product_cost_order_count: number;
+  missing_cost_order_count: number;
 }
 
 interface LowStockRow {
@@ -251,7 +251,7 @@ export class DashboardService {
                SELECT 1 FROM ${schema}.order_items item
                WHERE item.order_id = service_order.id
                  AND (item.unit_price IS NULL
-                   OR (item.kind = 'product' AND item.cost_total IS NULL))
+                   OR item.cost_total IS NULL)
              )
            )::int AS incomplete_order_count,
            count(*) FILTER (
@@ -264,9 +264,9 @@ export class DashboardService {
              WHERE EXISTS (
                SELECT 1 FROM ${schema}.order_items item
                WHERE item.order_id = service_order.id
-                 AND item.kind = 'product' AND item.cost_total IS NULL
+                 AND item.cost_total IS NULL
              )
-           )::int AS missing_product_cost_order_count
+           )::int AS missing_cost_order_count
          FROM period JOIN ${schema}.orders service_order
            ON service_order.status = 'completed'
           AND service_order.closed_at >= period.starts_on
@@ -285,7 +285,7 @@ export class DashboardService {
            ::numeric(14,2)::text AS operating_profit,
          order_totals.incomplete_order_count,
          order_totals.missing_price_order_count,
-         order_totals.missing_product_cost_order_count
+         order_totals.missing_cost_order_count
        FROM order_totals CROSS JOIN expense_totals`,
     )) as FinancialsRow[];
     const row = rows[0]!;
@@ -296,7 +296,7 @@ export class DashboardService {
       operatingProfit: row.operating_profit,
       incompleteOrderCount: row.incomplete_order_count,
       missingPriceOrderCount: row.missing_price_order_count,
-      missingProductCostOrderCount: row.missing_product_cost_order_count,
+      missingCostOrderCount: row.missing_cost_order_count,
       isComplete: row.incomplete_order_count === 0,
     };
   }

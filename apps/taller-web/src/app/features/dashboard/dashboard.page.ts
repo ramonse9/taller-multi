@@ -99,11 +99,11 @@ export class DashboardPage implements OnInit {
     const verb = count === 1 ? "contiene" : "contienen";
     const issue =
       financials.missingPriceOrderCount > 0 &&
-      financials.missingProductCostOrderCount > 0
-        ? "conceptos sin precio o productos sin costo"
+      financials.missingCostOrderCount > 0
+        ? "conceptos sin precio o costo"
         : financials.missingPriceOrderCount > 0
           ? "conceptos sin precio"
-          : "productos sin costo";
+          : "conceptos sin costo";
     return `Revisa ${count} ${order}: ${verb} ${issue} y su utilidad todavía no es exacta.`;
   }
 

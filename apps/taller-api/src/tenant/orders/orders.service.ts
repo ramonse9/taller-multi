@@ -47,7 +47,7 @@ interface OrderRow {
   gross_profit: string | null;
   inventory_applied_at: Date | null;
   has_unpriced_items: boolean;
-  has_unknown_product_costs: boolean;
+  has_unknown_costs: boolean;
   is_paid: boolean;
   item_count: string;
   opened_at: Date;
@@ -605,7 +605,7 @@ export class OrdersService {
        SET subtotal = totals.total, total = totals.total, tax = 0,
            total_cost = totals.total_cost,
            gross_profit = CASE
-             WHEN totals.total IS NULL OR totals.total_cost IS NULL THEN NULL
+             WHEN totals.total IS NULL OR totals.has_unknown_costs THEN NULL
              ELSE totals.total - totals.total_cost
            END,
            updated_by_user_id = $2, updated_at = now()
@@ -614,12 +614,8 @@ export class OrdersService {
            WHEN COUNT(*) FILTER (WHERE total IS NULL) > 0 THEN NULL
            ELSE COALESCE(SUM(total), 0)
          END AS total,
-         CASE
-           WHEN COUNT(*) FILTER (WHERE kind = 'product' AND cost_total IS NULL) > 0 THEN NULL
-           ELSE COALESCE(SUM(
-             CASE WHEN kind = 'service' THEN COALESCE(cost_total, 0) ELSE cost_total END
-           ), 0)
-         END AS total_cost
+         COALESCE(SUM(cost_total), 0) AS total_cost,
+         COUNT(*) FILTER (WHERE cost_total IS NULL) > 0 AS has_unknown_costs
          FROM ${schema}.order_items WHERE order_id = $1
        ) totals
        WHERE service_order.id = $1`,
@@ -985,8 +981,8 @@ export class OrdersService {
       EXISTS(
         SELECT 1 FROM ${schema}.order_items unknown_cost
         WHERE unknown_cost.order_id = service_order.id
-          AND unknown_cost.kind = 'product' AND unknown_cost.cost_total IS NULL
-      ) AS has_unknown_product_costs,
+          AND unknown_cost.cost_total IS NULL
+      ) AS has_unknown_costs,
       (SELECT COUNT(*)::text FROM ${schema}.order_items counted
        WHERE counted.order_id = service_order.id) AS item_count,
       service_order.opened_at, service_order.closed_at,
@@ -1024,8 +1020,8 @@ export class OrdersService {
       grossProfit: row.gross_profit,
       inventoryAppliedAt: row.inventory_applied_at,
       hasUnpricedItems: row.has_unpriced_items,
-      hasUnknownProductCosts: row.has_unknown_product_costs,
-      isFinanciallyComplete: !row.has_unpriced_items && !row.has_unknown_product_costs,
+      hasUnknownCosts: row.has_unknown_costs,
+      isFinanciallyComplete: !row.has_unpriced_items && !row.has_unknown_costs,
       isPaid: row.is_paid,
       openedAt: row.opened_at,
       closedAt: row.closed_at,

@@ -285,8 +285,8 @@ export class OrderSummaryResponseDto {
   @ApiProperty({ nullable: true, type: String }) grossProfit!: string | null;
   @ApiProperty({ nullable: true, type: Date }) inventoryAppliedAt!: Date | null;
   @ApiProperty() hasUnpricedItems!: boolean;
-  @ApiProperty({ description: 'Indica si existe un producto cuyo costo todavía es desconocido' })
-  hasUnknownProductCosts!: boolean;
+  @ApiProperty({ description: 'Indica si existe un producto o servicio con costo desconocido' })
+  hasUnknownCosts!: boolean;
   @ApiProperty({ description: 'Indica si precio y costos requeridos están completos' })
   isFinanciallyComplete!: boolean;
   @ApiProperty() isPaid!: boolean;

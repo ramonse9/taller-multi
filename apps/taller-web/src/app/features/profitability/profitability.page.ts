@@ -42,7 +42,7 @@ const emptyReport = (): ProfitabilityReport => ({
     completedOrderCount: 0,
     incompleteOrderCount: 0,
     missingPriceOrderCount: 0,
-    missingProductCostOrderCount: 0,
+    missingCostOrderCount: 0,
     paidCompletedOrderCount: 0,
     unpaidCompletedOrderCount: 0,
     receivableOrderCount: 0,

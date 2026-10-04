@@ -46,8 +46,8 @@ export class DashboardFinancialsResponseDto {
   @ApiProperty() incompleteOrderCount!: number;
   @ApiProperty({ description: 'Órdenes terminadas que contienen conceptos sin precio' })
   missingPriceOrderCount!: number;
-  @ApiProperty({ description: 'Órdenes terminadas que contienen productos sin costo conocido' })
-  missingProductCostOrderCount!: number;
+  @ApiProperty({ description: 'Órdenes terminadas que contienen conceptos sin costo conocido' })
+  missingCostOrderCount!: number;
   @ApiProperty({
     description: 'Indica si todas las órdenes terminadas tienen precios y costos requeridos',
   })

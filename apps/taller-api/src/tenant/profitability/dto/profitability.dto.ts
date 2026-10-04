@@ -18,8 +18,8 @@ export class ProfitabilityTotalsResponseDto {
   @ApiProperty() incompleteOrderCount!: number;
   @ApiProperty({ description: 'Órdenes terminadas que contienen conceptos sin precio' })
   missingPriceOrderCount!: number;
-  @ApiProperty({ description: 'Órdenes terminadas que contienen productos sin costo conocido' })
-  missingProductCostOrderCount!: number;
+  @ApiProperty({ description: 'Órdenes terminadas que contienen conceptos sin costo conocido' })
+  missingCostOrderCount!: number;
   @ApiProperty() paidCompletedOrderCount!: number;
   @ApiProperty() unpaidCompletedOrderCount!: number;
   @ApiProperty({ description: 'Órdenes no canceladas pendientes de pago a la fecha de corte' })

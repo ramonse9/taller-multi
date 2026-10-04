@@ -2,7 +2,7 @@ export interface ProfitabilityTotals {
   completedOrderCount: number;
   incompleteOrderCount: number;
   missingPriceOrderCount: number;
-  missingProductCostOrderCount: number;
+  missingCostOrderCount: number;
   paidCompletedOrderCount: number;
   unpaidCompletedOrderCount: number;
   receivableOrderCount: number;
