@@ -1,6 +1,8 @@
 export interface ProfitabilityTotals {
   completedOrderCount: number;
   incompleteOrderCount: number;
+  missingPriceOrderCount: number;
+  missingProductCostOrderCount: number;
   paidCompletedOrderCount: number;
   unpaidCompletedOrderCount: number;
   receivableOrderCount: number;
@@ -46,7 +48,7 @@ export interface ProfitabilityCustomerRow {
 }
 
 export interface ProfitabilityServiceTypeRow {
-  type: "service" | "product" | "free";
+  type: "service" | "product";
   name: string;
   itemCount: number;
   income: string;

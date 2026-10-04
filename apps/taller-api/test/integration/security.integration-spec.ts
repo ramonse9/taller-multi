@@ -288,6 +288,8 @@ interface ProfitabilityReportResponse {
   totals: {
     completedOrderCount: number;
     incompleteOrderCount: number;
+    missingPriceOrderCount: number;
+    missingProductCostOrderCount: number;
     paidCompletedOrderCount: number;
     unpaidCompletedOrderCount: number;
     receivableOrderCount: number;
@@ -335,7 +337,7 @@ interface ProfitabilityReportResponse {
     grossProfit: string;
   }>;
   byServiceType: Array<{
-    type: 'service' | 'product' | 'free';
+    type: 'service' | 'product';
     name: string;
     itemCount: number;
     income: string;
@@ -373,6 +375,8 @@ interface DashboardSummaryResponse {
     operatingExpenses: string;
     operatingProfit: string;
     incompleteOrderCount: number;
+    missingPriceOrderCount: number;
+    missingProductCostOrderCount: number;
     isComplete: boolean;
   };
   lowStock: null | {
@@ -481,6 +485,8 @@ interface OrderResponse {
   grossProfit: string | null;
   inventoryAppliedAt: string | null;
   hasUnpricedItems: boolean;
+  hasUnknownProductCosts: boolean;
+  isFinanciallyComplete: boolean;
   items: Array<{
     id: string;
     productServiceId: string | null;
@@ -2070,7 +2076,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         items: [{ kind: 'product', description: 'Producto libre', quantity: 1, unitPrice: 100 }],
       },
     });
-    expect(productWithoutCost.status).toBe(422);
+    expect(productWithoutCost.status).toBe(400);
     const completed = await request<OrderResponse>('POST', `/orders/${order.body.id}/status`, {
       token: tenant.accessToken,
       body: { status: 'completed' },
@@ -2154,6 +2160,8 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(report.body.totals).toEqual({
       completedOrderCount: 1,
       incompleteOrderCount: 0,
+      missingPriceOrderCount: 0,
+      missingProductCostOrderCount: 0,
       paidCompletedOrderCount: 1,
       unpaidCompletedOrderCount: 0,
       receivableOrderCount: 1,
@@ -2199,8 +2207,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(report.body.byServiceType).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ type: 'product', income: '200.00', directCost: '80.00' }),
-        expect.objectContaining({ type: 'service', income: '300.00', directCost: '50.00' }),
-        expect.objectContaining({ type: 'free', income: '200.00', directCost: '20.00' }),
+        expect.objectContaining({ type: 'service', income: '500.00', directCost: '70.00' }),
       ]),
     );
     expect(report.body.orders[0]).toMatchObject({
@@ -2397,6 +2404,8 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       operatingExpenses: '120.00',
       operatingProfit: '230.00',
       incompleteOrderCount: 0,
+      missingPriceOrderCount: 0,
+      missingProductCostOrderCount: 0,
       isComplete: true,
     });
     expect(controlSummary.body.lowStock).toMatchObject({
@@ -3494,6 +3503,8 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       status: 'in_progress',
       isPaid: false,
       hasUnpricedItems: true,
+      hasUnknownProductCosts: false,
+      isFinanciallyComplete: false,
       subtotal: null,
       total: null,
       customer: { id: customer.body.id, type: 'company' },
@@ -3503,8 +3514,11 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       expect.arrayContaining([
         expect.objectContaining({
           position: 1,
+          kind: 'service',
           description: 'Diagnóstico general',
           unitPrice: null,
+          unitCost: '0.00',
+          costAmount: '0.00',
           amount: null,
         }),
         expect.objectContaining({
@@ -3539,8 +3553,12 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(updated.status).toBe(200);
     expect(updated.body).toMatchObject({
       hasUnpricedItems: false,
+      hasUnknownProductCosts: false,
+      isFinanciallyComplete: true,
       subtotal: '2100.00',
       total: '2100.00',
+      totalCost: '0.00',
+      grossProfit: '2100.00',
     });
 
     const note = await request<{ body: string; createdByUserId: string }>(
@@ -3635,6 +3653,53 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       [created.body.id],
     );
     expect(stored[0]).toEqual({ tax: '0.00', linked_catalog_items: '0', history_count: '6' });
+
+    const manualCosts = await request<OrderResponse>('POST', '/orders', {
+      token: tenant.accessToken,
+      body: {
+        customerId: customer.body.id,
+        vehicleId: vehicle.body.id,
+        items: [
+          {
+            kind: 'service',
+            description: 'Servicio externo',
+            quantity: 1,
+            unitPrice: 300,
+            unitCost: 25,
+          },
+          {
+            kind: 'product',
+            description: 'Producto libre sin inventario',
+            quantity: 1,
+            unitPrice: 150,
+            unitCost: 75,
+          },
+        ],
+      },
+    });
+    expect(manualCosts.status).toBe(201);
+    expect(manualCosts.body).toMatchObject({
+      total: '450.00',
+      totalCost: '100.00',
+      grossProfit: '350.00',
+      hasUnknownProductCosts: false,
+      isFinanciallyComplete: true,
+    });
+    const completedManualCosts = await request<OrderResponse>(
+      'POST',
+      `/orders/${manualCosts.body.id}/status`,
+      { token: tenant.accessToken, body: { status: 'completed' } },
+    );
+    expect(completedManualCosts.body).toMatchObject({
+      totalCost: '100.00',
+      grossProfit: '350.00',
+      inventoryAppliedAt: null,
+    });
+    const manualMovements = await control.query<Array<{ count: string }>>(
+      `SELECT count(*)::text FROM ${schema}.inventory_movements WHERE order_id = $1`,
+      [manualCosts.body.id],
+    );
+    expect(manualMovements[0]?.count).toBe('0');
   });
 
   it('integra catálogo, instantáneas, utilidad y devoluciones de inventario con órdenes', async () => {

@@ -89,10 +89,20 @@ export class OrderItemInputDto {
   @Max(999999999999.99)
   unitPrice?: number | null;
 
-  @ApiPropertyOptional({ example: 800, nullable: true, minimum: 0 })
+  @ApiPropertyOptional({
+    example: 800,
+    nullable: true,
+    minimum: 0,
+    description:
+      'Costo manual. Es obligatorio para productos libres; en servicios libres vacío equivale a cero.',
+  })
   @Transform(nullablePrice)
   @Type(() => Number)
-  @IsOptional()
+  @ValidateIf(
+    (input: OrderItemInputDto) =>
+      (!input.productServiceId && input.kind === OrderItemKind.Product) ||
+      (input.unitCost !== undefined && input.unitCost !== null),
+  )
   @IsNumber({ maxDecimalPlaces: 2, allowInfinity: false, allowNaN: false })
   @Min(0)
   @Max(999999999999.99)
@@ -274,6 +284,10 @@ export class OrderSummaryResponseDto {
   @ApiProperty({ nullable: true, type: String }) grossProfit!: string | null;
   @ApiProperty({ nullable: true, type: Date }) inventoryAppliedAt!: Date | null;
   @ApiProperty() hasUnpricedItems!: boolean;
+  @ApiProperty({ description: 'Indica si existe un producto cuyo costo todavía es desconocido' })
+  hasUnknownProductCosts!: boolean;
+  @ApiProperty({ description: 'Indica si precio y costos requeridos están completos' })
+  isFinanciallyComplete!: boolean;
   @ApiProperty() isPaid!: boolean;
   @ApiProperty() openedAt!: Date;
   @ApiProperty({ nullable: true, type: Date }) closedAt!: Date | null;

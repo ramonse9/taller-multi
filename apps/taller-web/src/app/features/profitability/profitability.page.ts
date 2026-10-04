@@ -7,13 +7,21 @@ import {
   signal,
 } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
-import { FormControl, FormGroup, ReactiveFormsModule, Validators } from "@angular/forms";
+import {
+  FormControl,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators,
+} from "@angular/forms";
 import { RouterLink } from "@angular/router";
 import { finalize } from "rxjs";
 import { formatShortDate } from "../../core/dates/date-format";
 import { apiErrorMessage } from "../../core/http/api-error";
 import { ThemeService } from "../../core/theme/theme.service";
-import { ProfitabilityPeriodRow, ProfitabilityReport } from "./profitability.models";
+import {
+  ProfitabilityPeriodRow,
+  ProfitabilityReport,
+} from "./profitability.models";
 import { ProfitabilityService } from "./profitability.service";
 
 const localDate = (date: Date): string =>
@@ -21,7 +29,10 @@ const localDate = (date: Date): string =>
 
 const defaultDates = (): { from: string; to: string } => {
   const now = new Date();
-  return { from: localDate(new Date(now.getFullYear(), now.getMonth(), 1)), to: localDate(now) };
+  return {
+    from: localDate(new Date(now.getFullYear(), now.getMonth(), 1)),
+    to: localDate(now),
+  };
 };
 
 const emptyReport = (): ProfitabilityReport => ({
@@ -30,6 +41,8 @@ const emptyReport = (): ProfitabilityReport => ({
   totals: {
     completedOrderCount: 0,
     incompleteOrderCount: 0,
+    missingPriceOrderCount: 0,
+    missingProductCostOrderCount: 0,
     paidCompletedOrderCount: 0,
     unpaidCompletedOrderCount: 0,
     receivableOrderCount: 0,
@@ -93,30 +106,43 @@ export class ProfitabilityPage implements OnInit {
     }
     const { occurredFrom, occurredTo } = this.filters.getRawValue();
     if (occurredFrom > occurredTo) {
-      this.error.set("La fecha inicial no puede ser posterior a la fecha final.");
+      this.error.set(
+        "La fecha inicial no puede ser posterior a la fecha final.",
+      );
       return;
     }
     this.loading.set(true);
     this.error.set("");
     this.profitability
       .report(occurredFrom, occurredTo)
-      .pipe(finalize(() => this.loading.set(false)), takeUntilDestroyed(this.destroyRef))
+      .pipe(
+        finalize(() => this.loading.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
       .subscribe({
         next: (report) => this.report.set(report),
         error: (error: unknown) =>
-          this.error.set(apiErrorMessage(error, "No pudimos calcular la utilidad del periodo.")),
+          this.error.set(
+            apiErrorMessage(
+              error,
+              "No pudimos calcular la utilidad del periodo.",
+            ),
+          ),
       });
   }
 
   periodRows(): ProfitabilityPeriodRow[] {
-    return this.periodView() === "day" ? this.report().byDay : this.report().byMonth;
+    return this.periodView() === "day"
+      ? this.report().byDay
+      : this.report().byMonth;
   }
 
   money(value: string | null): string {
     if (value === null) return "Pendiente";
-    return new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(
-      Number(value),
-    );
+    return new Intl.NumberFormat("es-MX", {
+      style: "currency",
+      currency: "MXN",
+    }).format(Number(value));
   }
 
   percent(value: string | null): string {
@@ -126,8 +152,9 @@ export class ProfitabilityPage implements OnInit {
   periodName(value: string): string {
     if (value.length === 10) return formatShortDate(value);
     const [year, month] = value.split("-").map(Number);
-    return new Intl.DateTimeFormat("es-MX", { month: "long", year: "numeric" }).format(
-      new Date(year!, month! - 1, 1),
-    );
+    return new Intl.DateTimeFormat("es-MX", {
+      month: "long",
+      year: "numeric",
+    }).format(new Date(year!, month! - 1, 1));
   }
 }

@@ -38,6 +38,8 @@ interface FinancialsRow {
   operating_expenses: string;
   operating_profit: string;
   incomplete_order_count: number;
+  missing_price_order_count: number;
+  missing_product_cost_order_count: number;
 }
 
 interface LowStockRow {
@@ -245,9 +247,26 @@ export class DashboardService {
          SELECT COALESCE(sum(service_order.total_cost), 0) AS direct_cost,
            COALESCE(sum(service_order.gross_profit), 0) AS gross_profit,
            count(*) FILTER (
-             WHERE service_order.total IS NULL OR service_order.total_cost IS NULL
-               OR service_order.gross_profit IS NULL
-           )::int AS incomplete_order_count
+             WHERE EXISTS (
+               SELECT 1 FROM ${schema}.order_items item
+               WHERE item.order_id = service_order.id
+                 AND (item.unit_price IS NULL
+                   OR (item.kind = 'product' AND item.cost_total IS NULL))
+             )
+           )::int AS incomplete_order_count,
+           count(*) FILTER (
+             WHERE EXISTS (
+               SELECT 1 FROM ${schema}.order_items item
+               WHERE item.order_id = service_order.id AND item.unit_price IS NULL
+             )
+           )::int AS missing_price_order_count,
+           count(*) FILTER (
+             WHERE EXISTS (
+               SELECT 1 FROM ${schema}.order_items item
+               WHERE item.order_id = service_order.id
+                 AND item.kind = 'product' AND item.cost_total IS NULL
+             )
+           )::int AS missing_product_cost_order_count
          FROM period JOIN ${schema}.orders service_order
            ON service_order.status = 'completed'
           AND service_order.closed_at >= period.starts_on
@@ -264,7 +283,9 @@ export class DashboardService {
          expense_totals.operating_expenses::numeric(14,2)::text AS operating_expenses,
          (order_totals.gross_profit - expense_totals.operating_expenses)
            ::numeric(14,2)::text AS operating_profit,
-         order_totals.incomplete_order_count
+         order_totals.incomplete_order_count,
+         order_totals.missing_price_order_count,
+         order_totals.missing_product_cost_order_count
        FROM order_totals CROSS JOIN expense_totals`,
     )) as FinancialsRow[];
     const row = rows[0]!;
@@ -274,6 +295,8 @@ export class DashboardService {
       operatingExpenses: row.operating_expenses,
       operatingProfit: row.operating_profit,
       incompleteOrderCount: row.incomplete_order_count,
+      missingPriceOrderCount: row.missing_price_order_count,
+      missingProductCostOrderCount: row.missing_product_cost_order_count,
       isComplete: row.incomplete_order_count === 0,
     };
   }

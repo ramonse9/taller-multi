@@ -62,7 +62,10 @@ export class DashboardPage implements OnInit {
   load(): void {
     this.loading.set(true);
     this.error.set("");
-    forkJoin({ summary: this.dashboard.summary(), activity: this.dashboard.activity() })
+    forkJoin({
+      summary: this.dashboard.summary(),
+      activity: this.dashboard.activity(),
+    })
       .pipe(
         finalize(() => this.loading.set(false)),
         takeUntilDestroyed(this.destroyRef),
@@ -73,27 +76,49 @@ export class DashboardPage implements OnInit {
           this.activity.set(activity);
         },
         error: (error: unknown) =>
-          this.error.set(apiErrorMessage(error, "No pudimos cargar el tablero.")),
+          this.error.set(
+            apiErrorMessage(error, "No pudimos cargar el tablero."),
+          ),
       });
   }
 
   money(value: string | null): string {
     return value === null
       ? "Por definir"
-      : new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(
-          Number(value),
-        );
+      : new Intl.NumberFormat("es-MX", {
+          style: "currency",
+          currency: "MXN",
+        }).format(Number(value));
+  }
+
+  financialWarning(
+    financials: NonNullable<DashboardSummary["financials"]>,
+  ): string {
+    const count = financials.incompleteOrderCount;
+    const order = count === 1 ? "orden terminada" : "órdenes terminadas";
+    const verb = count === 1 ? "contiene" : "contienen";
+    const issue =
+      financials.missingPriceOrderCount > 0 &&
+      financials.missingProductCostOrderCount > 0
+        ? "conceptos sin precio o productos sin costo"
+        : financials.missingPriceOrderCount > 0
+          ? "conceptos sin precio"
+          : "productos sin costo";
+    return `Revisa ${count} ${order}: ${verb} ${issue} y su utilidad todavía no es exacta.`;
   }
 
   number(value: string): string {
-    return new Intl.NumberFormat("es-MX", { maximumFractionDigits: 3 }).format(Number(value));
+    return new Intl.NumberFormat("es-MX", { maximumFractionDigits: 3 }).format(
+      Number(value),
+    );
   }
 
   monthName(value: string): string {
     const [year, month] = value.split("-").map(Number);
-    return new Intl.DateTimeFormat("es-MX", { month: "long", year: "numeric" }).format(
-      new Date(year!, month! - 1, 1),
-    );
+    return new Intl.DateTimeFormat("es-MX", {
+      month: "long",
+      year: "numeric",
+    }).format(new Date(year!, month! - 1, 1));
   }
 
   orderStatusName(status: DashboardOrderStatus): string {
@@ -105,7 +130,11 @@ export class DashboardPage implements OnInit {
   }
 
   recordStatusName(status: DashboardRecordStatus): string {
-    return { draft: "Borrador", confirmed: "Confirmada", cancelled: "Cancelada" }[status];
+    return {
+      draft: "Borrador",
+      confirmed: "Confirmada",
+      cancelled: "Cancelada",
+    }[status];
   }
 
   movementName(type: DashboardMovementType): string {

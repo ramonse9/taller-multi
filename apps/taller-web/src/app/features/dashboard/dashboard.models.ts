@@ -42,6 +42,8 @@ export interface DashboardSummary {
     operatingExpenses: string;
     operatingProfit: string;
     incompleteOrderCount: number;
+    missingPriceOrderCount: number;
+    missingProductCostOrderCount: number;
     isComplete: boolean;
   } | null;
   lowStock: DashboardLowStock | null;

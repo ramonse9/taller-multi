@@ -89,7 +89,7 @@ export class OrdersController {
     @CurrentUser() user: AuthenticatedUser,
     @Body() input: CreateOrderDto,
   ): Promise<OrderResponseDto> {
-    if (input.items.some((item) => item.unitCost !== undefined)) {
+    if (input.items.some((item) => item.unitCost !== undefined && item.unitCost !== null)) {
       this.permissions.assert(user, 'catalog.view_costs');
     }
     return this.secureOrder(user, this.orders.create(user, input));
@@ -104,7 +104,7 @@ export class OrdersController {
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() input: UpdateOrderDto,
   ): Promise<OrderResponseDto> {
-    if (input.items?.some((item) => item.unitCost !== undefined)) {
+    if (input.items?.some((item) => item.unitCost !== undefined && item.unitCost !== null)) {
       this.permissions.assert(user, 'catalog.view_costs');
     }
     return this.secureOrder(user, this.orders.update(user, id, input));

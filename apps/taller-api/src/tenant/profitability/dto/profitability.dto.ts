@@ -16,6 +16,10 @@ export class ProfitabilityQueryDto {
 export class ProfitabilityTotalsResponseDto {
   @ApiProperty() completedOrderCount!: number;
   @ApiProperty() incompleteOrderCount!: number;
+  @ApiProperty({ description: 'Órdenes terminadas que contienen conceptos sin precio' })
+  missingPriceOrderCount!: number;
+  @ApiProperty({ description: 'Órdenes terminadas que contienen productos sin costo conocido' })
+  missingProductCostOrderCount!: number;
   @ApiProperty() paidCompletedOrderCount!: number;
   @ApiProperty() unpaidCompletedOrderCount!: number;
   @ApiProperty({ description: 'Órdenes no canceladas pendientes de pago a la fecha de corte' })
@@ -67,8 +71,8 @@ export class ProfitabilityCustomerRowResponseDto {
 }
 
 export class ProfitabilityServiceTypeRowResponseDto {
-  @ApiProperty({ enum: ['service', 'product', 'free'] })
-  type!: 'service' | 'product' | 'free';
+  @ApiProperty({ enum: ['service', 'product'] })
+  type!: 'service' | 'product';
   @ApiProperty() name!: string;
   @ApiProperty() itemCount!: number;
   @ApiProperty() income!: string;

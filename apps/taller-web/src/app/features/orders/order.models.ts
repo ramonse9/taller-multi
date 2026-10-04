@@ -72,6 +72,8 @@ export interface OrderSummary {
   grossProfit: string | null;
   inventoryAppliedAt: string | null;
   hasUnpricedItems: boolean;
+  hasUnknownProductCosts: boolean;
+  isFinanciallyComplete: boolean;
   isPaid: boolean;
   openedAt: string;
   closedAt: string | null;

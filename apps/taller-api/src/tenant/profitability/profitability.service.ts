@@ -16,6 +16,8 @@ interface TotalsRow {
   occurred_to: string;
   completed_order_count: number;
   incomplete_order_count: number;
+  missing_price_order_count: number;
+  missing_product_cost_order_count: number;
   paid_completed_order_count: number;
   unpaid_completed_order_count: number;
   receivable_order_count: number;
@@ -60,7 +62,7 @@ interface CustomerRow {
 }
 
 interface ServiceTypeRow {
-  type: 'service' | 'product' | 'free';
+  type: 'service' | 'product';
   item_count: number;
   income: string;
   direct_cost: string;
@@ -77,6 +79,7 @@ interface OrderRow {
   direct_cost: string | null;
   fifo_product_cost: string;
   gross_profit: string | null;
+  is_complete: boolean;
   is_paid: boolean;
 }
 
@@ -102,9 +105,28 @@ export class ProfitabilityService {
            SELECT count(service_order.id)::int AS completed_order_count,
              count(*) FILTER (
                WHERE service_order.id IS NOT NULL
-                 AND (service_order.total IS NULL OR service_order.total_cost IS NULL
-                   OR service_order.gross_profit IS NULL)
+                 AND EXISTS (
+                   SELECT 1 FROM ${schema}.order_items item
+                   WHERE item.order_id = service_order.id
+                     AND (item.unit_price IS NULL
+                       OR (item.kind = 'product' AND item.cost_total IS NULL))
+                 )
              )::int AS incomplete_order_count,
+             count(*) FILTER (
+               WHERE service_order.id IS NOT NULL
+                 AND EXISTS (
+                   SELECT 1 FROM ${schema}.order_items item
+                   WHERE item.order_id = service_order.id AND item.unit_price IS NULL
+                 )
+             )::int AS missing_price_order_count,
+             count(*) FILTER (
+               WHERE service_order.id IS NOT NULL
+                 AND EXISTS (
+                   SELECT 1 FROM ${schema}.order_items item
+                   WHERE item.order_id = service_order.id
+                     AND item.kind = 'product' AND item.cost_total IS NULL
+                 )
+             )::int AS missing_product_cost_order_count,
              count(*) FILTER (WHERE service_order.is_paid = true)::int
                AS paid_completed_order_count,
              count(*) FILTER (WHERE service_order.is_paid = false)::int
@@ -159,6 +181,8 @@ export class ProfitabilityService {
          )
          SELECT bounds.from_date::text AS occurred_from, bounds.to_date::text AS occurred_to,
            order_totals.completed_order_count, order_totals.incomplete_order_count,
+           order_totals.missing_price_order_count,
+           order_totals.missing_product_cost_order_count,
            order_totals.paid_completed_order_count, order_totals.unpaid_completed_order_count,
            receivables.receivable_order_count,
            order_totals.income::numeric(14,2)::text AS income,
@@ -209,15 +233,14 @@ export class ProfitabilityService {
       )) as CustomerRow[];
       const serviceTypeRows = (await runner.query(
         `WITH bounds AS (${bounds}), typed AS (
-           SELECT CASE WHEN item.product_service_id IS NULL THEN 'free'
-             WHEN concept.kind = 'service' THEN 'service' ELSE 'product' END AS type,
-             item.total, item.cost_total
+           SELECT item.kind AS type, item.total,
+             CASE WHEN item.kind = 'service' THEN COALESCE(item.cost_total, 0)
+                  ELSE item.cost_total END AS cost_total
            FROM bounds
            JOIN ${schema}.orders service_order
              ON service_order.status = 'completed'
             AND service_order.closed_at::date BETWEEN bounds.from_date AND bounds.to_date
            JOIN ${schema}.order_items item ON item.order_id = service_order.id
-           LEFT JOIN ${schema}.products_services concept ON concept.id = item.product_service_id
          )
          SELECT type, count(*)::int AS item_count,
            COALESCE(sum(total), 0)::numeric(14,2)::text AS income,
@@ -245,7 +268,14 @@ export class ProfitabilityService {
            customer.display_name AS customer_name, service_order.closed_at AS completed_at,
            service_order.total::text AS income, service_order.total_cost::text AS direct_cost,
            COALESCE(fifo.fifo_product_cost, 0)::numeric(14,2)::text AS fifo_product_cost,
-           service_order.gross_profit::text AS gross_profit, service_order.is_paid
+           service_order.gross_profit::text AS gross_profit,
+           NOT EXISTS (
+             SELECT 1 FROM ${schema}.order_items item
+             WHERE item.order_id = service_order.id
+               AND (item.unit_price IS NULL
+                 OR (item.kind = 'product' AND item.cost_total IS NULL))
+           ) AS is_complete,
+           service_order.is_paid
          FROM bounds
          JOIN ${schema}.orders service_order
            ON service_order.status = 'completed'
@@ -262,6 +292,8 @@ export class ProfitabilityService {
         totals: {
           completedOrderCount: totals.completed_order_count,
           incompleteOrderCount: totals.incomplete_order_count,
+          missingPriceOrderCount: totals.missing_price_order_count,
+          missingProductCostOrderCount: totals.missing_product_cost_order_count,
           paidCompletedOrderCount: totals.paid_completed_order_count,
           unpaidCompletedOrderCount: totals.unpaid_completed_order_count,
           receivableOrderCount: totals.receivable_order_count,
@@ -369,7 +401,7 @@ export class ProfitabilityService {
   }
 
   private toServiceType(row: ServiceTypeRow): ProfitabilityServiceTypeRowResponseDto {
-    const names = { service: 'Servicios de catálogo', product: 'Productos', free: 'Conceptos libres' };
+    const names = { service: 'Servicios', product: 'Productos' };
     return {
       type: row.type,
       name: names[row.type],
@@ -391,7 +423,7 @@ export class ProfitabilityService {
       directCost: row.direct_cost,
       fifoProductCost: row.fifo_product_cost,
       grossProfit: row.gross_profit,
-      isComplete: row.income !== null && row.direct_cost !== null && row.gross_profit !== null,
+      isComplete: row.is_complete,
       isPaid: row.is_paid,
     };
   }

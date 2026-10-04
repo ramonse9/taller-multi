@@ -47,6 +47,7 @@ interface OrderRow {
   gross_profit: string | null;
   inventory_applied_at: Date | null;
   has_unpriced_items: boolean;
+  has_unknown_product_costs: boolean;
   is_paid: boolean;
   item_count: string;
   opened_at: Date;
@@ -608,8 +609,10 @@ export class OrdersService {
            ELSE COALESCE(SUM(total), 0)
          END AS total,
          CASE
-           WHEN COUNT(*) FILTER (WHERE cost_total IS NULL) > 0 THEN NULL
-           ELSE COALESCE(SUM(cost_total), 0)
+           WHEN COUNT(*) FILTER (WHERE kind = 'product' AND cost_total IS NULL) > 0 THEN NULL
+           ELSE COALESCE(SUM(
+             CASE WHEN kind = 'service' THEN COALESCE(cost_total, 0) ELSE cost_total END
+           ), 0)
          END AS total_cost
          FROM ${schema}.order_items WHERE order_id = $1
        ) totals
@@ -940,7 +943,8 @@ export class OrdersService {
     return (await runner.query(
       `SELECT id, product_service_id, description, quantity, unit_cost
        FROM ${schema}.order_items
-       WHERE order_id = $1 AND product_service_id IS NOT NULL AND tracks_inventory = true
+       WHERE order_id = $1 AND kind = 'product'
+         AND product_service_id IS NOT NULL AND tracks_inventory = true
        ORDER BY product_service_id, position FOR UPDATE`,
       [orderId],
     )) as InventoryOrderItemRow[];
@@ -958,6 +962,11 @@ export class OrdersService {
         SELECT 1 FROM ${schema}.order_items unpriced
         WHERE unpriced.order_id = service_order.id AND unpriced.unit_price IS NULL
       ) AS has_unpriced_items,
+      EXISTS(
+        SELECT 1 FROM ${schema}.order_items unknown_cost
+        WHERE unknown_cost.order_id = service_order.id
+          AND unknown_cost.kind = 'product' AND unknown_cost.cost_total IS NULL
+      ) AS has_unknown_product_costs,
       (SELECT COUNT(*)::text FROM ${schema}.order_items counted
        WHERE counted.order_id = service_order.id) AS item_count,
       service_order.opened_at, service_order.closed_at,
@@ -995,6 +1004,8 @@ export class OrdersService {
       grossProfit: row.gross_profit,
       inventoryAppliedAt: row.inventory_applied_at,
       hasUnpricedItems: row.has_unpriced_items,
+      hasUnknownProductCosts: row.has_unknown_product_costs,
+      isFinanciallyComplete: !row.has_unpriced_items && !row.has_unknown_product_costs,
       isPaid: row.is_paid,
       openedAt: row.opened_at,
       closedAt: row.closed_at,
