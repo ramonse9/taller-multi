@@ -80,7 +80,13 @@ export class OrderItemInputDto {
   @Max(999999999.999)
   quantity!: number;
 
-  @ApiPropertyOptional({ example: 1200, nullable: true, minimum: 0 })
+  @ApiPropertyOptional({
+    example: 1200,
+    nullable: true,
+    minimum: 0,
+    description:
+      'Precio de venta. Es obligatorio para conceptos libres nuevos; un concepto de catálogo usa su precio vigente cuando se omite. Puede ser cero.',
+  })
   @Transform(nullablePrice)
   @Type(() => Number)
   @IsOptional()
@@ -93,16 +99,11 @@ export class OrderItemInputDto {
     example: 800,
     nullable: true,
     minimum: 0,
-    description:
-      'Costo manual. Es obligatorio para productos libres; en servicios libres vacío equivale a cero.',
+    description: 'Costo manual opcional. null significa desconocido y cero es un costo confirmado.',
   })
   @Transform(nullablePrice)
   @Type(() => Number)
-  @ValidateIf(
-    (input: OrderItemInputDto) =>
-      (!input.productServiceId && input.kind === OrderItemKind.Product) ||
-      (input.unitCost !== undefined && input.unitCost !== null),
-  )
+  @IsOptional()
   @IsNumber({ maxDecimalPlaces: 2, allowInfinity: false, allowNaN: false })
   @Min(0)
   @Max(999999999999.99)

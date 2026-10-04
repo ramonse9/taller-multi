@@ -2048,7 +2048,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       { kind: 'service', unitCost: '50.00' },
       { kind: 'service', unitCost: '20.00' },
     ]);
-    const zeroCostService = await request<OrderResponse>('POST', '/orders', {
+    const unknownCostService = await request<OrderResponse>('POST', '/orders', {
       token: tenant.accessToken,
       body: {
         customerId: customer.body.id,
@@ -2058,17 +2058,56 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         ],
       },
     });
-    expect(zeroCostService.status).toBe(201);
-    expect(zeroCostService.body.items[0]).toMatchObject({
+    expect(unknownCostService.status).toBe(201);
+    expect(unknownCostService.body.items[0]).toMatchObject({
       kind: 'service',
-      unitCost: '0.00',
-      costAmount: '0.00',
+      unitCost: null,
+      costAmount: null,
     });
-    await request<OrderResponse>('POST', `/orders/${zeroCostService.body.id}/status`, {
+    await request<OrderResponse>('POST', `/orders/${unknownCostService.body.id}/status`, {
       token: tenant.accessToken,
       body: { status: 'cancelled' },
     });
-    const productWithoutCost = await request<unknown>('POST', '/orders', {
+    const catalogPriceOverride = await request<OrderResponse>('POST', '/orders', {
+      token: tenant.accessToken,
+      body: {
+        customerId: customer.body.id,
+        vehicleId: vehicle.body.id,
+        items: [{ productServiceId: catalogService.body.id, quantity: 1, unitPrice: 345 }],
+      },
+    });
+    expect(catalogPriceOverride.status).toBe(201);
+    expect(catalogPriceOverride.body.items[0]).toMatchObject({
+      unitPrice: '345.00',
+      amount: '345.00',
+    });
+    const editedCatalogPrice = await request<OrderResponse>(
+      'PATCH',
+      `/orders/${catalogPriceOverride.body.id}`,
+      {
+        token: tenant.accessToken,
+        body: {
+          items: [
+            {
+              itemId: catalogPriceOverride.body.items[0]!.id,
+              productServiceId: catalogService.body.id,
+              quantity: 1,
+              unitPrice: 360,
+            },
+          ],
+        },
+      },
+    );
+    expect(editedCatalogPrice.status).toBe(200);
+    expect(editedCatalogPrice.body.items[0]).toMatchObject({
+      unitPrice: '360.00',
+      amount: '360.00',
+    });
+    await request<OrderResponse>('POST', `/orders/${catalogPriceOverride.body.id}/status`, {
+      token: tenant.accessToken,
+      body: { status: 'cancelled' },
+    });
+    const productWithoutCost = await request<OrderResponse>('POST', '/orders', {
       token: tenant.accessToken,
       body: {
         customerId: customer.body.id,
@@ -2076,7 +2115,28 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         items: [{ kind: 'product', description: 'Producto libre', quantity: 1, unitPrice: 100 }],
       },
     });
-    expect(productWithoutCost.status).toBe(400);
+    expect(productWithoutCost.status).toBe(201);
+    expect(productWithoutCost.body.items[0]).toMatchObject({
+      kind: 'product',
+      unitPrice: '100.00',
+      unitCost: null,
+    });
+    const completedWithoutCost = await request<OrderResponse>(
+      'POST',
+      `/orders/${productWithoutCost.body.id}/status`,
+      { token: tenant.accessToken, body: { status: 'completed' } },
+    );
+    expect(completedWithoutCost.status).toBe(200);
+    expect(completedWithoutCost.body).toMatchObject({
+      status: 'completed',
+      total: '100.00',
+      totalCost: null,
+      grossProfit: null,
+    });
+    await request<OrderResponse>('POST', `/orders/${productWithoutCost.body.id}/status`, {
+      token: tenant.accessToken,
+      body: { status: 'cancelled' },
+    });
     const completed = await request<OrderResponse>('POST', `/orders/${order.body.id}/status`, {
       token: tenant.accessToken,
       body: { status: 'completed' },
@@ -3486,13 +3546,23 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     });
     expect(foreignRelation.status).toBe(422);
 
+    const missingPrice = await request<unknown>('POST', '/orders', {
+      token: tenant.accessToken,
+      body: {
+        customerId: customer.body.id,
+        vehicleId: vehicle.body.id,
+        items: [{ kind: 'service', description: 'Sin precio', quantity: 1 }],
+      },
+    });
+    expect(missingPrice.status).toBe(422);
+
     const created = await request<OrderResponse>('POST', '/orders', {
       token: tenant.accessToken,
       body: {
         customerId: customer.body.id,
         vehicleId: vehicle.body.id,
         items: [
-          { description: 'Diagnóstico general', quantity: 1 },
+          { description: 'Diagnóstico general', quantity: 1, unitPrice: 0 },
           { description: 'Aceite sintético', quantity: 5, unitPrice: 180.5 },
         ],
       },
@@ -3502,11 +3572,11 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       folio: '1',
       status: 'in_progress',
       isPaid: false,
-      hasUnpricedItems: true,
+      hasUnpricedItems: false,
       hasUnknownProductCosts: false,
-      isFinanciallyComplete: false,
-      subtotal: null,
-      total: null,
+      isFinanciallyComplete: true,
+      subtotal: '902.50',
+      total: '902.50',
       customer: { id: customer.body.id, type: 'company' },
       vehicle: { id: vehicle.body.id },
     });
@@ -3516,10 +3586,10 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
           position: 1,
           kind: 'service',
           description: 'Diagnóstico general',
-          unitPrice: null,
-          unitCost: '0.00',
-          costAmount: '0.00',
-          amount: null,
+          unitPrice: '0.00',
+          unitCost: null,
+          costAmount: null,
+          amount: '0.00',
         }),
         expect.objectContaining({
           position: 2,
@@ -3532,15 +3602,6 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(created.body.statusHistory).toEqual([
       expect.objectContaining({ previousStatus: null, newStatus: 'in_progress' }),
     ]);
-    expect(
-      (
-        await request<unknown>('PATCH', `/orders/${created.body.id}/payment-status`, {
-          token: tenant.accessToken,
-          body: { isPaid: true },
-        })
-      ).status,
-    ).toBe(400);
-
     const updated = await request<OrderResponse>('PATCH', `/orders/${created.body.id}`, {
       token: tenant.accessToken,
       body: {
@@ -3624,7 +3685,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       body: {
         customerId: customer.body.id,
         vehicleId: vehicle.body.id,
-        items: [{ description: 'Segunda visita', quantity: 1 }],
+        items: [{ description: 'Segunda visita', quantity: 1, unitPrice: 0 }],
       },
     });
     expect(second.status).toBe(201);
@@ -3653,6 +3714,40 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       [created.body.id],
     );
     expect(stored[0]).toEqual({ tax: '0.00', linked_catalog_items: '0', history_count: '6' });
+
+    const legacyOrders = await control.query<Array<{ id: string }>>(
+      `INSERT INTO ${schema}.orders(
+         customer_id, vehicle_id, status, created_by_user_id, updated_by_user_id
+       ) VALUES ($1, $2, 'in_progress', $3, $3) RETURNING id`,
+      [customer.body.id, vehicle.body.id, tenant.user.id],
+    );
+    const legacyItems = await control.query<Array<{ id: string }>>(
+      `INSERT INTO ${schema}.order_items(
+         order_id, kind, description, quantity, unit_price, total,
+         unit_name, unit_symbol, unit_cost, cost_total, tracks_inventory, position
+       ) VALUES ($1, 'service', 'Concepto histórico sin precio', 1, NULL, NULL,
+                 'Servicio', 'serv', NULL, NULL, false, 1) RETURNING id`,
+      [legacyOrders[0]!.id],
+    );
+    const legacyUpdated = await request<OrderResponse>('PATCH', `/orders/${legacyOrders[0]!.id}`, {
+      token: tenant.accessToken,
+      body: {
+        items: [
+          {
+            itemId: legacyItems[0]!.id,
+            kind: 'service',
+            description: 'Concepto histórico conservado',
+            quantity: 1,
+          },
+        ],
+      },
+    });
+    expect(legacyUpdated.status).toBe(200);
+    expect(legacyUpdated.body.items[0]).toMatchObject({
+      description: 'Concepto histórico conservado',
+      unitPrice: null,
+      unitCost: null,
+    });
 
     const manualCosts = await request<OrderResponse>('POST', '/orders', {
       token: tenant.accessToken,

@@ -221,6 +221,7 @@ export class OrdersService {
     return this.tenant.run(user, async (runner, schemaName) => {
       const schema = quoteIdentifier(schemaName);
       await this.validateCustomerVehicle(runner, schema, input.customerId, input.vehicleId);
+      this.assertNewFreeItemPrices(input.items);
       const rows = (await runner.query(
         `INSERT INTO ${schema}.orders(
            customer_id, vehicle_id, status, subtotal, tax, total,
@@ -269,6 +270,7 @@ export class OrdersService {
         );
       }
       if (input.items !== undefined) {
+        this.assertNewFreeItemPrices(input.items);
         await this.replaceItems(runner, schema, id, input.items, user);
         await this.recalculate(runner, schema, id, user.id);
       }
@@ -519,7 +521,12 @@ export class OrdersService {
         description = existing.description;
         unitName = existing.unit_name;
         unitSymbol = existing.unit_symbol;
-        unitPrice = existing.unit_price === null ? null : Number(existing.unit_price);
+        unitPrice =
+          item.unitPrice === undefined || item.unitPrice === null
+            ? existing.unit_price === null
+              ? null
+              : Number(existing.unit_price)
+            : item.unitPrice;
         unitCost = existing.unit_cost === null ? null : Number(existing.unit_cost);
         tracksInventory = existing.tracks_inventory;
       } else if (item.productServiceId) {
@@ -539,7 +546,7 @@ export class OrdersService {
         description = concept.name;
         unitName = concept.unit_name;
         unitSymbol = concept.unit_symbol;
-        unitPrice = Number(concept.unit_price);
+        unitPrice = item.unitPrice ?? Number(concept.unit_price);
         unitCost = Number(concept.cost);
         tracksInventory = concept.tracks_inventory;
       } else {
@@ -547,7 +554,7 @@ export class OrdersService {
           throw new UnprocessableEntityException('El plan actual no permite conceptos libres');
         }
         kind = item.kind ?? existing?.kind ?? OrderItemKind.Service;
-        if (existing && item.unitPrice === undefined) {
+        if (existing && (item.unitPrice === undefined || item.unitPrice === null)) {
           unitPrice = existing.unit_price === null ? null : Number(existing.unit_price);
         }
         if (existing && item.unitCost === undefined) {
@@ -555,12 +562,11 @@ export class OrdersService {
         }
         unitName = kind === OrderItemKind.Service ? 'Servicio' : 'Unidad';
         unitSymbol = kind === OrderItemKind.Service ? 'serv' : 'u';
-        if (kind === OrderItemKind.Product && unitCost === null) {
-          throw new UnprocessableEntityException(
-            `El producto libre ${description} necesita un costo unitario`,
-          );
-        }
-        if (kind === OrderItemKind.Service && unitCost === null) unitCost = 0;
+      }
+      if (unitPrice === null && !existing) {
+        throw new UnprocessableEntityException(
+          `El concepto ${description || index + 1} necesita un precio unitario`,
+        );
       }
       const amount = unitPrice === null ? null : this.amount(item.quantity, unitPrice);
       const costAmount = unitCost === null ? null : this.amount(item.quantity, unitCost);
@@ -669,6 +675,20 @@ export class OrdersService {
   private assertEditable(status: OrderStatus): void {
     if (status === OrderStatus.Completed || status === OrderStatus.Cancelled) {
       throw new BadRequestException('La orden ya no permite modificar sus datos o conceptos');
+    }
+  }
+
+  private assertNewFreeItemPrices(items: OrderItemInputDto[]): void {
+    const missing = items.find(
+      (item) =>
+        !item.itemId &&
+        !item.productServiceId &&
+        (item.unitPrice === undefined || item.unitPrice === null),
+    );
+    if (missing) {
+      throw new UnprocessableEntityException(
+        `El concepto ${missing.description || 'nuevo'} necesita un precio unitario`,
+      );
     }
   }
 
