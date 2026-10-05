@@ -16,7 +16,7 @@
     @if (notice()) { <div class="mb-4 bg-[#cfe9da] px-4 py-3 text-sm text-[#245b3b] dark:bg-[#294e42] dark:text-[#c9f0df]" role="status">✓ {{ notice() }}</div> }
     @if (error()) { <div class="mb-4 bg-[#ffdcd2] px-4 py-3 text-sm text-[#8e3214] dark:bg-[#633d3d] dark:text-[#ffd9d4]" role="alert">{{ error() }}</div> }
 
-    <div class="grid items-start gap-5 min-[1050px]:grid-cols-[minmax(20rem,0.8fr)_minmax(24rem,1.2fr)]">
+    <div class="grid items-start gap-5 min-[1050px]:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
       <section class="catalog-panel-tw">
         <header class="catalog-heading">
           <div class="flex items-center gap-3"><span class="section-number">01</span><div><h2 class="section-title">Marcas</h2><p class="section-copy">{{ brands().totalItems }} resultados</p></div></div>
