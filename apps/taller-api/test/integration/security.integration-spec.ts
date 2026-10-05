@@ -32,6 +32,7 @@ import { ExpenseModel1700000021000 } from '../../src/database/migrations/public/
 import { TenantAdminRole1700000022000 } from '../../src/database/migrations/public/1700000022000-tenant-admin-role';
 import { UserPermissions1700000023000 } from '../../src/database/migrations/public/1700000023000-user-permissions';
 import { SensitiveActionPermissions1700000024000 } from '../../src/database/migrations/public/1700000024000-sensitive-action-permissions';
+import { AdministrativePasswordResets1700000027000 } from '../../src/database/migrations/public/1700000027000-administrative-password-resets';
 import { quoteIdentifier } from '../../src/database/schema-name';
 import { seedPublicCatalogs } from '../../src/database/seeds/public-catalogs.seed';
 
@@ -562,6 +563,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         TenantAdminRole1700000022000,
         UserPermissions1700000023000,
         SensitiveActionPermissions1700000024000,
+        AdministrativePasswordResets1700000027000,
       ],
       migrationsTableName: 'public_schema_migrations',
       synchronize: false,
@@ -914,6 +916,139 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         })
       ).status,
     ).toBe(403);
+  });
+
+  it('restablece contraseñas temporales con jerarquía, revocación y bitácora', async () => {
+    const tenant = await provisionAndLogin(
+      'Password Reset Integration',
+      'password.reset@test.local',
+    );
+    await request<unknown>('PATCH', `/subscriptions/companies/${tenant.company.id}`, {
+      token: platformToken,
+      body: { planCode: 'control', status: 'active', reason: 'Prueba de restablecimiento' },
+    });
+
+    const manager = await request<UserResponse>('POST', '/users', {
+      token: tenant.accessToken,
+      body: {
+        fullName: 'Administrador para restablecimiento',
+        username: 'admin_reset',
+        phone: '+526671110020',
+        password: USER_PASSWORD,
+        timezoneCode: 'America/Mazatlan',
+        role: 'admin',
+      },
+    });
+    expect(manager.status).toBe(201);
+    const managerTemporary = await login(`admin_reset@${tenant.company.loginCode}`, USER_PASSWORD);
+    await request<unknown>('PATCH', '/users/me/password', {
+      token: managerTemporary.body.accessToken,
+      body: { currentPassword: USER_PASSWORD, newPassword: PERMANENT_PASSWORD },
+    });
+    const managerSession = await login(
+      `admin_reset@${tenant.company.loginCode}`,
+      PERMANENT_PASSWORD,
+    );
+
+    const operator = await request<UserResponse>('POST', '/users', {
+      token: managerSession.body.accessToken,
+      body: {
+        fullName: 'Usuario para restablecimiento',
+        username: 'user_reset',
+        phone: '+526671110021',
+        password: USER_PASSWORD,
+        timezoneCode: 'America/Mazatlan',
+        role: 'user',
+      },
+    });
+    expect(operator.status).toBe(201);
+    const operatorSession = await login(`user_reset@${tenant.company.loginCode}`, USER_PASSWORD);
+
+    const managerReset = await request<unknown>('PATCH', `/users/${manager.body.id}/password`, {
+      token: tenant.accessToken,
+      body: { password: 'Admin28c' },
+    });
+    expect(managerReset.status).toBe(204);
+    expect(
+      (await request<unknown>('GET', '/auth/me', { token: managerSession.body.accessToken }))
+        .status,
+    ).toBe(401);
+    const resetManagerLogin = await login(`admin_reset@${tenant.company.loginCode}`, 'Admin28c');
+    expect(resetManagerLogin.status).toBe(200);
+    expect(resetManagerLogin.body.user.mustChangePassword).toBe(true);
+    await request<unknown>('PATCH', '/users/me/password', {
+      token: resetManagerLogin.body.accessToken,
+      body: { currentPassword: 'Admin28c', newPassword: 'Admin30e' },
+    });
+    const activeManager = await login(`admin_reset@${tenant.company.loginCode}`, 'Admin30e');
+
+    const operatorReset = await request<unknown>('PATCH', `/users/${operator.body.id}/password`, {
+      token: activeManager.body.accessToken,
+      body: { password: 'User29d' },
+    });
+    expect(operatorReset.status).toBe(204);
+    expect(
+      (await request<unknown>('GET', '/auth/me', { token: operatorSession.body.accessToken }))
+        .status,
+    ).toBe(401);
+    expect(
+      (
+        await request<unknown>('PATCH', `/users/${tenant.user.id}/password`, {
+          token: activeManager.body.accessToken,
+          body: { password: 'Blocked1' },
+        })
+      ).status,
+    ).toBe(403);
+
+    const primaryReset = await request<unknown>(
+      'PATCH',
+      `/companies/${tenant.company.id}/admin/password`,
+      { token: platformToken, body: { password: 'Primary3' } },
+    );
+    expect(primaryReset.status).toBe(204);
+    expect((await request<unknown>('GET', '/auth/me', { token: tenant.accessToken })).status).toBe(
+      401,
+    );
+    const primaryLogin = await login(tenant.company.admin.loginName, 'Primary3');
+    expect(primaryLogin.status).toBe(200);
+    expect(primaryLogin.body.user.mustChangePassword).toBe(true);
+
+    const audit = await control.query<
+      Array<{
+        target_user_id: string;
+        reset_by_role: string;
+        target_role: string;
+        source: string;
+      }>
+    >(
+      `SELECT target_user_id, reset_by_role, target_role, source
+       FROM public.password_reset_events
+       WHERE company_id = $1
+       ORDER BY created_at, id`,
+      [tenant.company.id],
+    );
+    expect(audit).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          target_user_id: manager.body.id,
+          reset_by_role: 'company_admin',
+          target_role: 'admin',
+          source: 'tenant_admin',
+        }),
+        expect.objectContaining({
+          target_user_id: operator.body.id,
+          reset_by_role: 'admin',
+          target_role: 'user',
+          source: 'tenant_admin',
+        }),
+        expect.objectContaining({
+          target_user_id: tenant.user.id,
+          reset_by_role: 'platform_admin',
+          target_role: 'company_admin',
+          source: 'platform_admin',
+        }),
+      ]),
+    );
   });
 
   it('conserva permisos por usuario, plantillas y acceso automático del Administrador principal', async () => {

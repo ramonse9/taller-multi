@@ -23,6 +23,7 @@ import { PlatformRole } from './entities/platform-user.entity';
 import { tenantLoginName } from '../database/login-name';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { PermissionsService } from '../permissions/permissions.service';
+import { PasswordResetService } from './password-reset.service';
 
 interface UserRow {
   id: string;
@@ -51,6 +52,7 @@ export class UsersService {
     private readonly dataSource: DataSource,
     @Optional() private readonly subscriptions?: SubscriptionsService,
     @Optional() private readonly permissions?: PermissionsService,
+    private readonly passwordResets?: PasswordResetService,
   ) {}
 
   async list(user: AuthenticatedUser, query: UserQueryDto): Promise<PaginatedUsersResponseDto> {
@@ -265,20 +267,8 @@ export class UsersService {
   }
 
   async resetPassword(user: AuthenticatedUser, id: string, input: ResetPasswordDto): Promise<void> {
-    const companyId = this.companyIdForManager(user);
-    if (id === user.id) {
-      throw new BadRequestException('Usa el cambio de contraseña personal para tu cuenta');
-    }
-    const target = await this.getOne(user, id);
-    this.assertCanManageTarget(user, target);
-    const passwordHash = await argon2.hash(input.password, { type: argon2.argon2id });
-    await this.dataSource.query(
-      `UPDATE public.users
-       SET password_hash = $1, failed_login_attempts = 0, locked_until = NULL,
-           must_change_password = true, updated_at = NOW()
-       WHERE id = $2 AND company_id = $3`,
-      [passwordHash, id, companyId],
-    );
+    if (!this.passwordResets) throw new Error('PasswordResetService no disponible');
+    await this.passwordResets.resetForTenant(user, id, input.password);
   }
 
   private companyIdForManager(user: AuthenticatedUser): string {

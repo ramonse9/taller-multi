@@ -77,7 +77,9 @@ describe('CompaniesService', () => {
     } as unknown as DataSource;
     const migrateBase = jest.fn().mockResolvedValue(undefined);
     const tenantMigrator = { migrateBase } as unknown as TenantMigrator;
-    const service = new CompaniesService(dataSource, tenantMigrator);
+    const service = new CompaniesService(dataSource, tenantMigrator, {
+      resetPrimaryCompanyAdmin: jest.fn(),
+    } as never);
 
     const result = await service.create({
       name: 'Taller Norte',

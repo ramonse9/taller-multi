@@ -10,6 +10,9 @@ import { buildTenantSchemaName, quoteIdentifier } from '../database/schema-name'
 import { tenantLoginName } from '../database/login-name';
 import { UserResponseDto } from '../platform-users/dto/user.dto';
 import { PlatformRole } from '../platform-users/entities/platform-user.entity';
+import { ResetPasswordDto } from '../platform-users/dto/user.dto';
+import { PasswordResetService } from '../platform-users/password-reset.service';
+import { AuthenticatedUser } from '../common/types/authenticated-user';
 import { CreateCompanyDto, CompanyResponseDto } from './dto/create-company.dto';
 import { Company } from './entities/company.entity';
 
@@ -18,7 +21,16 @@ export class CompaniesService {
   constructor(
     private readonly dataSource: DataSource,
     private readonly tenantMigrator: TenantMigrator,
+    private readonly passwordResets: PasswordResetService,
   ) {}
+
+  async resetPrimaryAdminPassword(
+    user: AuthenticatedUser,
+    companyId: string,
+    input: ResetPasswordDto,
+  ): Promise<void> {
+    await this.passwordResets.resetPrimaryCompanyAdmin(user, companyId, input.password);
+  }
 
   async create(input: CreateCompanyDto): Promise<CompanyResponseDto> {
     const passwordHash = await argon2.hash(input.admin.password, {
@@ -186,8 +198,8 @@ export class CompaniesService {
     if (
       !result[0]?.company_type_exists ||
       !result[0]?.person_type_exists ||
-      !result[0]?.timezone_exists
-      || !result[0]?.plan_exists
+      !result[0]?.timezone_exists ||
+      !result[0]?.plan_exists
     ) {
       throw new UnprocessableEntityException('Tipo de compañía, persona o zona horaria inválido');
     }
