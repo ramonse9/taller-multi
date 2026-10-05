@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as argon2 from 'argon2';
 import { AddressInfo } from 'node:net';
 import { DataSource } from 'typeorm';
@@ -33,6 +34,7 @@ import { TenantAdminRole1700000022000 } from '../../src/database/migrations/publ
 import { UserPermissions1700000023000 } from '../../src/database/migrations/public/1700000023000-user-permissions';
 import { SensitiveActionPermissions1700000024000 } from '../../src/database/migrations/public/1700000024000-sensitive-action-permissions';
 import { AdministrativePasswordResets1700000027000 } from '../../src/database/migrations/public/1700000027000-administrative-password-resets';
+import { RetireMobilePasswordRecovery1700000028000 } from '../../src/database/migrations/public/1700000028000-retire-mobile-password-recovery';
 import { quoteIdentifier } from '../../src/database/schema-name';
 import { seedPublicCatalogs } from '../../src/database/seeds/public-catalogs.seed';
 
@@ -118,16 +120,6 @@ interface PoolStats {
   totalCount: number;
   idleCount: number;
   waitingCount: number;
-}
-
-interface RecoveryRequestResponse {
-  accepted: boolean;
-  developmentCode?: string;
-}
-
-interface RecoveryVerifyResponse {
-  resetToken: string;
-  expiresInSeconds: number;
 }
 
 interface VehicleBrandResponse {
@@ -564,6 +556,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         UserPermissions1700000023000,
         SensitiveActionPermissions1700000024000,
         AdministrativePasswordResets1700000027000,
+        RetireMobilePasswordRecovery1700000028000,
       ],
       migrationsTableName: 'public_schema_migrations',
       synchronize: false,
@@ -621,6 +614,26 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       await resetPublicSchema(control);
       await control.destroy();
     }
+  });
+
+  it('retira la recuperación OTP y su almacenamiento', async () => {
+    const challengeTable = await control.query<Array<{ table_name: string | null }>>(
+      "SELECT to_regclass('public.password_recovery_challenges')::text AS table_name",
+    );
+    expect(challengeTable[0]?.table_name).toBeNull();
+
+    for (const path of [
+      '/auth/password-recovery/request',
+      '/auth/password-recovery/verify',
+      '/auth/password-recovery/complete',
+    ]) {
+      expect((await request<unknown>('POST', path, { body: {} })).status).toBe(404);
+    }
+
+    const swagger = SwaggerModule.createDocument(app, new DocumentBuilder().build());
+    expect(Object.keys(swagger.paths).some((path) => path.includes('password-recovery'))).toBe(
+      false,
+    );
   });
 
   it('revierte compañía, schema y versión si falla el aprovisionamiento', async () => {
@@ -964,6 +977,16 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(operator.status).toBe(201);
     const operatorSession = await login(`user_reset@${tenant.company.loginCode}`, USER_PASSWORD);
 
+    await control.query(
+      `UPDATE public.users
+       SET failed_login_attempts = 5, locked_until = NOW() + interval '15 minutes'
+       WHERE id = $1`,
+      [manager.body.id],
+    );
+    expect(
+      (await login(`admin_reset@${tenant.company.loginCode}`, PERMANENT_PASSWORD)).status,
+    ).toBe(401);
+
     const managerReset = await request<unknown>('PATCH', `/users/${manager.body.id}/password`, {
       token: tenant.accessToken,
       body: { password: 'Admin28c' },
@@ -973,6 +996,23 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       (await request<unknown>('GET', '/auth/me', { token: managerSession.body.accessToken }))
         .status,
     ).toBe(401);
+    const managerSecurity = await control.query<
+      Array<{ failed_login_attempts: number; locked_until: Date | null; active_sessions: number }>
+    >(
+      `SELECT user_account.failed_login_attempts, user_account.locked_until,
+              count(session.id)::int AS active_sessions
+       FROM public.users user_account
+       LEFT JOIN public.auth_sessions session
+         ON session.user_id = user_account.id AND session.revoked_at IS NULL
+       WHERE user_account.id = $1
+       GROUP BY user_account.id`,
+      [manager.body.id],
+    );
+    expect(managerSecurity[0]).toMatchObject({
+      failed_login_attempts: 0,
+      locked_until: null,
+      active_sessions: 0,
+    });
     const resetManagerLogin = await login(`admin_reset@${tenant.company.loginCode}`, 'Admin28c');
     expect(resetManagerLogin.status).toBe(200);
     expect(resetManagerLogin.body.user.mustChangePassword).toBe(true);
@@ -1000,6 +1040,21 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       ).status,
     ).toBe(403);
 
+    const primaryAdministrators = await control.query<Array<{ total: number }>>(
+      `SELECT count(*)::int AS total
+       FROM public.users
+       WHERE company_id = $1 AND role = 'company_admin' AND is_active = TRUE`,
+      [tenant.company.id],
+    );
+    expect(primaryAdministrators[0]?.total).toBe(1);
+    await control.query(
+      `UPDATE public.users
+       SET failed_login_attempts = 5, locked_until = NOW() + interval '15 minutes'
+       WHERE id = $1`,
+      [tenant.user.id],
+    );
+    expect((await login(tenant.company.admin.loginName, PERMANENT_PASSWORD)).status).toBe(401);
+
     const primaryReset = await request<unknown>(
       'PATCH',
       `/companies/${tenant.company.id}/admin/password`,
@@ -1012,6 +1067,23 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     const primaryLogin = await login(tenant.company.admin.loginName, 'Primary3');
     expect(primaryLogin.status).toBe(200);
     expect(primaryLogin.body.user.mustChangePassword).toBe(true);
+    const primarySecurity = await control.query<
+      Array<{ failed_login_attempts: number; locked_until: Date | null; active_sessions: number }>
+    >(
+      `SELECT user_account.failed_login_attempts, user_account.locked_until,
+              count(session.id)::int AS active_sessions
+       FROM public.users user_account
+       LEFT JOIN public.auth_sessions session
+         ON session.user_id = user_account.id AND session.revoked_at IS NULL
+       WHERE user_account.id = $1
+       GROUP BY user_account.id`,
+      [tenant.user.id],
+    );
+    expect(primarySecurity[0]).toMatchObject({
+      failed_login_attempts: 0,
+      locked_until: null,
+      active_sessions: 1,
+    });
 
     const companies = await request<CompanyResponse[]>('GET', '/companies', {
       token: platformToken,
@@ -1508,113 +1580,6 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       displayName: 'Cliente del flujo completo',
       updatedByUserId: createdUser.body.id,
     });
-  });
-
-  it('recupera la contraseña por OTP móvil y verifica el teléfono', async () => {
-    const tenant = await provisionAndLogin('Recovery Integration', 'recovery.admin@test.local');
-    const createdUser = await request<UserResponse>('POST', '/users', {
-      token: tenant.accessToken,
-      body: {
-        fullName: 'Usuario Recuperación',
-        username: 'movil',
-        phone: '+526671112244',
-        password: USER_PASSWORD,
-        timezoneCode: 'America/Mazatlan',
-        role: 'user',
-      },
-    });
-    expect(createdUser.status).toBe(201);
-    const identifier = `movil@${tenant.company.loginCode}`;
-    const previousSession = await login(identifier, USER_PASSWORD);
-    expect(previousSession.status).toBe(200);
-
-    const requested = await request<RecoveryRequestResponse>(
-      'POST',
-      '/auth/password-recovery/request',
-      { body: { identifier, channel: 'sms' } },
-    );
-    expect(requested.status).toBe(202);
-    expect(requested.body.developmentCode).toMatch(/^\d{6}$/);
-
-    const earlyResend = await request<unknown>('POST', '/auth/password-recovery/request', {
-      body: { identifier, channel: 'whatsapp' },
-    });
-    expect(earlyResend.status).toBe(429);
-
-    await control.query(
-      `UPDATE public.password_recovery_challenges
-       SET last_sent_at = NOW() - interval '61 seconds'
-       WHERE user_id = $1`,
-      [createdUser.body.id],
-    );
-    const secondSend = await request<RecoveryRequestResponse>(
-      'POST',
-      '/auth/password-recovery/request',
-      { body: { identifier, channel: 'whatsapp' } },
-    );
-    expect(secondSend.status).toBe(202);
-    await control.query(
-      `UPDATE public.password_recovery_challenges
-       SET last_sent_at = NOW() - interval '61 seconds'
-       WHERE user_id = $1`,
-      [createdUser.body.id],
-    );
-    const thirdSend = await request<RecoveryRequestResponse>(
-      'POST',
-      '/auth/password-recovery/request',
-      { body: { identifier, channel: 'sms' } },
-    );
-    expect(thirdSend.status).toBe(202);
-    await control.query(
-      `UPDATE public.password_recovery_challenges
-       SET last_sent_at = NOW() - interval '61 seconds'
-       WHERE user_id = $1`,
-      [createdUser.body.id],
-    );
-    expect(
-      (
-        await request<unknown>('POST', '/auth/password-recovery/request', {
-          body: { identifier, channel: 'sms' },
-        })
-      ).status,
-    ).toBe(429);
-
-    const invalid = await request<unknown>('POST', '/auth/password-recovery/verify', {
-      body: {
-        identifier,
-        code: thirdSend.body.developmentCode === '000000' ? '000001' : '000000',
-      },
-    });
-    expect(invalid.status).toBe(400);
-
-    const verified = await request<RecoveryVerifyResponse>(
-      'POST',
-      '/auth/password-recovery/verify',
-      { body: { identifier, code: thirdSend.body.developmentCode } },
-    );
-    expect(verified.status).toBe(200);
-    expect(verified.body.resetToken).toBeTruthy();
-    expect(verified.body.expiresInSeconds).toBe(600);
-
-    const completed = await request<unknown>('POST', '/auth/password-recovery/complete', {
-      body: { resetToken: verified.body.resetToken, password: 'Nueva28c' },
-    });
-    expect(completed.status).toBe(204);
-    expect(
-      (
-        await request<unknown>('GET', '/auth/me', {
-          token: previousSession.body.accessToken,
-        })
-      ).status,
-    ).toBe(401);
-    expect((await login(identifier, USER_PASSWORD)).status).toBe(401);
-    expect((await login(identifier, 'Nueva28c')).status).toBe(200);
-
-    const rows = await control.query<Array<{ phone_verified_at: Date | null }>>(
-      'SELECT phone_verified_at FROM public.users WHERE id = $1',
-      [createdUser.body.id],
-    );
-    expect(rows[0]?.phone_verified_at).toBeTruthy();
   });
 
   it('administra unidades, productos y servicios aislados por compañía y plan', async () => {

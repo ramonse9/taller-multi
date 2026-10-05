@@ -8,8 +8,6 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './jwt.strategy';
 import { JwtAuthGuard, RolesGuard } from './roles';
-import { MobileMessagingService } from './mobile-messaging.service';
-import { PasswordRecoveryService } from './password-recovery.service';
 
 @Module({
   imports: [
@@ -18,14 +16,7 @@ import { PasswordRecoveryService } from './password-recovery.service';
     TypeOrmModule.forFeature([PlatformUser, Company]),
   ],
   controllers: [AuthController],
-  providers: [
-    AuthService,
-    PasswordRecoveryService,
-    MobileMessagingService,
-    JwtStrategy,
-    JwtAuthGuard,
-    RolesGuard,
-  ],
+  providers: [AuthService, JwtStrategy, JwtAuthGuard, RolesGuard],
   exports: [JwtModule, JwtAuthGuard, RolesGuard],
 })
 export class AuthModule {}

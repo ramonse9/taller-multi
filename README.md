@@ -39,7 +39,7 @@ Los schemas tenant se asignan automáticamente con el formato `_<consecutivo>_<t
 
 Los usuarios de compañía no necesitan correo: ingresan con un identificador como `yovany@melkars`. El código después de `@` se elige durante el alta de la compañía. El celular es obligatorio para usuarios nuevos, el correo permanece opcional y las sesiones se renuevan con actividad hasta un máximo de 14 días sin uso.
 
-La contraseña también puede recuperarse por SMS o WhatsApp usando un código de seis dígitos. El flujo verifica el teléfono registrado, limita intentos y reenvíos y permite conectar Twilio mediante variables de entorno; durante desarrollo utiliza un proveedor local.
+Si un usuario olvida su contraseña, debe solicitar una contraseña temporal a su administrador. El restablecimiento revoca sus sesiones, elimina bloqueos por intentos fallidos y obliga a crear una contraseña definitiva al iniciar sesión.
 
 El catálogo global de marcas y modelos comienza vacío y se llena conforme se registran vehículos. Evita duplicados por mayúsculas, conserva auditoría y permite desactivar elementos sin borrar el historial.
 

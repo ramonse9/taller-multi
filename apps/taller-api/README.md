@@ -29,7 +29,7 @@ En una sola transacción registra la compañía, crea y migra su schema, registr
 Los administradores tenant disponen de:
 
 - `GET /api/users` y `GET /api/users/:id`: listado paginado y detalle, siempre limitados a su compañía.
-- `POST /api/users`: creación con rol `user` o `company_admin`.
+- `POST /api/users`: creación con rol `admin` o `user`, según la jerarquía del administrador autenticado.
 - `PATCH /api/users/:id`: usuario, nombre, celular, correo opcional, zona horaria, rol y activación.
 - `DELETE /api/users/:id`: baja lógica para conservar referencias de auditoría.
 - `PATCH /api/users/:id/password`: restablecimiento de contraseña por otro administrador.
@@ -37,11 +37,9 @@ Los administradores tenant disponen de:
 
 El código público de compañía se captura durante el onboarding, debe ser único y forma el acceso `usuario@codigo`, por ejemplo `yovany@melkars`. El correo ya no es obligatorio. Los usuarios existentes conservan su correo como acceso compatible y recibieron un `username` durante la migración. El celular es obligatorio para usuarios nuevos y usa formato internacional E.164, por ejemplo `+526671234567`; los registros antiguos sin celular deben completarlo cuando se editen.
 
-La recuperación móvil está disponible en `POST /api/auth/password-recovery/request`, `verify` y `complete`. El usuario elige SMS o WhatsApp, recibe un OTP de seis dígitos válido durante 10 minutos y, al comprobarlo, el teléfono queda verificado. El token posterior para definir la contraseña también dura 10 minutos, sólo puede usarse una vez y revoca las sesiones anteriores.
+La recuperación por OTP, SMS y WhatsApp fue retirada. Si un usuario pierde su contraseña, un administrador le asigna una contraseña temporal mediante `PATCH /api/users/:id/password`: `company_admin` puede restablecer a `admin` y `user`, mientras que `admin` solamente puede restablecer a `user`. La operación reinicia bloqueos e intentos fallidos, revoca todas las sesiones abiertas, activa `must_change_password` y registra una bitácora.
 
-El servidor permite cinco intentos por OTP, exige 60 segundos antes de reenviar y limita cada usuario a tres envíos por hora. Los códigos se guardan como HMAC, nunca como texto legible, y las respuestas de solicitud no confirman si el usuario o el teléfono existen.
-
-Para desarrollo, `MOBILE_PROVIDER=console` muestra el código en el log y en la pantalla local. Este modo se rechaza automáticamente en producción. Para envíos reales configura `MOBILE_PROVIDER=twilio`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` y el remitente `TWILIO_SMS_FROM` o `TWILIO_WHATSAPP_FROM`. `OTP_SECRET` debe ser un secreto distinto del JWT; si se omite se usa `JWT_SECRET` como respaldo.
+Cuando el único Administrador principal (`company_admin`) pierde su contraseña, el Administrador de plataforma puede restablecerla mediante `PATCH /api/companies/:companyId/admin/password`. Esta acción conserva la información y la jerarquía de la compañía; el Administrador principal deberá definir su contraseña definitiva en el siguiente inicio de sesión.
 
 La API impide que un administrador se desactive o pierda su propio rol y garantiza que cada compañía conserve al menos un administrador activo. Las contraseñas nunca forman parte de una respuesta y se almacenan con Argon2id. Las contraseñas tenant, temporales o definitivas, deben tener entre 6 y 10 caracteres e incluir al menos una letra y un número. Al iniciar sesión con una contraseña temporal, la sesión sólo permite consultar la identidad y establecer una nueva contraseña válida.
 
@@ -86,7 +84,7 @@ La suite de integración levanta NestJS y usa PostgreSQL real. Crea una base ded
 npm run test:integration
 ```
 
-Como protección, la suite rechaza cualquier base cuyo nombre no termine en `_test`. Cada ejecución elimina y reconstruye `public` y los schemas tenant de esa base, aplica la migración y los seeds, y vuelve a dejarla vacía al finalizar. Verifica rollback del aprovisionamiento, schemas duplicados, aislamiento entre tenants, reutilización de conexiones, desactivación de usuarios y compañías, el flujo compañía → usuario → login → clientes y la recuperación móvil con límites de reenvío, verificación OTP y cambio de contraseña.
+Como protección, la suite rechaza cualquier base cuyo nombre no termine en `_test`. Cada ejecución elimina y reconstruye `public` y los schemas tenant de esa base, aplica la migración y los seeds, y vuelve a dejarla vacía al finalizar. Verifica rollback del aprovisionamiento, schemas duplicados, aislamiento entre tenants, reutilización de conexiones, desactivación de usuarios y compañías, el flujo compañía → usuario → login → clientes, la ausencia del flujo OTP y el restablecimiento administrativo con jerarquía, desbloqueo y revocación de sesiones.
 
 ## Seguridad operativa
 
