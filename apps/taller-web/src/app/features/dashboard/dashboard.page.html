@@ -1,13 +1,13 @@
 <main
-  class="min-h-screen bg-[#fbfaf7] text-[#17251e] transition-colors dark:bg-[#111d2e] dark:text-[#edf4fb]"
+  class="min-h-screen overflow-x-hidden bg-[#fbfaf7] text-[#17251e] transition-colors dark:bg-[#111d2e] dark:text-[#edf4fb]"
 >
   <header
-    class="flex flex-wrap items-end justify-between gap-5 border-b border-[#d5dce3] px-[clamp(1.25rem,4vw,4rem)] py-8 dark:border-[#38516d]"
+    class="flex flex-wrap items-end justify-between gap-5 border-b border-[#d5dce3] px-[clamp(1.25rem,4vw,4rem)] py-8 max-sm:items-start max-sm:py-6 dark:border-[#38516d]"
   >
     <div>
       <p class="eyebrow">RESUMEN OPERATIVO</p>
       <h1
-        class="m-0 font-[var(--display)] text-[clamp(2.5rem,5vw,4.5rem)] font-semibold leading-[.9] tracking-[-.05em]"
+        class="m-0 font-[var(--display)] text-[clamp(2.15rem,10vw,4.5rem)] font-semibold leading-[.9] tracking-[-.05em]"
       >
         Tablero del taller
       </h1>
@@ -21,14 +21,14 @@
       </p>
       }
     </div>
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-2 max-sm:w-full max-sm:justify-between">
       <button class="theme-toggle" type="button" (click)="theme.toggle()">
         {{ theme.isDark() ? '☀' : '◐' }}
       </button>
       @if (auth.hasPermission('orders.create') &&
       auth.hasPermission('clients.view') && auth.hasPermission('vehicles.view')
       && auth.hasPermission('vehicle_catalog.view')) {
-      <a class="primary no-underline" routerLink="/orders/new"
+      <a class="primary no-underline max-sm:px-3" routerLink="/orders/new"
         >＋ Nueva orden</a
       >
       }
@@ -114,7 +114,8 @@
           class="detail-label !text-[0.7rem] !text-[#366d96] dark:!text-[#9ec9e8]"
           >GENERADO EN EL MES</span
         >
-        <strong class="mt-3 block font-[var(--display)] text-4xl"
+        <strong
+          class="mt-3 block break-words font-[var(--display)] text-[clamp(1.9rem,8vw,2.25rem)]"
           >{{ money(data.revenue.generated) }}</strong
         >
         <small class="text-[#587184] dark:text-[#a9c3d5]"
@@ -130,7 +131,7 @@
           >COBRADO EN EL MES</span
         >
         <strong
-          class="mt-3 block font-[var(--display)] text-4xl text-[#245b3b] dark:text-[#c9f0df]"
+          class="mt-3 block break-words font-[var(--display)] text-[clamp(1.9rem,8vw,2.25rem)] text-[#245b3b] dark:text-[#c9f0df]"
           >{{ money(data.revenue.collected) }}</strong
         >
         <small class="text-[#63717d] dark:text-[#afbed0]"
@@ -141,24 +142,27 @@
     </div>
 
     <section
-      class="mt-3 flex flex-wrap items-center gap-2 border border-[#d5dce3] bg-white p-3 dark:border-[#38516d] dark:bg-[#19283b]"
+      class="mt-3 grid grid-cols-1 gap-2 border border-[#d5dce3] bg-white p-3 sm:flex sm:flex-wrap sm:items-center dark:border-[#38516d] dark:bg-[#19283b]"
       aria-label="Acciones rápidas"
     >
-      <span class="detail-label mr-auto px-2 !text-[0.7rem]"
+      <span
+        class="detail-label px-1 py-1 !text-[0.7rem] sm:mr-auto sm:px-2 sm:py-0"
         >ACCIONES RÁPIDAS</span
       >
       @if (auth.hasFeature('service_orders') &&
       auth.hasPermission('orders.create') && auth.hasPermission('clients.view')
       && auth.hasPermission('vehicles.view') &&
       auth.hasPermission('vehicle_catalog.view')) {
-      <a class="primary no-underline" routerLink="/orders/new"
+      <a
+        class="primary w-full text-center no-underline sm:w-auto"
+        routerLink="/orders/new"
         >＋ Nueva orden</a
       >
       } @if (auth.hasFeature('customer_history') &&
       auth.hasPermission('clients.view') &&
       auth.hasPermission('clients.create')) {
       <a
-        class="primary no-underline"
+        class="primary w-full text-center no-underline sm:w-auto"
         routerLink="/clients"
         [queryParams]="{new: true}"
         >＋ Nuevo cliente</a
@@ -168,13 +172,15 @@
       auth.hasPermission('catalog.view') &&
       auth.hasPermission('catalog.view_costs') &&
       auth.hasPermission('suppliers.view')) {
-      <a class="primary no-underline" routerLink="/purchases/new"
+      <a
+        class="primary w-full text-center no-underline sm:w-auto"
+        routerLink="/purchases/new"
         >＋ Nueva compra</a
       >
       } @if (auth.hasFeature('expenses') && auth.hasPermission('expenses.view')
       && auth.hasPermission('expenses.create')) {
       <a
-        class="primary no-underline"
+        class="primary w-full text-center no-underline sm:w-auto"
         routerLink="/expenses"
         [queryParams]="{new: true}"
         >＋ Nuevo gasto</a
@@ -188,7 +194,7 @@
         class="border border-[#d5dce3] bg-white p-5 dark:border-[#38516d] dark:bg-[#19283b]"
       >
         <span class="detail-label !text-[0.7rem]">COSTO DIRECTO</span>
-        <strong class="mt-2 block text-2xl"
+        <strong class="mt-2 block break-words text-2xl"
           >{{ money(financials.directCost) }}</strong
         >
         <small class="text-[#63717d] dark:text-[#afbed0]"
@@ -201,7 +207,7 @@
         routerLink="/expenses"
       >
         <span class="detail-label !text-[0.7rem]">GASTOS DEL MES</span>
-        <strong class="mt-2 block text-2xl"
+        <strong class="mt-2 block break-words text-2xl"
           >{{ money(financials.operatingExpenses) }}</strong
         >
         <small class="font-bold text-[#b94718] dark:text-[#ff9a6f]"
@@ -217,7 +223,7 @@
           >UTILIDAD OPERATIVA</span
         >
         <strong
-          class="mt-2 block text-2xl"
+          class="mt-2 block break-words text-2xl"
           [class.text-[#ff9e8c]]="+financials.operatingProfit < 0"
           >{{ money(financials.operatingProfit) }}</strong
         >
@@ -285,7 +291,7 @@
         class="overflow-hidden border border-[#d5dce3] bg-white dark:border-[#38516d] dark:bg-[#19283b]"
       >
         <header
-          class="flex items-center justify-between gap-4 border-b border-[#e2e7ec] bg-[#e1e9f1] px-5 py-4 dark:border-[#38516d] dark:bg-[#22364d]"
+          class="flex flex-wrap items-center justify-between gap-4 border-b border-[#e2e7ec] bg-[#e1e9f1] px-5 py-4 dark:border-[#38516d] dark:bg-[#22364d]"
         >
           <div>
             <p class="eyebrow">PRIORIDAD</p>
@@ -330,7 +336,7 @@
         class="overflow-hidden border border-[#d5dce3] bg-white dark:border-[#38516d] dark:bg-[#19283b]"
       >
         <header
-          class="flex items-center justify-between gap-4 border-b border-[#e2e7ec] bg-[#e1e9f1] px-5 py-4 dark:border-[#38516d] dark:bg-[#22364d]"
+          class="flex flex-wrap items-center justify-between gap-4 border-b border-[#e2e7ec] bg-[#e1e9f1] px-5 py-4 dark:border-[#38516d] dark:bg-[#22364d]"
         >
           <div>
             <p class="eyebrow">COBRANZA</p>
@@ -346,7 +352,7 @@
         <div class="divide-y divide-[#e2e7ec] dark:divide-[#38516d]">
           @for (order of feed.pendingCollection; track order.id) {
           <a
-            class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-l-4 border-[#d6922e] p-4 text-inherit no-underline transition hover:bg-[#fffaf0] dark:hover:bg-[#30291b]"
+            class="grid grid-cols-1 gap-2 border-l-4 border-[#d6922e] p-4 text-inherit no-underline transition hover:bg-[#fffaf0] sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-4 dark:hover:bg-[#30291b]"
             [routerLink]="['/orders', order.id]"
           >
             <span class="min-w-0"
@@ -359,7 +365,7 @@
                 }}</small
               ></span
             >
-            <span class="text-right"
+            <span class="text-left sm:text-right"
               ><strong class="block text-[#805719] dark:text-[#ffd18a]"
                 >{{ money(order.total) }}</strong
               ><small class="font-bold text-[#b94718] dark:text-[#ff9a6f]"
@@ -380,7 +386,7 @@
       class="mt-5 overflow-hidden border border-[#d5dce3] bg-white dark:border-[#38516d] dark:bg-[#19283b]"
     >
       <header
-        class="flex items-center justify-between gap-4 border-b border-[#e2e7ec] bg-[#e1e9f1] px-5 py-4 dark:border-[#38516d] dark:bg-[#22364d]"
+        class="flex flex-wrap items-center justify-between gap-4 border-b border-[#e2e7ec] bg-[#e1e9f1] px-5 py-4 dark:border-[#38516d] dark:bg-[#22364d]"
       >
         <div>
           <p class="eyebrow">ACTIVIDAD</p>
@@ -441,7 +447,7 @@
         class="overflow-hidden border border-[#d5dce3] bg-white dark:border-[#38516d] dark:bg-[#19283b]"
       >
         <header
-          class="flex items-center justify-between border-b border-[#e2e7ec] px-5 py-4 dark:border-[#38516d]"
+          class="flex flex-wrap items-center justify-between gap-3 border-b border-[#e2e7ec] px-5 py-4 dark:border-[#38516d]"
         >
           <h2 class="section-title">Compras recientes</h2>
           <a
@@ -452,7 +458,7 @@
         </header>
         <div class="divide-y divide-[#e2e7ec] dark:divide-[#38516d]">
           @for (purchase of feed.recentPurchases; track purchase.id) {<a
-            class="flex items-center justify-between gap-3 p-4 text-inherit no-underline hover:bg-[#f7f9fb] dark:hover:bg-[#20344b]"
+            class="flex items-center justify-between gap-3 p-4 text-inherit no-underline hover:bg-[#f7f9fb] max-[420px]:flex-col max-[420px]:items-start dark:hover:bg-[#20344b]"
             [routerLink]="['/purchases', purchase.id]"
             ><span class="min-w-0"
               ><strong class="block truncate"
@@ -479,7 +485,7 @@
         class="overflow-hidden border border-[#d5dce3] bg-white dark:border-[#38516d] dark:bg-[#19283b]"
       >
         <header
-          class="flex items-center justify-between border-b border-[#e2e7ec] px-5 py-4 dark:border-[#38516d]"
+          class="flex flex-wrap items-center justify-between gap-3 border-b border-[#e2e7ec] px-5 py-4 dark:border-[#38516d]"
         >
           <h2 class="section-title">Gastos recientes</h2>
           <a
@@ -490,7 +496,7 @@
         </header>
         <div class="divide-y divide-[#e2e7ec] dark:divide-[#38516d]">
           @for (expense of feed.recentExpenses; track expense.id) {<a
-            class="flex items-center justify-between gap-3 p-4 text-inherit no-underline hover:bg-[#f7f9fb] dark:hover:bg-[#20344b]"
+            class="flex items-center justify-between gap-3 p-4 text-inherit no-underline hover:bg-[#f7f9fb] max-[420px]:flex-col max-[420px]:items-start dark:hover:bg-[#20344b]"
             routerLink="/expenses"
             [queryParams]="{search: expense.description}"
             ><span class="min-w-0"
@@ -517,7 +523,7 @@
         class="overflow-hidden border border-[#d5dce3] bg-white dark:border-[#38516d] dark:bg-[#19283b]"
       >
         <header
-          class="flex items-center justify-between border-b border-[#e2e7ec] px-5 py-4 dark:border-[#38516d]"
+          class="flex flex-wrap items-center justify-between gap-3 border-b border-[#e2e7ec] px-5 py-4 dark:border-[#38516d]"
         >
           <h2 class="section-title">Movimientos recientes</h2>
           <a
@@ -529,7 +535,7 @@
         <div class="divide-y divide-[#e2e7ec] dark:divide-[#38516d]">
           @for (movement of feed.recentInventoryMovements; track movement.id)
           {<a
-            class="flex items-center justify-between gap-3 p-4 text-inherit no-underline hover:bg-[#f7f9fb] dark:hover:bg-[#20344b]"
+            class="flex items-center justify-between gap-3 p-4 text-inherit no-underline hover:bg-[#f7f9fb] max-[420px]:flex-col max-[420px]:items-start dark:hover:bg-[#20344b]"
             routerLink="/inventory"
             [queryParams]="{search: movement.productName, productId: movement.productId}"
             ><span class="min-w-0"
@@ -558,7 +564,7 @@
       class="mt-5 overflow-hidden border border-[#e0b4a9] bg-[#fff7f3] dark:border-[#73483e] dark:bg-[#321f1a]"
     >
       <header
-        class="flex items-center justify-between gap-4 border-b border-[#efcfc6] px-5 py-4 dark:border-[#684037]"
+        class="flex flex-wrap items-center justify-between gap-4 border-b border-[#efcfc6] px-5 py-4 dark:border-[#684037]"
       >
         <div>
           <p class="eyebrow !text-[#a63725] dark:!text-[#ff9e8c]">ALERTA</p>
@@ -581,7 +587,7 @@
           ><small class="text-[#8a5b50] dark:text-[#d8aca2]"
             >{{ product.sku || 'Sin SKU' }}</small
           >
-          <div class="mt-3 flex items-end justify-between gap-3">
+          <div class="mt-3 flex flex-wrap items-end justify-between gap-3">
             <span class="detail-label">EXISTENCIA</span
             ><strong class="text-[#a63725] dark:text-[#ff9e8c]"
               >{{ number(product.stock) }} / {{ number(product.minimumStock) }}
