@@ -1,90 +1,487 @@
-<main class="min-h-screen bg-[#fbfaf7] text-[#17251e] transition-colors dark:bg-[#111d2e] dark:text-[#edf4fb]">
-  <header class="flex min-h-36 items-center justify-between gap-4 border-b border-[#d5dce3] bg-[#fbfaf7]/90 px-[clamp(1.5rem,5vw,5rem)] py-9 max-sm:min-h-0 max-sm:items-end max-sm:py-6 dark:border-[#38516d] dark:bg-[#162438]/95">
-    <div><p class="eyebrow">CATÁLOGOS / VEHÍCULOS</p><h1 class="m-0 font-[var(--display)] text-[clamp(2.4rem,4vw,4rem)] font-semibold leading-[0.9] tracking-[-0.05em]">Marcas y modelos</h1></div>
-    <div class="flex items-center gap-2">
-      <button type="button" class="theme-toggle" (click)="theme.toggle()" [attr.aria-label]="theme.isDark() ? 'Usar tema claro' : 'Usar tema oscuro'" [title]="theme.isDark() ? 'Usar tema claro' : 'Usar tema oscuro'">{{ theme.isDark() ? '☀' : '◐' }}</button>
-      @if (auth.hasPermission('vehicle_catalog.manage')) { <button class="primary max-sm:px-3" type="button" (click)="openBrandEditor()"><span class="mr-1 text-xl">＋</span><span class="max-[430px]:hidden">Nueva </span>marca</button> }
+<main
+  class="min-h-screen overflow-x-hidden bg-[#fbfaf7] text-[#17251e] transition-colors dark:bg-[#111d2e] dark:text-[#edf4fb]"
+>
+  <header
+    class="flex min-h-36 flex-wrap items-center justify-between gap-4 border-b border-[#d5dce3] bg-[#fbfaf7]/90 px-[clamp(1.25rem,5vw,5rem)] py-9 max-sm:min-h-0 max-sm:items-start max-sm:py-6 dark:border-[#38516d] dark:bg-[#162438]/95"
+  >
+    <div class="min-w-0 max-sm:w-full">
+      <p class="eyebrow">CATÁLOGOS / VEHÍCULOS</p>
+      <h1
+        class="m-0 font-[var(--display)] text-[clamp(2.15rem,10vw,4rem)] font-semibold leading-[0.9] tracking-[-0.05em]"
+      >
+        Marcas y modelos
+      </h1>
+    </div>
+    <div
+      class="flex shrink-0 items-center gap-2 max-sm:w-full max-sm:justify-between"
+    >
+      <button
+        type="button"
+        class="theme-toggle"
+        (click)="theme.toggle()"
+        [attr.aria-label]="theme.isDark() ? 'Usar tema claro' : 'Usar tema oscuro'"
+        [title]="theme.isDark() ? 'Usar tema claro' : 'Usar tema oscuro'"
+      >
+        {{ theme.isDark() ? '☀' : '◐' }}
+      </button>
+      @if (auth.hasPermission('vehicle_catalog.manage')) {
+      <button
+        class="primary max-sm:px-3"
+        type="button"
+        (click)="openBrandEditor()"
+      >
+        <span class="mr-1 text-xl">＋</span>Nueva marca
+      </button>
+      }
     </div>
   </header>
 
-  <section class="px-[clamp(1.5rem,5vw,5rem)] pb-16 pt-9 max-sm:pt-6">
-    <div class="mb-6 flex items-end justify-between gap-8 max-sm:items-start">
-      <div><h2 class="m-0 font-[var(--display)] text-[1.7rem] font-semibold">Catálogo compartido</h2><p class="mt-1.5 text-[#63717d] dark:text-[#afbed0]">Lo que registres aquí estará disponible para todas las compañías.</p></div>
+  <section class="px-[clamp(1.25rem,5vw,5rem)] pb-16 pt-9 max-sm:pt-6">
+    <div
+      class="mb-6 flex flex-wrap items-end justify-between gap-5 max-sm:items-start"
+    >
+      <div>
+        <h2 class="m-0 font-[var(--display)] text-[1.7rem] font-semibold">
+          Catálogo compartido
+        </h2>
+        <p class="mt-1.5 text-[#63717d] dark:text-[#afbed0]">
+          Lo que registres aquí estará disponible para todas las compañías.
+        </p>
+      </div>
       <span class="tag hidden sm:inline">SIN DATOS PRECARGADOS</span>
     </div>
 
-    @if (notice()) { <div class="mb-4 bg-[#cfe9da] px-4 py-3 text-sm text-[#245b3b] dark:bg-[#294e42] dark:text-[#c9f0df]" role="status">✓ {{ notice() }}</div> }
-    @if (error()) { <div class="mb-4 bg-[#ffdcd2] px-4 py-3 text-sm text-[#8e3214] dark:bg-[#633d3d] dark:text-[#ffd9d4]" role="alert">{{ error() }}</div> }
+    @if (notice()) {
+    <div
+      class="mb-4 bg-[#cfe9da] px-4 py-3 text-sm text-[#245b3b] dark:bg-[#294e42] dark:text-[#c9f0df]"
+      role="status"
+    >
+      ✓ {{ notice() }}
+    </div>
+    } @if (error()) {
+    <div
+      class="mb-4 bg-[#ffdcd2] px-4 py-3 text-sm text-[#8e3214] dark:bg-[#633d3d] dark:text-[#ffd9d4]"
+      role="alert"
+    >
+      {{ error() }}
+    </div>
+    }
 
-    <div class="grid items-start gap-5 min-[1050px]:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+    <div
+      class="grid items-start gap-5 min-[1200px]:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"
+    >
       <section class="catalog-panel-tw">
-        <header class="catalog-heading">
-          <div class="flex items-center gap-3"><span class="section-number">01</span><div><h2 class="section-title">Marcas</h2><p class="section-copy">{{ brands().totalItems }} resultados</p></div></div>
-          @if (auth.hasPermission('vehicle_catalog.manage')) { <button class="small-action-tw" type="button" (click)="openBrandEditor()">Agregar</button> }
+        <header class="catalog-heading flex-wrap">
+          <div class="flex items-center gap-3">
+            <span class="section-number">01</span>
+            <div>
+              <h2 class="section-title">Marcas</h2>
+              <p class="section-copy">{{ brands().totalItems }} resultados</p>
+            </div>
+          </div>
+          @if (auth.hasPermission('vehicle_catalog.manage')) {
+          <button
+            class="small-action-tw"
+            type="button"
+            (click)="openBrandEditor()"
+          >
+            Agregar
+          </button>
+          }
         </header>
         <div class="catalog-tools">
           <label class="catalog-search">
             <span aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4 4"></path></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="11" cy="11" r="6.5"></circle>
+                <path d="m16 16 4 4"></path>
+              </svg>
             </span>
-            <input class="field-control py-2.5! pr-8! pl-11!" [formControl]="brandSearch" type="search" placeholder="Buscar por nombre de marca" aria-label="Buscar por nombre de marca" />
+            <input
+              class="field-control py-2.5! pr-8! pl-11!"
+              [formControl]="brandSearch"
+              type="search"
+              placeholder="Buscar marca"
+              aria-label="Buscar por nombre de marca"
+            />
           </label>
-          <div class="segments-tw" aria-label="Estatus de marcas">
-            <button type="button" [class.segment-selected]="brandActive()" (click)="filterBrands(true)">Activas</button>
-            <button type="button" [class.segment-selected]="!brandActive()" (click)="filterBrands(false)">Inactivas</button>
+          <div
+            class="segments-tw max-[650px]:w-full"
+            aria-label="Estatus de marcas"
+          >
+            <button
+              class="max-[650px]:flex-1"
+              type="button"
+              [class.segment-selected]="brandActive()"
+              (click)="filterBrands(true)"
+            >
+              Activas
+            </button>
+            <button
+              class="max-[650px]:flex-1"
+              type="button"
+              [class.segment-selected]="!brandActive()"
+              (click)="filterBrands(false)"
+            >
+              Inactivas
+            </button>
           </div>
         </div>
-        <div class="catalog-list" [class.opacity-40]="loadingBrands()">
+        <div
+          class="catalog-list max-sm:min-h-80!"
+          [class.opacity-40]="loadingBrands()"
+        >
           @for (brand of brands().items; track brand.id) {
-            <article class="catalog-row cursor-pointer" [class.catalog-row-selected]="selectedBrand()?.id === brand.id" (click)="selectBrand(brand)">
-              <button class="catalog-item-main" type="button"><span class="brand-mark-tw">{{ brand.name.slice(0, 2).toUpperCase() }}</span><span class="min-w-0"><strong>{{ brand.name }}</strong><small>{{ brand.isActive ? 'Activa' : 'Inactiva' }}</small></span></button>
-              @if (auth.hasPermission('vehicle_catalog.manage')) { <div class="catalog-actions"><button type="button" (click)="$event.stopPropagation(); openBrandEditor(brand)">Editar</button><button type="button" [class.catalog-danger]="brand.isActive" (click)="$event.stopPropagation(); changeBrandStatus(brand)">{{ brand.isActive ? 'Desactivar' : 'Reactivar' }}</button></div> }
-            </article>
+          <article
+            class="catalog-row cursor-pointer max-[380px]:flex-col!"
+            [class.catalog-row-selected]="selectedBrand()?.id === brand.id"
+            (click)="selectBrand(brand)"
+          >
+            <button class="catalog-item-main max-[380px]:w-full" type="button">
+              <span class="brand-mark-tw"
+                >{{ brand.name.slice(0, 2).toUpperCase() }}</span
+              ><span class="min-w-0"
+                ><strong
+                  class="max-[380px]:whitespace-normal! max-[380px]:break-words!"
+                  >{{ brand.name }}</strong
+                ><small
+                  >{{ brand.isActive ? 'Activa' : 'Inactiva' }}</small
+                ></span
+              >
+            </button>
+            @if (auth.hasPermission('vehicle_catalog.manage')) {
+            <div
+              class="catalog-actions max-[380px]:w-full max-[380px]:flex-row! max-[380px]:justify-end"
+            >
+              <button
+                type="button"
+                (click)="$event.stopPropagation(); openBrandEditor(brand)"
+              >
+                Editar</button
+              ><button
+                type="button"
+                [class.catalog-danger]="brand.isActive"
+                (click)="$event.stopPropagation(); changeBrandStatus(brand)"
+              >
+                {{ brand.isActive ? 'Desactivar' : 'Reactivar' }}
+              </button>
+            </div>
+            }
+          </article>
           } @empty { @if (!loadingBrands()) {
-            <div class="catalog-empty"><span>◇</span><h3>{{ brandActive() ? 'Aún no hay marcas' : 'No hay marcas inactivas' }}</h3>@if (brandActive()) { <p>Registra la primera cuando la necesites.</p>@if (auth.hasPermission('vehicle_catalog.manage')) { <button class="secondary-tw" type="button" (click)="openBrandEditor()">Crear marca</button> } }</div>
-          } }
-          @if (loadingBrands()) { <div class="loader-tw" aria-label="Cargando"><span></span><span></span><span></span></div> }
+          <div class="catalog-empty">
+            <span>◇</span>
+            <h3>
+              {{ brandActive() ? 'Aún no hay marcas' : 'No hay marcas inactivas'
+              }}
+            </h3>
+            @if (brandActive()) {
+            <p>Registra la primera cuando la necesites.</p>
+            @if (auth.hasPermission('vehicle_catalog.manage')) {
+            <button
+              class="secondary-tw"
+              type="button"
+              (click)="openBrandEditor()"
+            >
+              Crear marca
+            </button>
+            } }
+          </div>
+          } } @if (loadingBrands()) {
+          <div class="loader-tw" aria-label="Cargando">
+            <span></span><span></span><span></span>
+          </div>
+          }
         </div>
-        <footer class="pagination-tw"><span>Página {{ brands().page }} de {{ brands().totalPages || 1 }}</span><div><button type="button" [disabled]="brands().page <= 1" (click)="loadBrands(brands().page - 1)">←</button><button type="button" [disabled]="!brands().hasNextPage" (click)="loadBrands(brands().page + 1)">→</button></div></footer>
+        <footer
+          class="pagination-tw max-sm:flex-col max-sm:items-stretch max-sm:gap-2"
+        >
+          <span class="max-sm:text-center"
+            >Página {{ brands().page }} de {{ brands().totalPages || 1 }}</span
+          >
+          <div class="max-sm:grid max-sm:grid-cols-2">
+            <button
+              class="max-sm:w-full!"
+              type="button"
+              [disabled]="brands().page <= 1"
+              (click)="loadBrands(brands().page - 1)"
+            >
+              ←</button
+            ><button
+              class="max-sm:w-full!"
+              type="button"
+              [disabled]="!brands().hasNextPage"
+              (click)="loadBrands(brands().page + 1)"
+            >
+              →
+            </button>
+          </div>
+        </footer>
       </section>
 
       <section class="catalog-panel-tw">
-        <header class="catalog-heading">
-          <div class="flex items-center gap-3"><span class="section-number">02</span><div><h2 class="section-title">Modelos</h2><p class="section-copy">@if (selectedBrand()) { {{ selectedBrand()?.name }} · {{ models().totalItems }} resultados } @else { Selecciona una marca }</p></div></div>
-          @if (auth.hasPermission('vehicle_catalog.manage')) { <button class="small-action-tw" type="button" [disabled]="!selectedBrand() || !selectedBrand()?.isActive" (click)="openModelEditor()">Agregar</button> }
+        <header class="catalog-heading flex-wrap">
+          <div class="flex items-center gap-3">
+            <span class="section-number">02</span>
+            <div>
+              <h2 class="section-title">Modelos</h2>
+              <p class="section-copy">
+                @if (selectedBrand()) { {{ selectedBrand()?.name }} · {{
+                models().totalItems }} resultados } @else { Selecciona una marca
+                }
+              </p>
+            </div>
+          </div>
+          @if (auth.hasPermission('vehicle_catalog.manage')) {
+          <button
+            class="small-action-tw"
+            type="button"
+            [disabled]="!selectedBrand() || !selectedBrand()?.isActive"
+            (click)="openModelEditor()"
+          >
+            Agregar
+          </button>
+          }
         </header>
         <div class="catalog-tools">
           <label class="catalog-search">
             <span aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4 4"></path></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="11" cy="11" r="6.5"></circle>
+                <path d="m16 16 4 4"></path>
+              </svg>
             </span>
-            <input class="field-control py-2.5! pr-8! pl-11!" [formControl]="modelSearch" type="search" placeholder="Buscar por nombre de modelo" aria-label="Buscar por nombre de modelo" [disabled]="!selectedBrand()" />
+            <input
+              class="field-control py-2.5! pr-8! pl-11!"
+              [formControl]="modelSearch"
+              type="search"
+              placeholder="Buscar modelo"
+              aria-label="Buscar por nombre de modelo"
+              [disabled]="!selectedBrand()"
+            />
           </label>
-          <div class="segments-tw" aria-label="Estatus de modelos">
-            <button type="button" [class.segment-selected]="modelActive()" (click)="filterModels(true)" [disabled]="!selectedBrand()">Activos</button>
-            <button type="button" [class.segment-selected]="!modelActive()" (click)="filterModels(false)" [disabled]="!selectedBrand()">Inactivos</button>
+          <div
+            class="segments-tw max-[650px]:w-full"
+            aria-label="Estatus de modelos"
+          >
+            <button
+              class="max-[650px]:flex-1"
+              type="button"
+              [class.segment-selected]="modelActive()"
+              (click)="filterModels(true)"
+              [disabled]="!selectedBrand()"
+            >
+              Activos
+            </button>
+            <button
+              class="max-[650px]:flex-1"
+              type="button"
+              [class.segment-selected]="!modelActive()"
+              (click)="filterModels(false)"
+              [disabled]="!selectedBrand()"
+            >
+              Inactivos
+            </button>
           </div>
         </div>
-        <div class="catalog-list" [class.opacity-40]="loadingModels()">
-          @if (!selectedBrand()) { <div class="catalog-empty"><span class="text-[#e86a33]">←</span><h3>Elige una marca</h3><p>Sus modelos aparecerán en este espacio.</p></div> }
-          @else {
-            @for (model of models().items; track model.id) {
-              <article class="catalog-row"><div class="catalog-item-main"><span class="model-mark-tw">{{ model.name.slice(0, 1).toUpperCase() }}</span><span class="min-w-0"><strong>{{ model.name }}</strong><small>{{ model.brandName }}</small></span></div>@if (auth.hasPermission('vehicle_catalog.manage')) { <div class="catalog-actions"><button type="button" (click)="openModelEditor(model)">Editar</button><button type="button" [class.catalog-danger]="model.isActive" (click)="changeModelStatus(model)">{{ model.isActive ? 'Desactivar' : 'Reactivar' }}</button></div> }</article>
-            } @empty { @if (!loadingModels()) {
-              <div class="catalog-empty"><span>○</span><h3>{{ modelActive() ? 'Aún no hay modelos' : 'No hay modelos inactivos' }}</h3>@if (modelActive() && selectedBrand()?.isActive) { <p>Agrega el primero para {{ selectedBrand()?.name }}.</p>@if (auth.hasPermission('vehicle_catalog.manage')) { <button class="secondary-tw" type="button" (click)="openModelEditor()">Crear modelo</button> } }</div>
+        <div
+          class="catalog-list max-sm:min-h-80!"
+          [class.opacity-40]="loadingModels()"
+        >
+          @if (!selectedBrand()) {
+          <div class="catalog-empty">
+            <span class="text-[#e86a33]">←</span>
+            <h3>Elige una marca</h3>
+            <p>Sus modelos aparecerán en este espacio.</p>
+          </div>
+          } @else { @for (model of models().items; track model.id) {
+          <article class="catalog-row max-[380px]:flex-col!">
+            <div class="catalog-item-main max-[380px]:w-full">
+              <span class="model-mark-tw"
+                >{{ model.name.slice(0, 1).toUpperCase() }}</span
+              ><span class="min-w-0"
+                ><strong
+                  class="max-[380px]:whitespace-normal! max-[380px]:break-words!"
+                  >{{ model.name }}</strong
+                ><small>{{ model.brandName }}</small></span
+              >
+            </div>
+            @if (auth.hasPermission('vehicle_catalog.manage')) {
+            <div
+              class="catalog-actions max-[380px]:w-full max-[380px]:flex-row! max-[380px]:justify-end"
+            >
+              <button type="button" (click)="openModelEditor(model)">
+                Editar</button
+              ><button
+                type="button"
+                [class.catalog-danger]="model.isActive"
+                (click)="changeModelStatus(model)"
+              >
+                {{ model.isActive ? 'Desactivar' : 'Reactivar' }}
+              </button>
+            </div>
+            }
+          </article>
+          } @empty { @if (!loadingModels()) {
+          <div class="catalog-empty">
+            <span>○</span>
+            <h3>
+              {{ modelActive() ? 'Aún no hay modelos' : 'No hay modelos
+              inactivos' }}
+            </h3>
+            @if (modelActive() && selectedBrand()?.isActive) {
+            <p>Agrega el primero para {{ selectedBrand()?.name }}.</p>
+            @if (auth.hasPermission('vehicle_catalog.manage')) {
+            <button
+              class="secondary-tw"
+              type="button"
+              (click)="openModelEditor()"
+            >
+              Crear modelo
+            </button>
             } }
+          </div>
+          } } } @if (loadingModels()) {
+          <div class="loader-tw" aria-label="Cargando">
+            <span></span><span></span><span></span>
+          </div>
           }
-          @if (loadingModels()) { <div class="loader-tw" aria-label="Cargando"><span></span><span></span><span></span></div> }
         </div>
-        <footer class="pagination-tw"><span>Página {{ models().page }} de {{ models().totalPages || 1 }}</span><div><button type="button" [disabled]="models().page <= 1" (click)="loadModels(models().page - 1)">←</button><button type="button" [disabled]="!models().hasNextPage" (click)="loadModels(models().page + 1)">→</button></div></footer>
+        <footer
+          class="pagination-tw max-sm:flex-col max-sm:items-stretch max-sm:gap-2"
+        >
+          <span class="max-sm:text-center"
+            >Página {{ models().page }} de {{ models().totalPages || 1 }}</span
+          >
+          <div class="max-sm:grid max-sm:grid-cols-2">
+            <button
+              class="max-sm:w-full!"
+              type="button"
+              [disabled]="models().page <= 1"
+              (click)="loadModels(models().page - 1)"
+            >
+              ←</button
+            ><button
+              class="max-sm:w-full!"
+              type="button"
+              [disabled]="!models().hasNextPage"
+              (click)="loadModels(models().page + 1)"
+            >
+              →
+            </button>
+          </div>
+        </footer>
       </section>
     </div>
   </section>
 </main>
 
 @if (brandEditorOpen()) {
-  <div class="dialog-backdrop" (click)="closeBrandEditor()" role="presentation"><section class="dialog-tw" role="dialog" aria-modal="true" aria-labelledby="brand-dialog-title" (click)="$event.stopPropagation()"><p class="eyebrow">{{ editingBrand() ? 'EDITAR MARCA' : 'NUEVA MARCA' }}</p><h2 id="brand-dialog-title">{{ editingBrand() ? 'Actualizar marca' : 'Registrar marca' }}</h2><p>El nombre estará disponible para todas las compañías.</p>@if (error()) { <div class="dialog-error-tw" role="alert">{{ error() }}</div> }<form [formGroup]="brandForm" (ngSubmit)="saveBrand()" novalidate><label class="field-label" for="brand-name">Nombre <b>*</b></label><input class="field-control" id="brand-name" formControlName="name" autocomplete="off" placeholder="Toyota" />@if (brandForm.controls.name.touched && brandForm.controls.name.invalid) { <small class="field-error">Escribe un nombre de 2 a 100 caracteres.</small> }<footer class="dialog-footer"><button class="ghost-tw" type="button" (click)="closeBrandEditor()">Cancelar</button><button class="primary" type="submit" [disabled]="saving()">{{ saving() ? 'Guardando…' : 'Guardar marca' }}</button></footer></form></section></div>
-}
-@if (modelEditorOpen()) {
-  <div class="dialog-backdrop" (click)="closeModelEditor()" role="presentation"><section class="dialog-tw" role="dialog" aria-modal="true" aria-labelledby="model-dialog-title" (click)="$event.stopPropagation()"><p class="eyebrow">{{ editingModel() ? 'EDITAR MODELO' : 'NUEVO MODELO' }}</p><h2 id="model-dialog-title">{{ editingModel() ? 'Actualizar modelo' : 'Registrar modelo' }}</h2><p>Marca: <strong>{{ selectedBrand()?.name }}</strong></p>@if (error()) { <div class="dialog-error-tw" role="alert">{{ error() }}</div> }<form [formGroup]="modelForm" (ngSubmit)="saveModel()" novalidate><label class="field-label" for="model-name">Nombre <b>*</b></label><input class="field-control" id="model-name" formControlName="name" autocomplete="off" placeholder="Corolla" />@if (modelForm.controls.name.touched && modelForm.controls.name.invalid) { <small class="field-error">Escribe un nombre de hasta 100 caracteres.</small> }<footer class="dialog-footer"><button class="ghost-tw" type="button" (click)="closeModelEditor()">Cancelar</button><button class="primary" type="submit" [disabled]="saving()">{{ saving() ? 'Guardando…' : 'Guardar modelo' }}</button></footer></form></section></div>
+<div
+  class="dialog-backdrop max-sm:items-end max-sm:p-0"
+  (click)="closeBrandEditor()"
+  role="presentation"
+>
+  <section
+    class="dialog-tw max-h-[100dvh] overflow-y-auto max-sm:p-5 max-sm:shadow-none"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="brand-dialog-title"
+    (click)="$event.stopPropagation()"
+  >
+    <p class="eyebrow">{{ editingBrand() ? 'EDITAR MARCA' : 'NUEVA MARCA' }}</p>
+    <h2 id="brand-dialog-title">
+      {{ editingBrand() ? 'Actualizar marca' : 'Registrar marca' }}
+    </h2>
+    <p>El nombre estará disponible para todas las compañías.</p>
+    @if (error()) {
+    <div class="dialog-error-tw" role="alert">{{ error() }}</div>
+    }
+    <form [formGroup]="brandForm" (ngSubmit)="saveBrand()" novalidate>
+      <label class="field-label" for="brand-name">Nombre <b>*</b></label
+      ><input
+        class="field-control"
+        id="brand-name"
+        formControlName="name"
+        autocomplete="off"
+        placeholder="Toyota"
+      />@if (brandForm.controls.name.touched && brandForm.controls.name.invalid)
+      {
+      <small class="field-error"
+        >Escribe un nombre de 2 a 100 caracteres.</small
+      >
+      }
+      <footer class="dialog-footer flex-col-reverse sm:flex-row">
+        <button
+          class="ghost-tw w-full sm:w-auto"
+          type="button"
+          (click)="closeBrandEditor()"
+        >
+          Cancelar</button
+        ><button
+          class="primary w-full sm:w-auto"
+          type="submit"
+          [disabled]="saving()"
+        >
+          {{ saving() ? 'Guardando…' : 'Guardar marca' }}
+        </button>
+      </footer>
+    </form>
+  </section>
+</div>
+} @if (modelEditorOpen()) {
+<div
+  class="dialog-backdrop max-sm:items-end max-sm:p-0"
+  (click)="closeModelEditor()"
+  role="presentation"
+>
+  <section
+    class="dialog-tw max-h-[100dvh] overflow-y-auto max-sm:p-5 max-sm:shadow-none"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="model-dialog-title"
+    (click)="$event.stopPropagation()"
+  >
+    <p class="eyebrow">
+      {{ editingModel() ? 'EDITAR MODELO' : 'NUEVO MODELO' }}
+    </p>
+    <h2 id="model-dialog-title">
+      {{ editingModel() ? 'Actualizar modelo' : 'Registrar modelo' }}
+    </h2>
+    <p>Marca: <strong>{{ selectedBrand()?.name }}</strong></p>
+    @if (error()) {
+    <div class="dialog-error-tw" role="alert">{{ error() }}</div>
+    }
+    <form [formGroup]="modelForm" (ngSubmit)="saveModel()" novalidate>
+      <label class="field-label" for="model-name">Nombre <b>*</b></label
+      ><input
+        class="field-control"
+        id="model-name"
+        formControlName="name"
+        autocomplete="off"
+        placeholder="Corolla"
+      />@if (modelForm.controls.name.touched && modelForm.controls.name.invalid)
+      {
+      <small class="field-error"
+        >Escribe un nombre de hasta 100 caracteres.</small
+      >
+      }
+      <footer class="dialog-footer flex-col-reverse sm:flex-row">
+        <button
+          class="ghost-tw w-full sm:w-auto"
+          type="button"
+          (click)="closeModelEditor()"
+        >
+          Cancelar</button
+        ><button
+          class="primary w-full sm:w-auto"
+          type="submit"
+          [disabled]="saving()"
+        >
+          {{ saving() ? 'Guardando…' : 'Guardar modelo' }}
+        </button>
+      </footer>
+    </form>
+  </section>
+</div>
 }
