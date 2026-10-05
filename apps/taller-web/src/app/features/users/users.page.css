@@ -387,6 +387,7 @@ td small {
 }
 .field.full,
 .toggle.full,
+.permissions-panel.full,
 form footer {
   grid-column: 1 / -1;
 }

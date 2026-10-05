@@ -63,7 +63,7 @@
           </button> }
         </header>
         <div
-          class="grid gap-3 border-b border-[#d5dce3] p-4 sm:grid-cols-[1fr_11rem] dark:border-[#38516d]"
+          class="grid gap-3 border-b border-[#d5dce3] p-4 sm:grid-cols-[minmax(0,1fr)_14rem] dark:border-[#38516d]"
         >
           <input
             class="field-control"
@@ -200,9 +200,6 @@
                   </td>
                   <td class="p-4">
                     {{ concept.unit.name }}
-                    <small class="block text-[#63717d] dark:text-[#afbed0]"
-                      >{{ concept.unit.symbol }}</small
-                    >
                   </td>
                   @if (auth.hasPermission('catalog.view_costs')) { <td class="p-4 text-right">{{ money(concept.cost) }}</td> }
                   @if (auth.hasPermission('catalog.manage') && auth.hasPermission('catalog.view_costs')) { <td class="p-4 text-right">
