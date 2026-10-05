@@ -14,4 +14,18 @@ export class CompaniesService {
       input,
     );
   }
+
+  list(): Observable<CompanyResponse[]> {
+    return this.http.get<CompanyResponse[]>(`${environment.apiUrl}/companies`);
+  }
+
+  resetPrimaryAdminPassword(
+    companyId: string,
+    password: string,
+  ): Observable<void> {
+    return this.http.patch<void>(
+      `${environment.apiUrl}/companies/${companyId}/admin/password`,
+      { password },
+    );
+  }
 }

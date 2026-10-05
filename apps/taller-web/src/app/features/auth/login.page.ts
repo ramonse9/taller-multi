@@ -10,14 +10,14 @@ import {
   ReactiveFormsModule,
   Validators,
 } from "@angular/forms";
-import { Router, RouterLink } from "@angular/router";
+import { Router } from "@angular/router";
 import { AuthService } from "../../core/auth/auth.service";
 import { SessionUser } from "../../core/auth/auth.models";
 import { ThemeService } from "../../core/theme/theme.service";
 
 @Component({
   selector: "app-login-page",
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule],
   templateUrl: "./login.page.html",
   styleUrl: "./login.page.css",
   changeDetection: ChangeDetectionStrategy.OnPush,

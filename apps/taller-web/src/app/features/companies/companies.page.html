@@ -1,79 +1,648 @@
-<main class="min-h-screen bg-[#fbfaf7] text-[#17251e] transition-colors dark:bg-[#111d2e] dark:text-[#edf4fb]" [class.dark]="theme.isDark()">
-  <header class="flex min-h-36 items-center justify-between gap-5 border-b border-[#d5dce3] bg-[#fbfaf7]/90 px-[clamp(1.5rem,5vw,5rem)] py-9 dark:border-[#38516d] dark:bg-[#162438]/95">
+<main
+  class="min-h-screen bg-[#fbfaf7] text-[#17251e] transition-colors dark:bg-[#111d2e] dark:text-[#edf4fb]"
+  [class.dark]="theme.isDark()"
+>
+  <header
+    class="flex min-h-36 items-center justify-between gap-5 border-b border-[#d5dce3] bg-[#fbfaf7]/90 px-[clamp(1.5rem,5vw,5rem)] py-9 dark:border-[#38516d] dark:bg-[#162438]/95"
+  >
     <div>
       <p class="eyebrow">PLATAFORMA / ONBOARDING</p>
-      <h1 class="m-0 font-[var(--display)] text-[clamp(2.4rem,4vw,4rem)] font-semibold leading-[0.9] tracking-[-0.05em]">Nueva compañía</h1>
+      <h1
+        class="m-0 font-[var(--display)] text-[clamp(2.4rem,4vw,4rem)] font-semibold leading-[0.9] tracking-[-0.05em]"
+      >
+        Compañías
+      </h1>
     </div>
     <div class="flex items-center gap-2">
-      <button type="button" class="grid size-10 place-items-center border border-[#d5dce3] bg-white text-lg transition hover:border-[#e86a33] hover:text-[#e86a33] dark:border-[#38516d] dark:bg-[#19283b] dark:text-[#f4c4ae]" (click)="theme.toggle()" [attr.aria-label]="theme.isDark() ? 'Usar tema claro' : 'Usar tema oscuro'" [title]="theme.isDark() ? 'Usar tema claro' : 'Usar tema oscuro'">{{ theme.isDark() ? '☀' : '◐' }}</button>
+      <button
+        type="button"
+        class="grid size-10 place-items-center border border-[#d5dce3] bg-white text-lg transition hover:border-[#e86a33] hover:text-[#e86a33] dark:border-[#38516d] dark:bg-[#19283b] dark:text-[#f4c4ae]"
+        (click)="theme.toggle()"
+        [attr.aria-label]="theme.isDark() ? 'Usar tema claro' : 'Usar tema oscuro'"
+        [title]="theme.isDark() ? 'Usar tema claro' : 'Usar tema oscuro'"
+      >
+        {{ theme.isDark() ? '☀' : '◐' }}
+      </button>
       <span class="tag hidden sm:inline">UNA TRANSACCIÓN</span>
     </div>
   </header>
 
   <section class="px-[clamp(1.5rem,5vw,5rem)] pb-20 pt-9 max-sm:pt-6">
     <div class="mb-7 flex items-end justify-between gap-8">
-      <div><h2 class="m-0 font-[var(--display)] text-[1.7rem] font-semibold">Prepara un espacio independiente</h2><p class="mt-1.5 text-[#63717d] dark:text-[#afbed0]">La compañía, su schema y el primer administrador se crean juntos.</p></div>
-      <span class="tag hidden sm:inline">01 — DATOS Y ACCESO</span>
+      <div>
+        <h2 class="m-0 font-[var(--display)] text-[1.7rem] font-semibold">
+          Administración de compañías
+        </h2>
+        <p class="mt-1.5 text-[#63717d] dark:text-[#afbed0]">
+          Consulta los accesos principales o prepara un espacio independiente.
+        </p>
+      </div>
+      <span class="tag hidden sm:inline">PLATAFORMA</span>
     </div>
 
     @if (created(); as company) {
-      <section class="mb-5 grid items-center gap-4 border border-[#d5dce3] border-l-4 border-l-[#2d7550] bg-white p-5 sm:grid-cols-[auto_1fr_auto] dark:border-[#38516d] dark:border-l-[#55a97b] dark:bg-[#19283b]" role="status">
-        <div class="grid size-10 place-items-center rounded-full bg-[#def0e5] font-extrabold text-[#286443] dark:bg-[#254533] dark:text-[#91d2ad]">✓</div>
-        <div><p class="eyebrow">ONBOARDING COMPLETADO</p><h2 class="m-0 font-[var(--display)] text-2xl font-semibold">{{ company.name }}</h2><p class="mt-1 text-xs text-[#63717d] dark:text-[#afbed0]">Schema <code class="text-[#17251e] dark:text-[#edf4fb]">{{ company.schemaName }}</code> y administrador <strong>{{ company.admin.loginName }}</strong> listos. Código público <code class="text-[#17251e] dark:text-[#edf4fb]">{{ company.loginCode }}</code>.</p></div>
-        <button type="button" class="text-left text-sm font-bold text-[#b94718] underline dark:text-[#ff9a6f] max-sm:col-span-2" (click)="dismissSuccess()">Registrar otra</button>
-      </section>
+    <section
+      class="mb-5 grid items-center gap-4 border border-[#d5dce3] border-l-4 border-l-[#2d7550] bg-white p-5 sm:grid-cols-[auto_1fr_auto] dark:border-[#38516d] dark:border-l-[#55a97b] dark:bg-[#19283b]"
+      role="status"
+    >
+      <div
+        class="grid size-10 place-items-center rounded-full bg-[#def0e5] font-extrabold text-[#286443] dark:bg-[#254533] dark:text-[#91d2ad]"
+      >
+        ✓
+      </div>
+      <div>
+        <p class="eyebrow">ONBOARDING COMPLETADO</p>
+        <h2 class="m-0 font-[var(--display)] text-2xl font-semibold">
+          {{ company.name }}
+        </h2>
+        <p class="mt-1 text-xs text-[#63717d] dark:text-[#afbed0]">
+          Schema
+          <code class="text-[#17251e] dark:text-[#edf4fb]"
+            >{{ company.schemaName }}</code
+          >
+          y administrador <strong>{{ company.admin.loginName }}</strong> listos.
+          Deberá cambiar su contraseña temporal al iniciar sesión.
+        </p>
+      </div>
+      <button
+        type="button"
+        class="text-left text-sm font-bold text-[#b94718] underline dark:text-[#ff9a6f] max-sm:col-span-2"
+        (click)="dismissSuccess()"
+      >
+        Registrar otra
+      </button>
+    </section>
+    } @if (catalogError()) {
+    <div
+      class="mb-4 flex items-center justify-between gap-4 bg-[#ffdcd2] px-4 py-3 text-sm text-[#8e3214] dark:bg-[#633d3d] dark:text-[#ffd9d4]"
+      role="alert"
+    >
+      <span>{{ catalogError() }}</span
+      ><button
+        type="button"
+        class="shrink-0 bg-transparent p-0 text-inherit underline"
+        (click)="loadCatalogs()"
+      >
+        Reintentar
+      </button>
+    </div>
+    } @if (error()) {
+    <div
+      class="mb-4 bg-[#ffdcd2] px-4 py-3 text-sm text-[#8e3214] dark:bg-[#633d3d] dark:text-[#ffd9d4]"
+      role="alert"
+    >
+      {{ error() }}
+    </div>
+    } @if (notice()) {
+    <div
+      class="mb-4 bg-[#def0e5] px-4 py-3 text-sm font-semibold text-[#286443] dark:bg-[#254533] dark:text-[#b9e7cd]"
+      role="status"
+    >
+      ✓ {{ notice() }}
+    </div>
     }
-    @if (catalogError()) {
-      <div class="mb-4 flex items-center justify-between gap-4 bg-[#ffdcd2] px-4 py-3 text-sm text-[#8e3214] dark:bg-[#633d3d] dark:text-[#ffd9d4]" role="alert"><span>{{ catalogError() }}</span><button type="button" class="shrink-0 bg-transparent p-0 text-inherit underline" (click)="loadCatalogs()">Reintentar</button></div>
-    }
-    @if (error()) { <div class="mb-4 bg-[#ffdcd2] px-4 py-3 text-sm text-[#8e3214] dark:bg-[#633d3d] dark:text-[#ffd9d4]" role="alert">{{ error() }}</div> }
 
-    <form class="grid items-start gap-6 min-[1000px]:grid-cols-[minmax(0,1fr)_19rem]" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <section
+      class="mb-10 border border-[#d5dce3] bg-white p-5 dark:border-[#38516d] dark:bg-[#19283b]"
+    >
+      <div
+        class="mb-4 flex flex-col justify-between gap-4 sm:flex-row sm:items-end"
+      >
+        <div>
+          <p class="eyebrow">ACCESOS PRINCIPALES</p>
+          <h3 class="m-0 font-[var(--display)] text-2xl font-semibold">
+            Compañías registradas
+          </h3>
+          <p class="mt-1 text-sm text-[#63717d] dark:text-[#afbed0]">
+            El Administrador de plataforma puede asignar un acceso temporal al
+            Administrador principal.
+          </p>
+        </div>
+        <label class="min-w-0 sm:w-80"
+          ><span class="field-label">BUSCAR</span
+          ><input
+            class="field-control"
+            type="search"
+            placeholder="Compañía, código o administrador"
+            [value]="companySearch()"
+            (input)="companySearch.set($any($event.target).value)"
+        /></label>
+      </div>
+      @if (loadingCompanies()) {
+      <div class="py-8 text-center text-sm text-[#63717d] dark:text-[#afbed0]">
+        Cargando compañías…
+      </div>
+      } @else {
+      <div class="grid gap-3 lg:grid-cols-2">
+        @for (company of filteredCompanies(); track company.id) {
+        <article
+          class="grid gap-4 border border-[#d5dce3] bg-[#fbfaf7] p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center dark:border-[#38516d] dark:bg-[#162438]"
+        >
+          <div class="min-w-0">
+            <div class="flex flex-wrap items-center gap-2">
+              <strong class="font-[var(--display)] text-xl"
+                >{{ company.name }}</strong
+              ><span
+                class="px-2 py-1 text-[.65rem] font-bold uppercase tracking-wider"
+                [class]="company.isActive ? 'bg-[#def0e5] text-[#286443] dark:bg-[#254533] dark:text-[#b9e7cd]' : 'bg-[#ffdcd2] text-[#8e3214] dark:bg-[#633d3d] dark:text-[#ffd9d4]'"
+                >{{ company.isActive ? 'Activa' : 'Inactiva' }}</span
+              >
+            </div>
+            <p
+              class="mt-1 truncate font-mono text-xs text-[#63717d] dark:text-[#afbed0]"
+            >
+              &#64;{{ company.loginCode }} · {{ company.schemaName }}
+            </p>
+            <p class="mt-3 text-sm">
+              <strong>{{ company.admin.fullName }}</strong
+              ><span class="block text-[#63717d] dark:text-[#afbed0]"
+                >{{ company.admin.loginName }}</span
+              >
+            </p>
+            @if (company.admin.mustChangePassword) {
+            <span
+              class="mt-2 inline-flex bg-[#ffedc9] px-2 py-1 text-xs font-bold text-[#805719] dark:bg-[#5b4727] dark:text-[#ffd18a]"
+              >Cambio de contraseña pendiente</span
+            >
+            }
+          </div>
+          <button
+            type="button"
+            class="border border-[#e86a33] bg-[#ffe2d5] px-4 py-2 text-sm font-bold text-[#9b3f19] transition hover:bg-[#e86a33] hover:text-white disabled:cursor-not-allowed disabled:opacity-45 dark:bg-[#5b3528] dark:text-[#ffc4aa]"
+            [disabled]="!company.isActive || !company.admin.isActive"
+            (click)="openPasswordReset(company)"
+          >
+            Asignar contraseña temporal
+          </button>
+        </article>
+        } @empty {
+        <div
+          class="col-span-full py-8 text-center text-sm text-[#63717d] dark:text-[#afbed0]"
+        >
+          No encontramos compañías con esa búsqueda.
+        </div>
+        }
+      </div>
+      }
+    </section>
+
+    <div class="mb-7 flex items-end justify-between gap-8">
+      <div>
+        <p class="eyebrow">NUEVO ONBOARDING</p>
+        <h2 class="m-0 font-[var(--display)] text-[1.7rem] font-semibold">
+          Registrar nueva compañía
+        </h2>
+        <p class="mt-1.5 text-[#63717d] dark:text-[#afbed0]">
+          La compañía, su schema y el primer administrador se crean juntos.
+        </p>
+      </div>
+      <span class="tag hidden sm:inline">01 — DATOS Y ACCESO</span>
+    </div>
+
+    <form
+      class="grid items-start gap-6 min-[1000px]:grid-cols-[minmax(0,1fr)_19rem]"
+      [formGroup]="form"
+      (ngSubmit)="submit()"
+      novalidate
+    >
       <div class="grid gap-5">
         <section class="form-card-tw">
-          <header class="form-card-header"><span class="section-number">01</span><div><h3 class="section-title">Identidad de la compañía</h3><p class="section-copy">Información global; el schema se genera automáticamente.</p></div></header>
-          <div class="fields-grid">
-            <div class="sm:col-span-2"><label class="field-label" for="company-name">Nombre comercial <b>*</b></label><input class="field-control" id="company-name" formControlName="name" autocomplete="organization" placeholder="Ej. Taller Norte" />@if (form.controls.name.touched && form.controls.name.invalid) { <small class="field-error">Escribe un nombre de 2 a 150 caracteres.</small> }</div>
-            <div class="sm:col-span-2">
-              <label class="field-label" for="company-login-code">Identificador de compañía <b>*</b></label>
-              <div class="grid grid-cols-[2.75rem_minmax(0,1fr)]"><span class="input-addon border-r-0" aria-hidden="true">&#64;</span><input class="field-control" id="company-login-code" formControlName="loginCode" autocomplete="off" placeholder="compania" maxlength="40" (input)="formatLoginCode()" /></div>
-              @if (form.controls.loginCode.touched && form.controls.loginCode.invalid) { <small class="field-error">Usa letras minúsculas, números o guion bajo; debe comenzar con una letra.</small> } @else { <span class="field-hint">El acceso será usuario&#64;{{ form.controls.loginCode.value || 'compania' }}.</span> }
+          <header class="form-card-header">
+            <span class="section-number">01</span>
+            <div>
+              <h3 class="section-title">Identidad de la compañía</h3>
+              <p class="section-copy">
+                Información global; el schema se genera automáticamente.
+              </p>
             </div>
-            <div><label class="field-label" for="company-type">Tipo de compañía <b>*</b></label><select class="field-control" id="company-type" formControlName="companyTypeCode">@for (item of companyTypes(); track item.code) { <option [value]="item.code">{{ item.name }}</option> }</select></div>
-            <div><label class="field-label" for="person-type">Persona fiscal <b>*</b></label><select class="field-control" id="person-type" formControlName="personTypeCode">@for (item of personTypes(); track item.code) { <option [value]="item.code">{{ item.name }}</option> }</select></div>
-            <label class="check-label"><input type="checkbox" formControlName="withholdsIsr" /><span>Retiene ISR</span></label>
-            <label class="check-label"><input type="checkbox" formControlName="withholdsIva" /><span>Retiene IVA</span></label>
-            <div class="sm:col-span-2 mt-2 border-t border-[#e2e7ec] pt-5 dark:border-[#38516d]"><p class="eyebrow">SUSCRIPCIÓN INICIAL</p><p class="mt-1 text-sm text-[#63717d] dark:text-[#afbed0]">El plan puede cambiar después sin eliminar información.</p></div>
-            <div><label class="field-label" for="company-plan">Plan <b>*</b></label><select class="field-control" id="company-plan" formControlName="planCode">@for (plan of plans(); track plan.code) { <option [value]="plan.code">{{ plan.name }}</option> }</select></div>
-            <div><label class="field-label" for="trial-days">Días de prueba <b>*</b></label><input class="field-control" id="trial-days" type="number" min="0" max="90" formControlName="trialDays" />@if (form.controls.trialDays.touched && form.controls.trialDays.invalid) { <small class="field-error">Usa un valor entre 0 y 90 días.</small> }</div>
+          </header>
+          <div class="fields-grid">
+            <div class="sm:col-span-2">
+              <label class="field-label" for="company-name"
+                >Nombre comercial <b>*</b></label
+              ><input
+                class="field-control"
+                id="company-name"
+                formControlName="name"
+                autocomplete="organization"
+                placeholder="Ej. Taller Norte"
+              />@if (form.controls.name.touched && form.controls.name.invalid) {
+              <small class="field-error"
+                >Escribe un nombre de 2 a 150 caracteres.</small
+              >
+              }
+            </div>
+            <div class="sm:col-span-2">
+              <label class="field-label" for="company-login-code"
+                >Identificador de compañía <b>*</b></label
+              >
+              <div class="grid grid-cols-[2.75rem_minmax(0,1fr)]">
+                <span class="input-addon border-r-0" aria-hidden="true"
+                  >&#64;</span
+                ><input
+                  class="field-control"
+                  id="company-login-code"
+                  formControlName="loginCode"
+                  autocomplete="off"
+                  placeholder="compania"
+                  maxlength="40"
+                  (input)="formatLoginCode()"
+                />
+              </div>
+              @if (form.controls.loginCode.touched &&
+              form.controls.loginCode.invalid) {
+              <small class="field-error"
+                >Usa letras minúsculas, números o guion bajo; debe comenzar con
+                una letra.</small
+              >
+              } @else {
+              <span class="field-hint"
+                >El acceso será usuario&#64;{{ form.controls.loginCode.value ||
+                'compania' }}.</span
+              >
+              }
+            </div>
+            <div>
+              <label class="field-label" for="company-type"
+                >Tipo de compañía <b>*</b></label
+              ><select
+                class="field-control"
+                id="company-type"
+                formControlName="companyTypeCode"
+              >
+                @for (item of companyTypes(); track item.code) {
+                <option [value]="item.code">{{ item.name }}</option>
+                }
+              </select>
+            </div>
+            <div>
+              <label class="field-label" for="person-type"
+                >Persona fiscal <b>*</b></label
+              ><select
+                class="field-control"
+                id="person-type"
+                formControlName="personTypeCode"
+              >
+                @for (item of personTypes(); track item.code) {
+                <option [value]="item.code">{{ item.name }}</option>
+                }
+              </select>
+            </div>
+            <label class="check-label"
+              ><input type="checkbox" formControlName="withholdsIsr" /><span
+                >Retiene ISR</span
+              ></label
+            >
+            <label class="check-label"
+              ><input type="checkbox" formControlName="withholdsIva" /><span
+                >Retiene IVA</span
+              ></label
+            >
+            <div
+              class="sm:col-span-2 mt-2 border-t border-[#e2e7ec] pt-5 dark:border-[#38516d]"
+            >
+              <p class="eyebrow">SUSCRIPCIÓN INICIAL</p>
+              <p class="mt-1 text-sm text-[#63717d] dark:text-[#afbed0]">
+                El plan puede cambiar después sin eliminar información.
+              </p>
+            </div>
+            <div>
+              <label class="field-label" for="company-plan">Plan <b>*</b></label
+              ><select
+                class="field-control"
+                id="company-plan"
+                formControlName="planCode"
+              >
+                @for (plan of plans(); track plan.code) {
+                <option [value]="plan.code">{{ plan.name }}</option>
+                }
+              </select>
+            </div>
+            <div>
+              <label class="field-label" for="trial-days"
+                >Días de prueba <b>*</b></label
+              ><input
+                class="field-control"
+                id="trial-days"
+                type="number"
+                min="0"
+                max="90"
+                formControlName="trialDays"
+              />@if (form.controls.trialDays.touched &&
+              form.controls.trialDays.invalid) {
+              <small class="field-error">Usa un valor entre 0 y 90 días.</small>
+              }
+            </div>
           </div>
         </section>
 
         <section class="form-card-tw" formGroupName="admin">
-          <header class="form-card-header"><span class="section-number">02</span><div><h3 class="section-title">Primer administrador</h3><p class="section-copy">Estas credenciales permiten operar el nuevo tenant.</p></div></header>
+          <header class="form-card-header">
+            <span class="section-number">02</span>
+            <div>
+              <h3 class="section-title">Primer administrador</h3>
+              <p class="section-copy">
+                Estas credenciales permiten operar el nuevo tenant.
+              </p>
+            </div>
+          </header>
           <div class="fields-grid">
-            <div class="sm:col-span-2"><label class="field-label" for="admin-name">Nombre completo <b>*</b></label><input class="field-control" id="admin-name" formControlName="fullName" autocomplete="name" placeholder="María López" />@if (form.controls.admin.controls.fullName.touched && form.controls.admin.controls.fullName.invalid) { <small class="field-error">Escribe un nombre válido.</small> }</div>
-            <div><label class="field-label" for="admin-username">Usuario <b>*</b></label><div class="grid grid-cols-[minmax(0,1fr)_auto]"><input class="field-control min-w-0" id="admin-username" formControlName="username" autocomplete="off" placeholder="maria" /><span class="input-addon max-w-48 overflow-hidden border-l-0 px-3 text-ellipsis whitespace-nowrap">&#64;{{ form.controls.loginCode.value || 'compania' }}</span></div>@if (form.controls.admin.controls.username.touched && form.controls.admin.controls.username.invalid) { <small class="field-error">Usa letras, números, punto, guion o guion bajo.</small> }</div>
-            <div><label class="field-label" for="admin-phone">Celular <b>*</b></label><div class="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-2"><input class="field-control text-center font-bold" aria-label="Código de país" type="tel" inputmode="tel" formControlName="phoneCountryCode" autocomplete="tel-country-code" maxlength="4" /><input class="field-control" id="admin-phone" type="tel" inputmode="numeric" formControlName="phone" autocomplete="tel-national" maxlength="13" placeholder="667 122 33 44" (input)="formatPhone()" /></div>@if ((form.controls.admin.controls.phoneCountryCode.touched && form.controls.admin.controls.phoneCountryCode.invalid) || (form.controls.admin.controls.phone.touched && form.controls.admin.controls.phone.invalid)) { <small class="field-error">El celular es obligatorio; usa un número como 667 104 32 81.</small> }</div>
-            <div class="sm:col-span-2"><label class="field-label" for="admin-email">Correo (opcional)</label><input class="field-control" id="admin-email" type="email" formControlName="email" autocomplete="email" placeholder="admin@empresa.com" />@if (form.controls.admin.controls.email.touched && form.controls.admin.controls.email.invalid) { <small class="field-error">Escribe un correo válido.</small> }</div>
-            <div><label class="field-label" for="admin-password">Contraseña temporal <b>*</b></label><input class="field-control" id="admin-password" type="password" formControlName="password" autocomplete="new-password" placeholder="Entre 6 y 10 caracteres" />@if (form.controls.admin.controls.password.touched && form.controls.admin.controls.password.invalid) { <small class="field-error">Usa de 6 a 10 caracteres, con una letra y un número.</small> }</div>
-            <div><label class="field-label" for="confirm-password">Confirmar contraseña <b>*</b></label><input class="field-control" id="confirm-password" type="password" formControlName="confirmPassword" autocomplete="new-password" />@if (form.controls.admin.controls.confirmPassword.touched && !passwordsMatch()) { <small class="field-error">Las contraseñas no coinciden.</small> }</div>
-            <div class="sm:col-span-2"><label class="field-label" for="timezone">Zona horaria <b>*</b></label><select class="field-control" id="timezone" formControlName="timezoneCode">@for (timezone of timezones(); track timezone.code) { <option [value]="timezone.code">{{ timezone.description }} — {{ timezone.code }}</option> }</select></div>
+            <div class="sm:col-span-2">
+              <label class="field-label" for="admin-name"
+                >Nombre completo <b>*</b></label
+              ><input
+                class="field-control"
+                id="admin-name"
+                formControlName="fullName"
+                autocomplete="name"
+                placeholder="María López"
+              />@if (form.controls.admin.controls.fullName.touched &&
+              form.controls.admin.controls.fullName.invalid) {
+              <small class="field-error">Escribe un nombre válido.</small> }
+            </div>
+            <div>
+              <label class="field-label" for="admin-username"
+                >Usuario <b>*</b></label
+              >
+              <div class="grid grid-cols-[minmax(0,1fr)_auto]">
+                <input
+                  class="field-control min-w-0"
+                  id="admin-username"
+                  formControlName="username"
+                  autocomplete="off"
+                  placeholder="maria"
+                /><span
+                  class="input-addon max-w-48 overflow-hidden border-l-0 px-3 text-ellipsis whitespace-nowrap"
+                  >&#64;{{ form.controls.loginCode.value || 'compania' }}</span
+                >
+              </div>
+              @if (form.controls.admin.controls.username.touched &&
+              form.controls.admin.controls.username.invalid) {
+              <small class="field-error"
+                >Usa letras, números, punto, guion o guion bajo.</small
+              >
+              }
+            </div>
+            <div>
+              <label class="field-label" for="admin-phone"
+                >Celular <b>*</b></label
+              >
+              <div class="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-2">
+                <input
+                  class="field-control text-center font-bold"
+                  aria-label="Código de país"
+                  type="tel"
+                  inputmode="tel"
+                  formControlName="phoneCountryCode"
+                  autocomplete="tel-country-code"
+                  maxlength="4"
+                /><input
+                  class="field-control"
+                  id="admin-phone"
+                  type="tel"
+                  inputmode="numeric"
+                  formControlName="phone"
+                  autocomplete="tel-national"
+                  maxlength="13"
+                  placeholder="667 122 33 44"
+                  (input)="formatPhone()"
+                />
+              </div>
+              @if ((form.controls.admin.controls.phoneCountryCode.touched &&
+              form.controls.admin.controls.phoneCountryCode.invalid) ||
+              (form.controls.admin.controls.phone.touched &&
+              form.controls.admin.controls.phone.invalid)) {
+              <small class="field-error"
+                >El celular es obligatorio; usa un número como 667 104 32
+                81.</small
+              >
+              }
+            </div>
+            <div class="sm:col-span-2">
+              <label class="field-label" for="admin-email"
+                >Correo (opcional)</label
+              ><input
+                class="field-control"
+                id="admin-email"
+                type="email"
+                formControlName="email"
+                autocomplete="email"
+                placeholder="admin@empresa.com"
+              />@if (form.controls.admin.controls.email.touched &&
+              form.controls.admin.controls.email.invalid) {
+              <small class="field-error">Escribe un correo válido.</small> }
+            </div>
+            <div>
+              <label class="field-label" for="admin-password"
+                >Contraseña temporal <b>*</b></label
+              ><input
+                class="field-control"
+                id="admin-password"
+                type="password"
+                formControlName="password"
+                autocomplete="new-password"
+                placeholder="Entre 6 y 10 caracteres"
+              />@if (form.controls.admin.controls.password.touched &&
+              form.controls.admin.controls.password.invalid) {
+              <small class="field-error"
+                >Usa de 6 a 10 caracteres, con una letra y un número.</small
+              >
+              } @else {
+              <span class="field-hint"
+                >Deberá cambiarla obligatoriamente al iniciar sesión.</span
+              >
+              }
+            </div>
+            <div>
+              <label class="field-label" for="confirm-password"
+                >Confirmar contraseña <b>*</b></label
+              ><input
+                class="field-control"
+                id="confirm-password"
+                type="password"
+                formControlName="confirmPassword"
+                autocomplete="new-password"
+              />@if (form.controls.admin.controls.confirmPassword.touched &&
+              !passwordsMatch()) {
+              <small class="field-error">Las contraseñas no coinciden.</small> }
+            </div>
+            <div class="sm:col-span-2">
+              <label class="field-label" for="timezone"
+                >Zona horaria <b>*</b></label
+              ><select
+                class="field-control"
+                id="timezone"
+                formControlName="timezoneCode"
+              >
+                @for (timezone of timezones(); track timezone.code) {
+                <option [value]="timezone.code">
+                  {{ timezone.description }} — {{ timezone.code }}
+                </option>
+                }
+              </select>
+            </div>
           </div>
         </section>
       </div>
 
-      <aside class="border border-[#d5dce3] bg-white p-6 min-[1000px]:sticky min-[1000px]:top-5 dark:border-[#38516d] dark:bg-[#19283b]">
-        <p class="eyebrow">RESUMEN</p><h3 class="m-0 break-words font-[var(--display)] text-[1.35rem] font-semibold">{{ form.controls.name.value || 'Nueva compañía' }}</h3>
+      <aside
+        class="border border-[#d5dce3] bg-white p-6 min-[1000px]:sticky min-[1000px]:top-5 dark:border-[#38516d] dark:bg-[#19283b]"
+      >
+        <p class="eyebrow">RESUMEN</p>
+        <h3
+          class="m-0 break-words font-[var(--display)] text-[1.35rem] font-semibold"
+        >
+          {{ form.controls.name.value || 'Nueva compañía' }}
+        </h3>
         <dl class="my-6 grid gap-0 max-[999px]:grid-cols-3 max-sm:grid-cols-1">
-          <div class="summary-row"><dt>Schema</dt><dd>Se asignará al registrar</dd></div>
-          <div class="summary-row"><dt>Administrador</dt><dd>{{ form.controls.admin.controls.username.value || 'usuario' }}&#64;{{ form.controls.loginCode.value || 'compania' }}</dd></div>
-          <div class="summary-row"><dt>Estatus inicial</dt><dd>{{ form.controls.trialDays.value > 0 ? 'Periodo de prueba' : 'Activo' }}</dd></div>
-          <div class="summary-row"><dt>Suscripción</dt><dd>{{ form.controls.planCode.value }} · {{ form.controls.trialDays.value }} días de prueba</dd></div>
+          <div class="summary-row">
+            <dt>Schema</dt>
+            <dd>Se asignará al registrar</dd>
+          </div>
+          <div class="summary-row">
+            <dt>Administrador</dt>
+            <dd>
+              {{ form.controls.admin.controls.username.value || 'usuario'
+              }}&#64;{{ form.controls.loginCode.value || 'compania' }}
+            </dd>
+          </div>
+          <div class="summary-row">
+            <dt>Estatus inicial</dt>
+            <dd>
+              {{ form.controls.trialDays.value > 0 ? 'Periodo de prueba' :
+              'Activo' }}
+            </dd>
+          </div>
+          <div class="summary-row">
+            <dt>Suscripción</dt>
+            <dd>
+              {{ form.controls.planCode.value }} · {{
+              form.controls.trialDays.value }} días de prueba
+            </dd>
+          </div>
         </dl>
-        <div class="flex gap-2.5 bg-[#edf4fb] p-3 text-[#31513f] dark:bg-[#2b425c] dark:text-[#d7e7f5]"><span class="text-[#e86a33]">↳</span><p class="m-0 text-[0.69rem] leading-6">Si algún paso falla, PostgreSQL revierte la compañía, el schema y el usuario.</p></div>
-        <button class="mt-5 w-full bg-[#e86a33] px-5 py-3 font-bold text-white shadow-[0_5px_0_#aa461c] transition hover:translate-y-px hover:bg-[#d95d28] hover:shadow-[0_4px_0_#aa461c] active:translate-y-1 active:shadow-[0_1px_0_#aa461c] disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none" type="submit" [disabled]="saving() || loadingCatalogs() || !!catalogError()">{{ saving() ? 'Preparando compañía…' : 'Registrar compañía' }}</button>
+        <div
+          class="flex gap-2.5 bg-[#edf4fb] p-3 text-[#31513f] dark:bg-[#2b425c] dark:text-[#d7e7f5]"
+        >
+          <span class="text-[#e86a33]">↳</span>
+          <p class="m-0 text-[0.69rem] leading-6">
+            Si algún paso falla, PostgreSQL revierte la compañía, el schema y el
+            usuario.
+          </p>
+        </div>
+        <button
+          class="mt-5 w-full bg-[#e86a33] px-5 py-3 font-bold text-white shadow-[0_5px_0_#aa461c] transition hover:translate-y-px hover:bg-[#d95d28] hover:shadow-[0_4px_0_#aa461c] active:translate-y-1 active:shadow-[0_1px_0_#aa461c] disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
+          type="submit"
+          [disabled]="saving() || loadingCatalogs() || !!catalogError()"
+        >
+          {{ saving() ? 'Preparando compañía…' : 'Registrar compañía' }}
+        </button>
       </aside>
     </form>
   </section>
 </main>
+
+@if (resetTarget(); as company) {
+<div
+  class="fixed inset-0 z-50 grid place-items-center bg-[#07111f]/65 p-4 backdrop-blur-sm"
+  [class.dark]="theme.isDark()"
+  (click)="closePasswordReset()"
+  role="presentation"
+>
+  <section
+    class="w-full max-w-lg border border-[#d5dce3] bg-white p-6 shadow-2xl dark:border-[#38516d] dark:bg-[#19283b]"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="company-password-title"
+    (click)="$event.stopPropagation()"
+  >
+    <p class="eyebrow">RESTABLECER ACCESO PRINCIPAL</p>
+    <h2
+      id="company-password-title"
+      class="m-0 font-[var(--display)] text-3xl font-semibold"
+    >
+      Asignar contraseña temporal
+    </h2>
+    <p class="mt-2 text-sm text-[#63717d] dark:text-[#afbed0]">
+      Se asignará a
+      <strong class="text-[#17251e] dark:text-[#edf4fb]"
+        >{{ company.admin.fullName }}</strong
+      >
+      de {{ company.name }}. Sus sesiones abiertas se cerrarán inmediatamente.
+    </p>
+    <form
+      class="mt-5 grid gap-4"
+      [formGroup]="passwordForm"
+      (ngSubmit)="resetPrimaryAdminPassword()"
+      novalidate
+    >
+      <div>
+        <label class="field-label" for="company-reset-password"
+          >Contraseña temporal <b>*</b></label
+        ><input
+          class="field-control"
+          id="company-reset-password"
+          type="password"
+          formControlName="password"
+          autocomplete="new-password"
+          placeholder="Entre 6 y 10 caracteres"
+        />@if (passwordForm.controls.password.touched &&
+        passwordForm.controls.password.invalid) {
+        <small class="field-error"
+          >Usa de 6 a 10 caracteres, con una letra y un número.</small
+        >
+        }
+      </div>
+      <div>
+        <label class="field-label" for="company-reset-confirmation"
+          >Confirmar contraseña <b>*</b></label
+        ><input
+          class="field-control"
+          id="company-reset-confirmation"
+          type="password"
+          formControlName="confirmation"
+          autocomplete="new-password"
+        />@if (passwordForm.controls.confirmation.touched &&
+        !resetPasswordsMatch()) {
+        <small class="field-error">Las contraseñas no coinciden.</small> }
+      </div>
+      <div
+        class="border-l-4 border-[#e86a33] bg-[#fff0e8] p-3 text-sm text-[#7d3d22] dark:bg-[#493326] dark:text-[#ffd5c2]"
+      >
+        <strong class="block">Cambio obligatorio al ingresar</strong
+        ><span class="mt-1 block text-xs"
+          >Sólo podrá acceder a Seguridad hasta crear su contraseña
+          definitiva.</span
+        >
+      </div>
+      <label class="grid grid-cols-[auto_1fr] items-start gap-2 text-sm"
+        ><input
+          class="mt-1"
+          type="checkbox"
+          formControlName="acknowledged"
+        /><span
+          >Confirmo que deseo cerrar sus sesiones y asignar este acceso
+          temporal.</span
+        ></label
+      >
+      <footer
+        class="mt-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"
+      >
+        <button
+          class="secondary-tw"
+          type="button"
+          (click)="closePasswordReset()"
+        >
+          Cancelar</button
+        ><button
+          class="primary"
+          type="submit"
+          [disabled]="resetting() || passwordForm.invalid || !resetPasswordsMatch()"
+        >
+          {{ resetting() ? 'Asignando…' : 'Asignar contraseña temporal' }}
+        </button>
+      </footer>
+    </form>
+  </section>
+</div>
+}

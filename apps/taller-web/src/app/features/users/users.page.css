@@ -451,6 +451,12 @@ form footer {
   margin-top: 0.35rem;
   font-size: 0.68rem;
 }
+.temporary-password-help {
+  margin: 0.55rem 0 0;
+  color: var(--users-muted);
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
 .toggle {
   display: flex;
   align-items: center;
@@ -490,6 +496,31 @@ form footer {
   display: grid;
   gap: 1rem;
   margin-top: 1.4rem;
+}
+.password-reset-callout {
+  display: grid;
+  gap: 0.2rem;
+  border-left: 3px solid var(--orange);
+  background: var(--users-fill);
+  padding: 0.85rem 1rem;
+  font-size: 0.76rem;
+}
+.password-reset-callout span {
+  color: var(--users-muted);
+  line-height: 1.5;
+}
+.reset-confirmation {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: 0.65rem;
+  color: var(--users-text);
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+.reset-confirmation input {
+  width: auto;
+  margin-top: 0.15rem;
 }
 .sr-only {
   position: absolute;

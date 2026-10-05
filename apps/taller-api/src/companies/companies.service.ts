@@ -24,6 +24,87 @@ export class CompaniesService {
     private readonly passwordResets: PasswordResetService,
   ) {}
 
+  async list(): Promise<CompanyResponseDto[]> {
+    const rows = await this.dataSource.query<
+      Array<{
+        id: string;
+        name: string;
+        schema_name: string;
+        login_code: string;
+        company_type_code: string;
+        person_type_code: string;
+        is_active: boolean;
+        withholds_isr: boolean;
+        withholds_iva: boolean;
+        created_at: Date;
+        admin_id: string;
+        admin_email: string | null;
+        admin_username: string;
+        admin_phone: string | null;
+        admin_phone_verified_at: Date | null;
+        admin_full_name: string;
+        admin_role: PlatformRole;
+        admin_timezone_code: string;
+        admin_is_active: boolean;
+        admin_must_change_password: boolean;
+        admin_created_at: Date;
+        admin_updated_at: Date;
+      }>
+    >(
+      `SELECT company.id, company.name, company.schema_name, company.login_code,
+              company.company_type_code, company.person_type_code, company.is_active,
+              company.withholds_isr, company.withholds_iva, company.created_at,
+              admin.id AS admin_id, admin.email AS admin_email,
+              admin.username AS admin_username, admin.phone AS admin_phone,
+              admin.phone_verified_at AS admin_phone_verified_at,
+              admin.full_name AS admin_full_name, admin.role AS admin_role,
+              admin.timezone_code AS admin_timezone_code,
+              admin.is_active AS admin_is_active,
+              admin.must_change_password AS admin_must_change_password,
+              admin.created_at AS admin_created_at, admin.updated_at AS admin_updated_at
+       FROM public.companies company
+       JOIN LATERAL (
+         SELECT tenant_admin.*
+         FROM public.users tenant_admin
+         WHERE tenant_admin.company_id = company.id
+           AND tenant_admin.role = $1
+         ORDER BY tenant_admin.created_at ASC, tenant_admin.id ASC
+         LIMIT 1
+       ) admin ON TRUE
+       ORDER BY company.created_at DESC, company.id DESC`,
+      [PlatformRole.CompanyAdmin],
+    );
+
+    return rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      schemaName: row.schema_name,
+      loginCode: row.login_code,
+      companyTypeCode: row.company_type_code,
+      personTypeCode: row.person_type_code,
+      isActive: row.is_active,
+      withholdsIsr: row.withholds_isr,
+      withholdsIva: row.withholds_iva,
+      createdAt: row.created_at,
+      admin: {
+        id: row.admin_id,
+        email: row.admin_email,
+        username: row.admin_username,
+        loginName: tenantLoginName(row.admin_username, row.login_code),
+        phone: row.admin_phone,
+        phoneVerifiedAt: row.admin_phone_verified_at,
+        fullName: row.admin_full_name,
+        role: row.admin_role,
+        companyId: row.id,
+        timezoneCode: row.admin_timezone_code,
+        isActive: row.admin_is_active,
+        mustChangePassword: row.admin_must_change_password,
+        createdAt: row.admin_created_at,
+        updatedAt: row.admin_updated_at,
+      },
+    }));
+  }
+
   async resetPrimaryAdminPassword(
     user: AuthenticatedUser,
     companyId: string,

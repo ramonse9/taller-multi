@@ -57,9 +57,10 @@
         {{ submitting() ? (navigationFailed() ? 'Abriendo…' : 'Ingresando…') :
         (navigationFailed() ? 'Continuar al sistema' : 'Ingresar') }}
       </button>
-      <a class="recovery-link" routerLink="/recuperar-contrasena">
-        ¿Olvidaste tu contraseña?
-      </a>
+      <p class="recovery-help">
+        ¿Olvidaste tu contraseña? Solicita una contraseña temporal a tu
+        administrador.
+      </p>
     </form>
   </section>
 </main>

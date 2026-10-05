@@ -16,14 +16,6 @@ export const routes: Routes = [
       import("./features/auth/login.page").then((m) => m.LoginPage),
   },
   {
-    path: "recuperar-contrasena",
-    canActivate: [guestGuard],
-    loadComponent: () =>
-      import("./features/auth/password-recovery.page").then(
-        (m) => m.PasswordRecoveryPage,
-      ),
-  },
-  {
     path: "",
     canActivate: [authGuard],
     loadComponent: () =>
@@ -35,7 +27,10 @@ export const routes: Routes = [
       {
         path: "dashboard",
         canActivate: [roleGuard, featureGuard, permissionGuard],
-        data: { roles: ["company_admin", "admin", "user"], permission: "dashboard.view" },
+        data: {
+          roles: ["company_admin", "admin", "user"],
+          permission: "dashboard.view",
+        },
         loadComponent: () =>
           import("./features/dashboard/dashboard.page").then(
             (m) => m.DashboardPage,
@@ -266,7 +261,10 @@ export const routes: Routes = [
       {
         path: "vehicle-catalog",
         canActivate: [roleGuard, featureGuard, permissionGuard],
-        data: { roles: ["platform_admin", "company_admin", "admin", "user"], permission: "vehicle_catalog.view" },
+        data: {
+          roles: ["platform_admin", "company_admin", "admin", "user"],
+          permission: "vehicle_catalog.view",
+        },
         loadComponent: () =>
           import("./features/vehicle-catalog/vehicle-catalog.page").then(
             (m) => m.VehicleCatalogPage,
@@ -302,7 +300,9 @@ export const routes: Routes = [
         canActivate: [roleGuard],
         data: { roles: ["company_admin", "admin", "user"] },
         loadComponent: () =>
-          import("./features/auth/access-denied.page").then((m) => m.AccessDeniedPage),
+          import("./features/auth/access-denied.page").then(
+            (m) => m.AccessDeniedPage,
+          ),
       },
       {
         path: "account",

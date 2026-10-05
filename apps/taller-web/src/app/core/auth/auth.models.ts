@@ -21,14 +21,3 @@ export interface LoginResponse {
   accessToken: string;
   user: SessionUser;
 }
-
-export interface PasswordRecoveryRequestResponse {
-  accepted: boolean;
-  message: string;
-  developmentCode?: string;
-}
-
-export interface PasswordRecoveryVerifyResponse {
-  resetToken: string;
-  expiresInSeconds: number;
-}

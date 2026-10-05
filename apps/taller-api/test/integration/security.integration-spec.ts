@@ -1013,6 +1013,13 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(primaryLogin.status).toBe(200);
     expect(primaryLogin.body.user.mustChangePassword).toBe(true);
 
+    const companies = await request<CompanyResponse[]>('GET', '/companies', {
+      token: platformToken,
+    });
+    expect(companies.status).toBe(200);
+    const listedCompany = companies.body.find(({ id }) => id === tenant.company.id);
+    expect(listedCompany?.admin.id).toBe(tenant.user.id);
+
     const audit = await control.query<
       Array<{
         target_user_id: string;

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Param,
@@ -16,6 +17,7 @@ import {
   ApiForbiddenResponse,
   ApiOperation,
   ApiNoContentResponse,
+  ApiOkResponse,
   ApiTags,
   ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
@@ -34,6 +36,14 @@ import { AuthenticatedUser } from '../common/types/authenticated-user';
 @Roles(PlatformRole.PlatformAdmin)
 export class CompaniesController {
   constructor(private readonly companies: CompaniesService) {}
+
+  @Get()
+  @ApiOperation({ summary: 'Listar compañías y su Administrador principal' })
+  @ApiOkResponse({ type: CompanyResponseDto, isArray: true })
+  list(): Promise<CompanyResponseDto[]> {
+    return this.companies.list();
+  }
+
   @Post()
   @ApiOperation({ summary: 'Registrar compañía, schema y primer administrador tenant' })
   @ApiCreatedResponse({ type: CompanyResponseDto })

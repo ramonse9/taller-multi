@@ -214,6 +214,10 @@ export class UsersPage implements OnInit {
       nonNullable: true,
       validators: [Validators.required],
     }),
+    acknowledged: new FormControl(false, {
+      nonNullable: true,
+      validators: [Validators.requiredTrue],
+    }),
   });
 
   ngOnInit(): void {
@@ -257,10 +261,14 @@ export class UsersPage implements OnInit {
       .subscribe({
         next: ({ catalog, templates, sources }) => {
           this.permissionCatalog.set(
-            [...catalog].sort((left, right) => left.sortOrder - right.sortOrder),
+            [...catalog].sort(
+              (left, right) => left.sortOrder - right.sortOrder,
+            ),
           );
           this.permissionTemplates.set(
-            [...templates].sort((left, right) => left.sortOrder - right.sortOrder),
+            [...templates].sort(
+              (left, right) => left.sortOrder - right.sortOrder,
+            ),
           );
           this.permissionSources.set(sources.items);
           if (this.editorOpen() && !this.editing()) {
@@ -448,9 +456,13 @@ export class UsersPage implements OnInit {
   }
 
   openPasswordReset(user: TenantUser): void {
-    if (!this.canManage(user) || user.id === this.auth.user()?.id) return;
+    if (!this.canResetPassword(user)) return;
     this.passwordTarget.set(user);
-    this.passwordForm.reset({ password: "", confirmation: "" });
+    this.passwordForm.reset({
+      password: "",
+      confirmation: "",
+      acknowledged: false,
+    });
   }
 
   closePasswordReset(): void {
@@ -474,7 +486,10 @@ export class UsersPage implements OnInit {
       .subscribe({
         next: () => {
           this.passwordTarget.set(null);
-          this.showNotice(`Contraseña restablecida para ${target.fullName}.`);
+          this.showNotice(
+            `Contraseña temporal asignada a ${target.fullName}. Sus sesiones fueron cerradas y deberá cambiarla al iniciar sesión.`,
+          );
+          this.load();
         },
         error: (error: unknown) =>
           this.error.set(
@@ -545,6 +560,20 @@ export class UsersPage implements OnInit {
       this.auth.hasPermission("users.manage") &&
       (role === "company_admin" || (role === "admin" && user.role === "user"))
     );
+  }
+
+  canResetPassword(user: TenantUser): boolean {
+    const actor = this.auth.user();
+    if (
+      !actor ||
+      !user.isActive ||
+      user.id === actor.id ||
+      !this.auth.hasPermission("users.manage")
+    )
+      return false;
+    return actor.role === "company_admin"
+      ? user.role === "admin" || user.role === "user"
+      : actor.role === "admin" && user.role === "user";
   }
 
   canCreateUsers(): boolean {
@@ -665,7 +694,10 @@ export class UsersPage implements OnInit {
     control.setValue(sections.filter(Boolean).join(" "), { emitEvent: false });
   }
 
-  private internationalPhone(countryCode: string, nationalPhone: string): string {
+  private internationalPhone(
+    countryCode: string,
+    nationalPhone: string,
+  ): string {
     return `${countryCode.trim()}${nationalPhone.replace(/\D/g, "")}`;
   }
 
@@ -678,7 +710,10 @@ export class UsersPage implements OnInit {
     const allDigits = normalized.replace(/\D/g, "");
     const nationalDigits = allDigits.slice(-10);
     const countryDigits = normalized.startsWith("+")
-      ? allDigits.slice(0, Math.max(0, allDigits.length - nationalDigits.length))
+      ? allDigits.slice(
+          0,
+          Math.max(0, allDigits.length - nationalDigits.length),
+        )
       : "52";
     const sections = [
       nationalDigits.slice(0, 3),
@@ -716,7 +751,10 @@ export class UsersPage implements OnInit {
         },
         error: (error: unknown) =>
           this.error.set(
-            apiErrorMessage(error, "No pudimos cargar los permisos del usuario."),
+            apiErrorMessage(
+              error,
+              "No pudimos cargar los permisos del usuario.",
+            ),
           ),
       });
   }

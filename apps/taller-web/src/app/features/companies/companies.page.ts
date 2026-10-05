@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   DestroyRef,
   OnInit,
   inject,
@@ -43,14 +44,32 @@ export class CompaniesPage implements OnInit {
   readonly theme = inject(ThemeService);
 
   readonly loadingCatalogs = signal(true);
+  readonly loadingCompanies = signal(true);
   readonly saving = signal(false);
+  readonly resetting = signal(false);
   readonly error = signal("");
+  readonly notice = signal("");
   readonly catalogError = signal("");
   readonly created = signal<CompanyResponse | null>(null);
+  readonly companyList = signal<CompanyResponse[]>([]);
+  readonly companySearch = signal("");
+  readonly resetTarget = signal<CompanyResponse | null>(null);
   readonly companyTypes = signal<CatalogItem[]>([]);
   readonly personTypes = signal<CatalogItem[]>([]);
   readonly timezones = signal<TimezoneCatalogItem[]>([]);
   readonly plans = signal<SubscriptionPlan[]>([]);
+  readonly filteredCompanies = computed(() => {
+    const search = this.companySearch().trim().toLowerCase();
+    if (!search) return this.companyList();
+    return this.companyList().filter((company) =>
+      [
+        company.name,
+        company.loginCode,
+        company.admin.fullName,
+        company.admin.loginName,
+      ].some((value) => value.toLowerCase().includes(search)),
+    );
+  });
 
   readonly form = new FormGroup({
     name: new FormControl("", {
@@ -139,9 +158,46 @@ export class CompaniesPage implements OnInit {
       }),
     }),
   });
+  readonly passwordForm = new FormGroup({
+    password: new FormControl("", {
+      nonNullable: true,
+      validators: [
+        Validators.required,
+        Validators.minLength(6),
+        Validators.maxLength(10),
+        Validators.pattern(/^(?=.*[A-Za-z])(?=.*\d).+$/),
+      ],
+    }),
+    confirmation: new FormControl("", {
+      nonNullable: true,
+      validators: [Validators.required],
+    }),
+    acknowledged: new FormControl(false, {
+      nonNullable: true,
+      validators: [Validators.requiredTrue],
+    }),
+  });
 
   ngOnInit(): void {
     this.loadCatalogs();
+    this.loadCompanies();
+  }
+
+  loadCompanies(): void {
+    this.loadingCompanies.set(true);
+    this.companies
+      .list()
+      .pipe(
+        finalize(() => this.loadingCompanies.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (companies) => this.companyList.set(companies),
+        error: (error: unknown) =>
+          this.error.set(
+            apiErrorMessage(error, "No pudimos cargar las compañías."),
+          ),
+      });
   }
 
   loadCatalogs(): void {
@@ -184,6 +240,7 @@ export class CompaniesPage implements OnInit {
     }
     this.saving.set(true);
     this.error.set("");
+    this.notice.set("");
     this.created.set(null);
     const raw = this.form.getRawValue();
     const input: CreateCompanyInput = {
@@ -216,6 +273,10 @@ export class CompaniesPage implements OnInit {
       .subscribe({
         next: (company) => {
           this.created.set(company);
+          this.companyList.update((companies) => [
+            company,
+            ...companies.filter(({ id }) => id !== company.id),
+          ]);
           this.resetForm();
         },
         error: (error: unknown) =>
@@ -257,6 +318,68 @@ export class CompaniesPage implements OnInit {
 
   dismissSuccess(): void {
     this.created.set(null);
+  }
+
+  openPasswordReset(company: CompanyResponse): void {
+    if (!company.isActive || !company.admin.isActive) return;
+    this.resetTarget.set(company);
+    this.passwordForm.reset({
+      password: "",
+      confirmation: "",
+      acknowledged: false,
+    });
+  }
+
+  closePasswordReset(): void {
+    if (!this.resetting()) this.resetTarget.set(null);
+  }
+
+  resetPasswordsMatch(): boolean {
+    return (
+      this.passwordForm.controls.password.value ===
+      this.passwordForm.controls.confirmation.value
+    );
+  }
+
+  resetPrimaryAdminPassword(): void {
+    const company = this.resetTarget();
+    if (
+      !company ||
+      this.passwordForm.invalid ||
+      !this.resetPasswordsMatch() ||
+      this.resetting()
+    ) {
+      this.passwordForm.markAllAsTouched();
+      return;
+    }
+    this.resetting.set(true);
+    this.error.set("");
+    this.notice.set("");
+    this.companies
+      .resetPrimaryAdminPassword(
+        company.id,
+        this.passwordForm.controls.password.value,
+      )
+      .pipe(
+        finalize(() => this.resetting.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: () => {
+          this.resetTarget.set(null);
+          this.notice.set(
+            `Contraseña temporal asignada a ${company.admin.fullName}. Sus sesiones fueron cerradas y deberá cambiarla al iniciar sesión.`,
+          );
+          this.loadCompanies();
+        },
+        error: (error: unknown) =>
+          this.error.set(
+            apiErrorMessage(
+              error,
+              "No pudimos asignar la contraseña temporal.",
+            ),
+          ),
+      });
   }
 
   private resetForm(): void {
