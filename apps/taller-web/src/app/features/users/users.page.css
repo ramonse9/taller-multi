@@ -11,7 +11,9 @@
   --users-row-hover: #f4f7fa;
   background: var(--users-bg);
   color: var(--users-text);
-  transition: background-color 180ms ease, color 180ms ease;
+  transition:
+    background-color 180ms ease,
+    color 180ms ease;
 }
 :host.dark {
   --users-bg: #111d2e;
@@ -25,13 +27,15 @@
 }
 main {
   min-height: 100vh;
+  overflow-x: hidden;
   background: var(--users-bg);
   color: var(--users-text);
 }
 .topbar {
   min-height: 9rem;
-  padding: 2.3rem clamp(1.5rem, 5vw, 5rem);
+  padding: 2.3rem clamp(1.25rem, 5vw, 5rem);
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--users-line);
@@ -58,7 +62,7 @@ h1 {
   margin-right: 0.3rem;
 }
 .content {
-  padding: 2.3rem clamp(1.5rem, 5vw, 5rem) 4rem;
+  padding: 2.3rem clamp(1.25rem, 5vw, 5rem) 4rem;
 }
 .intro-row {
   display: flex;
@@ -532,15 +536,60 @@ form footer {
 }
 @media (max-width: 560px) {
   .topbar {
-    align-items: end;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  .topbar > div:first-child {
+    width: 100%;
+  }
+  .topbar-actions {
+    width: 100%;
+    justify-content: space-between;
   }
   .topbar .primary {
     padding: 0.7rem 0.85rem;
-    font-size: 0;
   }
   .topbar .primary span {
     font-size: 1.4rem;
-    margin: 0;
+    margin-right: 0.3rem;
+  }
+  h1 {
+    font-size: clamp(2.15rem, 10vw, 4rem);
+  }
+  .intro-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+  .segments {
+    width: 100%;
+  }
+  .segments button {
+    flex: 1;
+    padding-inline: 0.45rem;
+  }
+  .error-banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+  .error-banner button {
+    float: none;
+  }
+  .pagination {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 0.75rem;
+    text-align: center;
+  }
+  .pagination div {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .pagination button {
+    width: 100%;
   }
   .editor form {
     grid-template-columns: 1fr;
@@ -551,6 +600,30 @@ form footer {
   }
   .editor > header {
     padding: 1.5rem 1.4rem;
+  }
+  .editor footer,
+  .password-dialog footer {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+  .editor footer button,
+  .password-dialog footer button {
+    width: 100%;
+  }
+  .copy-permissions {
+    grid-template-columns: 1fr;
+  }
+  .copy-permissions .secondary {
+    width: 100%;
+  }
+  .backdrop.centered {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .password-dialog {
+    max-height: 100dvh;
+    overflow-y: auto;
+    padding: 1.4rem;
   }
   th:nth-child(2),
   td:nth-child(2) {

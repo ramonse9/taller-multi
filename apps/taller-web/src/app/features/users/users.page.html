@@ -71,7 +71,89 @@
     </div>
     }
 
-    <div class="table-wrap" [class.loading]="loading()">
+    <div class="users-cards" [class.loading]="loading()">
+      @for (user of data().items; track user.id) {
+      <article class="user-card">
+        <div class="user-card-heading">
+          <span class="avatar">{{ initials(user.fullName) }}</span>
+          <div class="user-card-identity">
+            <strong>{{ user.fullName }}</strong>
+            <small>{{ user.loginName }}</small>
+            @if (user.phone) {
+            <small
+              >{{ user.phone }} · {{ user.phoneVerifiedAt ? 'Verificado' : 'Sin
+              verificar' }}</small
+            >
+            }
+          </div>
+          <span
+            class="role"
+            [class.admin]="user.role === 'admin'"
+            [class.company-admin]="user.role === 'company_admin'"
+            >{{ roleLabel(user.role) }}</span
+          >
+        </div>
+
+        <dl class="user-card-details">
+          <div>
+            <dt>Estatus</dt>
+            <dd>
+              {{ user.isActive ? 'Acceso activo' : 'Acceso desactivado' }}
+            </dd>
+          </div>
+          <div>
+            <dt>Zona horaria</dt>
+            <dd class="timezone">{{ user.timezoneCode }}</dd>
+          </div>
+          <div>
+            <dt>Registro</dt>
+            <dd>{{ formatShortDate(user.createdAt) }}</dd>
+          </div>
+          <div class="user-card-scope">
+            <dt>Alcance administrativo</dt>
+            <dd>{{ managementScope(user) }}</dd>
+          </div>
+        </dl>
+
+        @if (canManage(user)) {
+        <footer class="user-card-actions">
+          <button type="button" (click)="openEdit(user)">Editar</button>
+          <button
+            type="button"
+            (click)="openPasswordReset(user)"
+            [disabled]="user.id === auth.user()?.id"
+          >
+            Contraseña
+          </button>
+          @if (user.isActive && user.id !== auth.user()?.id) {
+          <button class="danger" type="button" (click)="deactivate(user)">
+            Desactivar
+          </button>
+          }
+        </footer>
+        } @else {
+        <span class="user-card-out-of-scope">Fuera de tu alcance</span>
+        }
+      </article>
+      } @empty { @if (!loading()) {
+      <div class="empty users-card-empty">
+        <span>◎</span>
+        <h2>No hay usuarios aquí</h2>
+        <p>Cambia los filtros o registra un nuevo acceso.</p>
+        @if (canCreateUsers()) {
+        <button class="secondary" type="button" (click)="openCreate()">
+          Crear usuario
+        </button>
+        }
+      </div>
+      } } @if (loading()) {
+      <div class="loader" aria-label="Cargando">
+        <span></span><span></span><span></span>
+      </div>
+      }
+    </div>
+
+    <div class="table-wrap users-table" [class.loading]="loading()">
       <table>
         <thead>
           <tr>
@@ -252,10 +334,10 @@
             (input)="formatPhone()"
           />
         </div>
-        @if ((form.controls.phoneCountryCode.touched && form.controls.phoneCountryCode.invalid) || (form.controls.phone.touched && form.controls.phone.invalid)) {
-        <small
-          >Captura una lada válida y los 10 dígitos del celular.</small
-        >
+        @if ((form.controls.phoneCountryCode.touched &&
+        form.controls.phoneCountryCode.invalid) || (form.controls.phone.touched
+        && form.controls.phone.invalid)) {
+        <small>Captura una lada válida y los 10 dígitos del celular.</small>
         }
       </div>
       <div class="field full">
@@ -270,11 +352,7 @@
       </div>
       <div class="field">
         <label for="user-role">Rol <b>*</b></label
-        ><select
-          id="user-role"
-          formControlName="role"
-          (change)="roleChanged()"
-        >
+        ><select id="user-role" formControlName="role" (change)="roleChanged()">
           <option value="user">Usuario</option>
           @if (canAssignRoles()) {
           <option value="admin">Administrador</option>
@@ -309,7 +387,10 @@
       >
       }
 
-      <section class="permissions-panel full" aria-labelledby="permissions-title">
+      <section
+        class="permissions-panel full"
+        aria-labelledby="permissions-title"
+      >
         <div class="permissions-heading">
           <div>
             <p class="section-kicker">ACCESO POR SECCIONES</p>
@@ -412,8 +493,7 @@
           </fieldset>
           }
         </div>
-        }
-        }
+        } }
       </section>
       <footer>
         <button class="ghost" type="button" (click)="closeEditor()">

@@ -145,6 +145,107 @@
   cursor: not-allowed;
   opacity: 0.68;
 }
+
+.users-cards {
+  position: relative;
+  display: none;
+  min-height: 25rem;
+  gap: 0.8rem;
+}
+.users-cards.loading .user-card {
+  opacity: 0.45;
+}
+.user-card {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--users-line);
+  background: var(--users-surface);
+}
+.user-card-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+.user-card-identity {
+  min-width: 0;
+  flex: 1;
+}
+.user-card-identity strong,
+.user-card-identity small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.user-card-identity strong {
+  font-size: 0.86rem;
+}
+.user-card-identity small {
+  margin-top: 0.22rem;
+  color: var(--users-muted);
+  font-size: 0.68rem;
+}
+.user-card-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+  margin: 1rem 0 0;
+  padding: 1rem 0;
+  border-block: 1px solid var(--users-line);
+  font-size: 0.76rem;
+}
+.user-card-details div {
+  min-width: 0;
+}
+.user-card-details dt {
+  color: var(--users-muted);
+  font: 700 0.58rem var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.user-card-details dd {
+  margin: 0.3rem 0 0;
+  overflow-wrap: anywhere;
+}
+.user-card-scope {
+  grid-column: 1 / -1;
+}
+.user-card-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  padding-top: 1rem;
+}
+.user-card-actions button {
+  min-height: 2.5rem;
+  border: 1px solid var(--users-line);
+  background: var(--users-surface);
+  color: var(--orange-dark);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.user-card-actions .danger {
+  grid-column: 1 / -1;
+  color: var(--danger);
+}
+.user-card-out-of-scope {
+  display: block;
+  padding-top: 1rem;
+  color: var(--users-muted);
+  font-size: 0.7rem;
+  text-align: right;
+}
+.users-card-empty {
+  border: 1px solid var(--users-line);
+  background: var(--users-surface);
+}
+@media (max-width: 1359px) {
+  .users-table {
+    display: none;
+  }
+  .users-cards {
+    display: grid;
+  }
+}
 @media (max-width: 560px) {
   .permission-tools,
   .permission-matrix {
