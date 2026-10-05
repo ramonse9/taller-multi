@@ -1,13 +1,13 @@
 <main
-  class="min-h-screen bg-[#fbfaf7] text-[#17251e] transition-colors dark:bg-[#111d2e] dark:text-[#edf4fb]"
+  class="min-h-screen overflow-x-hidden bg-[#fbfaf7] text-[#17251e] transition-colors dark:bg-[#111d2e] dark:text-[#edf4fb]"
 >
   <header
-    class="flex flex-wrap items-end justify-between gap-5 border-b border-[#d5dce3] px-[clamp(1.5rem,5vw,5rem)] py-9 dark:border-[#38516d]"
+    class="flex flex-wrap items-end justify-between gap-5 border-b border-[#d5dce3] px-[clamp(1.25rem,5vw,5rem)] py-9 max-sm:items-start max-sm:py-6 dark:border-[#38516d]"
   >
     <div>
       <p class="eyebrow">OPERACIÓN / PAQUETE BÁSICO</p>
       <h1
-        class="m-0 font-[var(--display)] text-[clamp(2.5rem,5vw,4.5rem)] font-semibold leading-[.9] tracking-[-.05em]"
+        class="m-0 font-[var(--display)] text-[clamp(2.25rem,10vw,4.5rem)] font-semibold leading-[.9] tracking-[-.05em]"
       >
         Órdenes
       </h1>
@@ -15,17 +15,21 @@
         Historial de servicios, conceptos libres y seguimiento del trabajo.
       </p>
     </div>
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-2 max-sm:w-full max-sm:justify-between">
       <button class="theme-toggle" type="button" (click)="theme.toggle()">
         {{ theme.isDark() ? '☀' : '◐' }}
       </button>
-      @if (auth.hasPermission('orders.create') && auth.hasPermission('clients.view') && auth.hasPermission('vehicles.view') && auth.hasPermission('vehicle_catalog.view')) { <a class="primary no-underline" routerLink="/orders/new"
+      @if (auth.hasPermission('orders.create') &&
+      auth.hasPermission('clients.view') && auth.hasPermission('vehicles.view')
+      && auth.hasPermission('vehicle_catalog.view')) {
+      <a class="primary no-underline max-sm:px-3" routerLink="/orders/new"
         >＋ Nueva orden</a
-      > }
+      >
+      }
     </div>
   </header>
 
-  <section class="px-[clamp(1.5rem,5vw,5rem)] pb-16 pt-8">
+  <section class="px-[clamp(1.25rem,5vw,5rem)] pb-16 pt-8">
     @if (customerId || vehicleId) {
     <div
       class="mb-5 flex flex-wrap items-center justify-between gap-3 border border-[#d9c6b8] bg-[#fff4eb] px-4 py-3 text-sm dark:border-[#664431] dark:bg-[#35271f]"
@@ -64,7 +68,11 @@
         <option value="completed">Terminada</option>
         <option value="cancelled">Cancelada</option>
       </select>
-      <select class="field-control" [formControl]="isPaid" aria-label="Filtrar por pago">
+      <select
+        class="field-control"
+        [formControl]="isPaid"
+        aria-label="Filtrar por pago"
+      >
         <option value="">Pagadas y pendientes</option>
         <option [ngValue]="true">Pagadas</option>
         <option [ngValue]="false">Pendientes de pago</option>
@@ -73,7 +81,7 @@
 
     @if (error()) {
     <div
-      class="mb-5 flex justify-between gap-4 bg-[#ffdcd2] px-4 py-3 text-sm text-[#8e3214] dark:bg-[#633d3d] dark:text-[#ffd9d4]"
+      class="mb-5 flex flex-wrap justify-between gap-4 bg-[#ffdcd2] px-4 py-3 text-sm text-[#8e3214] dark:bg-[#633d3d] dark:text-[#ffd9d4]"
       role="alert"
     >
       <span>{{ error() }}</span
@@ -95,7 +103,9 @@
           [routerLink]="['/orders', order.id]"
           [attr.aria-label]="'Ver detalle de la orden ' + order.folio"
         >
-          <div class="flex items-start justify-between gap-4">
+          <div
+            class="grid gap-3 sm:flex sm:items-start sm:justify-between sm:gap-4"
+          >
             <div>
               <strong class="block font-[var(--mono)] text-lg tracking-[-.03em]"
                 >#{{ order.folio }}</strong
@@ -104,23 +114,25 @@
                 >{{ formatShortDate(order.createdAt) }}</span
               >
             </div>
-            <span
-              class="order-status shrink-0"
-              [class.order-status-in-progress]="order.status === 'in_progress'"
-              [class.order-status-completed]="order.status === 'completed'"
-              [class.order-status-cancelled]="order.status === 'cancelled'"
-              >{{ statusName(order.status) }}</span
-            >
-            <span
-              class="shrink-0 px-2 py-1 text-xs font-bold"
-              [class.bg-[#cfe3fb]]="order.isPaid"
-              [class.text-[#285f8a]]="order.isPaid"
-              [class.dark:bg-[#233f58]]="order.isPaid"
-              [class.dark:text-[#b9dcf5]]="order.isPaid"
-              [class.bg-[#ffe3ab]]="!order.isPaid"
-              [class.text-[#805719]]="!order.isPaid"
-              >{{ order.isPaid ? 'Pagada' : 'Pendiente' }}</span
-            >
+            <div class="flex flex-wrap items-center gap-2 sm:justify-end">
+              <span
+                class="order-status shrink-0"
+                [class.order-status-in-progress]="order.status === 'in_progress'"
+                [class.order-status-completed]="order.status === 'completed'"
+                [class.order-status-cancelled]="order.status === 'cancelled'"
+                >{{ statusName(order.status) }}</span
+              >
+              <span
+                class="shrink-0 px-2 py-1 text-xs font-bold"
+                [class.bg-[#cfe3fb]]="order.isPaid"
+                [class.text-[#285f8a]]="order.isPaid"
+                [class.dark:bg-[#233f58]]="order.isPaid"
+                [class.dark:text-[#b9dcf5]]="order.isPaid"
+                [class.bg-[#ffe3ab]]="!order.isPaid"
+                [class.text-[#805719]]="!order.isPaid"
+                >{{ order.isPaid ? 'Pagada' : 'Pendiente' }}</span
+              >
+            </div>
           </div>
 
           <div
@@ -149,7 +161,7 @@
             </div>
           </div>
 
-          <div class="mt-4 flex items-end justify-between gap-4">
+          <div class="mt-4 flex flex-wrap items-end justify-between gap-4">
             <div class="text-xs text-[#63717d] dark:text-[#afbed0]">
               <span class="block"
                 >{{ order.itemCount }} {{ order.itemCount === 1 ? 'concepto' :
@@ -285,21 +297,23 @@
       }
     </div>
 
-    <footer class="mt-5 flex items-center justify-between gap-4 text-sm">
-      <span
+    <footer
+      class="mt-5 flex flex-col items-stretch gap-3 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+    >
+      <span class="text-center sm:text-left"
         >{{ data().totalItems }} órdenes · página {{ data().page }} de {{
         data().totalPages || 1 }}</span
       >
-      <div class="flex gap-2">
+      <div class="grid grid-cols-2 gap-2 sm:flex">
         <button
-          class="secondary-tw"
+          class="secondary-tw w-full sm:w-auto"
           type="button"
           [disabled]="data().page <= 1"
           (click)="previous()"
         >
           Anterior</button
         ><button
-          class="secondary-tw"
+          class="secondary-tw w-full sm:w-auto"
           type="button"
           [disabled]="!data().hasNextPage"
           (click)="next()"
