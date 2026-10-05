@@ -14,18 +14,29 @@ import { TenantModule } from './tenant/tenant.module';
 import { VehicleCatalogModule } from './vehicle-catalog/vehicle-catalog.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { PermissionsModule } from './permissions/permissions.module';
+import { shouldSkipSensitiveRateLimit } from './common/decorators/sensitive-rate-limit.decorator';
 
 @Module({
   imports: [
     ConfigModule,
     ThrottlerModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => [
-        {
-          ttl: config.getOrThrow<number>('RATE_LIMIT_TTL_MS'),
-          limit: config.getOrThrow<number>('RATE_LIMIT_MAX'),
-        },
-      ],
+      useFactory: (config: ConfigService) => ({
+        errorMessage: 'Demasiadas solicitudes. Intenta de nuevo más tarde.',
+        throttlers: [
+          {
+            name: 'default',
+            ttl: config.getOrThrow<number>('RATE_LIMIT_TTL_MS'),
+            limit: config.getOrThrow<number>('RATE_LIMIT_MAX'),
+          },
+          {
+            name: 'sensitive',
+            ttl: config.getOrThrow<number>('SENSITIVE_RATE_LIMIT_TTL_MS'),
+            limit: config.getOrThrow<number>('SENSITIVE_RATE_LIMIT_MAX'),
+            skipIf: shouldSkipSensitiveRateLimit,
+          },
+        ],
+      }),
     }),
     DatabaseModule,
     CommonModule,

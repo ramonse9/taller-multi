@@ -7,6 +7,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { SensitiveRateLimit } from '../common/decorators/sensitive-rate-limit.decorator';
 import { AuthenticatedUser } from '../common/types/authenticated-user';
 import { AuthService } from './auth.service';
 import { LoginDto, LoginResponseDto, LoginUserResponseDto } from './dto/login.dto';
@@ -29,6 +30,7 @@ export class AuthController {
   ) {}
 
   @Post('login')
+  @SensitiveRateLimit()
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ type: LoginResponseDto })
   login(@Body() input: LoginDto): Promise<LoginResponseDto> {
@@ -36,6 +38,7 @@ export class AuthController {
   }
 
   @Post('password-recovery/request')
+  @SensitiveRateLimit()
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiAcceptedResponse({ type: PasswordRecoveryRequestedDto })
   requestPasswordRecovery(
@@ -45,6 +48,7 @@ export class AuthController {
   }
 
   @Post('password-recovery/verify')
+  @SensitiveRateLimit()
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ type: PasswordRecoveryVerifiedDto })
   verifyPasswordRecovery(
@@ -54,6 +58,7 @@ export class AuthController {
   }
 
   @Post('password-recovery/complete')
+  @SensitiveRateLimit()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiNoContentResponse()
   async completePasswordRecovery(@Body() input: CompletePasswordRecoveryDto): Promise<void> {

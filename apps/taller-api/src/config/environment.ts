@@ -89,6 +89,22 @@ class EnvironmentVariables {
   @Min(1)
   RATE_LIMIT_MAX = 100;
 
+  @Transform(({ value }) => Number(value))
+  @IsInt()
+  @Min(1000)
+  SENSITIVE_RATE_LIMIT_TTL_MS = 60000;
+
+  @Transform(({ value }) => Number(value))
+  @IsInt()
+  @Min(1)
+  SENSITIVE_RATE_LIMIT_MAX = 3;
+
+  @Transform(({ value }) => Number(value))
+  @IsInt()
+  @Min(0)
+  @Max(10)
+  TRUST_PROXY_HOPS = 0;
+
   @IsOptional()
   @Transform(({ value }) => {
     const input: unknown = value;

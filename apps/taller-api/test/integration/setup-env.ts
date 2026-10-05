@@ -25,3 +25,6 @@ process.env.OTP_SECRET = 'integration-otp-secret-at-least-32-characters';
 process.env.MOBILE_PROVIDER = 'console';
 process.env.RATE_LIMIT_TTL_MS = '60000';
 process.env.RATE_LIMIT_MAX = '1000';
+process.env.SENSITIVE_RATE_LIMIT_TTL_MS = '60000';
+process.env.SENSITIVE_RATE_LIMIT_MAX = '1000';
+process.env.TRUST_PROXY_HOPS = '0';
