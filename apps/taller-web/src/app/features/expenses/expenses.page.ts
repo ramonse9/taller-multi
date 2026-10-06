@@ -104,6 +104,7 @@ export class ExpensesPage implements OnInit {
   readonly detailOpen = signal(false);
   readonly detailLoading = signal(false);
   readonly detail = signal<Expense | null>(null);
+  readonly cancelTarget = signal<ExpenseSummary | null>(null);
   readonly error = signal("");
   readonly notice = signal("");
 
@@ -343,25 +344,33 @@ export class ExpensesPage implements OnInit {
       });
   }
 
-  changeStatus(expense: ExpenseSummary, status: ExpenseStatus): void {
-    if (this.saving() || status === "draft") return;
-    if (status === "cancelled" && !window.confirm("¿Cancelar este gasto?"))
-      return;
+  requestCancellation(expense: ExpenseSummary): void {
+    if (this.saving() || expense.status === "cancelled") return;
+    this.error.set("");
+    this.cancelTarget.set(expense);
+  }
+
+  closeCancellation(): void {
+    if (!this.saving()) this.cancelTarget.set(null);
+  }
+
+  confirmCancellation(): void {
+    const expense = this.cancelTarget();
+    if (!expense || this.saving()) return;
     this.saving.set(true);
     this.error.set("");
     this.expensesService
-      .changeStatus(expense.id, status)
+      .changeStatus(expense.id, "cancelled")
       .pipe(
         finalize(() => this.saving.set(false)),
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
         next: () => {
+          this.cancelTarget.set(null);
           this.detailOpen.set(false);
           this.detail.set(null);
-          this.showNotice(
-            status === "confirmed" ? "Gasto confirmado." : "Gasto cancelado.",
-          );
+          this.showNotice("Gasto cancelado.");
           this.refresh();
         },
         error: (error: unknown) =>
