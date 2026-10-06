@@ -35,6 +35,7 @@ import { UserPermissions1700000023000 } from '../../src/database/migrations/publ
 import { SensitiveActionPermissions1700000024000 } from '../../src/database/migrations/public/1700000024000-sensitive-action-permissions';
 import { AdministrativePasswordResets1700000027000 } from '../../src/database/migrations/public/1700000027000-administrative-password-resets';
 import { RetireMobilePasswordRecovery1700000028000 } from '../../src/database/migrations/public/1700000028000-retire-mobile-password-recovery';
+import { OrderItemBillingBehavior1700000029000 } from '../../src/database/migrations/public/1700000029000-order-item-billing-behavior';
 import { quoteIdentifier } from '../../src/database/schema-name';
 import { seedPublicCatalogs } from '../../src/database/seeds/public-catalogs.seed';
 
@@ -484,6 +485,7 @@ interface OrderResponse {
     id: string;
     productServiceId: string | null;
     kind: 'product' | 'service';
+    affectsOrderTotal: boolean;
     position: number;
     description: string;
     quantity: string;
@@ -557,6 +559,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         SensitiveActionPermissions1700000024000,
         AdministrativePasswordResets1700000027000,
         RetireMobilePasswordRecovery1700000028000,
+        OrderItemBillingBehavior1700000029000,
       ],
       migrationsTableName: 'public_schema_migrations',
       synchronize: false,
@@ -2048,10 +2051,10 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     ).toBe(400);
 
     const versions = await control.query<Array<{ version: number }>>(
-      'SELECT version FROM public.tenant_schema_versions WHERE company_id = $1 AND version = 18',
+      'SELECT version FROM public.tenant_schema_versions WHERE company_id = $1 AND version = 19',
       [tenant.company.id],
     );
-    expect(versions).toEqual([{ version: 18 }]);
+    expect(versions).toEqual([{ version: 19 }]);
   });
 
   it('calcula utilidad con ingresos terminados, FIFO y gastos confirmados', async () => {
@@ -2139,7 +2142,12 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         customerId: customer.body.id,
         vehicleId: vehicle.body.id,
         items: [
-          { productServiceId: product.body.id, description: product.body.name, quantity: 1 },
+          {
+            productServiceId: product.body.id,
+            description: product.body.name,
+            quantity: 1,
+            affectsOrderTotal: true,
+          },
           {
             productServiceId: catalogService.body.id,
             description: catalogService.body.name,
@@ -2273,7 +2281,15 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       body: {
         customerId: customer.body.id,
         vehicleId: vehicle.body.id,
-        items: [{ kind: 'product', description: 'Producto libre', quantity: 1, unitPrice: 100 }],
+        items: [
+          {
+            kind: 'product',
+            description: 'Producto libre',
+            quantity: 1,
+            unitPrice: 100,
+            affectsOrderTotal: true,
+          },
+        ],
       },
     });
     expect(productWithoutCost.status).toBe(201);
@@ -3876,6 +3892,48 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(second.status).toBe(201);
     expect(second.body.folio).toBe('2');
 
+    const billingModes = await request<OrderResponse>('POST', '/orders', {
+      token: tenant.accessToken,
+      body: {
+        customerId: customer.body.id,
+        vehicleId: vehicle.body.id,
+        items: [
+          { kind: 'service', description: 'Afinación mayor', quantity: 1, unitPrice: 2100 },
+          { kind: 'product', description: 'Aceite incluido', quantity: 5, unitCost: 100 },
+          {
+            kind: 'product',
+            description: 'Aditivo vendido',
+            quantity: 1,
+            unitPrice: 300,
+            unitCost: 200,
+            affectsOrderTotal: true,
+          },
+        ],
+      },
+    });
+    expect(billingModes.status).toBe(201);
+    expect(billingModes.body.total).toBe('2400.00');
+    expect(billingModes.body.items).toEqual([
+      expect.objectContaining({
+        kind: 'service',
+        affectsOrderTotal: true,
+        unitPrice: '2100.00',
+        amount: '2100.00',
+      }),
+      expect.objectContaining({
+        kind: 'product',
+        affectsOrderTotal: false,
+        unitPrice: null,
+        amount: '0.00',
+      }),
+      expect.objectContaining({
+        kind: 'product',
+        affectsOrderTotal: true,
+        unitPrice: '300.00',
+        amount: '300.00',
+      }),
+    ]);
+
     const listed = await request<{ totalItems: number; items: OrderResponse[] }>(
       'GET',
       '/orders?search=ORD-123-A&status=completed',
@@ -3953,6 +4011,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
             quantity: 1,
             unitPrice: 150,
             unitCost: 75,
+            affectsOrderTotal: true,
           },
         ],
       },
@@ -4060,7 +4119,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         customerId: customer.body.id,
         vehicleId: vehicle.body.id,
         items: [
-          { productServiceId: product.body.id, quantity: 2 },
+          { productServiceId: product.body.id, quantity: 2, affectsOrderTotal: true },
           {
             description: 'Instalación libre',
             quantity: 1,

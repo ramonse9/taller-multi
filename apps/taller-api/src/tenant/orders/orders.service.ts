@@ -73,6 +73,7 @@ interface OrderItemRow {
   id: string;
   product_service_id: string | null;
   kind: OrderItemKind;
+  affects_order_total: boolean;
   position: number;
   description: string;
   unit_name: string;
@@ -389,7 +390,7 @@ export class OrdersService {
     const row = rows[0];
     if (!row) throw new NotFoundException('Orden no encontrada');
     const items = (await runner.query(
-      `SELECT id, product_service_id, kind, position, description, unit_name, unit_symbol,
+      `SELECT id, product_service_id, kind, affects_order_total, position, description, unit_name, unit_symbol,
               quantity, unit_price, total, unit_cost, cost_total, tracks_inventory
        FROM ${schema}.order_items WHERE order_id = $1 ORDER BY position`,
       [id],
@@ -443,6 +444,7 @@ export class OrdersService {
         id: item.id,
         productServiceId: item.product_service_id,
         kind: item.kind,
+        affectsOrderTotal: item.affects_order_total,
         position: item.position,
         description: item.description,
         unitName: item.unit_name,
@@ -486,7 +488,7 @@ export class OrdersService {
     user: AuthenticatedUser,
   ): Promise<void> {
     const existingItems = (await runner.query(
-      `SELECT id, product_service_id, kind, position, description, unit_name, unit_symbol,
+      `SELECT id, product_service_id, kind, affects_order_total, position, description, unit_name, unit_symbol,
               quantity, unit_price, total, unit_cost, cost_total, tracks_inventory
        FROM ${schema}.order_items WHERE order_id = $1`,
       [orderId],
@@ -499,7 +501,8 @@ export class OrdersService {
       let description = item.description ?? '';
       let unitName = kind === OrderItemKind.Service ? 'Servicio' : 'Unidad';
       let unitSymbol = kind === OrderItemKind.Service ? 'serv' : 'u';
-      let unitPrice = item.unitPrice ?? null;
+      let affectsOrderTotal = item.affectsOrderTotal;
+      let unitPrice = item.unitPrice === undefined ? null : item.unitPrice;
       let unitCost = item.unitCost ?? null;
       let tracksInventory = false;
       const existing = item.itemId ? existingById.get(item.itemId) : undefined;
@@ -518,11 +521,12 @@ export class OrdersService {
         }
         productServiceId = existing.product_service_id;
         kind = existing.kind;
+        affectsOrderTotal ??= existing.affects_order_total;
         description = existing.description;
         unitName = existing.unit_name;
         unitSymbol = existing.unit_symbol;
         unitPrice =
-          item.unitPrice === undefined || item.unitPrice === null
+          item.unitPrice === undefined
             ? existing.unit_price === null
               ? null
               : Number(existing.unit_price)
@@ -543,10 +547,16 @@ export class OrdersService {
         }
         productServiceId = concept.id;
         kind = concept.kind;
+        affectsOrderTotal ??= kind === OrderItemKind.Service;
         description = concept.name;
         unitName = concept.unit_name;
         unitSymbol = concept.unit_symbol;
-        unitPrice = item.unitPrice ?? Number(concept.unit_price);
+        unitPrice =
+          item.unitPrice === undefined
+            ? affectsOrderTotal
+              ? Number(concept.unit_price)
+              : null
+            : item.unitPrice;
         unitCost = Number(concept.cost);
         tracksInventory = concept.tracks_inventory;
       } else {
@@ -554,7 +564,8 @@ export class OrdersService {
           throw new UnprocessableEntityException('El plan actual no permite conceptos libres');
         }
         kind = item.kind ?? existing?.kind ?? OrderItemKind.Service;
-        if (existing && (item.unitPrice === undefined || item.unitPrice === null)) {
+        affectsOrderTotal ??= existing?.affects_order_total ?? kind === OrderItemKind.Service;
+        if (existing && item.unitPrice === undefined) {
           unitPrice = existing.unit_price === null ? null : Number(existing.unit_price);
         }
         if (existing && item.unitCost === undefined) {
@@ -563,22 +574,28 @@ export class OrdersService {
         unitName = kind === OrderItemKind.Service ? 'Servicio' : 'Unidad';
         unitSymbol = kind === OrderItemKind.Service ? 'serv' : 'u';
       }
-      if (unitPrice === null && !existing) {
+      affectsOrderTotal ??= kind === OrderItemKind.Service;
+      if (affectsOrderTotal && unitPrice === null && !existing) {
         throw new UnprocessableEntityException(
           `El concepto ${description || index + 1} necesita un precio unitario`,
         );
       }
-      const amount = unitPrice === null ? null : this.amount(item.quantity, unitPrice);
+      const amount = affectsOrderTotal
+        ? unitPrice === null
+          ? null
+          : this.amount(item.quantity, unitPrice)
+        : '0.00';
       const costAmount = unitCost === null ? null : this.amount(item.quantity, unitCost);
       await runner.query(
         `INSERT INTO ${schema}.order_items(
-           order_id, product_service_id, kind, description, unit_name, unit_symbol,
+           order_id, product_service_id, kind, affects_order_total, description, unit_name, unit_symbol,
            quantity, unit_price, total, unit_cost, cost_total, tracks_inventory, position
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
         [
           orderId,
           productServiceId,
           kind,
+          affectsOrderTotal,
           description,
           unitName,
           unitSymbol,
@@ -679,6 +696,7 @@ export class OrdersService {
       (item) =>
         !item.itemId &&
         !item.productServiceId &&
+        (item.affectsOrderTotal ?? item.kind !== OrderItemKind.Product) &&
         (item.unitPrice === undefined || item.unitPrice === null),
     );
     if (missing) {

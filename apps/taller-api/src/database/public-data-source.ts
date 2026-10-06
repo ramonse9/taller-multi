@@ -30,6 +30,7 @@ import { OrderItemKind1700000025000 } from './migrations/public/1700000025000-or
 import { OptionalOrderItemCosts1700000026000 } from './migrations/public/1700000026000-optional-order-item-costs';
 import { AdministrativePasswordResets1700000027000 } from './migrations/public/1700000027000-administrative-password-resets';
 import { RetireMobilePasswordRecovery1700000028000 } from './migrations/public/1700000028000-retire-mobile-password-recovery';
+import { OrderItemBillingBehavior1700000029000 } from './migrations/public/1700000029000-order-item-billing-behavior';
 
 export default new DataSource({
   type: 'postgres',
@@ -66,6 +67,7 @@ export default new DataSource({
     OptionalOrderItemCosts1700000026000,
     AdministrativePasswordResets1700000027000,
     RetireMobilePasswordRecovery1700000028000,
+    OrderItemBillingBehavior1700000029000,
   ],
   migrationsTableName: 'public_schema_migrations',
   synchronize: false,

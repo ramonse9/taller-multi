@@ -64,6 +64,14 @@ export class OrderItemInputDto {
   @IsEnum(OrderItemKind)
   kind?: OrderItemKind;
 
+  @ApiPropertyOptional({
+    description:
+      'Indica si el concepto se cobra al cliente. Por defecto es true para servicios y false para productos.',
+  })
+  @IsOptional()
+  @IsBoolean()
+  affectsOrderTotal?: boolean;
+
   @ApiProperty({ example: 'Cambio de balatas delanteras' })
   @ValidateIf(
     (input: OrderItemInputDto) => !input.productServiceId || input.description !== undefined,
@@ -85,7 +93,7 @@ export class OrderItemInputDto {
     nullable: true,
     minimum: 0,
     description:
-      'Precio de venta. Es obligatorio para conceptos libres nuevos; un concepto de catálogo usa su precio vigente cuando se omite. Puede ser cero.',
+      'Precio de venta. Es obligatorio cuando el concepto nuevo afecta el total; puede omitirse para insumos. Un concepto cobrable de catálogo usa su precio vigente cuando se omite. Puede ser cero.',
   })
   @Transform(nullablePrice)
   @Type(() => Number)
@@ -225,6 +233,8 @@ export class OrderItemResponseDto {
   @ApiProperty({ format: 'uuid', nullable: true, type: String })
   productServiceId!: string | null;
   @ApiProperty({ enum: OrderItemKind }) kind!: OrderItemKind;
+  @ApiProperty({ description: 'Indica si el concepto forma parte del total por cobrar' })
+  affectsOrderTotal!: boolean;
   @ApiProperty() position!: number;
   @ApiProperty() description!: string;
   @ApiProperty() unitName!: string;

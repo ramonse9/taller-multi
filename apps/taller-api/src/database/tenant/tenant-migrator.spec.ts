@@ -51,6 +51,7 @@ describe('TenantMigrator', () => {
       'unit_cost numeric(14,2) CHECK (unit_cost IS NULL OR unit_cost >= 0)',
     );
     expect(orderItems).toContain('unit_price numeric(14,2) CHECK (unit_price >= 0)');
+    expect(orderItems).toContain('affects_order_total boolean NOT NULL DEFAULT true');
     expect(orderItems).not.toContain('order_items_free_product_cost_check');
     expect(orderItems).not.toContain("kind <> 'product' OR unit_cost IS NOT NULL");
   });

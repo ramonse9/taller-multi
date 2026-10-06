@@ -8,8 +8,8 @@ export interface TenantMigration {
   up(queryRunner: QueryRunner, schemaName: string): Promise<void>;
 }
 
-export const TENANT_BASE_VERSION = 18;
-export const TENANT_BASE_NAME = 'tenant-base-v18';
+export const TENANT_BASE_VERSION = 19;
+export const TENANT_BASE_NAME = 'tenant-base-v19';
 
 /**
  * Dynamic tenant migrations deliberately use qualified identifiers everywhere.
@@ -127,6 +127,7 @@ export class TenantMigrator {
         kind varchar(10) NOT NULL CHECK (kind IN ('product','service')),
         description varchar(300) NOT NULL, quantity numeric(12,3) NOT NULL CHECK (quantity > 0),
         unit_price numeric(14,2) CHECK (unit_price >= 0), total numeric(14,2) CHECK (total >= 0),
+        affects_order_total boolean NOT NULL DEFAULT true,
         unit_name varchar(80) NOT NULL DEFAULT 'Unidad', unit_symbol varchar(20) NOT NULL DEFAULT 'u',
         unit_cost numeric(14,2) CHECK (unit_cost IS NULL OR unit_cost >= 0),
         cost_total numeric(14,2) CHECK (cost_total IS NULL OR cost_total >= 0),
