@@ -45,6 +45,8 @@ La API impide que un administrador se desactive o pierda su propio rol y garanti
 
 Cada login crea una sesión servidor identificada por el `jti` del JWT. Las respuestas autenticadas renuevan el token mediante `X-Session-Token`; el frontend lo guarda automáticamente. Tanto el JWT como la actividad registrada vencen después de 14 días sin uso.
 
+Las órdenes conservan `paid_at` al marcarse como pagadas y lo limpian al volver a pendiente. La analítica distingue la utilidad generada —según el mes de terminación— del resultado cobrado —según el mes en que se registró el cobro—. `GET /api/profitability/analytics?months=6|12&endingMonth=YYYY-MM` entrega una serie mensual continua, resumen del mes final, cobrado contra pendiente y gastos confirmados por categoría. Requiere la capacidad `profitability` y el permiso `profitability.view`.
+
 `synchronize` está deshabilitado y no forma parte de ningún comando.
 
 ## Catálogo de vehículos

@@ -8,8 +8,8 @@ export interface TenantMigration {
   up(queryRunner: QueryRunner, schemaName: string): Promise<void>;
 }
 
-export const TENANT_BASE_VERSION = 20;
-export const TENANT_BASE_NAME = 'tenant-base-v20';
+export const TENANT_BASE_VERSION = 21;
+export const TENANT_BASE_NAME = 'tenant-base-v21';
 
 /**
  * Dynamic tenant migrations deliberately use qualified identifiers everywhere.
@@ -113,15 +113,18 @@ export class TenantMigrator {
         opened_at timestamptz NOT NULL DEFAULT now(), closed_at timestamptz,
         subtotal numeric(14,2), tax numeric(14,2) NOT NULL DEFAULT 0,
         total numeric(14,2) CHECK (total >= 0), is_paid boolean NOT NULL DEFAULT false,
+        paid_at timestamptz,
         total_cost numeric(14,2) CHECK (total_cost IS NULL OR total_cost >= 0),
         gross_profit numeric(14,2), inventory_applied_at timestamptz,
         created_by_user_id uuid NOT NULL REFERENCES public.users(id),
         updated_by_user_id uuid NOT NULL REFERENCES public.users(id),
-        created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now()
+        created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
+        CHECK ((is_paid = true AND paid_at IS NOT NULL) OR (is_paid = false AND paid_at IS NULL))
       )`,
       `CREATE INDEX orders_status_opened_idx ON ${s}.orders(status, opened_at DESC)`,
       `CREATE INDEX orders_external_folio_idx ON ${s}.orders(lower(external_folio))
        WHERE external_folio IS NOT NULL`,
+      `CREATE INDEX orders_paid_at_idx ON ${s}.orders(paid_at DESC) WHERE paid_at IS NOT NULL`,
       `CREATE INDEX orders_customer_created_idx ON ${s}.orders(customer_id, created_at DESC)`,
       `CREATE INDEX orders_vehicle_created_idx ON ${s}.orders(vehicle_id, created_at DESC)`,
       `CREATE TABLE ${s}.order_items (

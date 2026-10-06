@@ -3,6 +3,9 @@ import { AuthenticatedUser } from '../../common/types/authenticated-user';
 import { quoteIdentifier } from '../../database/schema-name';
 import { TenantSessionService } from '../tenant-session.service';
 import {
+  ProfitabilityAnalyticsMonthResponseDto,
+  ProfitabilityAnalyticsQueryDto,
+  ProfitabilityAnalyticsResponseDto,
   ProfitabilityCustomerRowResponseDto,
   ProfitabilityOrderRowResponseDto,
   ProfitabilityPeriodRowResponseDto,
@@ -10,6 +13,41 @@ import {
   ProfitabilityReportResponseDto,
   ProfitabilityServiceTypeRowResponseDto,
 } from './dto/profitability.dto';
+
+interface AnalyticsMonthRow {
+  period: string;
+  starts_on: string;
+  ends_on: string;
+  completed_order_count: number;
+  incomplete_order_count: number;
+  generated_income: string;
+  generated_direct_cost: string;
+  generated_gross_profit: string;
+  operating_expenses: string;
+  generated_net_profit: string;
+  generated_net_margin_percent: string | null;
+  collected_order_count: number;
+  collected_income: string;
+  collected_direct_cost: string;
+  collected_gross_profit: string;
+  collected_net_result: string;
+}
+
+interface CollectionBreakdownRow {
+  paid_order_count: number;
+  paid_amount: string;
+  pending_order_count: number;
+  pending_amount: string;
+}
+
+interface ExpenseCategoryAnalyticsRow {
+  category_id: string;
+  category_code: string;
+  category_name: string;
+  expense_count: number;
+  amount: string;
+  percentage: string | null;
+}
 
 interface TotalsRow {
   occurred_from: string;
@@ -86,6 +124,158 @@ interface OrderRow {
 @Injectable()
 export class ProfitabilityService {
   constructor(private readonly tenant: TenantSessionService) {}
+
+  analytics(
+    user: AuthenticatedUser,
+    query: ProfitabilityAnalyticsQueryDto,
+  ): Promise<ProfitabilityAnalyticsResponseDto> {
+    return this.tenant.run(user, async (runner, schemaName) => {
+      const schema = quoteIdentifier(schemaName);
+      const endingMonth = query.endingMonth ? `${query.endingMonth}-01` : null;
+      const parameters = [query.months, endingMonth];
+      const bounds = `SELECT
+        COALESCE($2::date, date_trunc('month', current_date)::date) AS focus_start,
+        (COALESCE($2::date, date_trunc('month', current_date)::date)
+          - (($1::int - 1) * interval '1 month'))::date AS range_start,
+        (COALESCE($2::date, date_trunc('month', current_date)::date)
+          + interval '1 month')::date AS focus_end`;
+
+      const monthRows = (await runner.query(
+        `WITH bounds AS (${bounds}), months AS (
+           SELECT generate_series(bounds.range_start, bounds.focus_start, interval '1 month')::date
+             AS starts_on
+           FROM bounds
+         ), generated AS (
+           SELECT date_trunc('month', service_order.closed_at)::date AS starts_on,
+             count(*)::int AS completed_order_count,
+             count(*) FILTER (WHERE EXISTS (
+               SELECT 1 FROM ${schema}.order_items item
+               WHERE item.order_id = service_order.id
+                 AND ((item.affects_order_total AND item.unit_price IS NULL)
+                   OR item.cost_total IS NULL)
+             ))::int AS incomplete_order_count,
+             COALESCE(sum(service_order.total), 0) AS income,
+             COALESCE(sum(service_order.total_cost), 0) AS direct_cost,
+             COALESCE(sum(service_order.gross_profit), 0) AS gross_profit
+           FROM bounds JOIN ${schema}.orders service_order
+             ON service_order.status = 'completed'
+            AND service_order.closed_at >= bounds.range_start
+            AND service_order.closed_at < bounds.focus_end
+           GROUP BY date_trunc('month', service_order.closed_at)::date
+         ), collected AS (
+           SELECT date_trunc('month', service_order.paid_at)::date AS starts_on,
+             count(*)::int AS order_count,
+             COALESCE(sum(service_order.total), 0) AS income,
+             COALESCE(sum(service_order.total_cost), 0) AS direct_cost,
+             COALESCE(sum(service_order.gross_profit), 0) AS gross_profit
+           FROM bounds JOIN ${schema}.orders service_order
+             ON service_order.status = 'completed' AND service_order.is_paid = true
+            AND service_order.paid_at >= bounds.range_start
+            AND service_order.paid_at < bounds.focus_end
+           GROUP BY date_trunc('month', service_order.paid_at)::date
+         ), expense_totals AS (
+           SELECT date_trunc('month', expense.occurred_on)::date AS starts_on,
+             COALESCE(sum(expense.amount), 0) AS amount
+           FROM bounds JOIN ${schema}.expenses expense
+             ON expense.status = 'confirmed'
+            AND expense.occurred_on >= bounds.range_start
+            AND expense.occurred_on < bounds.focus_end
+           GROUP BY date_trunc('month', expense.occurred_on)::date
+         )
+         SELECT to_char(months.starts_on, 'YYYY-MM') AS period,
+           months.starts_on::text,
+           (months.starts_on + interval '1 month - 1 day')::date::text AS ends_on,
+           COALESCE(generated.completed_order_count, 0)::int AS completed_order_count,
+           COALESCE(generated.incomplete_order_count, 0)::int AS incomplete_order_count,
+           COALESCE(generated.income, 0)::numeric(14,2)::text AS generated_income,
+           COALESCE(generated.direct_cost, 0)::numeric(14,2)::text AS generated_direct_cost,
+           COALESCE(generated.gross_profit, 0)::numeric(14,2)::text AS generated_gross_profit,
+           COALESCE(expense_totals.amount, 0)::numeric(14,2)::text AS operating_expenses,
+           (COALESCE(generated.gross_profit, 0) - COALESCE(expense_totals.amount, 0))
+             ::numeric(14,2)::text AS generated_net_profit,
+           CASE WHEN COALESCE(generated.income, 0) = 0 THEN NULL ELSE
+             round((COALESCE(generated.gross_profit, 0) - COALESCE(expense_totals.amount, 0))
+               / generated.income * 100, 2)::text
+           END AS generated_net_margin_percent,
+           COALESCE(collected.order_count, 0)::int AS collected_order_count,
+           COALESCE(collected.income, 0)::numeric(14,2)::text AS collected_income,
+           COALESCE(collected.direct_cost, 0)::numeric(14,2)::text AS collected_direct_cost,
+           COALESCE(collected.gross_profit, 0)::numeric(14,2)::text AS collected_gross_profit,
+           (COALESCE(collected.gross_profit, 0) - COALESCE(expense_totals.amount, 0))
+             ::numeric(14,2)::text AS collected_net_result
+         FROM months
+         LEFT JOIN generated USING (starts_on)
+         LEFT JOIN collected USING (starts_on)
+         LEFT JOIN expense_totals USING (starts_on)
+         ORDER BY months.starts_on`,
+        parameters,
+      )) as AnalyticsMonthRow[];
+
+      const collectionRows = (await runner.query(
+        `WITH bounds AS (${bounds})
+         SELECT count(*) FILTER (WHERE service_order.is_paid)::int AS paid_order_count,
+           COALESCE(sum(service_order.total) FILTER (WHERE service_order.is_paid), 0)
+             ::numeric(14,2)::text AS paid_amount,
+           count(*) FILTER (WHERE NOT service_order.is_paid)::int AS pending_order_count,
+           COALESCE(sum(service_order.total) FILTER (WHERE NOT service_order.is_paid), 0)
+             ::numeric(14,2)::text AS pending_amount
+         FROM bounds LEFT JOIN ${schema}.orders service_order
+           ON service_order.status = 'completed'
+          AND service_order.closed_at >= bounds.focus_start
+          AND service_order.closed_at < bounds.focus_end`,
+        parameters,
+      )) as CollectionBreakdownRow[];
+
+      const expenseRows = (await runner.query(
+        `WITH bounds AS (${bounds}), category_totals AS (
+           SELECT category.id AS category_id, category.code AS category_code,
+             category.name AS category_name, count(*)::int AS expense_count,
+             sum(expense.amount) AS amount
+           FROM bounds
+           JOIN ${schema}.expenses expense
+             ON expense.status = 'confirmed'
+            AND expense.occurred_on >= bounds.focus_start
+            AND expense.occurred_on < bounds.focus_end
+           JOIN ${schema}.expense_categories category ON category.id = expense.category_id
+           GROUP BY category.id, category.code, category.name
+         )
+         SELECT category_id, category_code, category_name, expense_count,
+           amount::numeric(14,2)::text AS amount,
+           CASE WHEN sum(amount) OVER () = 0 THEN NULL
+             ELSE round(amount / sum(amount) OVER () * 100, 2)::text
+           END AS percentage
+         FROM category_totals
+         ORDER BY amount DESC, category_name`,
+        parameters,
+      )) as ExpenseCategoryAnalyticsRow[];
+
+      const series = monthRows.map((row) => this.toAnalyticsMonth(row));
+      const summary = series.at(-1);
+      if (!summary) throw new Error('No se pudo generar el periodo analítico');
+      const collection = collectionRows[0]!;
+      return {
+        months: query.months,
+        occurredFrom: series[0]!.startsOn,
+        occurredTo: summary.endsOn,
+        summary,
+        series,
+        collection: {
+          paidOrderCount: collection.paid_order_count,
+          paidAmount: collection.paid_amount,
+          pendingOrderCount: collection.pending_order_count,
+          pendingAmount: collection.pending_amount,
+        },
+        expensesByCategory: expenseRows.map((row) => ({
+          categoryId: row.category_id,
+          categoryCode: row.category_code,
+          categoryName: row.category_name,
+          expenseCount: row.expense_count,
+          amount: row.amount,
+          percentage: row.percentage,
+        })),
+      };
+    });
+  }
 
   report(
     user: AuthenticatedUser,
@@ -399,6 +589,28 @@ export class ProfitabilityService {
       outstandingIncome: row.outstanding_income,
       directCost: row.direct_cost,
       grossProfit: row.gross_profit,
+    };
+  }
+
+  private toAnalyticsMonth(row: AnalyticsMonthRow): ProfitabilityAnalyticsMonthResponseDto {
+    return {
+      period: row.period,
+      startsOn: row.starts_on,
+      endsOn: row.ends_on,
+      completedOrderCount: row.completed_order_count,
+      incompleteOrderCount: row.incomplete_order_count,
+      generatedIncome: row.generated_income,
+      generatedDirectCost: row.generated_direct_cost,
+      generatedGrossProfit: row.generated_gross_profit,
+      operatingExpenses: row.operating_expenses,
+      generatedNetProfit: row.generated_net_profit,
+      generatedNetMarginPercent: row.generated_net_margin_percent,
+      collectedOrderCount: row.collected_order_count,
+      collectedIncome: row.collected_income,
+      collectedDirectCost: row.collected_direct_cost,
+      collectedGrossProfit: row.collected_gross_profit,
+      collectedNetResult: row.collected_net_result,
+      isComplete: row.incomplete_order_count === 0,
     };
   }
 

@@ -219,8 +219,8 @@ export class DashboardService {
          ), 0)::numeric(14,2)::text AS generated,
          COALESCE(sum(service_order.total) FILTER (
            WHERE service_order.status = 'completed' AND service_order.is_paid = true
-             AND service_order.closed_at >= period.starts_on
-             AND service_order.closed_at < period.starts_on + interval '1 month'
+             AND service_order.paid_at >= period.starts_on
+             AND service_order.paid_at < period.starts_on + interval '1 month'
          ), 0)::numeric(14,2)::text AS collected,
          COALESCE(sum(service_order.total) FILTER (
            WHERE service_order.status = 'completed' AND service_order.is_paid = false

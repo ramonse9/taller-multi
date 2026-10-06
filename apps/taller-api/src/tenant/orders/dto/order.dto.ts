@@ -385,6 +385,12 @@ export class OrderSummaryResponseDto {
   })
   isFinanciallyComplete!: boolean;
   @ApiProperty() isPaid!: boolean;
+  @ApiProperty({
+    nullable: true,
+    type: Date,
+    description: 'Fecha en que la orden fue marcada como pagada; null mientras esté pendiente',
+  })
+  paidAt!: Date | null;
   @ApiProperty() openedAt!: Date;
   @ApiProperty({ nullable: true, type: Date }) closedAt!: Date | null;
   @ApiProperty({ format: 'uuid' }) createdByUserId!: string;

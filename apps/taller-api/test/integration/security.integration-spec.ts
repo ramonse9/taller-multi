@@ -348,6 +348,38 @@ interface ProfitabilityReportResponse {
   }>;
 }
 
+interface ProfitabilityAnalyticsResponse {
+  months: 6 | 12;
+  occurredFrom: string;
+  occurredTo: string;
+  summary: {
+    period: string;
+    generatedIncome: string;
+    generatedDirectCost: string;
+    generatedGrossProfit: string;
+    operatingExpenses: string;
+    generatedNetProfit: string;
+    collectedIncome: string;
+    collectedDirectCost: string;
+    collectedGrossProfit: string;
+    collectedNetResult: string;
+    isComplete: boolean;
+  };
+  series: Array<{ period: string; generatedIncome: string; collectedIncome: string }>;
+  collection: {
+    paidOrderCount: number;
+    paidAmount: string;
+    pendingOrderCount: number;
+    pendingAmount: string;
+  };
+  expensesByCategory: Array<{
+    categoryCode: string;
+    expenseCount: number;
+    amount: string;
+    percentage: string | null;
+  }>;
+}
+
 interface DashboardSummaryResponse {
   period: { month: string; startsOn: string; endsOn: string };
   access: {
@@ -472,6 +504,7 @@ interface OrderResponse {
   externalFolio: string | null;
   status: string;
   isPaid: boolean;
+  paidAt: string | null;
   customer: { id: string; type: string; displayName: string };
   vehicle: { id: string; brandName: string; modelName: string };
   subtotal: string | null;
@@ -1338,6 +1371,13 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         })
       ).status,
     ).toBe(403);
+    expect(
+      (
+        await request<unknown>('GET', '/profitability/analytics?months=6', {
+          token: operatorLogin.body.accessToken,
+        })
+      ).status,
+    ).toBe(403);
 
     const fakeId = '11111111-1111-4111-8111-111111111111';
     expect(
@@ -2069,10 +2109,10 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     ).toBe(400);
 
     const versions = await control.query<Array<{ version: number }>>(
-      'SELECT version FROM public.tenant_schema_versions WHERE company_id = $1 AND version = 20',
+      'SELECT version FROM public.tenant_schema_versions WHERE company_id = $1 AND version = 21',
       [tenant.company.id],
     );
-    expect(versions).toEqual([{ version: 20 }]);
+    expect(versions).toEqual([{ version: 21 }]);
   });
 
   it('calcula utilidad con ingresos terminados, FIFO y gastos confirmados', async () => {
@@ -2089,6 +2129,13 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
             token: tenant.accessToken,
           },
         )
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await request<unknown>('GET', '/profitability/analytics?months=6', {
+          token: tenant.accessToken,
+        })
       ).status,
     ).toBe(403);
     await request<unknown>('PATCH', `/subscriptions/companies/${tenant.company.id}`, {
@@ -2394,7 +2441,8 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       body: { isPaid: true },
     });
     expect(paid.status).toBe(200);
-    expect(paid.body.isPaid).toBe(true);
+    expect(paid.body).toMatchObject({ isPaid: true });
+    expect(paid.body.paidAt).not.toBeNull();
     expect(
       (
         await request<unknown>('POST', `/orders/${order.body.id}/status`, {
@@ -2497,12 +2545,91 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       isComplete: true,
     });
 
+    const analytics = await request<ProfitabilityAnalyticsResponse>(
+      'GET',
+      '/profitability/analytics?months=6&endingMonth=2026-10',
+      { token: tenant.accessToken },
+    );
+    expect(analytics.status).toBe(200);
+    expect(analytics.body).toMatchObject({
+      months: 6,
+      occurredFrom: '2026-05-01',
+      occurredTo: '2026-10-31',
+      summary: {
+        period: '2026-10',
+        generatedIncome: '700.00',
+        generatedDirectCost: '150.00',
+        generatedGrossProfit: '550.00',
+        operatingExpenses: '120.00',
+        generatedNetProfit: '430.00',
+        collectedIncome: '700.00',
+        collectedDirectCost: '150.00',
+        collectedGrossProfit: '550.00',
+        collectedNetResult: '430.00',
+        isComplete: true,
+      },
+      collection: {
+        paidOrderCount: 1,
+        paidAmount: '700.00',
+        pendingOrderCount: 0,
+        pendingAmount: '0.00',
+      },
+    });
+    expect(analytics.body.series).toHaveLength(6);
+    expect(analytics.body.series.map(({ period }) => period)).toEqual([
+      '2026-05',
+      '2026-06',
+      '2026-07',
+      '2026-08',
+      '2026-09',
+      '2026-10',
+    ]);
+    expect(analytics.body.expensesByCategory).toEqual([
+      expect.objectContaining({
+        categoryCode: 'utilities',
+        expenseCount: 1,
+        amount: '120.00',
+        percentage: '100.00',
+      }),
+    ]);
+
+    expect(
+      (
+        await request<unknown>('GET', '/profitability/analytics?months=9', {
+          token: tenant.accessToken,
+        })
+      ).status,
+    ).toBe(400);
+
+    const isolated = await provisionAndLogin(
+      'Profitability Isolated Integration',
+      'profitability.isolated@test.local',
+    );
+    await request<unknown>('PATCH', `/subscriptions/companies/${isolated.company.id}`, {
+      token: platformToken,
+      body: { planCode: 'control', status: 'active', reason: 'Aislamiento de analítica' },
+    });
+    const isolatedAnalytics = await request<ProfitabilityAnalyticsResponse>(
+      'GET',
+      '/profitability/analytics?months=6&endingMonth=2026-10',
+      { token: isolated.accessToken },
+    );
+    expect(isolatedAnalytics.status).toBe(200);
+    expect(isolatedAnalytics.body.summary).toMatchObject({
+      generatedIncome: '0.00',
+      generatedDirectCost: '0.00',
+      generatedNetProfit: '0.00',
+      collectedIncome: '0.00',
+    });
+    expect(isolatedAnalytics.body.expensesByCategory).toEqual([]);
+
     const pending = await request<OrderResponse>(
       'PATCH',
       `/orders/${order.body.id}/payment-status`,
       { token: tenant.accessToken, body: { isPaid: false } },
     );
     expect(pending.body.isPaid).toBe(false);
+    expect(pending.body.paidAt).toBeNull();
     const pendingReport = await request<ProfitabilityReportResponse>(
       'GET',
       '/profitability?occurredFrom=2026-10-01&occurredTo=2026-10-31',

@@ -5,7 +5,12 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../../common/types/authenticated-user';
 import { RequiresFeature, SubscriptionGuard } from '../../subscriptions/subscription.guard';
 import { PermissionGuard, RequiresPermissions } from '../../permissions/permission.guard';
-import { ProfitabilityQueryDto, ProfitabilityReportResponseDto } from './dto/profitability.dto';
+import {
+  ProfitabilityAnalyticsQueryDto,
+  ProfitabilityAnalyticsResponseDto,
+  ProfitabilityQueryDto,
+  ProfitabilityReportResponseDto,
+} from './dto/profitability.dto';
 import { ProfitabilityService } from './profitability.service';
 
 @ApiTags('profitability')
@@ -15,6 +20,17 @@ import { ProfitabilityService } from './profitability.service';
 @Controller('profitability')
 export class ProfitabilityController {
   constructor(private readonly profitability: ProfitabilityService) {}
+
+  @Get('analytics')
+  @RequiresPermissions('profitability.view')
+  @ApiOperation({ summary: 'Consultar resumen mensual y serie histórica de utilidad' })
+  @ApiOkResponse({ type: ProfitabilityAnalyticsResponseDto })
+  analytics(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: ProfitabilityAnalyticsQueryDto,
+  ): Promise<ProfitabilityAnalyticsResponseDto> {
+    return this.profitability.analytics(user, query);
+  }
 
   @Get()
   @RequiresPermissions('profitability.view')

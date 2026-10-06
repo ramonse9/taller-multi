@@ -50,6 +50,7 @@ interface OrderRow {
   has_unpriced_items: boolean;
   has_unknown_costs: boolean;
   is_paid: boolean;
+  paid_at: Date | null;
   item_count: string;
   opened_at: Date;
   closed_at: Date | null;
@@ -356,7 +357,8 @@ export class OrdersService {
       }
       await runner.query(
         `UPDATE ${schema}.orders
-         SET is_paid = $2, updated_by_user_id = $3, updated_at = now()
+         SET is_paid = $2, paid_at = CASE WHEN $2 THEN now() ELSE NULL END,
+             updated_by_user_id = $3, updated_at = now()
          WHERE id = $1`,
         [id, input.isPaid, user.id],
       );
@@ -1008,7 +1010,7 @@ export class OrdersService {
       vehicle.model_year, vehicle.color, vehicle.serial_number, vehicle.license_plate,
       service_order.status, service_order.subtotal, service_order.total,
       service_order.total_cost, service_order.gross_profit, service_order.inventory_applied_at,
-      service_order.is_paid,
+      service_order.is_paid, service_order.paid_at,
       EXISTS(
         SELECT 1 FROM ${schema}.order_items unpriced
         WHERE unpriced.order_id = service_order.id
@@ -1061,6 +1063,7 @@ export class OrdersService {
       hasUnknownCosts: row.has_unknown_costs,
       isFinanciallyComplete: !row.has_unpriced_items && !row.has_unknown_costs,
       isPaid: row.is_paid,
+      paidAt: row.paid_at,
       openedAt: row.opened_at,
       closedAt: row.closed_at,
       createdByUserId: row.created_by_user_id,
