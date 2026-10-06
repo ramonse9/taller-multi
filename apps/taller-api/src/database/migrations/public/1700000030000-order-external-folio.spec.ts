@@ -13,6 +13,7 @@ describe('OrderExternalFolio1700000030000', () => {
 
     const sql = query.mock.calls.map(([statement]) => statement).join('\n');
     expect(sql).toContain('ADD COLUMN external_folio varchar(50)');
+    expect(sql).not.toContain('external_folio varchar(50) NOT NULL');
     expect(sql).toContain('CREATE INDEX orders_external_folio_idx');
     expect(query.mock.calls.at(-1)?.[1]).toEqual(['company-id', 'OrderExternalFolio1700000030000']);
   });

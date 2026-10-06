@@ -3923,7 +3923,109 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       },
     });
     expect(second.status).toBe(201);
-    expect(second.body.folio).toBe('2');
+    expect(second.body).toMatchObject({ folio: '2', externalFolio: null });
+
+    const listedBySystemFolio = await request<{
+      totalItems: number;
+      items: OrderResponse[];
+    }>('GET', '/orders?search=2&status=in_progress', { token: tenant.accessToken });
+    expect(listedBySystemFolio.status).toBe(200);
+    expect(listedBySystemFolio.body.items).toEqual([
+      expect.objectContaining({ id: second.body.id, folio: '2', externalFolio: null }),
+    ]);
+
+    const duplicatedExternalFolio = await request<OrderResponse>(
+      'PATCH',
+      `/orders/${second.body.id}`,
+      {
+        token: tenant.accessToken,
+        body: { externalFolio: 'EXCEL 2026-085' },
+      },
+    );
+    expect(duplicatedExternalFolio.status).toBe(200);
+    expect(duplicatedExternalFolio.body.externalFolio).toBe('EXCEL 2026-085');
+
+    const repeatedInTenant = await request<{ totalItems: number; items: OrderResponse[] }>(
+      'GET',
+      '/orders?search=EXCEL%202026-085',
+      { token: tenant.accessToken },
+    );
+    expect(repeatedInTenant.status).toBe(200);
+    expect(repeatedInTenant.body.totalItems).toBe(2);
+    expect(repeatedInTenant.body.items.map(({ id }) => id)).toEqual(
+      expect.arrayContaining([created.body.id, second.body.id]),
+    );
+
+    const isolated = await provisionAndLogin(
+      'Order Folio Isolated Integration',
+      'order.folio.isolated@test.local',
+    );
+    const isolatedCustomer = await request<ClientResponse>('POST', '/clients', {
+      token: isolated.accessToken,
+      body: { type: 'person', displayName: 'Cliente de compañía aislada' },
+    });
+    const isolatedVehicle = await request<VehicleResponse>(
+      'POST',
+      `/clients/${isolatedCustomer.body.id}/vehicles`,
+      {
+        token: isolated.accessToken,
+        body: {
+          brandId: brand.body.id,
+          modelId: model.body.id,
+          year: 2024,
+          color: 'Gris',
+        },
+      },
+    );
+    const isolatedOrder = await request<OrderResponse>('POST', '/orders', {
+      token: isolated.accessToken,
+      body: {
+        externalFolio: 'EXCEL 2026-085',
+        customerId: isolatedCustomer.body.id,
+        vehicleId: isolatedVehicle.body.id,
+        items: [{ description: 'Servicio aislado', quantity: 1, unitPrice: 500 }],
+      },
+    });
+    expect(isolatedOrder.status).toBe(201);
+    expect(isolatedOrder.body.externalFolio).toBe('EXCEL 2026-085');
+
+    const isolatedSearch = await request<{ totalItems: number; items: OrderResponse[] }>(
+      'GET',
+      '/orders?search=EXCEL%202026-085',
+      { token: isolated.accessToken },
+    );
+    expect(isolatedSearch.status).toBe(200);
+    expect(isolatedSearch.body).toMatchObject({
+      totalItems: 1,
+      items: [expect.objectContaining({ id: isolatedOrder.body.id })],
+    });
+    const originalTenantSearch = await request<{
+      totalItems: number;
+      items: OrderResponse[];
+    }>('GET', '/orders?search=EXCEL%202026-085', { token: tenant.accessToken });
+    expect(originalTenantSearch.body.totalItems).toBe(2);
+    expect(originalTenantSearch.body.items.map(({ id }) => id)).not.toContain(
+      isolatedOrder.body.id,
+    );
+
+    const removedExternalFolio = await request<OrderResponse>(
+      'PATCH',
+      `/orders/${second.body.id}`,
+      {
+        token: tenant.accessToken,
+        body: { externalFolio: '   ' },
+      },
+    );
+    expect(removedExternalFolio.status).toBe(200);
+    expect(removedExternalFolio.body.externalFolio).toBeNull();
+
+    const afterRemoval = await request<{ totalItems: number; items: OrderResponse[] }>(
+      'GET',
+      '/orders?search=EXCEL%202026-085',
+      { token: tenant.accessToken },
+    );
+    expect(afterRemoval.body.totalItems).toBe(1);
+    expect(afterRemoval.body.items[0]?.id).toBe(created.body.id);
 
     const missingBillablePrice = await request<unknown>('POST', '/orders', {
       token: tenant.accessToken,
@@ -4079,6 +4181,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       },
     });
     expect(legacyUpdated.status).toBe(200);
+    expect(legacyUpdated.body.externalFolio).toBeNull();
     expect(legacyUpdated.body.items[0]).toMatchObject({
       description: 'Concepto histórico conservado',
       unitPrice: null,
