@@ -15,6 +15,21 @@ export class AppShellComponent {
   readonly auth = inject(AuthService);
   readonly theme = inject(ThemeService);
 
+  companyName(): string {
+    return this.auth.user()?.companyName ?? "Taller Multi";
+  }
+
+  companyInitials(): string {
+    const initials = this.companyName()
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 3)
+      .map((part) => Array.from(part)[0]?.toLocaleUpperCase("es-MX") ?? "")
+      .join("");
+    return initials || "TM";
+  }
+
   initials(name: string): string {
     return name
       .split(/\s+/)

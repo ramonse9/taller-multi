@@ -12,6 +12,7 @@ export interface SessionUser {
   fullName: string;
   role: UserRole;
   companyId: string | null;
+  companyName: string | null;
   mustChangePassword: boolean;
   subscription: SubscriptionSummary | null;
   permissions: string[];

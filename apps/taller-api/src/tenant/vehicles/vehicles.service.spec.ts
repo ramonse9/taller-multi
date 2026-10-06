@@ -14,6 +14,7 @@ const user = {
   fullName: 'Test User',
   role: PlatformRole.User,
   companyId: '05b8405a-d628-4a6f-bdc1-414ac4ef025a',
+  companyName: 'Tenant Alpha',
   companySchema: 'tenant_alpha',
   companyLoginCode: 'alpha',
   mustChangePassword: false,

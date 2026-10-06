@@ -27,7 +27,6 @@
   padding: 0 0.65rem 2.5rem;
   color: white;
   text-decoration: none;
-  text-transform: uppercase;
   font-size: 0.8rem;
   line-height: 1.05;
   letter-spacing: 0.1em;
@@ -39,9 +38,16 @@
   place-items: center;
   flex: 0 0 auto;
   background: var(--orange);
-  font-size: 1rem;
+  font-size: 0.85rem;
   font-weight: 850;
-  letter-spacing: -0.08em;
+  letter-spacing: -0.04em;
+}
+.logo strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 0.72rem;
+  line-height: 1.25;
+  letter-spacing: 0.04em;
 }
 nav {
   display: grid;

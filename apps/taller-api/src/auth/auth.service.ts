@@ -80,6 +80,7 @@ export class AuthService {
         fullName: user.fullName,
         role: user.role,
         companyId: user.companyId,
+        companyName: company?.name ?? null,
         mustChangePassword: user.mustChangePassword,
         subscription: company ? await this.subscriptions.getByCompanyId(company.id) : null,
         permissions: await this.permissions.forUser(user.id, user.role),

@@ -36,6 +36,7 @@ export class AuthController {
       fullName: user.fullName,
       role: user.role,
       companyId: user.companyId,
+      companyName: user.companyName,
       mustChangePassword: user.mustChangePassword,
       subscription: user.subscription,
       permissions: user.permissions,

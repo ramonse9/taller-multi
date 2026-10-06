@@ -12,6 +12,7 @@ export interface AuthenticatedUser {
   fullName: string;
   role: PlatformRole;
   companyId: string | null;
+  companyName: string | null;
   companySchema: string | null;
   companyLoginCode: string | null;
   mustChangePassword: boolean;

@@ -15,6 +15,7 @@ const admin: AuthenticatedUser = {
   fullName: 'María López',
   role: PlatformRole.CompanyAdmin,
   companyId,
+  companyName: 'Taller Norte',
   companySchema: 'taller_norte',
   companyLoginCode: 'taller_norte',
   mustChangePassword: false,

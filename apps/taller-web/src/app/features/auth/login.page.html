@@ -8,8 +8,11 @@
   >
     {{ theme.isDark() ? '☀' : '◐' }}
   </button>
-  <section class="brand-panel" aria-label="Taller Multi">
-    <div class="brand-mark">TM</div>
+  <section class="brand-panel" aria-label="Multiservicios 24/7">
+    <div class="brand-identity">
+      <div class="brand-mark">MS 24/7</div>
+      <strong>Multiservicios 24/7</strong>
+    </div>
     <p class="eyebrow">OPERACIÓN EN ORDEN</p>
     <h1>Tu taller,<br /><em>sin puntos ciegos.</em></h1>
     <p class="brand-copy">
@@ -33,7 +36,7 @@
         type="text"
         formControlName="identifier"
         autocomplete="username"
-        placeholder="yovany@melkars"
+        placeholder="usuario@negocio"
       />
       @if (form.controls.identifier.touched && form.controls.identifier.invalid)
       {

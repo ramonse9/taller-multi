@@ -54,6 +54,7 @@ interface LoginResponse {
     loginName: string;
     role: string;
     companyId: string | null;
+    companyName: string | null;
     mustChangePassword: boolean;
     permissions: string[];
   };
@@ -1613,6 +1614,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(userLogin.body.user.mustChangePassword).toBe(true);
     expect(userLogin.body.user.loginName).toBe(`operador@${tenant.company.loginCode}`);
     expect(userLogin.body.user.companyId).toBe(tenant.user.companyId);
+    expect(userLogin.body.user.companyName).toBe(tenant.company.name);
     expect((await listClients(userLogin.body.accessToken)).status).toBe(403);
     const passwordChanged = await request<unknown>('PATCH', '/users/me/password', {
       token: userLogin.body.accessToken,
@@ -1622,6 +1624,10 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     const permanentLogin = await login(`operador@${tenant.company.loginCode}`, PERMANENT_PASSWORD);
     expect(permanentLogin.status).toBe(200);
     expect(permanentLogin.body.user.mustChangePassword).toBe(false);
+    const restoredUser = await request<LoginResponse['user']>('GET', '/auth/me', {
+      token: permanentLogin.body.accessToken,
+    });
+    expect(restoredUser.body.companyName).toBe(tenant.company.name);
 
     const createdClient = await request<ClientResponse>('POST', '/clients', {
       token: permanentLogin.body.accessToken,

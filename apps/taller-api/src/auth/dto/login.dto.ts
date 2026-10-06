@@ -5,7 +5,7 @@ import { SubscriptionResponseDto } from '../../subscriptions/dto/subscription.dt
 import { PERMISSION_CODES, PermissionCode } from '../../permissions/permission.types';
 
 export class LoginDto {
-  @ApiProperty({ example: 'yovany@melkars' })
+  @ApiProperty({ example: 'usuario@negocio' })
   @Transform(({ value }) => {
     const input: unknown = value;
     return typeof input === 'string' ? input.trim().toLowerCase() : input;
@@ -31,6 +31,7 @@ export class LoginUserResponseDto {
   @ApiProperty() fullName!: string;
   @ApiProperty() role!: string;
   @ApiProperty({ nullable: true, type: String }) companyId!: string | null;
+  @ApiProperty({ nullable: true, type: String }) companyName!: string | null;
   @ApiProperty() mustChangePassword!: boolean;
   @ApiProperty({ nullable: true, type: SubscriptionResponseDto })
   subscription!: SubscriptionResponseDto | null;

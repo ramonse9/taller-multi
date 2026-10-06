@@ -16,6 +16,7 @@ const actor: AuthenticatedUser = {
   fullName: 'Administrador principal',
   role: PlatformRole.CompanyAdmin,
   companyId,
+  companyName: 'Taller',
   companySchema: '_0001_mul_taller',
   companyLoginCode: 'taller',
   mustChangePassword: false,
@@ -113,6 +114,7 @@ describe('PasswordResetService', () => {
       id: '3c0f89f2-a402-4cf3-9e72-e50ebc32afc7',
       role: PlatformRole.PlatformAdmin,
       companyId: null,
+      companyName: null,
       companySchema: null,
       companyLoginCode: null,
     };
