@@ -80,3 +80,31 @@ export interface ProfitabilityReport {
   byServiceType: ProfitabilityServiceTypeRow[];
   orders: ProfitabilityOrderRow[];
 }
+
+export interface ProfitabilityAnalyticsMonth {
+  period: string;
+  startsOn: string;
+  endsOn: string;
+  completedOrderCount: number;
+  incompleteOrderCount: number;
+  generatedIncome: string;
+  generatedDirectCost: string;
+  generatedGrossProfit: string;
+  operatingExpenses: string;
+  generatedNetProfit: string;
+  generatedNetMarginPercent: string | null;
+  collectedOrderCount: number;
+  collectedIncome: string;
+  collectedDirectCost: string;
+  collectedGrossProfit: string;
+  collectedNetResult: string;
+  isComplete: boolean;
+}
+
+export interface ProfitabilityAnalytics {
+  months: 6 | 12;
+  occurredFrom: string;
+  occurredTo: string;
+  summary: ProfitabilityAnalyticsMonth;
+  series: ProfitabilityAnalyticsMonth[];
+}
