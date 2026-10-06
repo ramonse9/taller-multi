@@ -30,6 +30,7 @@ import {
 interface OrderRow {
   id: string;
   folio: string;
+  external_folio: string | null;
   customer_id: string;
   customer_type: 'person' | 'company';
   customer_name: string;
@@ -61,6 +62,7 @@ interface OrderRow {
 interface LockedOrderRow {
   id: string;
   folio: string;
+  external_folio: string | null;
   customer_id: string;
   vehicle_id: string;
   status: OrderStatus;
@@ -176,6 +178,7 @@ export class OrdersService {
         AND ($2::uuid IS NULL OR service_order.customer_id = $2)
         AND ($3::uuid IS NULL OR service_order.vehicle_id = $3)
         AND ($4 = '%%' OR service_order.folio::text ILIKE $4 ESCAPE '\\'
+          OR COALESCE(service_order.external_folio, '') ILIKE $4 ESCAPE '\\'
           OR customer.display_name ILIKE $4 ESCAPE '\\'
           OR COALESCE(vehicle.license_plate, '') ILIKE $4 ESCAPE '\\'
           OR COALESCE(vehicle.serial_number, '') ILIKE $4 ESCAPE '\\'
@@ -225,10 +228,10 @@ export class OrdersService {
       this.assertNewFreeItemPrices(input.items);
       const rows = (await runner.query(
         `INSERT INTO ${schema}.orders(
-           customer_id, vehicle_id, status, subtotal, tax, total,
+           customer_id, vehicle_id, external_folio, status, subtotal, tax, total,
            created_by_user_id, updated_by_user_id
-         ) VALUES ($1, $2, 'in_progress', NULL, 0, NULL, $3, $3) RETURNING id`,
-        [input.customerId, input.vehicleId, user.id],
+         ) VALUES ($1, $2, $3, 'in_progress', NULL, 0, NULL, $4, $4) RETURNING id`,
+        [input.customerId, input.vehicleId, input.externalFolio ?? null, user.id],
       )) as Array<{ id: string }>;
       const orderId = rows[0]?.id;
       if (!orderId) throw new Error('No se pudo crear la orden');
@@ -255,6 +258,7 @@ export class OrdersService {
       if (
         input.customerId === undefined &&
         input.vehicleId === undefined &&
+        input.externalFolio === undefined &&
         input.items === undefined
       ) {
         throw new BadRequestException('No hay cambios para aplicar');
@@ -262,12 +266,23 @@ export class OrdersService {
       const customerId = input.customerId ?? order.customer_id;
       const vehicleId = input.vehicleId ?? order.vehicle_id;
       await this.validateCustomerVehicle(runner, schema, customerId, vehicleId);
-      if (input.customerId !== undefined || input.vehicleId !== undefined) {
+      if (
+        input.customerId !== undefined ||
+        input.vehicleId !== undefined ||
+        input.externalFolio !== undefined
+      ) {
         await runner.query(
           `UPDATE ${schema}.orders
-           SET customer_id = $1, vehicle_id = $2, updated_by_user_id = $3, updated_at = now()
-           WHERE id = $4`,
-          [customerId, vehicleId, user.id, id],
+           SET customer_id = $1, vehicle_id = $2, external_folio = $3,
+               updated_by_user_id = $4, updated_at = now()
+           WHERE id = $5`,
+          [
+            customerId,
+            vehicleId,
+            input.externalFolio === undefined ? order.external_folio : input.externalFolio,
+            user.id,
+            id,
+          ],
         );
       }
       if (input.items !== undefined) {
@@ -676,7 +691,8 @@ export class OrdersService {
     id: string,
   ): Promise<LockedOrderRow> {
     const rows = (await runner.query(
-      `SELECT id, folio::text AS folio, customer_id, vehicle_id, status, inventory_applied_at,
+      `SELECT id, folio::text AS folio, external_folio, customer_id, vehicle_id, status,
+              inventory_applied_at,
               is_paid, total::text
        FROM ${schema}.orders WHERE id = $1 FOR UPDATE`,
       [id],
@@ -986,6 +1002,7 @@ export class OrdersService {
 
   private orderSelect(schema: string): string {
     return `SELECT service_order.id, service_order.folio::text AS folio,
+      service_order.external_folio,
       service_order.customer_id, customer.customer_type, customer.display_name AS customer_name,
       service_order.vehicle_id, brand.name AS brand_name, model.name AS model_name,
       vehicle.model_year, vehicle.color, vehicle.serial_number, vehicle.license_plate,
@@ -1019,6 +1036,7 @@ export class OrdersService {
     return {
       id: row.id,
       folio: row.folio,
+      externalFolio: row.external_folio,
       status: row.status,
       customer: {
         id: row.customer_id,

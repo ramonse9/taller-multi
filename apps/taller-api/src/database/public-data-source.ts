@@ -31,6 +31,7 @@ import { OptionalOrderItemCosts1700000026000 } from './migrations/public/1700000
 import { AdministrativePasswordResets1700000027000 } from './migrations/public/1700000027000-administrative-password-resets';
 import { RetireMobilePasswordRecovery1700000028000 } from './migrations/public/1700000028000-retire-mobile-password-recovery';
 import { OrderItemBillingBehavior1700000029000 } from './migrations/public/1700000029000-order-item-billing-behavior';
+import { OrderExternalFolio1700000030000 } from './migrations/public/1700000030000-order-external-folio';
 
 export default new DataSource({
   type: 'postgres',
@@ -68,6 +69,7 @@ export default new DataSource({
     AdministrativePasswordResets1700000027000,
     RetireMobilePasswordRecovery1700000028000,
     OrderItemBillingBehavior1700000029000,
+    OrderExternalFolio1700000030000,
   ],
   migrationsTableName: 'public_schema_migrations',
   synchronize: false,

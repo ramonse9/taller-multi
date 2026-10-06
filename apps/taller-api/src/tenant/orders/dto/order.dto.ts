@@ -24,6 +24,13 @@ const trimString = ({ value }: { value: unknown }): unknown =>
 const nullablePrice = ({ value }: { value: unknown }): unknown =>
   value === '' || value === null ? null : value;
 
+const optionalNormalizedString = ({ value }: { value: unknown }): unknown => {
+  if (value === undefined || value === null) return value;
+  if (typeof value !== 'string') return value;
+  const normalized = value.trim().replace(/\s+/g, ' ');
+  return normalized || null;
+};
+
 const booleanQuery = ({ value }: { value: unknown }): unknown => {
   if (value === 'true') return true;
   if (value === 'false') return false;
@@ -119,6 +126,18 @@ export class OrderItemInputDto {
 }
 
 export class CreateOrderDto {
+  @ApiPropertyOptional({
+    example: 'ORD-EXCEL-2026-084',
+    nullable: true,
+    maxLength: 50,
+    description: 'Folio opcional utilizado en Excel u otro sistema externo',
+  })
+  @Transform(optionalNormalizedString)
+  @IsOptional()
+  @IsString()
+  @Length(1, 50)
+  externalFolio?: string | null;
+
   @ApiProperty({ format: 'uuid' })
   @IsUUID()
   customerId!: string;
@@ -137,6 +156,18 @@ export class CreateOrderDto {
 }
 
 export class UpdateOrderDto {
+  @ApiPropertyOptional({
+    example: 'ORD-EXCEL-2026-084',
+    nullable: true,
+    maxLength: 50,
+    description: 'Enviar null o una cadena vacía para retirar el folio externo',
+  })
+  @Transform(optionalNormalizedString)
+  @IsOptional()
+  @IsString()
+  @Length(1, 50)
+  externalFolio?: string | null;
+
   @ApiPropertyOptional({ format: 'uuid' })
   @IsOptional()
   @IsUUID()
@@ -191,7 +222,12 @@ export class OrderQueryDto {
   @Max(100)
   limit = 20;
 
-  @ApiPropertyOptional({ default: '', maxLength: 100 })
+  @ApiPropertyOptional({
+    default: '',
+    maxLength: 100,
+    description:
+      'Busca por folio del sistema, folio externo, cliente, placa, número de serie, marca o modelo',
+  })
   @IsOptional()
   @IsString()
   @Length(0, 100)
@@ -306,6 +342,12 @@ export class OrderSummaryResponseDto {
   @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty({ description: 'Folio automático por compañía; bigint entregado como texto' })
   folio!: string;
+  @ApiProperty({
+    nullable: true,
+    type: String,
+    description: 'Folio capturado desde Excel u otro sistema externo',
+  })
+  externalFolio!: string | null;
   @ApiProperty({ enum: OrderStatus }) status!: OrderStatus;
   @ApiProperty({ type: OrderCustomerResponseDto }) customer!: OrderCustomerResponseDto;
   @ApiProperty({ type: OrderVehicleResponseDto }) vehicle!: OrderVehicleResponseDto;

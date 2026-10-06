@@ -8,8 +8,8 @@ export interface TenantMigration {
   up(queryRunner: QueryRunner, schemaName: string): Promise<void>;
 }
 
-export const TENANT_BASE_VERSION = 19;
-export const TENANT_BASE_NAME = 'tenant-base-v19';
+export const TENANT_BASE_VERSION = 20;
+export const TENANT_BASE_NAME = 'tenant-base-v20';
 
 /**
  * Dynamic tenant migrations deliberately use qualified identifiers everywhere.
@@ -106,6 +106,7 @@ export class TenantMigrator {
       `CREATE TABLE ${s}.orders (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
         folio bigint GENERATED ALWAYS AS IDENTITY UNIQUE,
+        external_folio varchar(50),
         customer_id uuid NOT NULL REFERENCES ${s}.customers(id),
         vehicle_id uuid NOT NULL REFERENCES ${s}.vehicles(id),
         status varchar(24) NOT NULL DEFAULT 'in_progress' CHECK (status IN ('in_progress','completed','cancelled')),
@@ -119,6 +120,8 @@ export class TenantMigrator {
         created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now()
       )`,
       `CREATE INDEX orders_status_opened_idx ON ${s}.orders(status, opened_at DESC)`,
+      `CREATE INDEX orders_external_folio_idx ON ${s}.orders(lower(external_folio))
+       WHERE external_folio IS NOT NULL`,
       `CREATE INDEX orders_customer_created_idx ON ${s}.orders(customer_id, created_at DESC)`,
       `CREATE INDEX orders_vehicle_created_idx ON ${s}.orders(vehicle_id, created_at DESC)`,
       `CREATE TABLE ${s}.order_items (

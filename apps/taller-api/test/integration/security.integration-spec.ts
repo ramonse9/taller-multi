@@ -469,6 +469,7 @@ interface VehicleHistoryResponse {
 interface OrderResponse {
   id: string;
   folio: string;
+  externalFolio: string | null;
   status: string;
   isPaid: boolean;
   customer: { id: string; type: string; displayName: string };
@@ -648,6 +649,12 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(inputSchema).toContain('true para servicios y false para productos');
     expect(responseSchema).toContain('forma parte del total por cobrar');
     expect(responseSchema).toContain('null significa desconocido');
+
+    const createOrderSchema = JSON.stringify(swagger.components?.schemas?.CreateOrderDto);
+    const orderSchema = JSON.stringify(swagger.components?.schemas?.OrderResponseDto);
+    expect(createOrderSchema).toContain('externalFolio');
+    expect(createOrderSchema).toContain('maxLength');
+    expect(orderSchema).toContain('sistema externo');
   });
 
   it('revierte compañía, schema y versión si falla el aprovisionamiento', async () => {
@@ -2062,10 +2069,10 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     ).toBe(400);
 
     const versions = await control.query<Array<{ version: number }>>(
-      'SELECT version FROM public.tenant_schema_versions WHERE company_id = $1 AND version = 19',
+      'SELECT version FROM public.tenant_schema_versions WHERE company_id = $1 AND version = 20',
       [tenant.company.id],
     );
-    expect(versions).toEqual([{ version: 19 }]);
+    expect(versions).toEqual([{ version: 20 }]);
   });
 
   it('calcula utilidad con ingresos terminados, FIFO y gastos confirmados', async () => {
@@ -3768,9 +3775,21 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     });
     expect(missingPrice.status).toBe(422);
 
+    const externalFolioTooLong = await request<unknown>('POST', '/orders', {
+      token: tenant.accessToken,
+      body: {
+        externalFolio: 'F'.repeat(51),
+        customerId: customer.body.id,
+        vehicleId: vehicle.body.id,
+        items: [{ description: 'Validación de folio', quantity: 1, unitPrice: 0 }],
+      },
+    });
+    expect(externalFolioTooLong.status).toBe(400);
+
     const created = await request<OrderResponse>('POST', '/orders', {
       token: tenant.accessToken,
       body: {
+        externalFolio: '  EXCEL   2026-084  ',
         customerId: customer.body.id,
         vehicleId: vehicle.body.id,
         items: [
@@ -3782,6 +3801,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(created.status).toBe(201);
     expect(created.body).toMatchObject({
       folio: '1',
+      externalFolio: 'EXCEL 2026-084',
       status: 'in_progress',
       isPaid: false,
       hasUnpricedItems: false,
@@ -3817,6 +3837,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     const updated = await request<OrderResponse>('PATCH', `/orders/${created.body.id}`, {
       token: tenant.accessToken,
       body: {
+        externalFolio: '  EXCEL 2026-085  ',
         items: [
           { description: 'Mano de obra', quantity: 1, unitPrice: 1200 },
           { description: 'Aceite sintético', quantity: 5, unitPrice: 180 },
@@ -3826,6 +3847,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(updated.status).toBe(200);
     expect(updated.body).toMatchObject({
       hasUnpricedItems: false,
+      externalFolio: 'EXCEL 2026-085',
       hasUnknownCosts: true,
       isFinanciallyComplete: false,
       subtotal: '2100.00',
@@ -4001,6 +4023,18 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(listed.status).toBe(200);
     expect(listed.body.totalItems).toBe(1);
     expect(listed.body.items[0]?.id).toBe(created.body.id);
+
+    const listedByExternalFolio = await request<{
+      totalItems: number;
+      items: OrderResponse[];
+    }>('GET', '/orders?search=EXCEL%202026-085', { token: tenant.accessToken });
+    expect(listedByExternalFolio.status).toBe(200);
+    expect(listedByExternalFolio.body.totalItems).toBe(1);
+    expect(listedByExternalFolio.body.items[0]).toMatchObject({
+      id: created.body.id,
+      folio: '1',
+      externalFolio: 'EXCEL 2026-085',
+    });
 
     const schema = quoteIdentifier(tenant.company.schemaName);
     const stored = await control.query<
