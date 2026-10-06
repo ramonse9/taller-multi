@@ -2544,6 +2544,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       grossProfit: '550.00',
       isComplete: true,
     });
+    expect(report.body.orders.map(({ id }) => id)).not.toContain(productWithoutCost.body.id);
 
     const analytics = await request<ProfitabilityAnalyticsResponse>(
       'GET',
@@ -2584,6 +2585,16 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       '2026-09',
       '2026-10',
     ]);
+    expect(analytics.body.series[0]).toMatchObject({
+      period: '2026-05',
+      completedOrderCount: 0,
+      collectedOrderCount: 0,
+      generatedIncome: '0.00',
+      generatedDirectCost: '0.00',
+      generatedNetProfit: '0.00',
+      generatedNetMarginPercent: null,
+      operatingExpenses: '0.00',
+    });
     expect(analytics.body.expensesByCategory).toEqual([
       expect.objectContaining({
         categoryCode: 'utilities',
@@ -2654,6 +2665,30 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         )
       ).status,
     ).toBe(400);
+
+    await request<unknown>('PATCH', `/subscriptions/companies/${tenant.company.id}`, {
+      token: platformToken,
+      body: { planCode: 'invoicing', status: 'active', reason: 'Validar plan Facturación' },
+    });
+    const invoicingAnalytics = await request<ProfitabilityAnalyticsResponse>(
+      'GET',
+      '/profitability/analytics?months=12&endingMonth=2026-10',
+      { token: tenant.accessToken },
+    );
+    expect(invoicingAnalytics.status).toBe(200);
+    expect(invoicingAnalytics.body.months).toBe(12);
+    expect(invoicingAnalytics.body.series).toHaveLength(12);
+    await request<unknown>('PATCH', `/subscriptions/companies/${tenant.company.id}`, {
+      token: platformToken,
+      body: { planCode: 'basic', status: 'active', reason: 'Validar restricción del plan Básico' },
+    });
+    expect(
+      (
+        await request<unknown>('GET', '/profitability', {
+          token: tenant.accessToken,
+        })
+      ).status,
+    ).toBe(403);
   });
 
   it('resume la operación y limita finanzas e inventario según el plan', async () => {

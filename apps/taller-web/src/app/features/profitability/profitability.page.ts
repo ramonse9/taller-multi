@@ -86,6 +86,7 @@ export class ProfitabilityPage implements OnInit {
   readonly report = signal<ProfitabilityReport>(emptyReport());
   readonly analytics = signal<ProfitabilityAnalytics | null>(null);
   readonly historyMonths = signal<6 | 12>(6);
+  readonly selectedMonthPeriod = signal<string | null>(null);
   readonly loading = signal(true);
   readonly error = signal("");
   readonly periodView = signal<"day" | "month">("day");
@@ -121,6 +122,13 @@ export class ProfitabilityPage implements OnInit {
       ]),
     );
   });
+  readonly selectedMonth = computed(() => {
+    const series = this.analytics()?.series ?? [];
+    const selected = this.selectedMonthPeriod();
+    return (
+      series.find((month) => month.period === selected) ?? series.at(-1) ?? null
+    );
+  });
   readonly waterfallMax = computed(() => {
     const totals = this.report().totals;
     return Math.max(
@@ -137,7 +145,8 @@ export class ProfitabilityPage implements OnInit {
     const available = series
       .map((month, index) => ({ month, index }))
       .filter(({ month }) => month.generatedNetMarginPercent !== null);
-    if (available.length === 0) return { points: "", values: [], zeroY: 170 };
+    if (available.length === 0)
+      return { segments: [] as string[], values: [], zeroY: 170 };
     const numbers = available.map(({ month }) =>
       Number(month.generatedNetMarginPercent),
     );
@@ -163,10 +172,25 @@ export class ProfitabilityPage implements OnInit {
       const y =
         verticalPadding +
         ((max - Number(month.generatedNetMarginPercent)) / range) * plotHeight;
-      return { ...month, x, y };
+      return { ...month, seriesIndex: index, x, y };
     });
+    const segments: string[] = [];
+    let current: typeof values = [];
+    for (const value of values) {
+      const previous = current.at(-1);
+      if (previous && value.seriesIndex - previous.seriesIndex > 1) {
+        if (current.length > 1) {
+          segments.push(current.map(({ x, y }) => `${x},${y}`).join(" "));
+        }
+        current = [];
+      }
+      current.push(value);
+    }
+    if (current.length > 1) {
+      segments.push(current.map(({ x, y }) => `${x},${y}`).join(" "));
+    }
     return {
-      points: values.map(({ x, y }) => `${x},${y}`).join(" "),
+      segments,
       values,
       zeroY: verticalPadding + ((max - 0) / range) * plotHeight,
     };
@@ -215,6 +239,15 @@ export class ProfitabilityPage implements OnInit {
         next: ({ report, analytics }) => {
           this.report.set(report);
           this.analytics.set(analytics);
+          if (
+            !analytics.series.some(
+              ({ period }) => period === this.selectedMonthPeriod(),
+            )
+          ) {
+            this.selectedMonthPeriod.set(
+              analytics.series.at(-1)?.period ?? null,
+            );
+          }
         },
         error: (error: unknown) =>
           this.error.set(
@@ -273,9 +306,22 @@ export class ProfitabilityPage implements OnInit {
   }
 
   comparisonHeight(value: string): number {
+    if (Number(value) === 0) return 0;
     return Math.max(
       2,
       (Math.abs(Number(value)) / this.monthlyComparisonMax()) * 100,
+    );
+  }
+
+  selectMonth(period: string): void {
+    this.selectedMonthPeriod.set(period);
+  }
+
+  monthHasMovement(month: ProfitabilityAnalytics["series"][number]): boolean {
+    return (
+      month.completedOrderCount > 0 ||
+      month.collectedOrderCount > 0 ||
+      Number(month.operatingExpenses) !== 0
     );
   }
 

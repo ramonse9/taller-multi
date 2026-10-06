@@ -273,15 +273,20 @@
             >
           </header>
           <div class="overflow-x-auto p-4 sm:p-5">
-            <div [style.min-width.px]="charts.series.length * 82">
+            <div [style.min-width.px]="charts.series.length * 64">
               <div
                 class="flex h-56 items-end gap-3 border-b border-[#bfc8d0] px-2 dark:border-[#4a6178]"
-                role="img"
+                role="group"
                 aria-label="Comparativo mensual de ingresos, costos y utilidad"
               >
                 @for (month of charts.series; track month.period) {
-                <div
-                  class="flex h-full min-w-14 flex-1 items-end justify-center gap-1"
+                <button
+                  class="group relative flex h-full min-w-12 flex-1 items-end justify-center gap-1 border-0 border-b-4 border-transparent bg-transparent px-0 pb-0 text-inherit outline-none transition-colors focus:border-[#6d70b3]"
+                  type="button"
+                  [class.border-[#6d70b3]]="selectedMonth()?.period === month.period"
+                  [attr.aria-label]="periodName(month.period) + ': ingresos ' + money(month.generatedIncome) + ', costos ' + money(month.generatedDirectCost) + ', utilidad ' + money(month.generatedNetProfit)"
+                  [attr.aria-pressed]="selectedMonth()?.period === month.period"
+                  (click)="selectMonth(month.period)"
                 >
                   <span
                     class="w-3 rounded-t-sm bg-[#4388c5]"
@@ -300,7 +305,13 @@
                     [style.height.%]="comparisonHeight(month.generatedNetProfit)"
                     [attr.title]="periodName(month.period) + ' · Utilidad ' + money(month.generatedNetProfit)"
                   ></span>
-                </div>
+                  @if (!monthHasMovement(month)) {
+                  <span
+                    class="absolute bottom-2 size-2 rounded-full border border-[#8d9aa5] bg-[#edf2f6] dark:border-[#708399] dark:bg-[#22364d]"
+                    title="Sin movimientos"
+                  ></span>
+                  }
+                </button>
                 }
               </div>
               <div
@@ -332,7 +343,46 @@
               <span class="flex items-center gap-2"
                 ><i class="size-3 rounded-sm bg-[#c76262]"></i>Pérdida</span
               >
+              <span class="flex items-center gap-2"
+                ><i
+                  class="size-3 rounded-full border border-[#8d9aa5] bg-[#edf2f6] dark:border-[#708399] dark:bg-[#22364d]"
+                ></i
+                >Sin movimientos</span
+              >
             </div>
+            @if (selectedMonth(); as selected) {
+            <div
+              class="mt-4 grid gap-2 border border-[#d5dce3] bg-[#f5f7f9] p-3 text-sm sm:grid-cols-2 dark:border-[#38516d] dark:bg-[#22364d]"
+              role="status"
+              aria-live="polite"
+            >
+              <strong class="capitalize sm:col-span-2"
+                >{{ periodName(selected.period) }}</strong
+              >
+              @if (monthHasMovement(selected)) {
+              <span
+                >Ingresos: <b>{{ money(selected.generatedIncome) }}</b></span
+              >
+              <span
+                >Costo directo:
+                <b>{{ money(selected.generatedDirectCost) }}</b></span
+              >
+              <span
+                >Gastos: <b>{{ money(selected.operatingExpenses) }}</b></span
+              >
+              <span
+                >Utilidad:
+                <b [class.text-[#a1362c]]="+selected.generatedNetProfit < 0"
+                  >{{ money(selected.generatedNetProfit) }}</b
+                ></span
+              >
+              } @else {
+              <span class="text-[#63717d] sm:col-span-2 dark:text-[#afbed0]"
+                >No hubo órdenes terminadas, cobros ni gastos confirmados.</span
+              >
+              }
+            </div>
+            }
           </div>
         </section>
 
@@ -356,7 +406,7 @@
             <svg
               class="h-56 w-full overflow-visible"
               viewBox="0 0 600 190"
-              role="img"
+              role="group"
               aria-label="Porcentaje de margen neto mensual"
             >
               <line
@@ -368,22 +418,29 @@
                 class="text-[#cbd4dc] dark:text-[#4a6178]"
                 stroke-width="1"
               />
+              @for (segment of marginChart().segments; track segment) {
               <polyline
-                [attr.points]="marginChart().points"
+                [attr.points]="segment"
                 fill="none"
                 stroke="#6d70b3"
                 stroke-width="5"
                 stroke-linecap="round"
                 stroke-linejoin="round"
               />
-              @for (point of marginChart().values; track point.period) {
+              } @for (point of marginChart().values; track point.period) {
               <circle
                 [attr.cx]="point.x"
                 [attr.cy]="point.y"
-                r="6"
-                fill="#fbfaf7"
-                stroke="#6d70b3"
+                [attr.r]="selectedMonth()?.period === point.period ? 8 : 6"
+                class="cursor-pointer fill-[#fbfaf7] dark:fill-[#19283b]"
+                [attr.stroke]="+(point.generatedNetMarginPercent ?? 0) < 0 ? '#c76262' : '#6d70b3'"
                 stroke-width="4"
+                tabindex="0"
+                role="button"
+                [attr.aria-label]="periodName(point.period) + ': margen neto ' + percent(point.generatedNetMarginPercent)"
+                (click)="selectMonth(point.period)"
+                (focus)="selectMonth(point.period)"
+                (keyup.enter)="selectMonth(point.period)"
               >
                 <title>
                   {{ periodName(point.period) }}: {{
@@ -408,8 +465,16 @@
             <p
               class="mt-5 border-t border-[#e2e7ec] pt-4 text-sm text-[#63717d] dark:border-[#38516d] dark:text-[#afbed0]"
             >
-              Porcentaje que queda después de costos directos y gastos
-              operativos.
+              @if (selectedMonth(); as selected) {
+              <strong class="capitalize text-[#17251e] dark:text-white"
+                >{{ periodName(selected.period) }}:</strong
+              >
+              @if (selected.generatedNetMarginPercent === null) { Sin margen por
+              falta de ingresos. } @else { {{
+              percent(selected.generatedNetMarginPercent) }} después de costos y
+              gastos. } @if (!monthHasMovement(selected)) { Mes sin movimientos.
+              } } @else { Selecciona un punto para consultar el margen mensual.
+              }
             </p>
           </div>
           } @else {
