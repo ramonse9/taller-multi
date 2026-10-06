@@ -260,7 +260,403 @@
     >
       {{ financialWarning(financials) }}
     </div>
-    } } @if (empty()) {
+    } } @if (data.access.includesFinancials) {
+    <section class="mt-6" aria-labelledby="dashboard-analytics-title">
+      <div class="mb-3 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p class="eyebrow">ANÁLISIS FINANCIERO</p>
+          <h2 id="dashboard-analytics-title" class="section-title !text-2xl">
+            Así se comporta el taller
+          </h2>
+        </div>
+        <div
+          class="flex items-center gap-2"
+          aria-label="Periodo de las gráficas"
+        >
+          <button
+            class="border px-3 py-1.5 text-xs font-bold transition"
+            [class.border-[#4388c5]]="analyticsMonths() === 6"
+            [class.bg-[#dcecf8]]="analyticsMonths() === 6"
+            [class.text-[#245f8b]]="analyticsMonths() === 6"
+            [class.border-[#cbd4dc]]="analyticsMonths() !== 6"
+            [class.dark:border-[#5792c4]]="analyticsMonths() === 6"
+            [class.dark:bg-[#284b68]]="analyticsMonths() === 6"
+            [class.dark:text-[#d9efff]]="analyticsMonths() === 6"
+            type="button"
+            (click)="loadAnalytics(6)"
+          >
+            6 meses
+          </button>
+          <button
+            class="border px-3 py-1.5 text-xs font-bold transition"
+            [class.border-[#4388c5]]="analyticsMonths() === 12"
+            [class.bg-[#dcecf8]]="analyticsMonths() === 12"
+            [class.text-[#245f8b]]="analyticsMonths() === 12"
+            [class.border-[#cbd4dc]]="analyticsMonths() !== 12"
+            [class.dark:border-[#5792c4]]="analyticsMonths() === 12"
+            [class.dark:bg-[#284b68]]="analyticsMonths() === 12"
+            [class.dark:text-[#d9efff]]="analyticsMonths() === 12"
+            type="button"
+            (click)="loadAnalytics(12)"
+          >
+            12 meses
+          </button>
+        </div>
+      </div>
+
+      @if (analyticsError()) {
+      <div
+        class="flex flex-wrap items-center justify-between gap-3 border border-[#e5b6a9] bg-[#fff0eb] px-4 py-3 text-sm text-[#8e3214] dark:border-[#765046] dark:bg-[#4b302e] dark:text-[#ffd9d4]"
+        role="alert"
+      >
+        <span>{{ analyticsError() }}</span>
+        <button
+          class="bg-transparent p-0 font-bold underline"
+          type="button"
+          (click)="loadAnalytics()"
+        >
+          Reintentar
+        </button>
+      </div>
+      } @else if (analyticsLoading()) {
+      <div class="grid gap-4 lg:grid-cols-2" aria-label="Cargando gráficas">
+        @for (item of [1, 2, 3, 4]; track item) {
+        <div
+          class="h-80 animate-pulse border border-[#d5dce3] bg-[#e8edf1] dark:border-[#38516d] dark:bg-[#22364d]"
+        ></div>
+        }
+      </div>
+      } @else if (analytics(); as charts) { @if (analyticsEmpty()) {
+      <div
+        class="border border-dashed border-[#bfcbd4] bg-white px-6 py-12 text-center dark:border-[#38516d] dark:bg-[#19283b]"
+      >
+        <span
+          class="mx-auto grid size-12 place-items-center rounded-full bg-[#dcecf8] text-xl dark:bg-[#284b68]"
+          >↗</span
+        >
+        <h3 class="mt-4 font-[var(--display)] text-2xl font-semibold">
+          Aún no hay información financiera
+        </h3>
+        <p
+          class="mx-auto mt-2 max-w-xl text-sm text-[#63717d] dark:text-[#afbed0]"
+        >
+          Las gráficas aparecerán cuando termines órdenes, registres cobros o
+          confirmes gastos.
+        </p>
+        <a
+          class="mt-4 inline-block text-sm font-bold text-[#b94718] dark:text-[#ff9a6f]"
+          routerLink="/orders"
+          >Ver órdenes →</a
+        >
+      </div>
+      } @else {
+      <div class="grid gap-4 lg:grid-cols-2">
+        <section
+          class="border border-[#d5dce3] bg-white dark:border-[#38516d] dark:bg-[#19283b]"
+          aria-labelledby="monthly-profit-title"
+        >
+          <header
+            class="flex items-start justify-between gap-4 border-b border-[#e2e7ec] bg-[#edf2f6] px-5 py-4 dark:border-[#38516d] dark:bg-[#22364d]"
+          >
+            <div>
+              <p class="eyebrow">MES ACTUAL</p>
+              <h3 id="monthly-profit-title" class="section-title">
+                Utilidad del mes
+              </h3>
+            </div>
+            <a
+              class="text-xs font-bold text-[#b94718] dark:text-[#ff9a6f]"
+              routerLink="/profitability"
+              >Ver detalle →</a
+            >
+          </header>
+          <div class="p-5">
+            <div
+              class="flex h-52 items-end justify-around gap-3 border-b border-[#bfc8d0] px-1 sm:px-5 dark:border-[#4a6178]"
+              role="img"
+              aria-label="Ingresos, costos, gastos y utilidad neta del mes"
+            >
+              @for (bar of [ {label: 'Ingresos', value:
+              charts.summary.generatedIncome, color: '#4388c5'}, {label:
+              'Costo', value: charts.summary.generatedDirectCost, color:
+              '#e28a4b'}, {label: 'Gastos', value:
+              charts.summary.operatingExpenses, color: '#a678b4'}, {label:
+              'Utilidad', value: charts.summary.generatedNetProfit, color:
+              +charts.summary.generatedNetProfit < 0 ? '#c76262' : '#5b9b70'} ];
+              track bar.label) {
+              <div
+                class="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-2"
+              >
+                <span
+                  class="max-w-full truncate text-[.65rem] font-bold sm:text-xs"
+                  >{{ money(bar.value) }}</span
+                >
+                <span
+                  class="w-full max-w-14 rounded-t-sm transition-[height]"
+                  [style.height.%]="barHeight(bar.value)"
+                  [style.background-color]="bar.color"
+                  [attr.title]="bar.label + ': ' + money(bar.value)"
+                ></span>
+              </div>
+              }
+            </div>
+            <div
+              class="mt-2 grid grid-cols-4 gap-2 text-center text-[.65rem] font-bold uppercase tracking-wide text-[#62717d] sm:text-xs dark:text-[#afbed0]"
+            >
+              <span>Ingresos</span><span>Costo</span><span>Gastos</span
+              ><span>Utilidad</span>
+            </div>
+            <p class="mt-4 text-sm text-[#63717d] dark:text-[#afbed0]">
+              Margen neto:
+              <strong class="text-[#17251e] dark:text-white"
+                >{{ charts.summary.generatedNetMarginPercent === null ? 'Sin
+                calcular' : charts.summary.generatedNetMarginPercent + '%'
+                }}</strong
+              >
+            </p>
+          </div>
+        </section>
+
+        <section
+          class="border border-[#d5dce3] bg-white dark:border-[#38516d] dark:bg-[#19283b]"
+          aria-labelledby="profit-evolution-title"
+        >
+          <header
+            class="flex items-start justify-between gap-4 border-b border-[#e2e7ec] bg-[#edf2f6] px-5 py-4 dark:border-[#38516d] dark:bg-[#22364d]"
+          >
+            <div>
+              <p class="eyebrow">TENDENCIA</p>
+              <h3 id="profit-evolution-title" class="section-title">
+                Evolución de la utilidad
+              </h3>
+            </div>
+            <a
+              class="text-xs font-bold text-[#b94718] dark:text-[#ff9a6f]"
+              routerLink="/profitability"
+              >Analizar →</a
+            >
+          </header>
+          <div class="overflow-hidden p-5">
+            <svg
+              class="h-52 w-full overflow-visible"
+              viewBox="0 0 600 190"
+              role="img"
+              aria-label="Utilidad neta mensual"
+            >
+              <line
+                x1="24"
+                [attr.y1]="lineChart().zeroY"
+                x2="576"
+                [attr.y2]="lineChart().zeroY"
+                stroke="currentColor"
+                class="text-[#cbd4dc] dark:text-[#4a6178]"
+                stroke-width="1"
+              />
+              <polyline
+                [attr.points]="lineChart().points"
+                fill="none"
+                stroke="#4388c5"
+                stroke-width="5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              @for (point of lineChart().values; track point.period) {
+              <circle
+                [attr.cx]="point.x"
+                [attr.cy]="point.y"
+                r="6"
+                fill="#fbfaf7"
+                stroke="#4388c5"
+                stroke-width="4"
+              >
+                <title>
+                  {{ monthName(point.period) }}: {{
+                  money(point.generatedNetProfit) }}
+                </title>
+              </circle>
+              }
+            </svg>
+            <div
+              class="mt-2 grid gap-1 text-center text-[.65rem] font-bold uppercase text-[#63717d] sm:text-xs dark:text-[#afbed0]"
+              [style.grid-template-columns]="'repeat(' + lineChart().values.length + ', minmax(0, 1fr))'"
+            >
+              @for (point of lineChart().values; track point.period; let index =
+              $index) { @if (analyticsMonths() === 6 || index % 2 === 0 || index
+              === lineChart().values.length - 1) {
+              <span>{{ shortMonth(point.period) }}</span>
+              } @else { <span aria-hidden="true"></span> } }
+            </div>
+            <div
+              class="mt-5 flex items-center justify-between gap-3 border-t border-[#e2e7ec] pt-4 text-sm dark:border-[#38516d]"
+            >
+              <span class="text-[#63717d] dark:text-[#afbed0]">Último mes</span>
+              <strong
+                [class.text-[#a63725]]="+charts.summary.generatedNetProfit < 0"
+                >{{ money(charts.summary.generatedNetProfit) }}</strong
+              >
+            </div>
+          </div>
+        </section>
+
+        <section
+          class="border border-[#d5dce3] bg-white dark:border-[#38516d] dark:bg-[#19283b]"
+          aria-labelledby="collection-donut-title"
+        >
+          <header
+            class="flex items-start justify-between gap-4 border-b border-[#e2e7ec] bg-[#edf2f6] px-5 py-4 dark:border-[#38516d] dark:bg-[#22364d]"
+          >
+            <div>
+              <p class="eyebrow">COBRANZA</p>
+              <h3 id="collection-donut-title" class="section-title">
+                Cobrado contra pendiente
+              </h3>
+            </div>
+            <a
+              class="text-xs font-bold text-[#b94718] dark:text-[#ff9a6f]"
+              routerLink="/orders"
+              [queryParams]="{isPaid: false}"
+              >Ver órdenes →</a
+            >
+          </header>
+          <div
+            class="grid items-center gap-6 p-5 sm:grid-cols-[11rem_minmax(0,1fr)]"
+          >
+            <div
+              class="relative mx-auto size-44 rounded-full"
+              [style.background]="collectionDonut()"
+              role="img"
+              [attr.aria-label]="'Cobrado ' + money(charts.collection.paidAmount) + ', pendiente ' + money(charts.collection.pendingAmount)"
+            >
+              <div
+                class="absolute inset-7 grid place-items-center rounded-full bg-white text-center dark:bg-[#19283b]"
+              >
+                <span
+                  ><small
+                    class="block text-[.65rem] font-bold uppercase text-[#63717d] dark:text-[#afbed0]"
+                    >Total</small
+                  ><strong class="text-sm"
+                    >{{ money((+charts.collection.paidAmount +
+                    +charts.collection.pendingAmount).toFixed(2)) }}</strong
+                  ></span
+                >
+              </div>
+            </div>
+            <div class="space-y-4">
+              <div class="flex items-start justify-between gap-3">
+                <span class="flex items-center gap-2"
+                  ><i class="size-3 shrink-0 rounded-full bg-[#4388c5]"></i
+                  ><span
+                    ><strong class="block">Cobrado</strong
+                    ><small class="text-[#63717d] dark:text-[#afbed0]"
+                      >{{ charts.collection.paidOrderCount }} órdenes</small
+                    ></span
+                  ></span
+                >
+                <strong>{{ money(charts.collection.paidAmount) }}</strong>
+              </div>
+              <div class="flex items-start justify-between gap-3">
+                <span class="flex items-center gap-2"
+                  ><i class="size-3 shrink-0 rounded-full bg-[#e2a348]"></i
+                  ><span
+                    ><strong class="block">Pendiente</strong
+                    ><small class="text-[#63717d] dark:text-[#afbed0]"
+                      >{{ charts.collection.pendingOrderCount }} órdenes</small
+                    ></span
+                  ></span
+                >
+                <strong>{{ money(charts.collection.pendingAmount) }}</strong>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section
+          class="border border-[#d5dce3] bg-white dark:border-[#38516d] dark:bg-[#19283b]"
+          aria-labelledby="expenses-donut-title"
+        >
+          <header
+            class="flex items-start justify-between gap-4 border-b border-[#e2e7ec] bg-[#edf2f6] px-5 py-4 dark:border-[#38516d] dark:bg-[#22364d]"
+          >
+            <div>
+              <p class="eyebrow">DISTRIBUCIÓN</p>
+              <h3 id="expenses-donut-title" class="section-title">
+                Gastos por categoría
+              </h3>
+            </div>
+            @if (auth.hasPermission('expenses.view')) {
+            <a
+              class="text-xs font-bold text-[#b94718] dark:text-[#ff9a6f]"
+              routerLink="/expenses"
+              >Ver gastos →</a
+            >
+            }
+          </header>
+          @if (charts.expensesByCategory.length > 0) {
+          <div
+            class="grid items-center gap-6 p-5 sm:grid-cols-[11rem_minmax(0,1fr)]"
+          >
+            <div
+              class="relative mx-auto size-44 rounded-full"
+              [style.background]="expensesDonut()"
+              role="img"
+              [attr.aria-label]="'Gastos del mes: ' + money(charts.summary.operatingExpenses)"
+            >
+              <div
+                class="absolute inset-7 grid place-items-center rounded-full bg-white text-center dark:bg-[#19283b]"
+              >
+                <span
+                  ><small
+                    class="block text-[.65rem] font-bold uppercase text-[#63717d] dark:text-[#afbed0]"
+                    >Gastos</small
+                  ><strong class="text-sm"
+                    >{{ money(charts.summary.operatingExpenses) }}</strong
+                  ></span
+                >
+              </div>
+            </div>
+            <div class="max-h-48 space-y-3 overflow-auto pr-1">
+              @for (category of charts.expensesByCategory; track
+              category.categoryId; let index = $index) {
+              <div class="flex items-start justify-between gap-3 text-sm">
+                <span class="flex min-w-0 items-center gap-2"
+                  ><i
+                    class="size-3 shrink-0 rounded-full"
+                    [style.background-color]="expenseColors[index % expenseColors.length]"
+                  ></i
+                  ><span class="truncate"
+                    >{{ category.categoryName }}</span
+                  ></span
+                >
+                <span class="shrink-0 text-right"
+                  ><strong class="block">{{ money(category.amount) }}</strong
+                  ><small class="text-[#63717d] dark:text-[#afbed0]"
+                    >{{ category.percentage }}%</small
+                  ></span
+                >
+              </div>
+              }
+            </div>
+          </div>
+          } @else {
+          <div class="grid min-h-64 place-items-center p-8 text-center">
+            <div>
+              <span
+                class="mx-auto grid size-11 place-items-center rounded-full bg-[#eee8f2] text-xl dark:bg-[#42314b]"
+                >✓</span
+              ><strong class="mt-3 block"
+                >Sin gastos confirmados este mes</strong
+              >
+              <p class="mt-1 text-sm text-[#63717d] dark:text-[#afbed0]">
+                Cuando confirmes un gasto aparecerá aquí por categoría.
+              </p>
+            </div>
+          </div>
+          }
+        </section>
+      </div>
+      } }
+    </section>
+    } @if (empty()) {
     <section
       class="mt-8 border border-dashed border-[#c9c5ba] bg-white px-6 py-16 text-center dark:border-[#38516d] dark:bg-[#19283b]"
     >

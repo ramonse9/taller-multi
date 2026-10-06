@@ -2,7 +2,11 @@ import { HttpClient } from "@angular/common/http";
 import { inject, Injectable } from "@angular/core";
 import { Observable } from "rxjs";
 import { environment } from "../../../environments/environment";
-import { DashboardActivity, DashboardSummary } from "./dashboard.models";
+import {
+  DashboardActivity,
+  DashboardAnalytics,
+  DashboardSummary,
+} from "./dashboard.models";
 
 @Injectable({ providedIn: "root" })
 export class DashboardService {
@@ -15,5 +19,12 @@ export class DashboardService {
 
   activity(): Observable<DashboardActivity> {
     return this.http.get<DashboardActivity>(`${this.url}/activity`);
+  }
+
+  analytics(months: 6 | 12): Observable<DashboardAnalytics> {
+    return this.http.get<DashboardAnalytics>(
+      `${environment.apiUrl}/profitability/analytics`,
+      { params: { months } },
+    );
   }
 }

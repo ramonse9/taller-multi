@@ -126,3 +126,45 @@ export interface DashboardActivity {
   recentInventoryMovements: DashboardInventoryMovementActivity[] | null;
   lowStock: DashboardLowStock | null;
 }
+
+export interface DashboardAnalyticsMonth {
+  period: string;
+  startsOn: string;
+  endsOn: string;
+  completedOrderCount: number;
+  incompleteOrderCount: number;
+  generatedIncome: string;
+  generatedDirectCost: string;
+  generatedGrossProfit: string;
+  operatingExpenses: string;
+  generatedNetProfit: string;
+  generatedNetMarginPercent: string | null;
+  collectedOrderCount: number;
+  collectedIncome: string;
+  collectedDirectCost: string;
+  collectedGrossProfit: string;
+  collectedNetResult: string;
+  isComplete: boolean;
+}
+
+export interface DashboardAnalytics {
+  months: 6 | 12;
+  occurredFrom: string;
+  occurredTo: string;
+  summary: DashboardAnalyticsMonth;
+  series: DashboardAnalyticsMonth[];
+  collection: {
+    paidOrderCount: number;
+    paidAmount: string;
+    pendingOrderCount: number;
+    pendingAmount: string;
+  };
+  expensesByCategory: Array<{
+    categoryId: string;
+    categoryCode: string;
+    categoryName: string;
+    expenseCount: number;
+    amount: string;
+    percentage: string | null;
+  }>;
+}
