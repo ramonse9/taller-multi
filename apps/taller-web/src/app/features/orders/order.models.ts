@@ -25,6 +25,7 @@ export interface OrderItem {
   kind: OrderItemKind;
   position: number;
   description: string;
+  affectsOrderTotal: boolean;
   unitName: string;
   unitSymbol: string;
   quantity: string;
@@ -107,6 +108,7 @@ export interface OrderItemInput {
   productServiceId?: string | null;
   kind?: OrderItemKind;
   description: string;
+  affectsOrderTotal?: boolean;
   quantity: number;
   unitPrice?: number | null;
   unitCost?: number | null;

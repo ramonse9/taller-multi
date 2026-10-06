@@ -3933,6 +3933,13 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
             unitPrice: 2100,
             unitCost: 0,
           },
+          {
+            kind: 'service',
+            description: 'Diagnóstico electrónico',
+            quantity: 1,
+            unitPrice: 400,
+            unitCost: 50,
+          },
           { kind: 'product', description: 'Aceite incluido', quantity: 5, unitCost: 100 },
           {
             kind: 'product',
@@ -3947,10 +3954,10 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     });
     expect(billingModes.status).toBe(201);
     expect(billingModes.body).toMatchObject({
-      subtotal: '2400.00',
-      total: '2400.00',
-      totalCost: '700.00',
-      grossProfit: '1700.00',
+      subtotal: '2800.00',
+      total: '2800.00',
+      totalCost: '750.00',
+      grossProfit: '2050.00',
       hasUnpricedItems: false,
       hasUnknownCosts: false,
       isFinanciallyComplete: true,
@@ -3963,6 +3970,14 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         unitCost: '0.00',
         costAmount: '0.00',
         amount: '2100.00',
+      }),
+      expect.objectContaining({
+        kind: 'service',
+        affectsOrderTotal: true,
+        unitPrice: '400.00',
+        unitCost: '50.00',
+        costAmount: '50.00',
+        amount: '400.00',
       }),
       expect.objectContaining({
         kind: 'product',

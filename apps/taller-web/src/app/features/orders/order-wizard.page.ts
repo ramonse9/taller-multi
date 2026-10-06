@@ -480,7 +480,9 @@ export class OrderWizardPage implements OnInit {
   }
 
   addItem(): void {
-    if (this.items.length < 50) this.items.push(this.createItemGroup());
+    if (this.items.length >= 50) return;
+    this.items.push(this.createItemGroup());
+    this.organizeItems();
   }
 
   addCatalogItem(concept: CatalogConcept): void {
@@ -494,7 +496,9 @@ export class OrderWizardPage implements OnInit {
       kind: concept.kind,
       description: concept.name,
       quantity: 1,
-      unitPrice: Number(concept.price),
+      affectsOrderTotal: concept.kind === "service",
+      unitPrice: concept.kind === "service" ? Number(concept.price) : null,
+      suggestedUnitPrice: Number(concept.price),
       unitCost: concept.cost === null ? null : Number(concept.cost),
       unitName: concept.unit.name,
       unitSymbol: concept.unit.symbol,
@@ -502,6 +506,7 @@ export class OrderWizardPage implements OnInit {
     });
     if (initialFreeItem) this.items.setControl(0, group);
     else this.items.push(group);
+    this.organizeItems();
     this.conceptSearch.setValue("");
   }
 
@@ -529,6 +534,35 @@ export class OrderWizardPage implements OnInit {
     item.get("kind")?.setValue(kind);
     item.get("unitName")?.setValue(kind === "service" ? "Servicio" : "Unidad");
     item.get("unitSymbol")?.setValue(kind === "service" ? "serv" : "u");
+    this.setItemBilling(index, kind === "service");
+  }
+
+  setItemBilling(index: number, affectsOrderTotal: boolean): void {
+    const item = this.items.at(index);
+    if (item.get("kind")?.value !== "product" && !affectsOrderTotal) return;
+    item.get("affectsOrderTotal")?.setValue(affectsOrderTotal);
+    const price = item.get("unitPrice");
+    if (affectsOrderTotal) {
+      if (price?.value === null) {
+        const suggested = item.get("suggestedUnitPrice")?.value;
+        if (suggested !== null && suggested !== undefined)
+          price?.setValue(suggested);
+      }
+      price?.setValidators([Validators.required, Validators.min(0)]);
+    } else {
+      price?.setValue(null);
+      price?.setValidators([Validators.min(0)]);
+    }
+    price?.updateValueAndValidity();
+    this.organizeItems();
+  }
+
+  isFirstInput(index: number): boolean {
+    return (
+      !this.items.at(index).get("affectsOrderTotal")?.value &&
+      (index === 0 ||
+        !!this.items.at(index - 1).get("affectsOrderTotal")?.value)
+    );
   }
 
   isExplicitZeroCost(index: number): boolean {
@@ -537,9 +571,11 @@ export class OrderWizardPage implements OnInit {
 
   itemAmount(index: number): number | null {
     const raw = this.items.at(index).value as {
+      affectsOrderTotal?: boolean;
       quantity?: number | null;
       unitPrice?: number | null;
     };
+    if (!raw.affectsOrderTotal) return 0;
     return raw.unitPrice === null ||
       raw.unitPrice === undefined ||
       raw.quantity === null ||
@@ -555,6 +591,43 @@ export class OrderWizardPage implements OnInit {
     return amounts.some((amount) => amount === null)
       ? null
       : amounts.reduce<number>((sum, amount) => sum + (amount ?? 0), 0);
+  }
+
+  inputCost(): number | null {
+    const inputs = this.items.controls.filter(
+      (item) => !item.get("affectsOrderTotal")?.value,
+    );
+    if (!inputs.length) return 0;
+    const costs = inputs.map((item) => {
+      const quantity = item.get("quantity")?.value;
+      const unitCost = item.get("unitCost")?.value;
+      return quantity === null ||
+        quantity === undefined ||
+        unitCost === null ||
+        unitCost === undefined
+        ? null
+        : Number(quantity) * Number(unitCost);
+    });
+    return costs.some((cost) => cost === null)
+      ? null
+      : costs.reduce<number>((sum, cost) => sum + (cost ?? 0), 0);
+  }
+
+  grossProfit(): number | null {
+    const subtotal = this.total();
+    const costs = this.items.controls.map((item) => {
+      const quantity = item.get("quantity")?.value;
+      const unitCost = item.get("unitCost")?.value;
+      return quantity === null ||
+        quantity === undefined ||
+        unitCost === null ||
+        unitCost === undefined
+        ? null
+        : Number(quantity) * Number(unitCost);
+    });
+    return subtotal === null || costs.some((cost) => cost === null)
+      ? null
+      : subtotal - costs.reduce<number>((sum, cost) => sum + (cost ?? 0), 0);
   }
 
   money(value: number | string | null): string {
@@ -614,6 +687,7 @@ export class OrderWizardPage implements OnInit {
         productServiceId: item["productServiceId"] || null,
         kind: item["kind"],
         description: String(item["description"]).trim(),
+        affectsOrderTotal: Boolean(item["affectsOrderTotal"]),
         quantity: Number(item["quantity"]),
         unitPrice:
           item["unitPrice"] === null || item["unitPrice"] === undefined
@@ -656,14 +730,18 @@ export class OrderWizardPage implements OnInit {
       unitName?: string;
       unitSymbol?: string;
       tracksInventory?: boolean;
+      affectsOrderTotal?: boolean;
+      suggestedUnitPrice?: number | null;
     } = {},
   ): FormGroup {
+    const kind = value.kind ?? "service";
+    const affectsOrderTotal = value.affectsOrderTotal ?? kind === "service";
     return new FormGroup({
       itemId: new FormControl(value.itemId ?? "", { nonNullable: true }),
       productServiceId: new FormControl(value.productServiceId ?? "", {
         nonNullable: true,
       }),
-      kind: new FormControl<OrderItemKind>(value.kind ?? "service", {
+      kind: new FormControl<OrderItemKind>(kind, {
         nonNullable: true,
       }),
       description: new FormControl(value.description ?? "", {
@@ -673,20 +751,28 @@ export class OrderWizardPage implements OnInit {
       quantity: new FormControl<number | null>(value.quantity ?? 1, {
         validators: [Validators.required, Validators.min(1)],
       }),
+      affectsOrderTotal: new FormControl(affectsOrderTotal, {
+        nonNullable: true,
+      }),
+      suggestedUnitPrice: new FormControl<number | null>(
+        value.suggestedUnitPrice ?? value.unitPrice ?? null,
+      ),
       unitPrice: new FormControl<number | null>(value.unitPrice ?? null, {
-        validators: [Validators.required, Validators.min(0)],
+        validators: affectsOrderTotal
+          ? [Validators.required, Validators.min(0)]
+          : [Validators.min(0)],
       }),
       unitCost: new FormControl<number | null>(value.unitCost ?? null, {
         validators: [Validators.min(0)],
       }),
       unitName: new FormControl(
-        value.unitName ?? (value.kind === "product" ? "Unidad" : "Servicio"),
+        value.unitName ?? (kind === "product" ? "Unidad" : "Servicio"),
         {
           nonNullable: true,
         },
       ),
       unitSymbol: new FormControl(
-        value.unitSymbol ?? (value.kind === "product" ? "u" : "serv"),
+        value.unitSymbol ?? (kind === "product" ? "u" : "serv"),
         {
           nonNullable: true,
         },
@@ -695,6 +781,18 @@ export class OrderWizardPage implements OnInit {
         nonNullable: true,
       }),
     });
+  }
+
+  private organizeItems(): void {
+    const ordered = [...this.items.controls].sort(
+      (left, right) =>
+        Number(!left.get("affectsOrderTotal")?.value) -
+        Number(!right.get("affectsOrderTotal")?.value),
+    );
+    if (ordered.every((control, index) => control === this.items.at(index)))
+      return;
+    this.items.clear();
+    ordered.forEach((control) => this.items.push(control));
   }
 
   private loadOrder(): void {
@@ -720,23 +818,31 @@ export class OrderWizardPage implements OnInit {
     this.orderForm.controls.vehicleId.setValue(order.vehicle.id);
     this.items.clear();
     order.items.forEach((item) => {
-      const group = this.createItemGroup();
-      group.patchValue({
+      const catalogPrice = this.concepts().find(
+        (concept) => concept.id === item.productServiceId,
+      )?.price;
+      const group = this.createItemGroup({
         itemId: item.id,
         productServiceId: item.productServiceId ?? "",
         kind: item.kind,
         description: item.description,
+        affectsOrderTotal: item.affectsOrderTotal,
         quantity: Number(item.quantity),
         unitPrice: item.unitPrice === null ? null : Number(item.unitPrice),
+        suggestedUnitPrice:
+          item.unitPrice !== null
+            ? Number(item.unitPrice)
+            : catalogPrice === undefined
+              ? null
+              : Number(catalogPrice),
         unitCost: item.unitCost === null ? null : Number(item.unitCost),
         unitName: item.unitName,
         unitSymbol: item.unitSymbol,
         tracksInventory: item.tracksInventory,
       });
       this.items.push(group);
-      if (!item.productServiceId)
-        this.setItemKind(this.items.length - 1, item.kind);
     });
+    this.organizeItems();
     this.loadVehicles(order.customer.id, order.vehicle.id);
   }
 

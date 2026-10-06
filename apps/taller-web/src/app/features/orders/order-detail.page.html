@@ -169,8 +169,32 @@
               Trabajo registrado
             </h2>
           </header>
+          @let displayedItems = displayItems(current);
           <div class="divide-y divide-[#e2e7ec] dark:divide-[#38516d]">
-            @for (item of current.items; track item.id) {
+            @for (item of displayedItems; track item.id; let i = $index) { @if
+            (i === 0 && item.affectsOrderTotal) {
+            <div
+              class="border-l-4 border-[#3c79ad] bg-[#e7f1fb] px-6 py-3 dark:border-[#72a9d6] dark:bg-[#20364c]"
+            >
+              <strong class="block text-xs uppercase tracking-wide"
+                >Servicios y conceptos cobrables</strong
+              >
+              <small class="text-[#45627a] dark:text-[#b9dcf5]"
+                >Importes incluidos en el cobro al cliente.</small
+              >
+            </div>
+            } @if (isFirstInput(displayedItems, i)) {
+            <div
+              class="border-l-4 border-[#d38a2e] bg-[#fff0cf] px-6 py-3 dark:border-[#e6ad5d] dark:bg-[#42351f]"
+            >
+              <strong class="block text-xs uppercase tracking-wide"
+                >Insumos utilizados</strong
+              >
+              <small class="text-[#805719] dark:text-[#ffd18a]"
+                >Afectan el costo, pero no el subtotal cobrado.</small
+              >
+            </div>
+            }
             <div
               class="grid gap-3 px-6 py-4 sm:grid-cols-[minmax(0,1fr)_5.5rem_7rem_8rem]"
             >
@@ -181,6 +205,18 @@
                     class="inline-flex bg-[#e1e9f1] px-2 py-0.5 text-[.62rem] font-bold uppercase tracking-wider text-[#45627a] dark:bg-[#22364d] dark:text-[#b9dcf5]"
                     >{{ item.kind === 'product' ? 'Producto' : 'Servicio'
                     }}</span
+                  >
+                  <span
+                    class="inline-flex px-2 py-0.5 text-[.62rem] font-bold uppercase tracking-wider"
+                    [class.bg-[#cfe3fb]]="item.affectsOrderTotal"
+                    [class.text-[#285f8a]]="item.affectsOrderTotal"
+                    [class.dark:bg-[#233f58]]="item.affectsOrderTotal"
+                    [class.dark:text-[#b9dcf5]]="item.affectsOrderTotal"
+                    [class.bg-[#fff0cf]]="!item.affectsOrderTotal"
+                    [class.text-[#805719]]="!item.affectsOrderTotal"
+                    [class.dark:bg-[#42351f]]="!item.affectsOrderTotal"
+                    [class.dark:text-[#ffd18a]]="!item.affectsOrderTotal"
+                    >{{ item.affectsOrderTotal ? 'Cobrable' : 'Insumo' }}</span
                   >
                 </div>
                 @if (auth.hasPermission('catalog.view_costs') && item.costAmount
@@ -205,9 +241,12 @@
               </div>
               <span>{{ quantity(item.quantity) }}</span
               ><span
-                >{{ item.unitPrice === null ? 'Sin precio' :
-                money(item.unitPrice) }}</span
-              ><strong class="sm:text-right">{{ money(item.amount) }}</strong>
+                >{{ item.affectsOrderTotal ? (item.unitPrice === null ? 'Sin
+                precio' : money(item.unitPrice)) : 'Incluido' }}</span
+              ><strong class="sm:text-right"
+                >{{ item.affectsOrderTotal ? money(item.amount) : 'No se suma'
+                }}</strong
+              >
             </div>
             }
           </div>
@@ -217,9 +256,13 @@
             <div
               class="ml-auto grid max-w-md grid-cols-2 gap-x-8 gap-y-2 text-right"
             >
-              <span>Venta</span><strong>{{ money(current.total) }}</strong>
-              @if (auth.hasPermission('catalog.view_costs') && current.totalCost
-              !== null) {
+              <span>Subtotal cobrado</span
+              ><strong>{{ money(current.total) }}</strong>
+              @if (auth.hasPermission('catalog.view_costs')) {
+              <span>Costo de insumos</span
+              ><strong>{{ money(inputCost(current)) }}</strong>
+              } @if (auth.hasPermission('catalog.view_costs') &&
+              current.totalCost !== null) {
               <span
                 >{{ hasActualCosts(current) ? 'Costo real' : 'Costo estimado'
                 }}</span

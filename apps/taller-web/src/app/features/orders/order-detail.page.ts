@@ -204,6 +204,29 @@ export class OrderDetailPage implements OnInit {
     }).format(Number(value));
   }
 
+  displayItems(order: Order): OrderItem[] {
+    return [...order.items].sort(
+      (left, right) =>
+        Number(!left.affectsOrderTotal) - Number(!right.affectsOrderTotal),
+    );
+  }
+
+  isFirstInput(items: OrderItem[], index: number): boolean {
+    return (
+      !items[index]?.affectsOrderTotal &&
+      (index === 0 || !!items[index - 1]?.affectsOrderTotal)
+    );
+  }
+
+  inputCost(order: Order): string | null {
+    const inputs = order.items.filter((item) => !item.affectsOrderTotal);
+    if (!inputs.length) return "0.00";
+    if (inputs.some((item) => item.costAmount === null)) return null;
+    return inputs
+      .reduce((sum, item) => sum + Number(item.costAmount), 0)
+      .toFixed(2);
+  }
+
   hasActualCosts(order: Order): boolean {
     return (
       order.inventoryAppliedAt !== null ||
