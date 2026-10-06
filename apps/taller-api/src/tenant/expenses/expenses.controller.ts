@@ -81,7 +81,7 @@ export class ExpensesController {
 
   @Get(':id')
   @RequiresPermissions('expenses.view')
-  @ApiOperation({ summary: 'Consultar un gasto y su historial de estados' })
+  @ApiOperation({ summary: 'Consultar un gasto con sus historiales de estados y ediciones' })
   @ApiOkResponse({ type: ExpenseResponseDto })
   getOne(
     @CurrentUser() user: AuthenticatedUser,
@@ -92,7 +92,7 @@ export class ExpensesController {
 
   @Post()
   @RequiresPermissions('expenses.create')
-  @ApiOperation({ summary: 'Registrar un gasto en borrador' })
+  @ApiOperation({ summary: 'Registrar y confirmar un gasto automáticamente' })
   @ApiCreatedResponse({ type: ExpenseResponseDto })
   create(
     @CurrentUser() user: AuthenticatedUser,
@@ -103,7 +103,7 @@ export class ExpensesController {
 
   @Patch(':id')
   @RequiresPermissions('expenses.edit')
-  @ApiOperation({ summary: 'Editar un gasto mientras permanece en borrador' })
+  @ApiOperation({ summary: 'Editar un gasto confirmado mientras no esté cancelado' })
   @ApiOkResponse({ type: ExpenseResponseDto })
   update(
     @CurrentUser() user: AuthenticatedUser,
@@ -115,7 +115,11 @@ export class ExpensesController {
 
   @Post(':id/status')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Confirmar o cancelar un gasto' })
+  @ApiOperation({
+    summary: 'Cancelar un gasto',
+    description:
+      'La confirmación se conserva únicamente por compatibilidad con clientes anteriores.',
+  })
   @ApiOkResponse({ type: ExpenseResponseDto })
   changeStatus(
     @CurrentUser() user: AuthenticatedUser,

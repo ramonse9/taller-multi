@@ -258,6 +258,12 @@ interface ExpenseResponse {
     newStatus: 'draft' | 'confirmed' | 'cancelled';
     changedByUserId: string;
   }>;
+  changeHistory: Array<{
+    changedFields: string[];
+    previousValues: Record<string, string | null>;
+    newValues: Record<string, string | null>;
+    changedByUserId: string;
+  }>;
 }
 
 interface ExpenseMonthlySummaryResponse {
@@ -1426,6 +1432,14 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         })
       ).status,
     ).toBe(403);
+    expect(
+      (
+        await request<unknown>('PATCH', `/expenses/${fakeId}`, {
+          token: operatorLogin.body.accessToken,
+          body: { amount: 100 },
+        })
+      ).status,
+    ).toBe(403);
 
     const units = await request<MeasurementUnitResponse[]>('GET', '/catalogs/units', {
       token: tenant.accessToken,
@@ -1926,7 +1940,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(created.body).toMatchObject({
       category: { code: 'rent', name: 'Renta' },
       supplier: { commercialName: 'Proveedor general', isDefault: true },
-      status: 'draft',
+      status: 'confirmed',
       recurrenceType: 'recurring',
       occurredOn: '2026-10-01',
       description: 'Renta del taller',
@@ -1935,9 +1949,11 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       notes: 'Pago mensual',
       receiptFileKey: null,
       statusHistory: [
-        { previousStatus: null, newStatus: 'draft', changedByUserId: tenant.user.id },
+        { previousStatus: null, newStatus: 'confirmed', changedByUserId: tenant.user.id },
       ],
+      changeHistory: [],
     });
+    expect(created.body.confirmedAt).not.toBeNull();
 
     const edited = await request<ExpenseResponse>('PATCH', `/expenses/${created.body.id}`, {
       token: tenant.accessToken,
@@ -1948,26 +1964,18 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       reference: null,
       notes: 'Renta actualizada',
     });
-
-    const confirmed = await request<ExpenseResponse>(
-      'POST',
-      `/expenses/${created.body.id}/status`,
-      { token: tenant.accessToken, body: { status: 'confirmed' } },
-    );
-    expect(confirmed.body.status).toBe('confirmed');
-    expect(confirmed.body.confirmedAt).not.toBeNull();
-    expect(confirmed.body.statusHistory.map(({ newStatus }) => newStatus)).toEqual([
-      'draft',
-      'confirmed',
+    expect(edited.body.changeHistory).toEqual([
+      expect.objectContaining({
+        changedFields: ['reference', 'amount', 'notes'],
+        previousValues: {
+          reference: 'REN-OCT-2026',
+          amount: '12500.50',
+          notes: 'Pago mensual',
+        },
+        newValues: { reference: null, amount: '12750.00', notes: 'Renta actualizada' },
+        changedByUserId: tenant.user.id,
+      }),
     ]);
-    expect(
-      (
-        await request<unknown>('PATCH', `/expenses/${created.body.id}`, {
-          token: tenant.accessToken,
-          body: { amount: 1 },
-        })
-      ).status,
-    ).toBe(400);
     expect(
       (
         await request<unknown>('POST', `/expenses/${created.body.id}/status`, {
@@ -1985,10 +1993,17 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(cancelled.body.status).toBe('cancelled');
     expect(cancelled.body.cancelledAt).not.toBeNull();
     expect(cancelled.body.statusHistory.map(({ newStatus }) => newStatus)).toEqual([
-      'draft',
       'confirmed',
       'cancelled',
     ]);
+    expect(
+      (
+        await request<unknown>('PATCH', `/expenses/${created.body.id}`, {
+          token: tenant.accessToken,
+          body: { amount: 1 },
+        })
+      ).status,
+    ).toBe(400);
 
     const unfiltered = await request<{ totalItems: number; items: ExpenseResponse[] }>(
       'GET',
@@ -2016,7 +2031,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(listed.body.totalItems).toBe(1);
     expect(listed.body.items[0]?.id).toBe(created.body.id);
 
-    const draft = await request<ExpenseResponse>('POST', '/expenses', {
+    const singleExpense = await request<ExpenseResponse>('POST', '/expenses', {
       token: tenant.accessToken,
       body: {
         categoryId: categories.body.find(({ code }) => code === 'other')!.id,
@@ -2025,14 +2040,14 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         amount: 250,
       },
     });
-    expect(draft.body.recurrenceType).toBe('one_time');
-    const draftCancelled = await request<ExpenseResponse>(
+    expect(singleExpense.body.recurrenceType).toBe('one_time');
+    const singleExpenseCancelled = await request<ExpenseResponse>(
       'POST',
-      `/expenses/${draft.body.id}/status`,
+      `/expenses/${singleExpense.body.id}/status`,
       { token: tenant.accessToken, body: { status: 'cancelled' } },
     );
-    expect(draftCancelled.body.statusHistory.map(({ newStatus }) => newStatus)).toEqual([
-      'draft',
+    expect(singleExpenseCancelled.body.statusHistory.map(({ newStatus }) => newStatus)).toEqual([
+      'confirmed',
       'cancelled',
     ]);
 
@@ -2046,10 +2061,6 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         amount: 1000,
       },
     });
-    await request<ExpenseResponse>('POST', `/expenses/${previousMonthExpense.body.id}/status`, {
-      token: tenant.accessToken,
-      body: { status: 'confirmed' },
-    });
     const currentMonthExpense = await request<ExpenseResponse>('POST', '/expenses', {
       token: tenant.accessToken,
       body: {
@@ -2058,10 +2069,6 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         description: 'Electricidad octubre',
         amount: 1500,
       },
-    });
-    await request<ExpenseResponse>('POST', `/expenses/${currentMonthExpense.body.id}/status`, {
-      token: tenant.accessToken,
-      body: { status: 'confirmed' },
     });
 
     const monthly = await request<ExpenseMonthlySummaryResponse>(
@@ -2109,10 +2116,10 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     ).toBe(400);
 
     const versions = await control.query<Array<{ version: number }>>(
-      'SELECT version FROM public.tenant_schema_versions WHERE company_id = $1 AND version = 21',
+      'SELECT version FROM public.tenant_schema_versions WHERE company_id = $1 AND version = 22',
       [tenant.company.id],
     );
-    expect(versions).toEqual([{ version: 21 }]);
+    expect(versions).toEqual([{ version: 22 }]);
   });
 
   it('calcula utilidad con ingresos terminados, FIFO y gastos confirmados', async () => {
@@ -2431,10 +2438,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         amount: 120,
       },
     });
-    await request<ExpenseResponse>('POST', `/expenses/${expense.body.id}/status`, {
-      token: tenant.accessToken,
-      body: { status: 'confirmed' },
-    });
+    expect(expense.body.status).toBe('confirmed');
 
     const paid = await request<OrderResponse>('PATCH', `/orders/${order.body.id}/payment-status`, {
       token: tenant.accessToken,
@@ -2545,6 +2549,31 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       isComplete: true,
     });
     expect(report.body.orders.map(({ id }) => id)).not.toContain(productWithoutCost.body.id);
+
+    const updatedExpense = await request<ExpenseResponse>('PATCH', `/expenses/${expense.body.id}`, {
+      token: tenant.accessToken,
+      body: { amount: 150 },
+    });
+    expect(updatedExpense.status).toBe(200);
+    expect(updatedExpense.body.changeHistory.at(-1)).toMatchObject({
+      changedFields: ['amount'],
+      previousValues: { amount: '120.00' },
+      newValues: { amount: '150.00' },
+    });
+    const recalculatedReport = await request<ProfitabilityReportResponse>(
+      'GET',
+      '/profitability?occurredFrom=2026-10-01&occurredTo=2026-10-31',
+      { token: tenant.accessToken },
+    );
+    expect(recalculatedReport.body.totals).toMatchObject({
+      operatingExpenses: '150.00',
+      netProfit: '400.00',
+      collectedNetResult: '400.00',
+    });
+    await request<ExpenseResponse>('PATCH', `/expenses/${expense.body.id}`, {
+      token: tenant.accessToken,
+      body: { amount: 120 },
+    });
 
     const analytics = await request<ProfitabilityAnalyticsResponse>(
       'GET',
@@ -2825,10 +2854,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         amount: 120,
       },
     });
-    await request<ExpenseResponse>('POST', `/expenses/${expense.body.id}/status`, {
-      token: tenant.accessToken,
-      body: { status: 'confirmed' },
-    });
+    expect(expense.body.status).toBe('confirmed');
 
     const controlSummary = await request<DashboardSummaryResponse>('GET', '/dashboard/summary', {
       token: tenant.accessToken,

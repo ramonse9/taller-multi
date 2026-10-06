@@ -143,7 +143,10 @@ export class ExpenseQueryDto {
 }
 
 export class ExpenseMonthlySummaryQueryDto {
-  @ApiPropertyOptional({ example: '2026-10', description: 'Mes a comparar; por defecto, el actual' })
+  @ApiPropertyOptional({
+    example: '2026-10',
+    description: 'Mes a comparar; por defecto, el actual',
+  })
   @IsOptional()
   @Matches(/^\d{4}-(0[1-9]|1[0-2])$/)
   month?: string;
@@ -173,6 +176,29 @@ export class ExpenseStatusHistoryResponseDto {
   @ApiProperty() changedAt!: Date;
 }
 
+export class ExpenseChangeHistoryResponseDto {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty({
+    type: [String],
+    example: ['amount', 'notes'],
+    description: 'Campos que cambiaron en esta edición',
+  })
+  changedFields!: string[];
+  @ApiProperty({
+    type: Object,
+    example: { amount: '12500.50', notes: 'Pago mensual' },
+  })
+  previousValues!: Record<string, string | null>;
+  @ApiProperty({
+    type: Object,
+    example: { amount: '12750.00', notes: 'Renta actualizada' },
+  })
+  newValues!: Record<string, string | null>;
+  @ApiProperty({ format: 'uuid' }) changedByUserId!: string;
+  @ApiProperty() changedByName!: string;
+  @ApiProperty() changedAt!: Date;
+}
+
 export class ExpenseSummaryResponseDto {
   @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty({ type: ExpenseCategoryResponseDto }) category!: ExpenseCategoryResponseDto;
@@ -197,6 +223,8 @@ export class ExpenseSummaryResponseDto {
 export class ExpenseResponseDto extends ExpenseSummaryResponseDto {
   @ApiProperty({ type: ExpenseStatusHistoryResponseDto, isArray: true })
   statusHistory!: ExpenseStatusHistoryResponseDto[];
+  @ApiProperty({ type: ExpenseChangeHistoryResponseDto, isArray: true })
+  changeHistory!: ExpenseChangeHistoryResponseDto[];
 }
 
 export class PaginatedExpensesResponseDto {
@@ -224,7 +252,11 @@ export class ExpenseMonthlySummaryResponseDto {
   @ApiProperty({ description: 'Total confirmado del mes anterior' })
   previousConfirmedAmount!: string;
   @ApiProperty({ description: 'Diferencia contra el mes anterior' }) changeAmount!: string;
-  @ApiProperty({ nullable: true, type: String, description: 'Null cuando el mes anterior fue cero' })
+  @ApiProperty({
+    nullable: true,
+    type: String,
+    description: 'Null cuando el mes anterior fue cero',
+  })
   changePercent!: string | null;
   @ApiProperty({ enum: ['increase', 'decrease', 'same'] })
   direction!: 'increase' | 'decrease' | 'same';

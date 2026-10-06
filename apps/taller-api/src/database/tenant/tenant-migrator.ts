@@ -8,8 +8,8 @@ export interface TenantMigration {
   up(queryRunner: QueryRunner, schemaName: string): Promise<void>;
 }
 
-export const TENANT_BASE_VERSION = 21;
-export const TENANT_BASE_NAME = 'tenant-base-v21';
+export const TENANT_BASE_VERSION = 22;
+export const TENANT_BASE_NAME = 'tenant-base-v22';
 
 /**
  * Dynamic tenant migrations deliberately use qualified identifiers everywhere.
@@ -285,7 +285,7 @@ export class TenantMigrator {
         description varchar(250) NOT NULL, amount numeric(14,2) NOT NULL CHECK (amount > 0),
         occurred_on date NOT NULL, supplier_id uuid NOT NULL REFERENCES ${s}.suppliers(id),
         reference varchar(120), notes text,
-        status varchar(20) NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','confirmed','cancelled')),
+        status varchar(20) NOT NULL DEFAULT 'confirmed' CHECK (status IN ('draft','confirmed','cancelled')),
         recurrence_type varchar(20) NOT NULL DEFAULT 'one_time'
           CHECK (recurrence_type IN ('one_time','recurring')),
         receipt_file_key varchar(500), confirmed_at timestamptz, cancelled_at timestamptz,
@@ -306,6 +306,17 @@ export class TenantMigrator {
       )`,
       `CREATE INDEX expense_status_history_expense_date_idx
        ON ${s}.expense_status_history(expense_id, changed_at, id)`,
+      `CREATE TABLE ${s}.expense_change_history (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        expense_id uuid NOT NULL REFERENCES ${s}.expenses(id) ON DELETE CASCADE,
+        changed_fields varchar(40)[] NOT NULL,
+        previous_values jsonb NOT NULL, new_values jsonb NOT NULL,
+        changed_by_user_id uuid NOT NULL REFERENCES public.users(id),
+        changed_at timestamptz NOT NULL DEFAULT now(),
+        CHECK (cardinality(changed_fields) > 0)
+      )`,
+      `CREATE INDEX expense_change_history_expense_date_idx
+       ON ${s}.expense_change_history(expense_id, changed_at, id)`,
       `CREATE TABLE ${s}.employees (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(), employee_number bigint GENERATED ALWAYS AS IDENTITY UNIQUE,
         full_name varchar(180) NOT NULL, email citext, phone varchar(30), hired_on date NOT NULL,

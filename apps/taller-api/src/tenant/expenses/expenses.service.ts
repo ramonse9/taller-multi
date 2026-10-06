@@ -13,6 +13,7 @@ import {
   CreateExpenseDto,
   ExpenseCategoryResponseDto,
   ExpenseCategoryAmountResponseDto,
+  ExpenseChangeHistoryResponseDto,
   ExpenseMonthlySummaryQueryDto,
   ExpenseMonthlySummaryResponseDto,
   ExpenseQueryDto,
@@ -55,6 +56,16 @@ interface ExpenseStatusHistoryRow {
   id: string;
   previous_status: ExpenseStatus | null;
   new_status: ExpenseStatus;
+  changed_by_user_id: string;
+  changed_by_name: string;
+  changed_at: Date;
+}
+
+interface ExpenseChangeHistoryRow {
+  id: string;
+  changed_fields: string[];
+  previous_values: Record<string, string | null>;
+  new_values: Record<string, string | null>;
   changed_by_user_id: string;
   changed_by_name: string;
   changed_at: Date;
@@ -289,8 +300,9 @@ export class ExpensesService {
       const rows = (await runner.query(
         `INSERT INTO ${schema}.expenses(
            category_id, supplier_id, occurred_on, description, reference, amount, notes,
-           recurrence_type, created_by_user_id, updated_by_user_id
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9) RETURNING id`,
+           recurrence_type, status, confirmed_at, created_by_user_id, updated_by_user_id
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'confirmed', now(), $9, $9)
+         RETURNING id`,
         [
           input.categoryId,
           supplierId,
@@ -304,7 +316,7 @@ export class ExpensesService {
         ],
       )) as Array<{ id: string }>;
       const id = rows[0]!.id;
-      await this.recordStatus(runner, schema, id, null, ExpenseStatus.Draft, user.id);
+      await this.recordStatus(runner, schema, id, null, ExpenseStatus.Confirmed, user.id);
       return this.requireExpense(runner, schema, id);
     });
   }
@@ -317,13 +329,64 @@ export class ExpensesService {
     return this.tenant.run(user, async (runner, schemaName) => {
       const schema = quoteIdentifier(schemaName);
       const current = await this.lockExpense(runner, schema, id);
-      if (current.status !== ExpenseStatus.Draft) {
-        throw new BadRequestException('Solo los gastos en borrador se pueden editar');
+      if (current.status === ExpenseStatus.Cancelled) {
+        throw new BadRequestException('Un gasto cancelado no se puede editar');
       }
       const categoryId = input.categoryId ?? current.category_id;
       const supplierId = input.supplierId ?? current.supplier_id;
-      await this.requireActiveCategory(runner, schema, categoryId);
-      await this.requireActiveSupplier(runner, schema, supplierId);
+      if (categoryId !== current.category_id) {
+        await this.requireActiveCategory(runner, schema, categoryId);
+      }
+      if (supplierId !== current.supplier_id) {
+        await this.requireActiveSupplier(runner, schema, supplierId);
+      }
+      const previousValues: Record<string, string | null> = {};
+      const newValues: Record<string, string | null> = {};
+      const addChange = (
+        field: string,
+        provided: boolean,
+        previousValue: string | null,
+        newValue: string | null,
+      ): void => {
+        if (!provided || previousValue === newValue) return;
+        previousValues[field] = previousValue;
+        newValues[field] = newValue;
+      };
+      addChange('categoryId', input.categoryId !== undefined, current.category_id, categoryId);
+      addChange('supplierId', input.supplierId !== undefined, current.supplier_id, supplierId);
+      addChange(
+        'occurredOn',
+        input.occurredOn !== undefined,
+        current.occurred_on,
+        input.occurredOn ?? current.occurred_on,
+      );
+      addChange(
+        'description',
+        input.description !== undefined,
+        current.description,
+        input.description ?? current.description,
+      );
+      addChange(
+        'reference',
+        input.reference !== undefined,
+        current.reference,
+        input.reference ?? null,
+      );
+      addChange(
+        'amount',
+        input.amount !== undefined,
+        Number(current.amount).toFixed(2),
+        input.amount === undefined ? Number(current.amount).toFixed(2) : input.amount.toFixed(2),
+      );
+      addChange('notes', input.notes !== undefined, current.notes, input.notes ?? null);
+      addChange(
+        'recurrenceType',
+        input.recurrenceType !== undefined,
+        current.recurrence_type,
+        input.recurrenceType ?? current.recurrence_type,
+      );
+      const changedFields = Object.keys(previousValues);
+      if (changedFields.length === 0) return this.requireExpense(runner, schema, id);
       await runner.query(
         `UPDATE ${schema}.expenses SET
            category_id = $2, supplier_id = $3,
@@ -349,6 +412,15 @@ export class ExpensesService {
           input.recurrenceType ?? null,
           user.id,
         ],
+      );
+      await this.recordChange(
+        runner,
+        schema,
+        id,
+        changedFields,
+        previousValues,
+        newValues,
+        user.id,
       );
       return this.requireExpense(runner, schema, id);
     });
@@ -423,15 +495,12 @@ export class ExpensesService {
     )) as Array<{ id: string; is_active: boolean }>;
     const supplier = rows[0];
     if (!supplier) throw new NotFoundException('Proveedor no encontrado');
-    if (!supplier.is_active) throw new UnprocessableEntityException('El proveedor está desactivado');
+    if (!supplier.is_active)
+      throw new UnprocessableEntityException('El proveedor está desactivado');
     return supplier.id;
   }
 
-  private async lockExpense(
-    runner: QueryRunner,
-    schema: string,
-    id: string,
-  ): Promise<ExpenseRow> {
+  private async lockExpense(runner: QueryRunner, schema: string, id: string): Promise<ExpenseRow> {
     const rows = (await runner.query(
       `${this.expenseSelect(schema)} WHERE expense.id = $1 FOR UPDATE OF expense`,
       [id],
@@ -446,8 +515,9 @@ export class ExpensesService {
     schema: string,
     id: string,
   ): Promise<ExpenseResponseDto> {
-    const rows = (await runner.query(`${this.expenseSelect(schema)} WHERE expense.id = $1`, [id])) as
-      ExpenseRow[];
+    const rows = (await runner.query(`${this.expenseSelect(schema)} WHERE expense.id = $1`, [
+      id,
+    ])) as ExpenseRow[];
     const row = rows[0];
     if (!row) throw new NotFoundException('Gasto no encontrado');
     const history = (await runner.query(
@@ -460,10 +530,39 @@ export class ExpensesService {
        ORDER BY status_history.changed_at, status_history.id`,
       [id],
     )) as ExpenseStatusHistoryRow[];
+    const changes = (await runner.query(
+      `SELECT change_history.id, change_history.changed_fields,
+        change_history.previous_values, change_history.new_values,
+        change_history.changed_by_user_id, platform_user.full_name AS changed_by_name,
+        change_history.changed_at
+       FROM ${schema}.expense_change_history change_history
+       JOIN public.users platform_user ON platform_user.id = change_history.changed_by_user_id
+       WHERE change_history.expense_id = $1
+       ORDER BY change_history.changed_at, change_history.id`,
+      [id],
+    )) as ExpenseChangeHistoryRow[];
     return {
       ...this.toSummary(row),
       statusHistory: history.map((item) => this.toStatusHistory(item)),
+      changeHistory: changes.map((item) => this.toChangeHistory(item)),
     };
+  }
+
+  private async recordChange(
+    runner: QueryRunner,
+    schema: string,
+    expenseId: string,
+    changedFields: string[],
+    previousValues: Record<string, string | null>,
+    newValues: Record<string, string | null>,
+    userId: string,
+  ): Promise<void> {
+    await runner.query(
+      `INSERT INTO ${schema}.expense_change_history(
+         expense_id, changed_fields, previous_values, new_values, changed_by_user_id
+       ) VALUES ($1, $2::varchar[], $3::jsonb, $4::jsonb, $5)`,
+      [expenseId, changedFields, JSON.stringify(previousValues), JSON.stringify(newValues), userId],
+    );
   }
 
   private async recordStatus(
@@ -535,6 +634,18 @@ export class ExpensesService {
       id: row.id,
       previousStatus: row.previous_status,
       newStatus: row.new_status,
+      changedByUserId: row.changed_by_user_id,
+      changedByName: row.changed_by_name,
+      changedAt: row.changed_at,
+    };
+  }
+
+  private toChangeHistory(row: ExpenseChangeHistoryRow): ExpenseChangeHistoryResponseDto {
+    return {
+      id: row.id,
+      changedFields: row.changed_fields,
+      previousValues: row.previous_values,
+      newValues: row.new_values,
       changedByUserId: row.changed_by_user_id,
       changedByName: row.changed_by_name,
       changedAt: row.changed_at,

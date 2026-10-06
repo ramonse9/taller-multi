@@ -55,4 +55,12 @@ describe('TenantMigrator', () => {
     expect(orderItems).not.toContain('order_items_free_product_cost_check');
     expect(orderItems).not.toContain("kind <> 'product' OR unit_cost IS NOT NULL");
   });
+
+  it('creates expenses as confirmed and includes their edit audit log', () => {
+    const statements = new TenantMigrator().baseStatements('"tenant_test"');
+    const expenses = statements.find((sql) => sql.includes('CREATE TABLE "tenant_test".expenses'));
+
+    expect(expenses).toContain("status varchar(20) NOT NULL DEFAULT 'confirmed'");
+    expect(statements.join('\n')).toContain('CREATE TABLE "tenant_test".expense_change_history');
+  });
 });

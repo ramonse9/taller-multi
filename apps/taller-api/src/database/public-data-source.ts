@@ -33,6 +33,7 @@ import { RetireMobilePasswordRecovery1700000028000 } from './migrations/public/1
 import { OrderItemBillingBehavior1700000029000 } from './migrations/public/1700000029000-order-item-billing-behavior';
 import { OrderExternalFolio1700000030000 } from './migrations/public/1700000030000-order-external-folio';
 import { OrderPaymentDate1700000031000 } from './migrations/public/1700000031000-order-payment-date';
+import { ConfirmedExpenseEditing1700000032000 } from './migrations/public/1700000032000-confirmed-expense-editing';
 
 export default new DataSource({
   type: 'postgres',
@@ -72,6 +73,7 @@ export default new DataSource({
     OrderItemBillingBehavior1700000029000,
     OrderExternalFolio1700000030000,
     OrderPaymentDate1700000031000,
+    ConfirmedExpenseEditing1700000032000,
   ],
   migrationsTableName: 'public_schema_migrations',
   synchronize: false,
