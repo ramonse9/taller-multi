@@ -229,10 +229,10 @@ export class DashboardPage implements OnInit {
     const issue =
       financials.missingPriceOrderCount > 0 &&
       financials.missingCostOrderCount > 0
-        ? "conceptos sin precio o costo"
+        ? "conceptos cobrables sin precio y productos libres sin costo"
         : financials.missingPriceOrderCount > 0
-          ? "conceptos sin precio"
-          : "conceptos sin costo";
+          ? "conceptos cobrables sin precio"
+          : "productos libres sin costo";
     return `Revisa ${count} ${order}: ${verb} ${issue} y su utilidad todavía no es exacta.`;
   }
 

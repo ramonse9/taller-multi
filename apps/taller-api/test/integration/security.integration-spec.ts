@@ -350,6 +350,8 @@ interface ProfitabilityReportResponse {
     isPaid: boolean;
     fifoProductCost: string;
     grossProfit: string | null;
+    hasMissingPrice: boolean;
+    hasUnknownProductCost: boolean;
     isComplete: boolean;
   }>;
 }
@@ -2444,6 +2446,21 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       hasUnknownCosts: true,
       isFinanciallyComplete: false,
     });
+    const incompleteProductReport = await request<ProfitabilityReportResponse>(
+      'GET',
+      '/profitability?occurredFrom=2026-10-01&occurredTo=2026-10-31',
+      { token: tenant.accessToken },
+    );
+    expect(incompleteProductReport.body.orders).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: productWithoutCost.body.id,
+          hasMissingPrice: false,
+          hasUnknownProductCost: true,
+          isComplete: false,
+        }),
+      ]),
+    );
     const paidWithoutCost = await request<OrderResponse>(
       'PATCH',
       `/orders/${productWithoutCost.body.id}/payment-status`,
@@ -2606,6 +2623,8 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       isPaid: true,
       fifoProductCost: '80.00',
       grossProfit: '550.00',
+      hasMissingPrice: false,
+      hasUnknownProductCost: false,
       isComplete: true,
     });
     expect(report.body.orders.map(({ id }) => id)).not.toContain(productWithoutCost.body.id);

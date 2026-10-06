@@ -118,6 +118,8 @@ interface OrderRow {
   direct_cost: string | null;
   fifo_product_cost: string;
   gross_profit: string | null;
+  has_missing_price: boolean;
+  has_unknown_product_cost: boolean;
   is_complete: boolean;
   is_paid: boolean;
 }
@@ -462,6 +464,17 @@ export class ProfitabilityService {
            service_order.total::text AS income, service_order.total_cost::text AS direct_cost,
            COALESCE(fifo.fifo_product_cost, 0)::numeric(14,2)::text AS fifo_product_cost,
            service_order.gross_profit::text AS gross_profit,
+           EXISTS (
+             SELECT 1 FROM ${schema}.order_items item
+             WHERE item.order_id = service_order.id
+               AND item.affects_order_total = true
+               AND item.unit_price IS NULL
+           ) AS has_missing_price,
+           EXISTS (
+             SELECT 1 FROM ${schema}.order_items item
+             WHERE item.order_id = service_order.id
+               AND ${unknownOrderItemCostSql('item')}
+           ) AS has_unknown_product_cost,
            NOT EXISTS (
              SELECT 1 FROM ${schema}.order_items item
              WHERE item.order_id = service_order.id
@@ -638,6 +651,8 @@ export class ProfitabilityService {
       directCost: row.direct_cost,
       fifoProductCost: row.fifo_product_cost,
       grossProfit: row.gross_profit,
+      hasMissingPrice: row.has_missing_price,
+      hasUnknownProductCost: row.has_unknown_product_cost,
       isComplete: row.is_complete,
       isPaid: row.is_paid,
     };

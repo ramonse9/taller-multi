@@ -91,11 +91,8 @@
     <div
       class="mb-5 border-l-4 border-[#d6922e] bg-[#fff4dc] px-4 py-3 text-sm text-[#704b14] dark:bg-[#49351b] dark:text-[#ffd18a]"
     >
-      <strong>Resultado parcial.</strong> {{
-      report().totals.incompleteOrderCount }} {{
-      report().totals.incompleteOrderCount === 1 ? 'orden terminada no tiene' :
-      'órdenes terminadas no tienen' }} precio o costo completo. Revisa esas
-      órdenes antes de tomar decisiones.
+      <strong>Resultado parcial.</strong>
+      {{ financialWarning(report().totals) }}
     </div>
     }
 
@@ -813,8 +810,8 @@
             </p>
             <h2 class="section-title">Órdenes por revisar</h2>
             <p class="mt-1 text-sm text-[#6c5b37] dark:text-[#d9c89c]">
-              No participan en los rankings hasta completar sus costos o
-              precios.
+              No participan en los rankings hasta completar los precios
+              cobrables o los costos de productos libres.
             </p>
           </div>
           <span
@@ -901,12 +898,18 @@
                 <dd class="m-0 mt-1 break-words">{{ money(order.income) }}</dd>
               </div>
               <div>
+                <dt class="detail-label">COSTO DIRECTO</dt>
+                <dd class="m-0 mt-1 break-words">
+                  {{ money(order.directCost) }}
+                </dd>
+              </div>
+              <div>
                 <dt class="detail-label">UTILIDAD</dt>
                 <dd class="m-0 mt-1 break-words font-bold">
                   {{ money(order.grossProfit) }}
                 </dd>
               </div>
-              <div class="min-[380px]:col-span-2">
+              <div>
                 <dt class="detail-label">COSTO FIFO PRODUCTOS</dt>
                 <dd class="m-0 mt-1 break-words">
                   {{ money(order.fifoProductCost) }}

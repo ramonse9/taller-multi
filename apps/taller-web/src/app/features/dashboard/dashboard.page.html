@@ -189,7 +189,7 @@
     </section>
 
     @if (data.financials; as financials) {
-    <div class="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <div class="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
       <article
         class="border border-[#d5dce3] bg-white p-5 dark:border-[#38516d] dark:bg-[#19283b]"
       >
@@ -199,6 +199,25 @@
         >
         <small class="text-[#63717d] dark:text-[#afbed0]"
           >Costo histórico del trabajo terminado</small
+        >
+      </article>
+      <article
+        class="border border-[#bad7c6] bg-[#edf7f1] p-5 dark:border-[#315b43] dark:bg-[#183326]"
+      >
+        <span
+          class="detail-label !text-[0.7rem] !text-[#397550] dark:!text-[#c9f0df]"
+          >UTILIDAD BRUTA</span
+        >
+        <strong
+          class="mt-2 block break-words text-2xl"
+          [class.text-[#245b3b]]="+financials.grossProfit >= 0"
+          [class.dark:text-[#c9f0df]]="+financials.grossProfit >= 0"
+          [class.text-[#a1362c]]="+financials.grossProfit < 0"
+          [class.dark:text-[#ffaca4]]="+financials.grossProfit < 0"
+          >{{ money(financials.grossProfit) }}</strong
+        >
+        <small class="text-[#527060] dark:text-[#a9c7b5]"
+          >Ingresos terminados menos costo directo</small
         >
       </article>
       @if (auth.hasPermission('expenses.view')) {
@@ -227,7 +246,7 @@
           [class.text-[#ff9e8c]]="+financials.operatingProfit < 0"
           >{{ money(financials.operatingProfit) }}</strong
         >
-        <small class="text-[#b8c7be]">Ingresos menos costos y gastos →</small>
+        <small class="text-[#b8c7be]">Utilidad bruta menos gastos →</small>
       </a>
       @if (auth.hasPermission('inventory.view')) {
       <a

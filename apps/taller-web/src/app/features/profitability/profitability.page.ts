@@ -24,6 +24,7 @@ import {
   ProfitabilityOrderRow,
   ProfitabilityPeriodRow,
   ProfitabilityReport,
+  ProfitabilityTotals,
 } from "./profitability.models";
 import { ProfitabilityService } from "./profitability.service";
 
@@ -341,8 +342,21 @@ export class ProfitabilityPage implements OnInit {
 
   incompleteReason(order: ProfitabilityOrderRow): string {
     const reasons: string[] = [];
-    if (order.income === null) reasons.push("precio pendiente");
-    if (order.directCost === null) reasons.push("costo pendiente");
+    if (order.hasMissingPrice) reasons.push("precio cobrable pendiente");
+    if (order.hasUnknownProductCost)
+      reasons.push("costo de producto pendiente");
     return reasons.join(" y ") || "información incompleta";
+  }
+
+  financialWarning(totals: ProfitabilityTotals): string {
+    const count = totals.incompleteOrderCount;
+    const order = count === 1 ? "orden terminada" : "órdenes terminadas";
+    const issue =
+      totals.missingPriceOrderCount > 0 && totals.missingCostOrderCount > 0
+        ? "precios de conceptos cobrables y costos de productos libres"
+        : totals.missingPriceOrderCount > 0
+          ? "precios de conceptos cobrables"
+          : "costos de productos libres";
+    return `Revisa ${count} ${order}: faltan ${issue}. Los servicios sin costo capturado se consideran con costo $0.00.`;
   }
 }

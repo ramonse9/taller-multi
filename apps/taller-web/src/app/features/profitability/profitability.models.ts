@@ -66,6 +66,8 @@ export interface ProfitabilityOrderRow {
   directCost: string | null;
   fifoProductCost: string;
   grossProfit: string | null;
+  hasMissingPrice: boolean;
+  hasUnknownProductCost: boolean;
   isComplete: boolean;
   isPaid: boolean;
 }
