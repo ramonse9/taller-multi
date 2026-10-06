@@ -26,6 +26,7 @@ import {
   PaginatedOrdersResponseDto,
   UpdateOrderDto,
 } from './dto/order.dto';
+import { unknownOrderItemCostSql } from './order-cost-rules';
 
 interface OrderRow {
   id: string;
@@ -648,9 +649,9 @@ export class OrdersService {
            WHEN COUNT(*) FILTER (WHERE affects_order_total AND total IS NULL) > 0 THEN NULL
            ELSE COALESCE(SUM(total) FILTER (WHERE affects_order_total), 0)
          END AS total,
-         COALESCE(SUM(cost_total), 0) AS total_cost,
-         COUNT(*) FILTER (WHERE cost_total IS NULL) > 0 AS has_unknown_costs
-         FROM ${schema}.order_items WHERE order_id = $1
+         COALESCE(SUM(item.cost_total), 0) AS total_cost,
+         COUNT(*) FILTER (WHERE ${unknownOrderItemCostSql('item')}) > 0 AS has_unknown_costs
+         FROM ${schema}.order_items item WHERE item.order_id = $1
        ) totals
        WHERE service_order.id = $1`,
       [orderId, userId],
@@ -1020,7 +1021,7 @@ export class OrdersService {
       EXISTS(
         SELECT 1 FROM ${schema}.order_items unknown_cost
         WHERE unknown_cost.order_id = service_order.id
-          AND unknown_cost.cost_total IS NULL
+          AND ${unknownOrderItemCostSql('unknown_cost')}
       ) AS has_unknown_costs,
       (SELECT COUNT(*)::text FROM ${schema}.order_items counted
        WHERE counted.order_id = service_order.id) AS item_count,

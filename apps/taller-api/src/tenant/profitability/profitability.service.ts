@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { AuthenticatedUser } from '../../common/types/authenticated-user';
 import { quoteIdentifier } from '../../database/schema-name';
 import { TenantSessionService } from '../tenant-session.service';
+import { unknownOrderItemCostSql } from '../orders/order-cost-rules';
 import {
   ProfitabilityAnalyticsMonthResponseDto,
   ProfitabilityAnalyticsQueryDto,
@@ -152,7 +153,7 @@ export class ProfitabilityService {
                SELECT 1 FROM ${schema}.order_items item
                WHERE item.order_id = service_order.id
                  AND ((item.affects_order_total AND item.unit_price IS NULL)
-                   OR item.cost_total IS NULL)
+                   OR (${unknownOrderItemCostSql('item')}))
              ))::int AS incomplete_order_count,
              COALESCE(sum(service_order.total), 0) AS income,
              COALESCE(sum(service_order.total_cost), 0) AS direct_cost,
@@ -299,7 +300,7 @@ export class ProfitabilityService {
                    SELECT 1 FROM ${schema}.order_items item
                    WHERE item.order_id = service_order.id
                      AND ((item.affects_order_total = true AND item.unit_price IS NULL)
-                       OR item.cost_total IS NULL)
+                       OR (${unknownOrderItemCostSql('item')}))
                  )
              )::int AS incomplete_order_count,
              count(*) FILTER (
@@ -316,7 +317,7 @@ export class ProfitabilityService {
                  AND EXISTS (
                    SELECT 1 FROM ${schema}.order_items item
                    WHERE item.order_id = service_order.id
-                     AND item.cost_total IS NULL
+                     AND ${unknownOrderItemCostSql('item')}
                  )
              )::int AS missing_cost_order_count,
              count(*) FILTER (WHERE service_order.is_paid = true)::int
@@ -465,7 +466,7 @@ export class ProfitabilityService {
              SELECT 1 FROM ${schema}.order_items item
              WHERE item.order_id = service_order.id
                AND ((item.affects_order_total = true AND item.unit_price IS NULL)
-                 OR item.cost_total IS NULL)
+                 OR (${unknownOrderItemCostSql('item')}))
            ) AS is_complete,
            service_order.is_paid
          FROM bounds

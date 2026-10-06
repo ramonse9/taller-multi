@@ -34,6 +34,7 @@ import { OrderItemBillingBehavior1700000029000 } from './migrations/public/17000
 import { OrderExternalFolio1700000030000 } from './migrations/public/1700000030000-order-external-folio';
 import { OrderPaymentDate1700000031000 } from './migrations/public/1700000031000-order-payment-date';
 import { ConfirmedExpenseEditing1700000032000 } from './migrations/public/1700000032000-confirmed-expense-editing';
+import { ServiceCostProfitability1700000033000 } from './migrations/public/1700000033000-service-cost-profitability';
 
 export default new DataSource({
   type: 'postgres',
@@ -74,6 +75,7 @@ export default new DataSource({
     OrderExternalFolio1700000030000,
     OrderPaymentDate1700000031000,
     ConfirmedExpenseEditing1700000032000,
+    ServiceCostProfitability1700000033000,
   ],
   migrationsTableName: 'public_schema_migrations',
   synchronize: false,

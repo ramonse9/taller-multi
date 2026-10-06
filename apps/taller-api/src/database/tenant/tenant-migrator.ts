@@ -8,8 +8,8 @@ export interface TenantMigration {
   up(queryRunner: QueryRunner, schemaName: string): Promise<void>;
 }
 
-export const TENANT_BASE_VERSION = 22;
-export const TENANT_BASE_NAME = 'tenant-base-v22';
+export const TENANT_BASE_VERSION = 23;
+export const TENANT_BASE_NAME = 'tenant-base-v23';
 
 /**
  * Dynamic tenant migrations deliberately use qualified identifiers everywhere.

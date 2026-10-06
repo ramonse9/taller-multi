@@ -4,6 +4,7 @@ import { AuthenticatedUser } from '../../common/types/authenticated-user';
 import { quoteIdentifier } from '../../database/schema-name';
 import { PermissionsService } from '../../permissions/permissions.service';
 import { TenantSessionService } from '../tenant-session.service';
+import { unknownOrderItemCostSql } from '../orders/order-cost-rules';
 import {
   DashboardActivityResponseDto,
   DashboardExpenseActivityResponseDto,
@@ -251,7 +252,7 @@ export class DashboardService {
                SELECT 1 FROM ${schema}.order_items item
                WHERE item.order_id = service_order.id
                  AND ((item.affects_order_total = true AND item.unit_price IS NULL)
-                   OR item.cost_total IS NULL)
+                   OR (${unknownOrderItemCostSql('item')}))
              )
            )::int AS incomplete_order_count,
            count(*) FILTER (
@@ -266,7 +267,7 @@ export class DashboardService {
              WHERE EXISTS (
                SELECT 1 FROM ${schema}.order_items item
                WHERE item.order_id = service_order.id
-                 AND item.cost_total IS NULL
+                 AND ${unknownOrderItemCostSql('item')}
              )
            )::int AS missing_cost_order_count
          FROM period JOIN ${schema}.orders service_order

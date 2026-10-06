@@ -2152,10 +2152,10 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     ).toBe(400);
 
     const versions = await control.query<Array<{ version: number }>>(
-      'SELECT version FROM public.tenant_schema_versions WHERE company_id = $1 AND version = 22',
+      'SELECT version FROM public.tenant_schema_versions WHERE company_id = $1 AND version = 23',
       [tenant.company.id],
     );
-    expect(versions).toEqual([{ version: 22 }]);
+    expect(versions).toEqual([{ version: 23 }]);
 
     const isolated = await provisionAndLogin(
       'Expense Isolated Integration',
@@ -2319,24 +2319,24 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(completedUnknownCostService.body).toMatchObject({
       total: '250.00',
       totalCost: '0.00',
-      grossProfit: null,
-      hasUnknownCosts: true,
-      isFinanciallyComplete: false,
+      grossProfit: '250.00',
+      hasUnknownCosts: false,
+      isFinanciallyComplete: true,
     });
-    const incompleteReport = await request<ProfitabilityReportResponse>(
+    const serviceCostReport = await request<ProfitabilityReportResponse>(
       'GET',
       '/profitability?occurredFrom=2026-10-01&occurredTo=2026-10-31',
       { token: tenant.accessToken },
     );
-    expect(incompleteReport.body.totals).toMatchObject({
+    expect(serviceCostReport.body.totals).toMatchObject({
       completedOrderCount: 1,
-      incompleteOrderCount: 1,
+      incompleteOrderCount: 0,
       missingPriceOrderCount: 0,
-      missingCostOrderCount: 1,
+      missingCostOrderCount: 0,
       income: '250.00',
       directCost: '0.00',
-      grossProfit: '0.00',
-      isComplete: false,
+      grossProfit: '250.00',
+      isComplete: true,
     });
     await request<OrderResponse>('POST', `/orders/${unknownCostService.body.id}/status`, {
       token: tenant.accessToken,
@@ -4053,10 +4053,12 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       status: 'in_progress',
       isPaid: false,
       hasUnpricedItems: false,
-      hasUnknownCosts: true,
-      isFinanciallyComplete: false,
+      hasUnknownCosts: false,
+      isFinanciallyComplete: true,
       subtotal: '902.50',
       total: '902.50',
+      totalCost: '0.00',
+      grossProfit: '902.50',
       customer: { id: customer.body.id, type: 'company' },
       vehicle: { id: vehicle.body.id },
     });
@@ -4096,12 +4098,12 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(updated.body).toMatchObject({
       hasUnpricedItems: false,
       externalFolio: 'EXCEL 2026-085',
-      hasUnknownCosts: true,
-      isFinanciallyComplete: false,
+      hasUnknownCosts: false,
+      isFinanciallyComplete: true,
       subtotal: '2100.00',
       total: '2100.00',
       totalCost: '0.00',
-      grossProfit: null,
+      grossProfit: '2100.00',
     });
 
     const note = await request<{ body: string; createdByUserId: string }>(
