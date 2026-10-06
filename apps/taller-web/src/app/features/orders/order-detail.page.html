@@ -12,11 +12,25 @@
           >← Volver a órdenes</a
         >
         <p class="eyebrow">ORDEN DE SERVICIO</p>
-        <h1
-          class="m-0 font-[var(--display)] text-[clamp(2.5rem,5vw,4.5rem)] font-semibold leading-[.9] tracking-[-.05em]"
-        >
-          #{{ order()?.folio || '—' }}
-        </h1>
+        <div class="mt-2 flex flex-wrap items-end gap-x-8 gap-y-3">
+          <div>
+            <span class="detail-label">FOLIO DEL SISTEMA</span>
+            <h1
+              class="m-0 font-[var(--display)] text-[clamp(2.5rem,5vw,4.5rem)] font-semibold leading-[.9] tracking-[-.05em]"
+            >
+              #{{ order()?.folio || '—' }}
+            </h1>
+          </div>
+          <div
+            class="max-w-full border-l-4 border-[#d38a2e] bg-[#fff0cf] px-4 py-2 dark:border-[#e6ad5d] dark:bg-[#42351f]"
+          >
+            <span class="detail-label">FOLIO EXTERNO</span>
+            <strong
+              class="block break-all font-[var(--mono)] text-lg text-[#805719] dark:text-[#ffd18a]"
+              >{{ order()?.externalFolio || 'No capturado' }}</strong
+            >
+          </div>
+        </div>
       </div>
       <div class="flex items-center gap-2">
         <button class="theme-toggle" type="button" (click)="theme.toggle()">

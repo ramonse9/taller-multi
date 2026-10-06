@@ -432,6 +432,40 @@
           ＋ Agregar concepto libre
         </button>
       </div>
+      <div
+        class="mt-6 border border-[#b8cfe3] bg-[#f4f9fd] p-4 dark:border-[#456c8e] dark:bg-[#1c2d40]"
+        [formGroup]="orderForm"
+      >
+        <div class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+          <div>
+            <label class="field-label" for="order-external-folio"
+              >FOLIO EXTERNO <span class="font-normal">(opcional)</span></label
+            >
+            <input
+              class="field-control mt-1"
+              id="order-external-folio"
+              formControlName="externalFolio"
+              maxlength="50"
+              placeholder="Ej. ORD-EXCEL-2026-084"
+              autocomplete="off"
+            />
+          </div>
+          <span
+            class="text-right font-[var(--mono)] text-xs text-[#63717d] dark:text-[#afbed0]"
+            >{{ orderForm.controls.externalFolio.value.length }}/50</span
+          >
+        </div>
+        <small class="mt-2 block text-[#45627a] dark:text-[#b9dcf5]"
+          >Úsalo para cotejar esta orden con Excel u otro sistema. El folio del
+          sistema se mantiene independiente.</small
+        >
+        @if (orderForm.controls.externalFolio.touched &&
+        orderForm.controls.externalFolio.invalid) {
+        <small class="field-error"
+          >El folio externo admite hasta 50 caracteres.</small
+        >
+        }
+      </div>
       @if (canUseItemCatalog()) {
       <section
         class="mt-6 border border-[#d9c6b8] bg-[#fffaf5] p-4 dark:border-[#664431] dark:bg-[#2b211b]"
@@ -737,6 +771,26 @@
           Confirma la información
         </h2>
       </header>
+      <div
+        class="grid border-b border-[#d5dce3] sm:grid-cols-2 dark:border-[#38516d]"
+      >
+        <div
+          class="border-b border-[#d5dce3] bg-[#f4f9fd] p-5 sm:border-b-0 sm:border-r dark:border-[#38516d] dark:bg-[#1c2d40]"
+        >
+          <span class="detail-label">FOLIO DEL SISTEMA</span>
+          <strong class="mt-1 block font-[var(--mono)] text-lg"
+            >{{ systemFolio() ? '#' + systemFolio() : 'Se asignará al guardar'
+            }}</strong
+          >
+        </div>
+        <div class="bg-[#fffaf0] p-5 dark:bg-[#302a20]">
+          <span class="detail-label">FOLIO EXTERNO</span>
+          <strong class="mt-1 block break-words font-[var(--mono)] text-lg"
+            >{{ orderForm.controls.externalFolio.value.trim() || 'No capturado'
+            }}</strong
+          >
+        </div>
+      </div>
       <div class="grid gap-0 md:grid-cols-2">
         <div
           class="border-b border-[#d5dce3] p-6 md:border-r dark:border-[#38516d]"

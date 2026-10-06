@@ -64,6 +64,7 @@ export interface OrderStatusHistory {
 export interface OrderSummary {
   id: string;
   folio: string;
+  externalFolio: string | null;
   status: OrderStatus;
   customer: OrderCustomer;
   vehicle: OrderVehicle;
@@ -115,6 +116,7 @@ export interface OrderItemInput {
 }
 
 export interface OrderInput {
+  externalFolio?: string | null;
   customerId: string;
   vehicleId: string;
   items: OrderItemInput[];

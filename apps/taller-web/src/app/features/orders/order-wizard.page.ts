@@ -85,6 +85,7 @@ export class OrderWizardPage implements OnInit {
   readonly brands = signal<VehicleBrand[]>([]);
   readonly models = signal<VehicleModel[]>([]);
   readonly concepts = signal<CatalogConcept[]>([]);
+  readonly systemFolio = signal<string | null>(null);
   readonly showClientForm = signal(false);
   readonly showVehicleForm = signal(false);
   readonly clientSearch = new FormControl("", { nonNullable: true });
@@ -127,6 +128,10 @@ export class OrderWizardPage implements OnInit {
   }
 
   readonly orderForm = new FormGroup({
+    externalFolio: new FormControl("", {
+      nonNullable: true,
+      validators: [Validators.maxLength(50)],
+    }),
     customerId: new FormControl("", {
       nonNullable: true,
       validators: [Validators.required],
@@ -680,6 +685,7 @@ export class OrderWizardPage implements OnInit {
     }
     const raw = this.orderForm.getRawValue();
     const input: OrderInput = {
+      externalFolio: raw.externalFolio.trim().replace(/\s+/g, " ") || null,
       customerId: raw.customerId,
       vehicleId: raw.vehicleId,
       items: raw.items.map((item) => ({
@@ -810,6 +816,8 @@ export class OrderWizardPage implements OnInit {
   }
 
   private hydrateOrder(order: Order): void {
+    this.systemFolio.set(order.folio);
+    this.orderForm.controls.externalFolio.setValue(order.externalFolio ?? "");
     this.selectedClientSummary.set({
       id: order.customer.id,
       displayName: order.customer.displayName,
