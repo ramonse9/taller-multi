@@ -628,8 +628,8 @@ export class OrdersService {
            updated_by_user_id = $2, updated_at = now()
        FROM (
          SELECT CASE
-           WHEN COUNT(*) FILTER (WHERE total IS NULL) > 0 THEN NULL
-           ELSE COALESCE(SUM(total), 0)
+           WHEN COUNT(*) FILTER (WHERE affects_order_total AND total IS NULL) > 0 THEN NULL
+           ELSE COALESCE(SUM(total) FILTER (WHERE affects_order_total), 0)
          END AS total,
          COALESCE(SUM(cost_total), 0) AS total_cost,
          COUNT(*) FILTER (WHERE cost_total IS NULL) > 0 AS has_unknown_costs
@@ -994,7 +994,9 @@ export class OrdersService {
       service_order.is_paid,
       EXISTS(
         SELECT 1 FROM ${schema}.order_items unpriced
-        WHERE unpriced.order_id = service_order.id AND unpriced.unit_price IS NULL
+        WHERE unpriced.order_id = service_order.id
+          AND unpriced.affects_order_total = true
+          AND unpriced.unit_price IS NULL
       ) AS has_unpriced_items,
       EXISTS(
         SELECT 1 FROM ${schema}.order_items unknown_cost

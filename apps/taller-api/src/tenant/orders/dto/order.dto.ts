@@ -240,10 +240,30 @@ export class OrderItemResponseDto {
   @ApiProperty() unitName!: string;
   @ApiProperty() unitSymbol!: string;
   @ApiProperty({ description: 'Decimal entregado como texto' }) quantity!: string;
-  @ApiProperty({ nullable: true, type: String }) unitPrice!: string | null;
-  @ApiProperty({ nullable: true, type: String }) amount!: string | null;
-  @ApiProperty({ nullable: true, type: String }) unitCost!: string | null;
-  @ApiProperty({ nullable: true, type: String }) costAmount!: string | null;
+  @ApiProperty({
+    nullable: true,
+    type: String,
+    description: 'Precio unitario; puede ser null cuando el concepto no se cobra',
+  })
+  unitPrice!: string | null;
+  @ApiProperty({
+    nullable: true,
+    type: String,
+    description: 'Importe que aporta al total; es 0.00 cuando affectsOrderTotal es false',
+  })
+  amount!: string | null;
+  @ApiProperty({
+    nullable: true,
+    type: String,
+    description: 'Costo unitario: null significa desconocido y 0.00 costo confirmado en cero',
+  })
+  unitCost!: string | null;
+  @ApiProperty({
+    nullable: true,
+    type: String,
+    description: 'Costo directo del concepto, independientemente de si se cobra al cliente',
+  })
+  costAmount!: string | null;
   @ApiProperty() tracksInventory!: boolean;
   @ApiProperty({ type: OrderItemCostLayerResponseDto, isArray: true })
   costLayers!: OrderItemCostLayerResponseDto[];
@@ -289,15 +309,38 @@ export class OrderSummaryResponseDto {
   @ApiProperty({ enum: OrderStatus }) status!: OrderStatus;
   @ApiProperty({ type: OrderCustomerResponseDto }) customer!: OrderCustomerResponseDto;
   @ApiProperty({ type: OrderVehicleResponseDto }) vehicle!: OrderVehicleResponseDto;
-  @ApiProperty({ nullable: true, type: String }) subtotal!: string | null;
-  @ApiProperty({ nullable: true, type: String }) total!: string | null;
-  @ApiProperty({ nullable: true, type: String }) totalCost!: string | null;
-  @ApiProperty({ nullable: true, type: String }) grossProfit!: string | null;
+  @ApiProperty({
+    nullable: true,
+    type: String,
+    description: 'Suma de los conceptos que afectan el total de la orden',
+  })
+  subtotal!: string | null;
+  @ApiProperty({
+    nullable: true,
+    type: String,
+    description: 'Importe por cobrar formado únicamente por conceptos cobrables',
+  })
+  total!: string | null;
+  @ApiProperty({
+    nullable: true,
+    type: String,
+    description: 'Suma de todos los costos directos conocidos, cobrables o no cobrables',
+  })
+  totalCost!: string | null;
+  @ApiProperty({
+    nullable: true,
+    type: String,
+    description: 'Total cobrable menos costo directo; null cuando algún costo es desconocido',
+  })
+  grossProfit!: string | null;
   @ApiProperty({ nullable: true, type: Date }) inventoryAppliedAt!: Date | null;
-  @ApiProperty() hasUnpricedItems!: boolean;
+  @ApiProperty({ description: 'Indica si existe un concepto cobrable sin precio' })
+  hasUnpricedItems!: boolean;
   @ApiProperty({ description: 'Indica si existe un producto o servicio con costo desconocido' })
   hasUnknownCosts!: boolean;
-  @ApiProperty({ description: 'Indica si precio y costos requeridos están completos' })
+  @ApiProperty({
+    description: 'Indica si los conceptos cobrables tienen precio y todos los costos son conocidos',
+  })
   isFinanciallyComplete!: boolean;
   @ApiProperty() isPaid!: boolean;
   @ApiProperty() openedAt!: Date;

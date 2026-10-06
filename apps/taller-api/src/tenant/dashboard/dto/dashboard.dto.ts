@@ -44,7 +44,7 @@ export class DashboardFinancialsResponseDto {
   @ApiProperty({ description: 'Utilidad bruta generada menos gastos confirmados del mes' })
   operatingProfit!: string;
   @ApiProperty() incompleteOrderCount!: number;
-  @ApiProperty({ description: 'Órdenes terminadas que contienen conceptos sin precio' })
+  @ApiProperty({ description: 'Órdenes terminadas con conceptos cobrables sin precio' })
   missingPriceOrderCount!: number;
   @ApiProperty({ description: 'Órdenes terminadas que contienen conceptos sin costo conocido' })
   missingCostOrderCount!: number;

@@ -16,7 +16,7 @@ export class ProfitabilityQueryDto {
 export class ProfitabilityTotalsResponseDto {
   @ApiProperty() completedOrderCount!: number;
   @ApiProperty() incompleteOrderCount!: number;
-  @ApiProperty({ description: 'Órdenes terminadas que contienen conceptos sin precio' })
+  @ApiProperty({ description: 'Órdenes terminadas con conceptos cobrables sin precio' })
   missingPriceOrderCount!: number;
   @ApiProperty({ description: 'Órdenes terminadas que contienen conceptos sin costo conocido' })
   missingCostOrderCount!: number;

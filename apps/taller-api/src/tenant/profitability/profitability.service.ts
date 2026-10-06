@@ -108,7 +108,7 @@ export class ProfitabilityService {
                  AND EXISTS (
                    SELECT 1 FROM ${schema}.order_items item
                    WHERE item.order_id = service_order.id
-                     AND (item.unit_price IS NULL
+                     AND ((item.affects_order_total = true AND item.unit_price IS NULL)
                        OR item.cost_total IS NULL)
                  )
              )::int AS incomplete_order_count,
@@ -116,7 +116,9 @@ export class ProfitabilityService {
                WHERE service_order.id IS NOT NULL
                  AND EXISTS (
                    SELECT 1 FROM ${schema}.order_items item
-                   WHERE item.order_id = service_order.id AND item.unit_price IS NULL
+                   WHERE item.order_id = service_order.id
+                     AND item.affects_order_total = true
+                     AND item.unit_price IS NULL
                  )
              )::int AS missing_price_order_count,
              count(*) FILTER (
@@ -233,7 +235,8 @@ export class ProfitabilityService {
       )) as CustomerRow[];
       const serviceTypeRows = (await runner.query(
         `WITH bounds AS (${bounds}), typed AS (
-         SELECT item.kind AS type, item.total,
+         SELECT item.kind AS type,
+             CASE WHEN item.affects_order_total THEN item.total ELSE 0 END AS total,
              item.cost_total
            FROM bounds
            JOIN ${schema}.orders service_order
@@ -271,7 +274,7 @@ export class ProfitabilityService {
            NOT EXISTS (
              SELECT 1 FROM ${schema}.order_items item
              WHERE item.order_id = service_order.id
-               AND (item.unit_price IS NULL
+               AND ((item.affects_order_total = true AND item.unit_price IS NULL)
                  OR item.cost_total IS NULL)
            ) AS is_complete,
            service_order.is_paid

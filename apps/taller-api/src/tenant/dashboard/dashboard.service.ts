@@ -250,14 +250,16 @@ export class DashboardService {
              WHERE EXISTS (
                SELECT 1 FROM ${schema}.order_items item
                WHERE item.order_id = service_order.id
-                 AND (item.unit_price IS NULL
+                 AND ((item.affects_order_total = true AND item.unit_price IS NULL)
                    OR item.cost_total IS NULL)
              )
            )::int AS incomplete_order_count,
            count(*) FILTER (
              WHERE EXISTS (
                SELECT 1 FROM ${schema}.order_items item
-               WHERE item.order_id = service_order.id AND item.unit_price IS NULL
+               WHERE item.order_id = service_order.id
+                 AND item.affects_order_total = true
+                 AND item.unit_price IS NULL
              )
            )::int AS missing_price_order_count,
            count(*) FILTER (

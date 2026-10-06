@@ -639,6 +639,17 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     );
   });
 
+  it('documenta en Swagger el comportamiento cobrable de cada concepto', () => {
+    const swagger = SwaggerModule.createDocument(app, new DocumentBuilder().build());
+    const inputSchema = JSON.stringify(swagger.components?.schemas?.OrderItemInputDto);
+    const responseSchema = JSON.stringify(swagger.components?.schemas?.OrderItemResponseDto);
+
+    expect(inputSchema).toContain('affectsOrderTotal');
+    expect(inputSchema).toContain('true para servicios y false para productos');
+    expect(responseSchema).toContain('forma parte del total por cobrar');
+    expect(responseSchema).toContain('null significa desconocido');
+  });
+
   it('revierte compañía, schema y versión si falla el aprovisionamiento', async () => {
     const schemasBefore = await tenantSchemaNames();
     const result = await createCompany('Rollback Integration', PLATFORM_EMAIL);
@@ -3892,13 +3903,36 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(second.status).toBe(201);
     expect(second.body.folio).toBe('2');
 
+    const missingBillablePrice = await request<unknown>('POST', '/orders', {
+      token: tenant.accessToken,
+      body: {
+        customerId: customer.body.id,
+        vehicleId: vehicle.body.id,
+        items: [
+          {
+            kind: 'product',
+            description: 'Producto cobrable sin precio',
+            quantity: 1,
+            affectsOrderTotal: true,
+          },
+        ],
+      },
+    });
+    expect(missingBillablePrice.status).toBe(422);
+
     const billingModes = await request<OrderResponse>('POST', '/orders', {
       token: tenant.accessToken,
       body: {
         customerId: customer.body.id,
         vehicleId: vehicle.body.id,
         items: [
-          { kind: 'service', description: 'Afinación mayor', quantity: 1, unitPrice: 2100 },
+          {
+            kind: 'service',
+            description: 'Afinación mayor',
+            quantity: 1,
+            unitPrice: 2100,
+            unitCost: 0,
+          },
           { kind: 'product', description: 'Aceite incluido', quantity: 5, unitCost: 100 },
           {
             kind: 'product',
@@ -3912,12 +3946,22 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       },
     });
     expect(billingModes.status).toBe(201);
-    expect(billingModes.body.total).toBe('2400.00');
+    expect(billingModes.body).toMatchObject({
+      subtotal: '2400.00',
+      total: '2400.00',
+      totalCost: '700.00',
+      grossProfit: '1700.00',
+      hasUnpricedItems: false,
+      hasUnknownCosts: false,
+      isFinanciallyComplete: true,
+    });
     expect(billingModes.body.items).toEqual([
       expect.objectContaining({
         kind: 'service',
         affectsOrderTotal: true,
         unitPrice: '2100.00',
+        unitCost: '0.00',
+        costAmount: '0.00',
         amount: '2100.00',
       }),
       expect.objectContaining({
