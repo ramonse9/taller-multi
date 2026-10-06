@@ -4377,6 +4377,151 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       { lot_count: '2', actual_cost: '280.00' },
     ]);
 
+    const inputOrder = await request<OrderResponse>('POST', '/orders', {
+      token: tenant.accessToken,
+      body: {
+        customerId: customer.body.id,
+        vehicleId: vehicle.body.id,
+        items: [
+          { productServiceId: product.body.id, quantity: 2 },
+          {
+            kind: 'service',
+            description: 'Afinación con insumos incluidos',
+            quantity: 1,
+            unitPrice: 300,
+            unitCost: 0,
+          },
+        ],
+      },
+    });
+    expect(inputOrder.status).toBe(201);
+    expect(inputOrder.body).toMatchObject({
+      total: '300.00',
+      totalCost: '190.00',
+      grossProfit: '110.00',
+    });
+    expect(inputOrder.body.items[0]).toMatchObject({
+      kind: 'product',
+      affectsOrderTotal: false,
+      unitPrice: null,
+      amount: '0.00',
+      unitCost: '95.00',
+      costAmount: '190.00',
+      tracksInventory: true,
+    });
+
+    const completedInput = await request<OrderResponse>(
+      'POST',
+      `/orders/${inputOrder.body.id}/status`,
+      { token: tenant.accessToken, body: { status: 'completed' } },
+    );
+    expect(completedInput.status).toBe(200);
+    expect(completedInput.body).toMatchObject({
+      total: '300.00',
+      totalCost: '180.00',
+      grossProfit: '120.00',
+    });
+    expect(completedInput.body.items[0]).toMatchObject({
+      affectsOrderTotal: false,
+      unitPrice: null,
+      unitCost: '90.00',
+      costAmount: '180.00',
+    });
+    expect(completedInput.body.items[0]?.costLayers).toEqual([
+      expect.objectContaining({ quantity: '1.000', unitCost: '80.00', costAmount: '80.00' }),
+      expect.objectContaining({ quantity: '1.000', unitCost: '100.00', costAmount: '100.00' }),
+    ]);
+    expect(
+      (
+        await request<InventoryProductResponse>('GET', `/inventory/products/${product.body.id}`, {
+          token: tenant.accessToken,
+        })
+      ).body.stock,
+    ).toBe('8.000');
+
+    const reopenedInput = await request<OrderResponse>(
+      'POST',
+      `/orders/${inputOrder.body.id}/status`,
+      { token: tenant.accessToken, body: { status: 'in_progress' } },
+    );
+    expect(reopenedInput.status).toBe(200);
+    expect(reopenedInput.body.inventoryAppliedAt).toBeNull();
+    expect(
+      (
+        await request<InventoryProductResponse>('GET', `/inventory/products/${product.body.id}`, {
+          token: tenant.accessToken,
+        })
+      ).body.stock,
+    ).toBe('10.000');
+    expect(
+      (
+        await request<unknown>('POST', `/orders/${inputOrder.body.id}/status`, {
+          token: tenant.accessToken,
+          body: { status: 'in_progress' },
+        })
+      ).status,
+    ).toBe(400);
+
+    const completedInputAgain = await request<OrderResponse>(
+      'POST',
+      `/orders/${inputOrder.body.id}/status`,
+      { token: tenant.accessToken, body: { status: 'completed' } },
+    );
+    expect(completedInputAgain.status).toBe(200);
+    expect(completedInputAgain.body).toMatchObject({
+      totalCost: '180.00',
+      grossProfit: '120.00',
+    });
+    const cancelledInput = await request<OrderResponse>(
+      'POST',
+      `/orders/${inputOrder.body.id}/status`,
+      { token: tenant.accessToken, body: { status: 'cancelled' } },
+    );
+    expect(cancelledInput.status).toBe(200);
+    expect(cancelledInput.body.inventoryAppliedAt).toBeNull();
+    expect(
+      (
+        await request<InventoryProductResponse>('GET', `/inventory/products/${product.body.id}`, {
+          token: tenant.accessToken,
+        })
+      ).body.stock,
+    ).toBe('10.000');
+    expect(
+      (
+        await request<unknown>('POST', `/orders/${inputOrder.body.id}/status`, {
+          token: tenant.accessToken,
+          body: { status: 'cancelled' },
+        })
+      ).status,
+    ).toBe(400);
+
+    const inputMovements = await control.query<
+      Array<{
+        id: string;
+        movement_type: string;
+        quantity: string;
+        reverses_movement_id: string | null;
+      }>
+    >(
+      `SELECT id, movement_type, quantity::text, reverses_movement_id
+       FROM ${schema}.inventory_movements
+       WHERE order_id = $1 ORDER BY created_at, id`,
+      [inputOrder.body.id],
+    );
+    expect(
+      inputMovements.map(({ movement_type, quantity }) => ({ movement_type, quantity })),
+    ).toEqual([
+      { movement_type: 'exit', quantity: '-2.000' },
+      { movement_type: 'entry', quantity: '2.000' },
+      { movement_type: 'exit', quantity: '-2.000' },
+      { movement_type: 'entry', quantity: '2.000' },
+    ]);
+    const inputExits = inputMovements.filter(({ movement_type }) => movement_type === 'exit');
+    const inputReturns = inputMovements.filter(({ movement_type }) => movement_type === 'entry');
+    expect(inputReturns.map(({ reverses_movement_id }) => reverses_movement_id)).toEqual(
+      inputExits.map(({ id }) => id),
+    );
+
     const orderWithoutStock = await request<OrderResponse>('POST', '/orders', {
       token: tenant.accessToken,
       body: {
