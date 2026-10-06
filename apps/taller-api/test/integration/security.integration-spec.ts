@@ -2325,6 +2325,21 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       hasUnknownCosts: false,
       isFinanciallyComplete: true,
     });
+    const emptyCostServiceDashboard = await request<DashboardSummaryResponse>(
+      'GET',
+      '/dashboard/summary',
+      { token: tenant.accessToken },
+    );
+    expect(emptyCostServiceDashboard.body.financials).toEqual({
+      directCost: '0.00',
+      grossProfit: '250.00',
+      operatingExpenses: '0.00',
+      operatingProfit: '250.00',
+      incompleteOrderCount: 0,
+      missingPriceOrderCount: 0,
+      missingCostOrderCount: 0,
+      isComplete: true,
+    });
     const serviceCostReport = await request<ProfitabilityReportResponse>(
       'GET',
       '/profitability?occurredFrom=2026-10-01&occurredTo=2026-10-31',
@@ -2366,6 +2381,32 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       grossProfit: '75.00',
       hasUnknownCosts: false,
       isFinanciallyComplete: true,
+    });
+    const completedZeroCostService = await request<OrderResponse>(
+      'POST',
+      `/orders/${confirmedZeroCostService.body.id}/status`,
+      { token: tenant.accessToken, body: { status: 'completed' } },
+    );
+    expect(completedZeroCostService.body).toMatchObject({
+      status: 'completed',
+      total: '75.00',
+      totalCost: '0.00',
+      grossProfit: '75.00',
+      hasUnknownCosts: false,
+      isFinanciallyComplete: true,
+    });
+    const zeroCostServiceDashboard = await request<DashboardSummaryResponse>(
+      'GET',
+      '/dashboard/summary',
+      { token: tenant.accessToken },
+    );
+    expect(zeroCostServiceDashboard.body.financials).toMatchObject({
+      directCost: '0.00',
+      grossProfit: '75.00',
+      operatingProfit: '75.00',
+      incompleteOrderCount: 0,
+      missingCostOrderCount: 0,
+      isComplete: true,
     });
     await request<OrderResponse>('POST', `/orders/${confirmedZeroCostService.body.id}/status`, {
       token: tenant.accessToken,
@@ -2461,6 +2502,21 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         }),
       ]),
     );
+    const incompleteProductDashboard = await request<DashboardSummaryResponse>(
+      'GET',
+      '/dashboard/summary',
+      { token: tenant.accessToken },
+    );
+    expect(incompleteProductDashboard.body.financials).toMatchObject({
+      directCost: '0.00',
+      grossProfit: '0.00',
+      operatingExpenses: '0.00',
+      operatingProfit: '0.00',
+      incompleteOrderCount: 1,
+      missingPriceOrderCount: 0,
+      missingCostOrderCount: 1,
+      isComplete: false,
+    });
     const paidWithoutCost = await request<OrderResponse>(
       'PATCH',
       `/orders/${productWithoutCost.body.id}/payment-status`,
@@ -2741,6 +2797,23 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       collectedIncome: '0.00',
     });
     expect(isolatedAnalytics.body.expensesByCategory).toEqual([]);
+    const isolatedReport = await request<ProfitabilityReportResponse>(
+      'GET',
+      '/profitability?occurredFrom=2026-10-01&occurredTo=2026-10-31',
+      { token: isolated.accessToken },
+    );
+    expect(isolatedReport.status).toBe(200);
+    expect(isolatedReport.body.totals).toMatchObject({
+      completedOrderCount: 0,
+      incompleteOrderCount: 0,
+      income: '0.00',
+      directCost: '0.00',
+      grossProfit: '0.00',
+      operatingExpenses: '0.00',
+      netProfit: '0.00',
+      isComplete: true,
+    });
+    expect(isolatedReport.body.orders).toEqual([]);
 
     const pending = await request<OrderResponse>(
       'PATCH',
