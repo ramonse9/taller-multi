@@ -30,6 +30,7 @@ import { Supplier } from "../suppliers/supplier.models";
 import { SuppliersService } from "../suppliers/suppliers.service";
 import {
   EXPENSE_STATUS_NAMES,
+  Expense,
   ExpenseCategory,
   ExpenseInput,
   ExpenseMonthlySummary,
@@ -100,13 +101,21 @@ export class ExpensesPage implements OnInit {
   readonly saving = signal(false);
   readonly editorOpen = signal(false);
   readonly editing = signal<ExpenseSummary | null>(null);
+  readonly detailOpen = signal(false);
+  readonly detailLoading = signal(false);
+  readonly detail = signal<Expense | null>(null);
   readonly error = signal("");
   readonly notice = signal("");
 
-  readonly search = new FormControl(this.route.snapshot.queryParamMap.get("search") ?? "", {
+  readonly search = new FormControl(
+    this.route.snapshot.queryParamMap.get("search") ?? "",
+    {
+      nonNullable: true,
+    },
+  );
+  readonly status = new FormControl<ExpenseStatus | "">("", {
     nonNullable: true,
   });
-  readonly status = new FormControl<ExpenseStatus | "">("", { nonNullable: true });
   readonly categoryId = new FormControl("", { nonNullable: true });
   readonly supplierId = new FormControl("", { nonNullable: true });
   readonly occurredFrom = new FormControl("", { nonNullable: true });
@@ -114,7 +123,9 @@ export class ExpensesPage implements OnInit {
   readonly recurrenceType = new FormControl<ExpenseRecurrenceType | "">("", {
     nonNullable: true,
   });
-  readonly summaryMonth = new FormControl(currentMonth(), { nonNullable: true });
+  readonly summaryMonth = new FormControl(currentMonth(), {
+    nonNullable: true,
+  });
 
   readonly form = new FormGroup({
     categoryId: new FormControl("", {
@@ -153,7 +164,11 @@ export class ExpensesPage implements OnInit {
 
   ngOnInit(): void {
     this.search.valueChanges
-      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+      .pipe(
+        debounceTime(300),
+        distinctUntilChanged(),
+        takeUntilDestroyed(this.destroyRef),
+      )
       .subscribe(() => this.load(1));
     merge(
       this.status.valueChanges,
@@ -169,7 +184,8 @@ export class ExpensesPage implements OnInit {
       .pipe(distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
       .subscribe((month) => this.loadSummary(month));
     this.loadInitial();
-    if (this.route.snapshot.queryParamMap.get("new") === "true") this.openEditor();
+    if (this.route.snapshot.queryParamMap.get("new") === "true")
+      this.openEditor();
   }
 
   load(page = this.data().page): void {
@@ -187,11 +203,16 @@ export class ExpensesPage implements OnInit {
         occurredTo: this.occurredTo.value || undefined,
         recurrenceType: this.recurrenceType.value,
       })
-      .pipe(finalize(() => this.loading.set(false)), takeUntilDestroyed(this.destroyRef))
+      .pipe(
+        finalize(() => this.loading.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
       .subscribe({
         next: (data) => this.data.set(data),
         error: (error: unknown) =>
-          this.error.set(apiErrorMessage(error, "No pudimos cargar los gastos.")),
+          this.error.set(
+            apiErrorMessage(error, "No pudimos cargar los gastos."),
+          ),
       });
   }
 
@@ -199,11 +220,16 @@ export class ExpensesPage implements OnInit {
     this.summaryLoading.set(true);
     this.expensesService
       .monthlySummary(month)
-      .pipe(finalize(() => this.summaryLoading.set(false)), takeUntilDestroyed(this.destroyRef))
+      .pipe(
+        finalize(() => this.summaryLoading.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
       .subscribe({
         next: (summary) => this.summary.set(summary),
         error: (error: unknown) =>
-          this.error.set(apiErrorMessage(error, "No pudimos cargar el resumen mensual.")),
+          this.error.set(
+            apiErrorMessage(error, "No pudimos cargar el resumen mensual."),
+          ),
       });
   }
 
@@ -219,11 +245,13 @@ export class ExpensesPage implements OnInit {
   }
 
   openEditor(expense: ExpenseSummary | null = null): void {
-    if (expense && expense.status !== "draft") return;
+    if (expense?.status === "cancelled") return;
     this.editing.set(expense);
     this.form.reset({
       categoryId: expense?.category.id ?? this.categories()[0]?.id ?? "",
-      supplierId: expense?.supplier.isDefault ? "" : (expense?.supplier.id ?? ""),
+      supplierId: expense?.supplier.isDefault
+        ? ""
+        : (expense?.supplier.id ?? ""),
       occurredOn: expense?.occurredOn ?? today(),
       description: expense?.description ?? "",
       reference: expense?.reference ?? "",
@@ -237,6 +265,38 @@ export class ExpensesPage implements OnInit {
 
   closeEditor(): void {
     if (!this.saving()) this.editorOpen.set(false);
+  }
+
+  openDetail(expense: ExpenseSummary): void {
+    this.detailOpen.set(true);
+    this.detailLoading.set(true);
+    this.detail.set(null);
+    this.error.set("");
+    this.expensesService
+      .getOne(expense.id)
+      .pipe(
+        finalize(() => this.detailLoading.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (detail) => this.detail.set(detail),
+        error: (error: unknown) =>
+          this.error.set(
+            apiErrorMessage(error, "No pudimos cargar el detalle del gasto."),
+          ),
+      });
+  }
+
+  closeDetail(): void {
+    if (!this.saving()) {
+      this.detailOpen.set(false);
+      this.detail.set(null);
+    }
+  }
+
+  editFromDetail(expense: Expense): void {
+    this.closeDetail();
+    this.openEditor(expense);
   }
 
   save(): void {
@@ -262,33 +322,52 @@ export class ExpensesPage implements OnInit {
       ? this.expensesService.update(current.id, input)
       : this.expensesService.create(input);
     request
-      .pipe(finalize(() => this.saving.set(false)), takeUntilDestroyed(this.destroyRef))
+      .pipe(
+        finalize(() => this.saving.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
       .subscribe({
         next: () => {
           this.editorOpen.set(false);
-          this.showNotice(current ? "Gasto actualizado." : "Gasto registrado en borrador.");
+          this.showNotice(
+            current
+              ? "Gasto actualizado. Los reportes ya reflejan los cambios."
+              : "Gasto registrado y agregado a los reportes.",
+          );
           this.refresh();
         },
         error: (error: unknown) =>
-          this.error.set(apiErrorMessage(error, "No pudimos guardar el gasto.")),
+          this.error.set(
+            apiErrorMessage(error, "No pudimos guardar el gasto."),
+          ),
       });
   }
 
   changeStatus(expense: ExpenseSummary, status: ExpenseStatus): void {
     if (this.saving() || status === "draft") return;
-    if (status === "cancelled" && !window.confirm("¿Cancelar este gasto?")) return;
+    if (status === "cancelled" && !window.confirm("¿Cancelar este gasto?"))
+      return;
     this.saving.set(true);
     this.error.set("");
     this.expensesService
       .changeStatus(expense.id, status)
-      .pipe(finalize(() => this.saving.set(false)), takeUntilDestroyed(this.destroyRef))
+      .pipe(
+        finalize(() => this.saving.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
       .subscribe({
         next: () => {
-          this.showNotice(status === "confirmed" ? "Gasto confirmado." : "Gasto cancelado.");
+          this.detailOpen.set(false);
+          this.detail.set(null);
+          this.showNotice(
+            status === "confirmed" ? "Gasto confirmado." : "Gasto cancelado.",
+          );
           this.refresh();
         },
         error: (error: unknown) =>
-          this.error.set(apiErrorMessage(error, "No pudimos cambiar el estatus del gasto.")),
+          this.error.set(
+            apiErrorMessage(error, "No pudimos cambiar el estatus del gasto."),
+          ),
       });
   }
 
@@ -297,17 +376,28 @@ export class ExpensesPage implements OnInit {
   }
 
   money(value: string): string {
-    return new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(
-      Number(value),
-    );
+    return new Intl.NumberFormat("es-MX", {
+      style: "currency",
+      currency: "MXN",
+    }).format(Number(value));
   }
 
   monthName(value: string): string {
     if (!value) return "—";
     const [year, month] = value.split("-").map(Number);
-    return new Intl.DateTimeFormat("es-MX", { month: "long", year: "numeric" }).format(
-      new Date(year!, month! - 1, 1),
-    );
+    return new Intl.DateTimeFormat("es-MX", {
+      month: "long",
+      year: "numeric",
+    }).format(new Date(year!, month! - 1, 1));
+  }
+
+  dateTime(value: string): string {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "—";
+    return new Intl.DateTimeFormat("es-MX", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(date);
   }
 
   comparisonText(): string {
@@ -317,8 +407,42 @@ export class ExpensesPage implements OnInit {
         ? "Sin gastos confirmados para comparar"
         : "El mes anterior no tuvo gastos confirmados";
     }
-    if (current.direction === "same") return "Sin cambio contra el mes anterior";
+    if (current.direction === "same")
+      return "Sin cambio contra el mes anterior";
     return `${current.direction === "increase" ? "Aumento" : "Disminución"} de ${Math.abs(Number(current.changePercent)).toFixed(2)}%`;
+  }
+
+  changeFieldName(field: string): string {
+    return (
+      {
+        categoryId: "Categoría",
+        supplierId: "Proveedor",
+        occurredOn: "Fecha",
+        description: "Descripción",
+        reference: "Referencia",
+        amount: "Importe",
+        notes: "Notas",
+        recurrenceType: "Tipo",
+      }[field] ?? field
+    );
+  }
+
+  changeValue(field: string, value: string | null): string {
+    if (value === null || value === "") return "Sin valor";
+    if (field === "amount") return this.money(value);
+    if (field === "occurredOn") return this.formatShortDate(value);
+    if (field === "categoryId") {
+      return this.categories().find(({ id }) => id === value)?.name ?? value;
+    }
+    if (field === "supplierId") {
+      return (
+        this.suppliers().find(({ id }) => id === value)?.commercialName ?? value
+      );
+    }
+    if (field === "recurrenceType") {
+      return value === "recurring" ? "Recurrente" : "Único";
+    }
+    return value;
   }
 
   private loadInitial(): void {
@@ -347,7 +471,12 @@ export class ExpensesPage implements OnInit {
           this.suppliers.set(suppliers.items);
         },
         error: (error: unknown) =>
-          this.error.set(apiErrorMessage(error, "No pudimos cargar la administración de gastos.")),
+          this.error.set(
+            apiErrorMessage(
+              error,
+              "No pudimos cargar la administración de gastos.",
+            ),
+          ),
       });
   }
 

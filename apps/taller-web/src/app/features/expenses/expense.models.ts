@@ -50,8 +50,19 @@ export interface ExpenseStatusHistory {
   changedAt: string;
 }
 
+export interface ExpenseChangeHistory {
+  id: string;
+  changedFields: string[];
+  previousValues: Record<string, string | null>;
+  newValues: Record<string, string | null>;
+  changedByUserId: string;
+  changedByName: string;
+  changedAt: string;
+}
+
 export interface Expense extends ExpenseSummary {
   statusHistory: ExpenseStatusHistory[];
+  changeHistory: ExpenseChangeHistory[];
 }
 
 export interface PaginatedExpenses {

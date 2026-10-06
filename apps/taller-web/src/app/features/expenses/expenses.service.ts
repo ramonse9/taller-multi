@@ -32,24 +32,38 @@ export class ExpensesService {
     occurredFrom?: string;
     occurredTo?: string;
   }): Observable<PaginatedExpenses> {
-    let params = new HttpParams().set("page", options.page).set("limit", options.limit);
-    if (options.search?.trim()) params = params.set("search", options.search.trim());
+    let params = new HttpParams()
+      .set("page", options.page)
+      .set("limit", options.limit);
+    if (options.search?.trim())
+      params = params.set("search", options.search.trim());
     if (options.status) params = params.set("status", options.status);
-    if (options.recurrenceType) params = params.set("recurrenceType", options.recurrenceType);
-    if (options.categoryId) params = params.set("categoryId", options.categoryId);
-    if (options.supplierId) params = params.set("supplierId", options.supplierId);
-    if (options.occurredFrom) params = params.set("occurredFrom", options.occurredFrom);
-    if (options.occurredTo) params = params.set("occurredTo", options.occurredTo);
+    if (options.recurrenceType)
+      params = params.set("recurrenceType", options.recurrenceType);
+    if (options.categoryId)
+      params = params.set("categoryId", options.categoryId);
+    if (options.supplierId)
+      params = params.set("supplierId", options.supplierId);
+    if (options.occurredFrom)
+      params = params.set("occurredFrom", options.occurredFrom);
+    if (options.occurredTo)
+      params = params.set("occurredTo", options.occurredTo);
     return this.http.get<PaginatedExpenses>(this.url, { params });
   }
 
   monthlySummary(month?: string): Observable<ExpenseMonthlySummary> {
     const params = month ? new HttpParams().set("month", month) : undefined;
-    return this.http.get<ExpenseMonthlySummary>(`${this.url}/summary`, { params });
+    return this.http.get<ExpenseMonthlySummary>(`${this.url}/summary`, {
+      params,
+    });
   }
 
   create(input: ExpenseInput): Observable<Expense> {
     return this.http.post<Expense>(this.url, input);
+  }
+
+  getOne(id: string): Observable<Expense> {
+    return this.http.get<Expense>(`${this.url}/${id}`);
   }
 
   update(id: string, input: Partial<ExpenseInput>): Observable<Expense> {

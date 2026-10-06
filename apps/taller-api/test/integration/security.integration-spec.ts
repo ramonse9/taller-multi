@@ -1912,6 +1912,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     ]);
     expect(categories.body.every(({ isActive, isSystem }) => isActive && isSystem)).toBe(true);
     const rent = categories.body.find(({ code }) => code === 'rent')!;
+    const tools = categories.body.find(({ code }) => code === 'tools')!;
 
     const invalidAmount = await request<unknown>('POST', '/expenses', {
       token: tenant.accessToken,
@@ -2070,6 +2071,41 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         amount: 1500,
       },
     });
+    const movedExpense = await request<ExpenseResponse>(
+      'PATCH',
+      `/expenses/${currentMonthExpense.body.id}`,
+      {
+        token: tenant.accessToken,
+        body: {
+          categoryId: tools.id,
+          occurredOn: '2026-10-03',
+          description: 'Herramientas octubre',
+          amount: 1600,
+        },
+      },
+    );
+    expect(movedExpense.status).toBe(200);
+    expect(movedExpense.body).toMatchObject({
+      category: { id: tools.id, code: 'tools' },
+      occurredOn: '2026-10-03',
+      description: 'Herramientas octubre',
+      amount: '1600.00',
+    });
+    expect(movedExpense.body.changeHistory.at(-1)).toMatchObject({
+      changedFields: ['categoryId', 'occurredOn', 'description', 'amount'],
+      previousValues: {
+        categoryId: utilities.id,
+        occurredOn: '2026-10-02',
+        description: 'Electricidad octubre',
+        amount: '1500.00',
+      },
+      newValues: {
+        categoryId: tools.id,
+        occurredOn: '2026-10-03',
+        description: 'Herramientas octubre',
+        amount: '1600.00',
+      },
+    });
 
     const monthly = await request<ExpenseMonthlySummaryResponse>(
       'GET',
@@ -2081,20 +2117,20 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       month: '2026-10',
       previousMonth: '2026-09',
       confirmedCount: 1,
-      confirmedAmount: '1500.00',
+      confirmedAmount: '1600.00',
       previousConfirmedCount: 1,
       previousConfirmedAmount: '1000.00',
-      changeAmount: '500.00',
-      changePercent: '50.00',
+      changeAmount: '600.00',
+      changePercent: '60.00',
       direction: 'increase',
       draftCount: 0,
       draftAmount: '0.00',
     });
     expect(monthly.body.byCategory).toHaveLength(1);
     expect(monthly.body.byCategory[0]).toMatchObject({
-      category: { code: 'utilities' },
+      category: { code: 'tools' },
       count: 1,
-      amount: '1500.00',
+      amount: '1600.00',
     });
     expect(monthly.body.recentExpenses.map(({ id }) => id)).toEqual(
       expect.arrayContaining([previousMonthExpense.body.id, currentMonthExpense.body.id]),
@@ -2102,7 +2138,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
 
     const octoberFiltered = await request<{ totalItems: number; items: ExpenseResponse[] }>(
       'GET',
-      `/expenses?occurredFrom=2026-10-01&occurredTo=2026-10-31&categoryId=${utilities.id}&status=confirmed`,
+      `/expenses?occurredFrom=2026-10-03&occurredTo=2026-10-03&categoryId=${tools.id}&status=confirmed`,
       { token: tenant.accessToken },
     );
     expect(octoberFiltered.body.totalItems).toBe(1);
@@ -2120,6 +2156,30 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       [tenant.company.id],
     );
     expect(versions).toEqual([{ version: 22 }]);
+
+    const isolated = await provisionAndLogin(
+      'Expense Isolated Integration',
+      'expense.isolated@test.local',
+    );
+    await request<unknown>('PATCH', `/subscriptions/companies/${isolated.company.id}`, {
+      token: platformToken,
+      body: { planCode: 'control', status: 'active', reason: 'Aislamiento de gastos' },
+    });
+    expect(
+      (
+        await request<unknown>('GET', `/expenses/${currentMonthExpense.body.id}`, {
+          token: isolated.accessToken,
+        })
+      ).status,
+    ).toBe(404);
+    const isolatedExpenses = await request<{ totalItems: number; items: ExpenseResponse[] }>(
+      'GET',
+      '/expenses',
+      { token: isolated.accessToken },
+    );
+    expect(isolatedExpenses.body.items.map(({ id }) => id)).not.toContain(
+      currentMonthExpense.body.id,
+    );
   });
 
   it('calcula utilidad con ingresos terminados, FIFO y gastos confirmados', async () => {
