@@ -73,6 +73,11 @@ describe('PasswordResetService', () => {
     expect(
       query.mock.calls.some(([sql]) => String(sql).includes('UPDATE public.auth_sessions')),
     ).toBe(true);
+    expect(
+      query.mock.calls.some(([sql]) =>
+        String(sql).includes('UPDATE public.auth_refresh_tokens'),
+      ),
+    ).toBe(true);
     const auditCall = query.mock.calls.find(([sql]) =>
       String(sql).includes('INSERT INTO public.password_reset_events'),
     );

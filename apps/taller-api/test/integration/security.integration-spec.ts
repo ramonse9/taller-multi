@@ -116,7 +116,7 @@ interface PaginatedClients {
 interface HttpResult<T> {
   status: number;
   body: T;
-  sessionToken: string | null;
+  setCookie: string | null;
 }
 
 interface PoolStats {
@@ -824,11 +824,16 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(pool.idleCount).toBe(pool.totalCount);
   });
 
-  it('renueva el token al usarlo y rechaza sesiones inactivas por más de 14 días', async () => {
+  it('emite access tokens de 15 minutos y rechaza sesiones inactivas por más de 14 días', async () => {
     const tenant = await provisionAndLogin('Session Integration', 'session.admin@test.local');
     const active = await listClients(tenant.accessToken);
     expect(active.status).toBe(200);
-    expect(active.sessionToken).toBeTruthy();
+    expect(active.setCookie).toBeNull();
+    const payload = JSON.parse(
+      Buffer.from(tenant.accessToken.split('.')[1]!, 'base64url').toString('utf8'),
+    ) as { exp: number; iat: number; typ: string };
+    expect(payload.exp - payload.iat).toBe(15 * 60);
+    expect(payload.typ).toBe('access');
 
     await control.query(
       `UPDATE public.auth_sessions SET last_used_at = now() - interval '15 days'
@@ -839,6 +844,76 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       [tenant.user.id],
     );
     expect((await listClients(tenant.accessToken)).status).toBe(401);
+  });
+
+  it('rota refresh tokens, detecta reutilización y revoca toda la sesión', async () => {
+    const authenticated = await login(PLATFORM_EMAIL, PLATFORM_PASSWORD);
+    expect(authenticated.status).toBe(200);
+    expect(authenticated.setCookie).toContain('taller_refresh_token=');
+    expect(authenticated.setCookie).toContain('HttpOnly');
+    expect(authenticated.setCookie).toContain('SameSite=Lax');
+    expect(authenticated.setCookie).toContain('Path=/api/auth');
+    const firstCookie = cookiePair(authenticated.setCookie!);
+
+    const rotated = await request<{ accessToken: string }>('POST', '/auth/refresh', {
+      cookie: firstCookie,
+      origin: 'http://127.0.0.1:4200',
+    });
+    expect(rotated.status).toBe(200);
+    const secondCookie = cookiePair(rotated.setCookie!);
+    expect(secondCookie).not.toBe(firstCookie);
+    const sessionPayload = JSON.parse(
+      Buffer.from(authenticated.body.accessToken.split('.')[1]!, 'base64url').toString('utf8'),
+    ) as { jti: string };
+
+    const tokenRows = await control.query<
+      Array<{ generation: number; consumed_at: Date | null; token_hash: string }>
+    >(
+      `SELECT generation, consumed_at, token_hash
+       FROM public.auth_refresh_tokens refresh
+       JOIN public.auth_sessions session ON session.id = refresh.session_id
+       WHERE session.id = $1
+       ORDER BY refresh.generation`,
+      [sessionPayload.jti],
+    );
+    expect(tokenRows.map(({ generation }) => generation).sort()).toEqual([1, 2]);
+    expect(tokenRows.some(({ consumed_at }) => consumed_at !== null)).toBe(true);
+    expect(tokenRows.every(({ token_hash }) => !firstCookie.includes(token_hash))).toBe(true);
+
+    const reused = await request<unknown>('POST', '/auth/refresh', { cookie: firstCookie });
+    expect(reused.status).toBe(401);
+    expect(
+      (await request<unknown>('POST', '/auth/refresh', { cookie: secondCookie })).status,
+    ).toBe(401);
+    expect(
+      (
+        await request<unknown>('GET', '/auth/me', {
+          token: rotated.body.accessToken,
+        })
+      ).status,
+    ).toBe(401);
+  });
+
+  it('revoca la sesión al cerrar sesión y rechaza orígenes no permitidos', async () => {
+    const authenticated = await login(PLATFORM_EMAIL, PLATFORM_PASSWORD);
+    const cookie = cookiePair(authenticated.setCookie!);
+
+    const forbiddenOrigin = await request<LoginResponse>('POST', '/auth/login', {
+      origin: 'https://sitio-malicioso.example',
+      body: { identifier: PLATFORM_EMAIL, password: PLATFORM_PASSWORD },
+    });
+    expect(forbiddenOrigin.status).toBe(403);
+
+    const loggedOut = await request<unknown>('POST', '/auth/logout', {
+      cookie,
+      origin: 'http://127.0.0.1:4200',
+    });
+    expect(loggedOut.status).toBe(204);
+    expect(loggedOut.setCookie).toContain('taller_refresh_token=;');
+    expect(
+      (await request<unknown>('GET', '/auth/me', { token: authenticated.body.accessToken })).status,
+    ).toBe(401);
+    expect((await request<unknown>('POST', '/auth/refresh', { cookie })).status).toBe(401);
   });
 
   it('cambia de plan sin borrar datos y bloquea capacidades cuando se suspende', async () => {
@@ -5119,6 +5194,16 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       body: { currentPassword: TENANT_PASSWORD, newPassword: PERMANENT_PASSWORD },
     });
     expect(changed.status).toBe(204);
+    expect(
+      (await request<unknown>('GET', '/auth/me', { token: authenticated.body.accessToken })).status,
+    ).toBe(401);
+    expect(
+      (
+        await request<unknown>('POST', '/auth/refresh', {
+          cookie: cookiePair(authenticated.setCookie!),
+        })
+      ).status,
+    ).toBe(401);
     const permanent = await login(company.body.admin.loginName, PERMANENT_PASSWORD);
     expect(permanent.status).toBe(200);
     expect(permanent.body.user.mustChangePassword).toBe(false);
@@ -5143,7 +5228,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
   async function request<T>(
     method: string,
     path: string,
-    options: { token?: string; body?: unknown } = {},
+    options: { token?: string; cookie?: string; origin?: string; body?: unknown } = {},
   ): Promise<HttpResult<T>> {
     const response = await fetch(`${baseUrl}${path}`, {
       method,
@@ -5151,6 +5236,8 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         Accept: 'application/json',
         ...(options.body === undefined ? {} : { 'Content-Type': 'application/json' }),
         ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
+        ...(options.cookie ? { Cookie: options.cookie } : {}),
+        ...(options.origin ? { Origin: options.origin } : {}),
       },
       body: options.body === undefined ? undefined : JSON.stringify(options.body),
     });
@@ -5158,8 +5245,12 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     return {
       status: response.status,
       body: (text ? JSON.parse(text) : undefined) as T,
-      sessionToken: response.headers.get('x-session-token'),
+      setCookie: response.headers.get('set-cookie'),
     };
+  }
+
+  function cookiePair(setCookie: string): string {
+    return setCookie.split(';', 1)[0]!;
   }
 });
 

@@ -43,10 +43,6 @@ class EnvironmentVariables {
 
   @IsString()
   @Length(32, 512)
-  JWT_SECRET!: string;
-
-  @IsString()
-  @Length(32, 512)
   JWT_ACCESS_SECRET!: string;
 
   @IsString()
@@ -60,9 +56,6 @@ class EnvironmentVariables {
   @IsString()
   @Length(3, 100)
   JWT_AUDIENCE!: string;
-
-  @IsString()
-  JWT_EXPIRES_IN = '14d';
 
   @IsString()
   @Matches(/^\d+[smhd]$/)

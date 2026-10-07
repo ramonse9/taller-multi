@@ -148,6 +148,14 @@ export class PasswordResetService {
       [passwordHash, target.id],
     );
     await runner.query(
+      `UPDATE public.auth_refresh_tokens
+       SET revoked_at = COALESCE(revoked_at, NOW())
+       WHERE session_id IN (
+         SELECT id FROM public.auth_sessions WHERE user_id = $1
+       )`,
+      [target.id],
+    );
+    await runner.query(
       `UPDATE public.auth_sessions
        SET revoked_at = NOW()
        WHERE user_id = $1 AND revoked_at IS NULL`,

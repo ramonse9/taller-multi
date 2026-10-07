@@ -257,13 +257,38 @@ export class UsersService {
       throw new BadRequestException('La nueva contraseña debe ser diferente');
     }
     const passwordHash = await argon2.hash(input.newPassword, { type: argon2.argon2id });
-    await this.dataSource.query(
-      `UPDATE public.users
-       SET password_hash = $1, failed_login_attempts = 0, locked_until = NULL,
-           must_change_password = false, updated_at = NOW()
-       WHERE id = $2 AND company_id = $3`,
-      [passwordHash, user.id, companyId],
-    );
+    const runner = this.dataSource.createQueryRunner();
+    await runner.connect();
+    await runner.startTransaction();
+    try {
+      await runner.query(
+        `UPDATE public.users
+         SET password_hash = $1, failed_login_attempts = 0, locked_until = NULL,
+             must_change_password = false, updated_at = NOW()
+         WHERE id = $2 AND company_id = $3`,
+        [passwordHash, user.id, companyId],
+      );
+      await runner.query(
+        `UPDATE public.auth_refresh_tokens
+         SET revoked_at = COALESCE(revoked_at, NOW())
+         WHERE session_id IN (
+           SELECT id FROM public.auth_sessions WHERE user_id = $1
+         )`,
+        [user.id],
+      );
+      await runner.query(
+        `UPDATE public.auth_sessions
+         SET revoked_at = COALESCE(revoked_at, NOW())
+         WHERE user_id = $1`,
+        [user.id],
+      );
+      await runner.commitTransaction();
+    } catch (error) {
+      if (runner.isTransactionActive) await runner.rollbackTransaction();
+      throw error;
+    } finally {
+      await runner.release();
+    }
   }
 
   async resetPassword(user: AuthenticatedUser, id: string, input: ResetPasswordDto): Promise<void> {

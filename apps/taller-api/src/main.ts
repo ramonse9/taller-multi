@@ -32,7 +32,6 @@ async function bootstrap(): Promise<void> {
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Authorization', 'Content-Type', 'Accept'],
-    exposedHeaders: ['X-Session-Token'],
   });
   app.useGlobalPipes(
     new ValidationPipe({
