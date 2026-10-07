@@ -10,7 +10,7 @@ Backend NestJS/PostgreSQL multi-tenant con aislamiento mediante un schema por co
 ## Inicio local reproducible
 
 1. Instala PostgreSQL 17 con `brew install postgresql@17` y arráncalo con `brew services start postgresql@17`. Como alternativa, `docker compose up -d postgres` inicia la misma versión en contenedor.
-2. Copia `.env.example` a `.env` y reemplaza la contraseña de base de datos, `JWT_SECRET` y las credenciales bootstrap. `.env` está ignorado por Git.
+2. Copia `.env.example` a `.env` y reemplaza la contraseña de base de datos, los secretos JWT y las credenciales bootstrap. `.env` está ignorado por Git.
 3. Crea el rol y la base indicados por `DATABASE_URL` cuando uses la instalación de Homebrew.
 4. Instala dependencias desde la raíz del monorepo con `npm install`.
 5. Ejecuta `npm run db:bootstrap` desde la raíz. El comando aplica la migración pública, carga los catálogos de manera idempotente y crea el administrador con Argon2id.
@@ -44,6 +44,10 @@ Cuando el único Administrador principal (`company_admin`) pierde su contraseña
 La API impide que un administrador se desactive o pierda su propio rol y garantiza que cada compañía conserve al menos un administrador activo. Las contraseñas nunca forman parte de una respuesta y se almacenan con Argon2id. Las contraseñas tenant, temporales o definitivas, deben tener entre 6 y 10 caracteres e incluir al menos una letra y un número. Al iniciar sesión con una contraseña temporal, la sesión sólo permite consultar la identidad y establecer una nueva contraseña válida.
 
 Cada login crea una sesión servidor identificada por el `jti` del JWT. Las respuestas autenticadas renuevan el token mediante `X-Session-Token`; el frontend lo guarda automáticamente. Tanto el JWT como la actividad registrada vencen después de 14 días sin uso.
+
+La transición a sesiones persistentes con refresh token dispone de secretos independientes para access y refresh, con vigencias predeterminadas de 15 minutos y 14 días respectivamente. `public.auth_refresh_tokens` conserva la generación, expiración, consumo, revocación y reemplazo de cada token, pero almacena únicamente su hash. La revocación de `auth_sessions` invalida toda la familia asociada. Hasta activar los endpoints de renovación en el siguiente bloque, el login conserva temporalmente el mecanismo anterior mediante `X-Session-Token`.
+
+En desarrollo la cookie se configura como `taller_refresh_token`, sin `Secure`, para funcionar sobre localhost. Producción exige `AUTH_REFRESH_COOKIE_SECURE=true`; se recomienda `__Host-taller_refresh_token` con `Path=/` y sin `Domain`, o `__Secure-taller_refresh_token` cuando se requiera limitar el path. Access y refresh deben usar secretos distintos.
 
 Las órdenes conservan `paid_at` al marcarse como pagadas y lo limpian al volver a pendiente. La analítica distingue la utilidad generada —según el mes de terminación— del resultado cobrado —según el mes en que se registró el cobro—. `GET /api/profitability/analytics?months=6|12&endingMonth=YYYY-MM` entrega una serie mensual continua, resumen del mes final, cobrado contra pendiente y gastos confirmados por categoría. Requiere la capacidad `profitability` y el permiso `profitability.view`.
 

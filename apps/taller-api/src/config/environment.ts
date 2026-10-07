@@ -4,10 +4,12 @@ import {
   IsEmail,
   IsEnum,
   IsInt,
+  IsIn,
   IsOptional,
   IsString,
   IsUrl,
   Length,
+  Matches,
   Max,
   Min,
   validateSync,
@@ -44,6 +46,14 @@ class EnvironmentVariables {
   JWT_SECRET!: string;
 
   @IsString()
+  @Length(32, 512)
+  JWT_ACCESS_SECRET!: string;
+
+  @IsString()
+  @Length(32, 512)
+  JWT_REFRESH_SECRET!: string;
+
+  @IsString()
   @Length(3, 100)
   JWT_ISSUER!: string;
 
@@ -53,6 +63,38 @@ class EnvironmentVariables {
 
   @IsString()
   JWT_EXPIRES_IN = '14d';
+
+  @IsString()
+  @Matches(/^\d+[smhd]$/)
+  JWT_ACCESS_EXPIRES_IN = '15m';
+
+  @IsString()
+  @Matches(/^\d+[smhd]$/)
+  JWT_REFRESH_EXPIRES_IN = '14d';
+
+  @IsString()
+  @Matches(/^[A-Za-z0-9_-]+$/)
+  AUTH_REFRESH_COOKIE_NAME = 'taller_refresh_token';
+
+  @Transform(({ value }) => value === 'true')
+  @IsBoolean()
+  AUTH_REFRESH_COOKIE_SECURE = false;
+
+  @IsString()
+  @IsIn(['strict', 'lax', 'none'])
+  AUTH_REFRESH_COOKIE_SAME_SITE: 'strict' | 'lax' | 'none' = 'lax';
+
+  @IsString()
+  @Matches(/^\//)
+  AUTH_REFRESH_COOKIE_PATH = '/api/auth';
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    const input: unknown = value;
+    return input === '' ? undefined : input;
+  })
+  @IsString()
+  AUTH_REFRESH_COOKIE_DOMAIN?: string;
 
   @Transform(({ value }) => Number(value))
   @IsInt()
@@ -108,6 +150,42 @@ export function validateEnvironment(config: Record<string, unknown>): Record<str
     throw new Error(
       `Invalid environment configuration: ${errors.map((e) => Object.values(e.constraints ?? {}).join(', ')).join('; ')}`,
     );
+  }
+
+  if (validated.JWT_ACCESS_SECRET === validated.JWT_REFRESH_SECRET) {
+    throw new Error('Invalid environment configuration: JWT access and refresh secrets must differ');
+  }
+  if (validated.NODE_ENV === Environment.Production && !validated.AUTH_REFRESH_COOKIE_SECURE) {
+    throw new Error(
+      'Invalid environment configuration: AUTH_REFRESH_COOKIE_SECURE must be true in production',
+    );
+  }
+  if (
+    validated.AUTH_REFRESH_COOKIE_SAME_SITE === 'none' &&
+    !validated.AUTH_REFRESH_COOKIE_SECURE
+  ) {
+    throw new Error(
+      'Invalid environment configuration: SameSite=None requires a secure refresh cookie',
+    );
+  }
+  if (
+    validated.AUTH_REFRESH_COOKIE_NAME.startsWith('__Secure-') &&
+    !validated.AUTH_REFRESH_COOKIE_SECURE
+  ) {
+    throw new Error(
+      'Invalid environment configuration: __Secure- cookies require AUTH_REFRESH_COOKIE_SECURE=true',
+    );
+  }
+  if (validated.AUTH_REFRESH_COOKIE_NAME.startsWith('__Host-')) {
+    if (
+      !validated.AUTH_REFRESH_COOKIE_SECURE ||
+      validated.AUTH_REFRESH_COOKIE_DOMAIN ||
+      validated.AUTH_REFRESH_COOKIE_PATH !== '/'
+    ) {
+      throw new Error(
+        'Invalid environment configuration: __Host- cookies require Secure, Path=/ and no Domain',
+      );
+    }
   }
   return validated as unknown as Record<string, unknown>;
 }

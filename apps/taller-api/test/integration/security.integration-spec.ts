@@ -36,6 +36,7 @@ import { SensitiveActionPermissions1700000024000 } from '../../src/database/migr
 import { AdministrativePasswordResets1700000027000 } from '../../src/database/migrations/public/1700000027000-administrative-password-resets';
 import { RetireMobilePasswordRecovery1700000028000 } from '../../src/database/migrations/public/1700000028000-retire-mobile-password-recovery';
 import { OrderItemBillingBehavior1700000029000 } from '../../src/database/migrations/public/1700000029000-order-item-billing-behavior';
+import { RefreshTokenSessions1700000034000 } from '../../src/database/migrations/public/1700000034000-refresh-token-sessions';
 import { quoteIdentifier } from '../../src/database/schema-name';
 import { seedPublicCatalogs } from '../../src/database/seeds/public-catalogs.seed';
 
@@ -603,6 +604,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         AdministrativePasswordResets1700000027000,
         RetireMobilePasswordRecovery1700000028000,
         OrderItemBillingBehavior1700000029000,
+        RefreshTokenSessions1700000034000,
       ],
       migrationsTableName: 'public_schema_migrations',
       synchronize: false,
@@ -660,6 +662,35 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       await resetPublicSchema(control);
       await control.destroy();
     }
+  });
+
+  it('prepara sesiones con historial seguro de rotación de refresh tokens', async () => {
+    const columns = await control.query<Array<{ column_name: string }>>(
+      `SELECT column_name
+       FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'auth_refresh_tokens'
+       ORDER BY ordinal_position`,
+    );
+    expect(columns.map(({ column_name }) => column_name)).toEqual([
+      'id',
+      'session_id',
+      'token_hash',
+      'generation',
+      'issued_at',
+      'expires_at',
+      'consumed_at',
+      'revoked_at',
+      'replaced_by_token_id',
+    ]);
+
+    const rawTokenColumn = await control.query<Array<{ column_name: string }>>(
+      `SELECT column_name
+       FROM information_schema.columns
+       WHERE table_schema = 'public'
+         AND table_name = 'auth_refresh_tokens'
+         AND column_name IN ('token', 'token_value')`,
+    );
+    expect(rawTokenColumn).toHaveLength(0);
   });
 
   it('retira la recuperación OTP y su almacenamiento', async () => {

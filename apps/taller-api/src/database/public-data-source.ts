@@ -35,6 +35,7 @@ import { OrderExternalFolio1700000030000 } from './migrations/public/17000000300
 import { OrderPaymentDate1700000031000 } from './migrations/public/1700000031000-order-payment-date';
 import { ConfirmedExpenseEditing1700000032000 } from './migrations/public/1700000032000-confirmed-expense-editing';
 import { ServiceCostProfitability1700000033000 } from './migrations/public/1700000033000-service-cost-profitability';
+import { RefreshTokenSessions1700000034000 } from './migrations/public/1700000034000-refresh-token-sessions';
 
 export default new DataSource({
   type: 'postgres',
@@ -76,6 +77,7 @@ export default new DataSource({
     OrderPaymentDate1700000031000,
     ConfirmedExpenseEditing1700000032000,
     ServiceCostProfitability1700000033000,
+    RefreshTokenSessions1700000034000,
   ],
   migrationsTableName: 'public_schema_migrations',
   synchronize: false,
