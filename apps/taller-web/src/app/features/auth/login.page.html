@@ -29,6 +29,9 @@
       <p class="muted">
         Accede con tus credenciales de plataforma u organización.
       </p>
+      @if (notice()) {
+      <div class="form-notice" role="status">✓ {{ notice() }}</div>
+      }
 
       <label for="identifier">Usuario</label>
       <input

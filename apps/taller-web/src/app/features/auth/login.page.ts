@@ -10,7 +10,7 @@ import {
   ReactiveFormsModule,
   Validators,
 } from "@angular/forms";
-import { Router } from "@angular/router";
+import { ActivatedRoute, Router } from "@angular/router";
 import { AuthService } from "../../core/auth/auth.service";
 import { SessionUser } from "../../core/auth/auth.models";
 import { ThemeService } from "../../core/theme/theme.service";
@@ -26,9 +26,15 @@ export class LoginPage {
   private readonly auth = inject(AuthService);
   readonly theme = inject(ThemeService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   readonly submitting = signal(false);
   readonly error = signal("");
   readonly navigationFailed = signal(false);
+  readonly notice = signal(
+    this.route.snapshot.queryParamMap.get("passwordChanged") === "true"
+      ? "Tu contraseña fue actualizada. Inicia sesión nuevamente."
+      : "",
+  );
   readonly form = new FormGroup({
     identifier: new FormControl("", {
       nonNullable: true,

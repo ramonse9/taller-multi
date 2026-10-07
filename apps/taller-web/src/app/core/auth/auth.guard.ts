@@ -1,4 +1,5 @@
 import { inject } from "@angular/core";
+import { HttpErrorResponse } from "@angular/common/http";
 import { CanActivateFn, Router } from "@angular/router";
 import { catchError, map, of } from "rxjs";
 import { AuthService } from "./auth.service";
@@ -8,12 +9,13 @@ import { SubscriptionFeature } from "../subscriptions/subscription.models";
 export const authGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   const router = inject(Router);
-  if (!auth.token) return router.createUrlTree(["/login"]);
-  if (auth.isAuthenticated()) return true;
+  if (auth.isAuthenticated() && auth.token) return true;
   return auth.restoreSession().pipe(
     map(() => true),
-    catchError(() => {
-      auth.logout(false);
+    catchError((error: unknown) => {
+      if (error instanceof HttpErrorResponse && error.status === 401) {
+        auth.expireSession(false);
+      }
       return of(router.createUrlTree(["/login"]));
     }),
   );
@@ -22,12 +24,13 @@ export const authGuard: CanActivateFn = () => {
 export const guestGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   const router = inject(Router);
-  if (!auth.token) return true;
   if (auth.user()) return router.createUrlTree([auth.homeUrl()]);
   return auth.restoreSession().pipe(
     map((user) => router.createUrlTree([auth.homeUrl(user)])),
-    catchError(() => {
-      auth.logout(false);
+    catchError((error: unknown) => {
+      if (error instanceof HttpErrorResponse && error.status === 401) {
+        auth.expireSession(false);
+      }
       return of(true);
     }),
   );

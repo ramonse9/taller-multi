@@ -13,7 +13,6 @@ import {
   Validators,
 } from "@angular/forms";
 import { finalize } from "rxjs";
-import { Router } from "@angular/router";
 import { AuthService } from "../../core/auth/auth.service";
 import { apiErrorMessage } from "../../core/http/api-error";
 import { ThemeService } from "../../core/theme/theme.service";
@@ -32,7 +31,6 @@ export class AccountPage {
   readonly theme = inject(ThemeService);
   private readonly users = inject(UsersService);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly router = inject(Router);
 
   readonly saving = signal(false);
   readonly error = signal("");
@@ -78,17 +76,12 @@ export class AccountPage {
       )
       .subscribe({
         next: () => {
-          const wasTemporary = this.auth.user()?.mustChangePassword === true;
-          this.auth.completePasswordChange();
           this.form.reset({
             currentPassword: "",
             newPassword: "",
             confirmation: "",
           });
-          this.notice.set(
-            "Tu contraseña fue actualizada. La sesión actual permanece activa.",
-          );
-          if (wasTemporary) void this.router.navigateByUrl(this.auth.homeUrl());
+          this.auth.finishPasswordChange();
         },
         error: (error: unknown) =>
           this.error.set(

@@ -9,8 +9,10 @@ npm install
 npm start
 ```
 
-La configuración de desarrollo consume `http://localhost:3000/api`. La aplicación incluye login y restauración de sesión contra `/auth/me`, onboarding de compañías para el administrador de plataforma, administración de usuarios para el administrador tenant, seguridad de la cuenta, la vertical de clientes y la administración global de marcas y modelos.
+La configuración de desarrollo consume `http://localhost:3000/api`. La aplicación incluye login y restauración de sesión mediante `/auth/refresh` y `/auth/me`, onboarding de compañías para el administrador de plataforma, administración de usuarios para el administrador tenant, seguridad de la cuenta, la vertical de clientes y la administración global de marcas y modelos.
 
 La ruta `/vehicle-catalog` está disponible para administradores de plataforma y compañía. Permite buscar, paginar, crear, editar, desactivar y reactivar marcas y sus modelos dependientes. El catálogo comienza vacío y muestra claramente que sus cambios son compartidos entre compañías.
 
-El access token se guarda en `sessionStorage`, se adjunta mediante un interceptor y se descarta ante respuestas 401. Los datos del usuario se restauran siempre desde el servidor y no se consideran válidos únicamente por existir localmente. Las rutas y la navegación se limitan por rol: `platform_admin`, `company_admin` y `user`.
+El access token sólo existe en memoria y se adjunta mediante un interceptor. El refresh token permanece inaccesible para JavaScript dentro de una cookie `HttpOnly`; todas las solicitudes a la API habilitan credenciales. Al recargar, la aplicación rota el refresh token, obtiene un access token nuevo y consulta `/auth/me`. Ante un 401, las solicitudes concurrentes comparten una sola renovación y se reintentan una vez.
+
+Las operaciones que modifican la cookie se coordinan entre pestañas con Web Locks. `BroadcastChannel` propaga login y cierre de sesión sin guardar ni transmitir tokens persistentes. Cerrar sesión invoca `/auth/logout`, y cambiar la contraseña limpia el estado local porque la API revoca todas las sesiones. Las rutas y la navegación se limitan por rol: `platform_admin`, `company_admin`, `admin` y `user`.
