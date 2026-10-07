@@ -17,6 +17,7 @@ function validEnvironment(overrides: Record<string, unknown> = {}): Record<strin
     AUTH_REFRESH_COOKIE_SECURE: 'false',
     AUTH_REFRESH_COOKIE_SAME_SITE: 'lax',
     AUTH_REFRESH_COOKIE_PATH: '/api/auth',
+    AUTH_REQUIRE_TRUSTED_ORIGIN: 'false',
     RATE_LIMIT_TTL_MS: '60000',
     RATE_LIMIT_MAX: '100',
     SENSITIVE_RATE_LIMIT_TTL_MS: '60000',
@@ -59,10 +60,22 @@ describe('validateEnvironment', () => {
         AUTH_REFRESH_COOKIE_NAME: '__Host-taller_refresh_token',
         AUTH_REFRESH_COOKIE_SECURE: 'true',
         AUTH_REFRESH_COOKIE_PATH: '/',
+        AUTH_REQUIRE_TRUSTED_ORIGIN: 'true',
       }),
     );
 
     expect(result.AUTH_REFRESH_COOKIE_NAME).toBe('__Host-taller_refresh_token');
     expect(result.AUTH_REFRESH_COOKIE_SECURE).toBe(true);
+  });
+
+  it('requires trusted browser origins in production', () => {
+    expect(() =>
+      validateEnvironment(
+        validEnvironment({
+          NODE_ENV: 'production',
+          AUTH_REFRESH_COOKIE_SECURE: 'true',
+        }),
+      ),
+    ).toThrow('AUTH_REQUIRE_TRUSTED_ORIGIN must be true in production');
   });
 });

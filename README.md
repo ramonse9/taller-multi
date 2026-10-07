@@ -35,6 +35,8 @@ npm run lint
 
 Los detalles de configuración y bootstrap están en los README de [taller-api](apps/taller-api/README.md) y [taller-web](apps/taller-web/README.md).
 
+La lista de verificación para producción, dominios y variables de Render está en [docs/render-production.md](docs/render-production.md).
+
 Los schemas tenant se asignan automáticamente con el formato `_<consecutivo>_<tipo>_<nombre_comercial>`; no se capturan manualmente desde el frontend.
 
 Los usuarios de compañía no necesitan correo: ingresan con un identificador como `yovany@melkars`. El código después de `@` se elige durante el alta de la compañía. El celular es obligatorio para usuarios nuevos, el correo permanece opcional y las sesiones se renuevan con actividad hasta un máximo de 14 días sin uso.

@@ -89,6 +89,10 @@ class EnvironmentVariables {
   @IsString()
   AUTH_REFRESH_COOKIE_DOMAIN?: string;
 
+  @Transform(({ value }) => value === 'true')
+  @IsBoolean()
+  AUTH_REQUIRE_TRUSTED_ORIGIN = false;
+
   @Transform(({ value }) => Number(value))
   @IsInt()
   @Min(1000)
@@ -151,6 +155,11 @@ export function validateEnvironment(config: Record<string, unknown>): Record<str
   if (validated.NODE_ENV === Environment.Production && !validated.AUTH_REFRESH_COOKIE_SECURE) {
     throw new Error(
       'Invalid environment configuration: AUTH_REFRESH_COOKIE_SECURE must be true in production',
+    );
+  }
+  if (validated.NODE_ENV === Environment.Production && !validated.AUTH_REQUIRE_TRUSTED_ORIGIN) {
+    throw new Error(
+      'Invalid environment configuration: AUTH_REQUIRE_TRUSTED_ORIGIN must be true in production',
     );
   }
   if (

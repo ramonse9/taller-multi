@@ -27,6 +27,7 @@ process.env.AUTH_REFRESH_COOKIE_NAME = 'taller_refresh_token';
 process.env.AUTH_REFRESH_COOKIE_SECURE = 'false';
 process.env.AUTH_REFRESH_COOKIE_SAME_SITE = 'lax';
 process.env.AUTH_REFRESH_COOKIE_PATH = '/api/auth';
+process.env.AUTH_REQUIRE_TRUSTED_ORIGIN = 'true';
 process.env.RATE_LIMIT_TTL_MS = '60000';
 process.env.RATE_LIMIT_MAX = '1000';
 process.env.SENSITIVE_RATE_LIMIT_TTL_MS = '60000';

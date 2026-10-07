@@ -894,6 +894,47 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     ).toBe(401);
   });
 
+  it('restaura una sesión al reabrir el navegador sin persistir el access token', async () => {
+    const authenticated = await login(PLATFORM_EMAIL, PLATFORM_PASSWORD);
+    const persistedBrowserCookie = cookiePair(authenticated.setCookie!);
+
+    // El access token vive sólo en memoria: al cerrar la pestaña se descarta.
+    const restored = await request<{ accessToken: string }>('POST', '/auth/refresh', {
+      cookie: persistedBrowserCookie,
+    });
+    expect(restored.status).toBe(200);
+    expect(cookiePair(restored.setCookie!)).not.toBe(persistedBrowserCookie);
+    expect(
+      (
+        await request<LoginResponse['user']>('GET', '/auth/me', {
+          token: restored.body.accessToken,
+        })
+      ).status,
+    ).toBe(200);
+  });
+
+  it('rechaza refresh tokens expirados y revoca su sesión', async () => {
+    const authenticated = await login(PLATFORM_EMAIL, PLATFORM_PASSWORD);
+    const cookie = cookiePair(authenticated.setCookie!);
+    const payload = JSON.parse(
+      Buffer.from(authenticated.body.accessToken.split('.')[1]!, 'base64url').toString('utf8'),
+    ) as { jti: string };
+    await control.query(
+      `UPDATE public.auth_refresh_tokens
+       SET issued_at = now() - interval '2 seconds',
+           expires_at = now() - interval '1 second'
+       WHERE session_id = $1`,
+      [payload.jti],
+    );
+
+    expect((await request<unknown>('POST', '/auth/refresh', { cookie })).status).toBe(401);
+    const sessions = await control.query<Array<{ revoked_at: Date | null }>>(
+      'SELECT revoked_at FROM public.auth_sessions WHERE id = $1',
+      [payload.jti],
+    );
+    expect(sessions[0]?.revoked_at).not.toBeNull();
+  });
+
   it('revoca la sesión al cerrar sesión y rechaza orígenes no permitidos', async () => {
     const authenticated = await login(PLATFORM_EMAIL, PLATFORM_PASSWORD);
     const cookie = cookiePair(authenticated.setCookie!);
@@ -903,6 +944,11 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       body: { identifier: PLATFORM_EMAIL, password: PLATFORM_PASSWORD },
     });
     expect(forbiddenOrigin.status).toBe(403);
+    const missingOrigin = await request<LoginResponse>('POST', '/auth/login', {
+      origin: null,
+      body: { identifier: PLATFORM_EMAIL, password: PLATFORM_PASSWORD },
+    });
+    expect(missingOrigin.status).toBe(403);
 
     const loggedOut = await request<unknown>('POST', '/auth/logout', {
       cookie,
@@ -914,6 +960,29 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       (await request<unknown>('GET', '/auth/me', { token: authenticated.body.accessToken })).status,
     ).toBe(401);
     expect((await request<unknown>('POST', '/auth/refresh', { cookie })).status).toBe(401);
+  });
+
+  it('documenta el refresh token como cookie y la protección de origen', () => {
+    const swagger = SwaggerModule.createDocument(
+      app,
+      new DocumentBuilder()
+        .addCookieAuth(
+          'taller_refresh_token',
+          { type: 'apiKey', in: 'cookie' },
+          'refreshCookie',
+        )
+        .build(),
+    );
+    expect(swagger.components?.securitySchemes?.refreshCookie).toMatchObject({
+      type: 'apiKey',
+      in: 'cookie',
+      name: 'taller_refresh_token',
+    });
+    const refreshPath = Object.entries(swagger.paths).find(([path]) =>
+      path.endsWith('/auth/refresh'),
+    )?.[1];
+    expect(refreshPath?.post?.security).toContainEqual({ refreshCookie: [] });
+    expect(refreshPath?.post?.responses).toHaveProperty('403');
   });
 
   it('cambia de plan sin borrar datos y bloquea capacidades cuando se suspende', async () => {
@@ -1667,6 +1736,13 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     );
     expect(
       (await request<unknown>('GET', '/auth/me', { token: userLogin.body.accessToken })).status,
+    ).toBe(401);
+    expect(
+      (
+        await request<unknown>('POST', '/auth/refresh', {
+          cookie: cookiePair(userLogin.setCookie!),
+        })
+      ).status,
     ).toBe(401);
 
     await control.query('UPDATE public.companies SET is_active = false WHERE id = $1', [
@@ -5228,8 +5304,9 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
   async function request<T>(
     method: string,
     path: string,
-    options: { token?: string; cookie?: string; origin?: string; body?: unknown } = {},
+    options: { token?: string; cookie?: string; origin?: string | null; body?: unknown } = {},
   ): Promise<HttpResult<T>> {
+    const origin = options.origin === undefined ? 'http://127.0.0.1:4200' : options.origin;
     const response = await fetch(`${baseUrl}${path}`, {
       method,
       headers: {
@@ -5237,7 +5314,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         ...(options.body === undefined ? {} : { 'Content-Type': 'application/json' }),
         ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
         ...(options.cookie ? { Cookie: options.cookie } : {}),
-        ...(options.origin ? { Origin: options.origin } : {}),
+        ...(origin ? { Origin: origin } : {}),
       },
       body: options.body === undefined ? undefined : JSON.stringify(options.body),
     });

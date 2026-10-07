@@ -14,6 +14,8 @@ import {
 import { ConfigService } from '@nestjs/config';
 import {
   ApiBearerAuth,
+  ApiCookieAuth,
+  ApiForbiddenResponse,
   ApiNoContentResponse,
   ApiOkResponse,
   ApiOperation,
@@ -64,6 +66,7 @@ export class AuthController {
   @Header('Pragma', 'no-cache')
   @ApiOperation({ summary: 'Iniciar sesión y establecer la cookie segura de renovación' })
   @ApiOkResponse({ type: LoginResponseDto })
+  @ApiForbiddenResponse({ description: 'Origen ausente o no autorizado' })
   async login(
     @Body() input: LoginDto,
     @Req() request: Request,
@@ -84,8 +87,10 @@ export class AuthController {
   @Header('Cache-Control', 'no-store')
   @Header('Pragma', 'no-cache')
   @ApiOperation({ summary: 'Rotar el refresh token y emitir un access token nuevo' })
+  @ApiCookieAuth('refreshCookie')
   @ApiOkResponse({ type: RefreshResponseDto })
   @ApiUnauthorizedResponse({ description: 'Sesión expirada, revocada o reutilizada' })
+  @ApiForbiddenResponse({ description: 'Origen ausente o no autorizado' })
   async refresh(
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
@@ -110,7 +115,9 @@ export class AuthController {
   @SensitiveRateLimit()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Revocar la sesión actual y eliminar la cookie de renovación' })
+  @ApiCookieAuth('refreshCookie')
   @ApiNoContentResponse()
+  @ApiForbiddenResponse({ description: 'Origen ausente o no autorizado' })
   async logout(
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,

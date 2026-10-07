@@ -51,6 +51,11 @@ async function bootstrap(): Promise<void> {
       .setDescription('API multi-tenant con aislamiento por schema PostgreSQL')
       .setVersion('2.0')
       .addBearerAuth()
+      .addCookieAuth(
+        config.getOrThrow<string>('AUTH_REFRESH_COOKIE_NAME'),
+        { type: 'apiKey', in: 'cookie' },
+        'refreshCookie',
+      )
       .build(),
   );
   if (config.get<string>('NODE_ENV') !== 'production') SwaggerModule.setup('docs', app, document);

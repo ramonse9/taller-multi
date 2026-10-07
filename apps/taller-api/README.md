@@ -45,7 +45,7 @@ La API impide que un administrador se desactive o pierda su propio rol y garanti
 
 Cada login crea una sesión servidor identificada por el `jti` del access token. El access token dura 15 minutos y se entrega en el cuerpo de la respuesta; el refresh token tiene vigencia móvil de 14 días y se establece exclusivamente mediante una cookie `HttpOnly`. `POST /api/auth/refresh` rota el refresh token de forma transaccional y devuelve un access token nuevo. `POST /api/auth/logout` revoca la sesión completa y elimina la cookie.
 
-`public.auth_refresh_tokens` conserva la generación, expiración, consumo, revocación y reemplazo de cada token, pero almacena únicamente su hash HMAC. Reutilizar un token consumido revoca toda la sesión. Cambiar o restablecer una contraseña también revoca las sesiones y refresh tokens del usuario. Los endpoints de login, renovación y logout tienen límite de solicitudes y validan cualquier encabezado `Origin` contra `CORS_ORIGINS`.
+`public.auth_refresh_tokens` conserva la generación, expiración, consumo, revocación y reemplazo de cada token, pero almacena únicamente su hash HMAC. Reutilizar un token consumido revoca toda la sesión. Cambiar o restablecer una contraseña también revoca las sesiones y refresh tokens del usuario. Los endpoints de login, renovación y logout tienen límite de solicitudes y protección CSRF mediante validación exacta de `Origin` o `Referer` contra `CORS_ORIGINS`. En producción `AUTH_REQUIRE_TRUSTED_ORIGIN=true` hace obligatorio uno de esos encabezados; en desarrollo puede mantenerse en `false` para clientes no navegadores.
 
 En desarrollo la cookie se configura como `taller_refresh_token`, sin `Secure`, para funcionar sobre localhost. Producción exige `AUTH_REFRESH_COOKIE_SECURE=true`; se recomienda `__Host-taller_refresh_token` con `Path=/` y sin `Domain`, o `__Secure-taller_refresh_token` cuando se requiera limitar el path. Access y refresh deben usar secretos distintos.
 
@@ -96,4 +96,4 @@ Como protección, la suite rechaza cualquier base cuyo nombre no termine en `_te
 
 El propietario de migraciones necesita permiso para crear schemas y extensiones durante bootstrap. Para producción se recomienda separar ese rol del rol de runtime: el runtime sólo necesita conexión, DML sobre `public` y los schemas tenant, y capacidad de aprovisionamiento si la API de plataforma permanecerá habilitada. `REVOKE CREATE ON SCHEMA public FROM PUBLIC` se aplica en la migración inicial.
 
-Ejecuta `npm test`, `npm run lint` y `npm run build` antes de desplegar.
+Ejecuta `npm test`, `npm run test:integration`, `npm run lint` y `npm run build` antes de desplegar. La configuración propuesta para Render está en [../../docs/render-production.md](../../docs/render-production.md).
