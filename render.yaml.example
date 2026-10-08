@@ -1,0 +1,84 @@
+# Plantilla para copiar la configuración a los servicios existentes de Render.
+# No se llama render.yaml intencionalmente: importar un Blueprint con nombres
+# distintos podría crear servicios nuevos en lugar de actualizar V1.
+
+services:
+  - type: web
+    runtime: node
+    name: taller-api
+    buildCommand: npm ci && npm run build --workspace=apps/taller-api
+    preDeployCommand: npm run db:bootstrap:prod
+    startCommand: npm run start:prod --workspace=apps/taller-api
+    healthCheckPath: /api/health
+    maxShutdownDelaySeconds: 30
+    domains:
+      - api.multiservicios247.com
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_SSL
+        value: "false"
+      - key: CORS_ORIGINS
+        value: https://app.multiservicios247.com
+      - key: JWT_ISSUER
+        value: taller-api
+      - key: JWT_AUDIENCE
+        value: taller-web
+      - key: JWT_ACCESS_SECRET
+        sync: false
+      - key: JWT_REFRESH_SECRET
+        sync: false
+      - key: JWT_ACCESS_EXPIRES_IN
+        value: 15m
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 14d
+      - key: AUTH_REFRESH_COOKIE_NAME
+        value: __Host-taller_refresh_token
+      - key: AUTH_REFRESH_COOKIE_SECURE
+        value: "true"
+      - key: AUTH_REFRESH_COOKIE_SAME_SITE
+        value: lax
+      - key: AUTH_REFRESH_COOKIE_PATH
+        value: /
+      - key: AUTH_REFRESH_COOKIE_DOMAIN
+        value: ""
+      - key: AUTH_REQUIRE_TRUSTED_ORIGIN
+        value: "true"
+      - key: RATE_LIMIT_TTL_MS
+        value: "60000"
+      - key: RATE_LIMIT_MAX
+        value: "100"
+      - key: SENSITIVE_RATE_LIMIT_TTL_MS
+        value: "60000"
+      - key: SENSITIVE_RATE_LIMIT_MAX
+        value: "3"
+      - key: TRUST_PROXY_HOPS
+        value: "1"
+      - key: BOOTSTRAP_ADMIN_EMAIL
+        sync: false
+      - key: BOOTSTRAP_ADMIN_PASSWORD
+        sync: false
+
+  - type: web
+    runtime: static
+    name: taller-web
+    buildCommand: npm ci && npm run build --workspace=apps/taller-web
+    staticPublishPath: apps/taller-web/dist/taller-web/browser
+    domains:
+      - app.multiservicios247.com
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin

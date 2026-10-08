@@ -13,6 +13,8 @@ La configuración de desarrollo consume `http://localhost:3000/api`. La aplicaci
 
 El build de producción consume `https://api.multiservicios247.com/api`; el frontend debe publicarse en `https://app.multiservicios247.com` para coincidir con `CORS_ORIGINS` y la política CSRF de la API.
 
+En Render se publica `dist/taller-web/browser` como Static Site. La regla `/*` → `/index.html` debe configurarse como **Rewrite** para que las rutas de Angular funcionen al abrirlas directamente o recargar el navegador. La configuración completa está en [`docs/render-production.md`](../../docs/render-production.md).
+
 La ruta `/vehicle-catalog` está disponible para administradores de plataforma y compañía. Permite buscar, paginar, crear, editar, desactivar y reactivar marcas y sus modelos dependientes. El catálogo comienza vacío y muestra claramente que sus cambios son compartidos entre compañías.
 
 El access token sólo existe en memoria y se adjunta mediante un interceptor. El refresh token permanece inaccesible para JavaScript dentro de una cookie `HttpOnly`; todas las solicitudes a la API habilitan credenciales. Al recargar, la aplicación rota el refresh token, obtiene un access token nuevo y consulta `/auth/me`. Ante un 401, las solicitudes concurrentes comparten una sola renovación y se reintentan una vez.
