@@ -13,7 +13,7 @@ La plantilla [render.yaml.example](../render.yaml.example) contiene estos valore
 
 Configura el servicio desde la raíz del monorepo con Node.js 22.23.2, fijado en `.node-version`, `.nvmrc` y el rango `22.x` de `package.json`:
 
-- Build command: `npm ci && npm run build --workspace=apps/taller-api`
+- Build command: `npm ci --include=dev && npm run build --workspace=apps/taller-api`
 - Pre-deploy command: `npm run db:bootstrap:prod`
 - Start command: `npm run start:prod --workspace=apps/taller-api`
 - Health check path: `/api/health`
@@ -55,8 +55,8 @@ Variables requeridas en Render:
 
 ```dotenv
 NODE_ENV=production
-DATABASE_URL=<Internal Database URL de la base PostgreSQL existente>
-DATABASE_SSL=false
+DATABASE_URL=<External Database URL de la base PostgreSQL existente>
+DATABASE_SSL=true
 CORS_ORIGINS=https://app.multiservicios247.com
 JWT_ISSUER=taller-api
 JWT_AUDIENCE=taller-web
@@ -81,7 +81,9 @@ BOOTSTRAP_ADMIN_PASSWORD=<contraseña inicial segura>
 
 El archivo [apps/taller-api/.env.production.example](../apps/taller-api/.env.production.example) contiene la misma lista sin secretos reales. `PORT` no necesita crearse manualmente en Render. Marca `DATABASE_URL`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` y la contraseña bootstrap inicial como secretos; los dos secretos JWT deben ser diferentes. `BOOTSTRAP_ADMIN_EMAIL` y `BOOTSTRAP_ADMIN_PASSWORD` sólo son necesarios cuando la base todavía no tiene un administrador de plataforma activo. Después de verificar el primer acceso pueden retirarse: los pre-deploy posteriores continuarán aplicando migraciones y seeds sin reemplazar sus credenciales.
 
-Usa la URL interna de PostgreSQL cuando ambos servicios estén en la misma región de Render. `DATABASE_SSL=false` corresponde a esa conexión privada; si se usa la URL externa, configura SSL de acuerdo con el certificado entregado por el proveedor.
+En el servicio actual, el pre-deploy no pudo alcanzar la dirección privada de PostgreSQL y agotó el tiempo de conexión. Por eso la configuración validada usa la URL externa de Render con `DATABASE_SSL=true`. Si más adelante se corrige la conectividad privada, se puede volver a la URL interna con `DATABASE_SSL=false` después de probar primero `db:bootstrap:prod` y `/api/health`.
+
+`NODE_ENV=production` hace que `npm ci` omita por defecto las dependencias de desarrollo. El build necesita `@nestjs/cli`, por lo que `--include=dev` es obligatorio en Render; el proceso en ejecución continúa usando únicamente `node dist/main.js`.
 
 No asignes valor a `AUTH_REFRESH_COOKIE_DOMAIN`: el prefijo `__Host-` exige `Secure`, `Path=/` y una cookie sin `Domain`. `SameSite=lax` funciona porque `app.multiservicios247.com` y `api.multiservicios247.com` pertenecen al mismo sitio HTTPS. Si alguno se aloja bajo otro dominio, hay que reevaluar `SameSite` antes de desplegar.
 

@@ -6,7 +6,7 @@ services:
   - type: web
     runtime: node
     name: taller-api
-    buildCommand: npm ci && npm run build --workspace=apps/taller-api
+    buildCommand: npm ci --include=dev && npm run build --workspace=apps/taller-api
     preDeployCommand: npm run db:bootstrap:prod
     startCommand: npm run start:prod --workspace=apps/taller-api
     healthCheckPath: /api/health
@@ -19,7 +19,7 @@ services:
       - key: DATABASE_URL
         sync: false
       - key: DATABASE_SSL
-        value: "false"
+        value: "true"
       - key: CORS_ORIGINS
         value: https://app.multiservicios247.com
       - key: JWT_ISSUER
