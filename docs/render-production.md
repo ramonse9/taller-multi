@@ -13,7 +13,7 @@ La plantilla [render.yaml.example](../render.yaml.example) contiene estos valore
 
 Configura el servicio desde la raíz del monorepo con Node.js 22.23.2, fijado en `.node-version`, `.nvmrc` y el rango `22.x` de `package.json`:
 
-- Build command: `npm ci --include=dev && npm run build --workspace=apps/taller-api`
+- Build command: `npm ci --include=dev --no-audit && npm run build --workspace=apps/taller-api && npm prune --omit=dev --no-audit`
 - Pre-deploy command: `npm run db:bootstrap:prod`
 - Start command: `npm run start:prod --workspace=apps/taller-api`
 - Health check path: `/api/health`
@@ -83,7 +83,7 @@ El archivo [apps/taller-api/.env.production.example](../apps/taller-api/.env.pro
 
 En el servicio actual, el pre-deploy no pudo alcanzar la dirección privada de PostgreSQL y agotó el tiempo de conexión. Por eso la configuración validada usa la URL externa de Render con `DATABASE_SSL=true`. Si más adelante se corrige la conectividad privada, se puede volver a la URL interna con `DATABASE_SSL=false` después de probar primero `db:bootstrap:prod` y `/api/health`.
 
-`NODE_ENV=production` hace que `npm ci` omita por defecto las dependencias de desarrollo. El build necesita `@nestjs/cli`, por lo que `--include=dev` es obligatorio en Render; el proceso en ejecución continúa usando únicamente `node dist/main.js`.
+`NODE_ENV=production` hace que `npm ci` omita por defecto las dependencias de desarrollo. El build necesita `@nestjs/cli`, por lo que primero las instala explícitamente y, después de compilar, `npm prune --omit=dev` las retira del artefacto que ejecuta `node dist/main.js`. Las alertas del árbol de herramientas de desarrollo no quedan desplegadas con el proceso de producción.
 
 No asignes valor a `AUTH_REFRESH_COOKIE_DOMAIN`: el prefijo `__Host-` exige `Secure`, `Path=/` y una cookie sin `Domain`. `SameSite=lax` funciona porque `app.multiservicios247.com` y `api.multiservicios247.com` pertenecen al mismo sitio HTTPS. Si alguno se aloja bajo otro dominio, hay que reevaluar `SameSite` antes de desplegar.
 

@@ -6,7 +6,7 @@ services:
   - type: web
     runtime: node
     name: taller-api
-    buildCommand: npm ci --include=dev && npm run build --workspace=apps/taller-api
+    buildCommand: npm ci --include=dev --no-audit && npm run build --workspace=apps/taller-api && npm prune --omit=dev --no-audit
     preDeployCommand: npm run db:bootstrap:prod
     startCommand: npm run start:prod --workspace=apps/taller-api
     healthCheckPath: /api/health
