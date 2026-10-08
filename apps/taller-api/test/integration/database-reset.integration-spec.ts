@@ -80,6 +80,13 @@ describe('Reinicio controlado V1 a V2 con PostgreSQL real', () => {
     expect(bootstrap.migrationsExecuted).toBeGreaterThan(0);
     expect(verification.migrationCount).toBeGreaterThan(0);
 
+    delete process.env.BOOTSTRAP_ADMIN_EMAIL;
+    delete process.env.BOOTSTRAP_ADMIN_PASSWORD;
+    const repeatedBootstrap = await bootstrapDatabase(publicDataSource);
+    expect(repeatedBootstrap.adminCreated).toBe(false);
+    expect(repeatedBootstrap.migrationsExecuted).toBe(0);
+    await verifyBootstrapDatabase(publicDataSource);
+
     const check = new DataSource({ type: 'postgres', url: testDatabaseUrl });
     await check.initialize();
     try {

@@ -29,8 +29,6 @@ function verifyProductionEnvironment(): void {
     'SENSITIVE_RATE_LIMIT_TTL_MS',
     'SENSITIVE_RATE_LIMIT_MAX',
     'TRUST_PROXY_HOPS',
-    'BOOTSTRAP_ADMIN_EMAIL',
-    'BOOTSTRAP_ADMIN_PASSWORD',
   ];
   const missing = requiredVariables.filter(
     (name) => typeof process.env[name] !== 'string' || process.env[name]?.trim() === '',

@@ -18,7 +18,7 @@ Backend NestJS/PostgreSQL multi-tenant con aislamiento mediante un schema por co
 7. Inicia con `npm run dev:api` y abre `/docs`.
 8. Autentica al administrador en `POST /api/auth/login` y registra la primera compañía en `POST /api/companies`. Este es exactamente el mismo flujo transaccional usado para compañías posteriores.
 
-Los pasos internos también pueden ejecutarse por separado con `npm run db:migrate` y `npm run db:seed`. Repetir `db:bootstrap` no duplica catálogos ni usuarios, y no reemplaza la contraseña de un administrador existente.
+Los pasos internos también pueden ejecutarse por separado con `npm run db:migrate` y `npm run db:seed`. Repetir `db:bootstrap` no duplica catálogos ni usuarios, y no reemplaza la contraseña de un administrador existente. `BOOTSTRAP_ADMIN_EMAIL` y `BOOTSTRAP_ADMIN_PASSWORD` se exigen únicamente si todavía no existe un administrador de plataforma activo; pueden retirarse después del primer acceso verificado.
 
 ## Onboarding y usuarios
 

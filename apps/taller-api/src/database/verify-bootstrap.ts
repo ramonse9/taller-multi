@@ -30,9 +30,6 @@ async function count(
 export async function verifyBootstrapDatabase(
   dataSource: DataSource = publicDataSource,
 ): Promise<BootstrapVerificationResult> {
-  const adminEmail = process.env.BOOTSTRAP_ADMIN_EMAIL?.trim().toLowerCase();
-  assert(Boolean(adminEmail), 'BOOTSTRAP_ADMIN_EMAIL is required');
-
   await dataSource.initialize();
   try {
     const migrationCount = await count(
@@ -72,14 +69,12 @@ export async function verifyBootstrapDatabase(
       dataSource,
       `SELECT COUNT(*)
        FROM public.users
-       WHERE email = $1
-         AND role = 'platform_admin'
+       WHERE role = 'platform_admin'
          AND company_id IS NULL
          AND is_active = TRUE
          AND password_hash LIKE '$argon2id$%'`,
-      [adminEmail],
     );
-    assert(adminCount === 1, 'The platform administrator is missing or invalid');
+    assert(adminCount > 0, 'The platform administrator is missing or invalid');
 
     const tenantTableCount = await count(
       dataSource,

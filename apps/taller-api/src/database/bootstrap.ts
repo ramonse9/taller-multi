@@ -30,7 +30,6 @@ function bootstrapCredentials(): { email: string; password: string } {
 export async function bootstrapDatabase(
   dataSource: DataSource = publicDataSource,
 ): Promise<BootstrapResult> {
-  const { email, password } = bootstrapCredentials();
   await dataSource.initialize();
   const queryRunner = dataSource.createQueryRunner();
 
@@ -41,16 +40,38 @@ export async function bootstrapDatabase(
 
     try {
       await seedPublicCatalogs(queryRunner);
-      const existingAdmins = (await queryRunner.query(
+      const activePlatformAdmins = (await queryRunner.query(
         `SELECT company_id, role, is_active
          FROM public.users
-         WHERE email = $1
+         WHERE role = 'platform_admin'
+           AND company_id IS NULL
+           AND is_active = TRUE
+           AND password_hash LIKE '$argon2id$%'
          FOR UPDATE`,
-        [email],
       )) as AdminRow[];
 
       let adminCreated = false;
-      if (existingAdmins.length === 0) {
+      if (activePlatformAdmins.length === 0) {
+        const { email, password } = bootstrapCredentials();
+        const matchingAccounts = (await queryRunner.query(
+          `SELECT company_id, role, is_active
+           FROM public.users
+           WHERE email = $1
+           FOR UPDATE`,
+          [email],
+        )) as AdminRow[];
+        const existingAdmin = matchingAccounts[0];
+        if (existingAdmin) {
+          const isValidPlatformAdmin =
+            existingAdmin.role === 'platform_admin' &&
+            existingAdmin.company_id === null &&
+            existingAdmin.is_active;
+          if (!isValidPlatformAdmin) {
+            throw new Error(
+              `The account ${email} already exists but is not an active platform administrator`,
+            );
+          }
+        }
         const passwordHash = await argon2.hash(password, {
           type: argon2.argon2id,
         });
@@ -62,18 +83,6 @@ export async function bootstrapDatabase(
           [email, passwordHash],
         );
         adminCreated = true;
-      } else {
-        const existingAdmin = existingAdmins[0];
-        if (!existingAdmin) throw new Error('Could not read the existing account');
-        const isValidPlatformAdmin =
-          existingAdmin.role === 'platform_admin' &&
-          existingAdmin.company_id === null &&
-          existingAdmin.is_active;
-        if (!isValidPlatformAdmin) {
-          throw new Error(
-            `The account ${email} already exists but is not an active platform administrator`,
-          );
-        }
       }
 
       await queryRunner.commitTransaction();

@@ -79,7 +79,7 @@ BOOTSTRAP_ADMIN_EMAIL=<correo del administrador de plataforma>
 BOOTSTRAP_ADMIN_PASSWORD=<contraseña inicial segura>
 ```
 
-El archivo [apps/taller-api/.env.production.example](../apps/taller-api/.env.production.example) contiene la misma lista sin secretos reales. `PORT` no necesita crearse manualmente en Render. Marca `DATABASE_URL`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` y `BOOTSTRAP_ADMIN_PASSWORD` como secretos; los dos secretos JWT deben ser diferentes. `BOOTSTRAP_ADMIN_EMAIL` no necesita ser secreto, pero sí debe tener un valor definitivo.
+El archivo [apps/taller-api/.env.production.example](../apps/taller-api/.env.production.example) contiene la misma lista sin secretos reales. `PORT` no necesita crearse manualmente en Render. Marca `DATABASE_URL`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` y la contraseña bootstrap inicial como secretos; los dos secretos JWT deben ser diferentes. `BOOTSTRAP_ADMIN_EMAIL` y `BOOTSTRAP_ADMIN_PASSWORD` sólo son necesarios cuando la base todavía no tiene un administrador de plataforma activo. Después de verificar el primer acceso pueden retirarse: los pre-deploy posteriores continuarán aplicando migraciones y seeds sin reemplazar sus credenciales.
 
 Usa la URL interna de PostgreSQL cuando ambos servicios estén en la misma región de Render. `DATABASE_SSL=false` corresponde a esa conexión privada; si se usa la URL externa, configura SSL de acuerdo con el certificado entregado por el proveedor.
 
