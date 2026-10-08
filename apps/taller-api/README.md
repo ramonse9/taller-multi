@@ -99,3 +99,5 @@ El propietario de migraciones necesita permiso para crear schemas y extensiones 
 Ejecuta `npm test`, `npm run test:integration`, `npm run lint` y `npm run build` antes de desplegar. La configuración propuesta para Render está en [../../docs/render-production.md](../../docs/render-production.md).
 
 Producción usa exclusivamente los artefactos compilados: `npm run db:bootstrap:prod`, `npm run db:verify:prod` y `npm run config:verify:prod`. La aplicación activa los hooks de cierre de NestJS para responder ordenadamente a `SIGTERM`.
+
+El cambio único desde V1 utiliza `npm run db:reset-v1:prod`. Sin variables de autorización sólo genera una previsualización. La ejecución exige la frase `RESET_V1_AND_INSTALL_V2`, el nombre exacto de la base, `NODE_ENV=production`, el marcador V1, ausencia de V2 y cero conexiones adicionales. El procedimiento completo está documentado en la guía de Render; nunca debe configurarse como un pre-deploy recurrente.

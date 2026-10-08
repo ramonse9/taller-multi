@@ -26,6 +26,7 @@
     "bootstrap:verify": "ts-node -r tsconfig-paths/register src/database/verify-bootstrap.ts",
     "db:bootstrap:prod": "node dist/database/bootstrap.js",
     "db:verify:prod": "node dist/database/verify-bootstrap.js",
+    "db:reset-v1:prod": "node dist/database/reset-v1-to-v2.js",
     "config:verify:prod": "node dist/config/verify-production-environment.js"
   },
   "dependencies": {

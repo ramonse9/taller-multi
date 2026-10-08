@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { DataSource } from 'typeorm';
 import publicDataSource from './public-data-source';
 import { PUBLIC_CATALOGS } from './seeds/public-catalogs.seed';
 
@@ -6,25 +7,42 @@ interface CountRow {
   count: string;
 }
 
+export interface BootstrapVerificationResult {
+  migrationCount: number;
+  companyTypeCount: number;
+  personTypeCount: number;
+  timezoneCount: number;
+}
+
 function assert(condition: boolean, message: string): asserts condition {
   if (!condition) throw new Error(message);
 }
 
-async function count(sql: string, parameters: unknown[] = []): Promise<number> {
-  const rows = await publicDataSource.query<CountRow[]>(sql, parameters);
+async function count(
+  dataSource: DataSource,
+  sql: string,
+  parameters: unknown[] = [],
+): Promise<number> {
+  const rows = await dataSource.query<CountRow[]>(sql, parameters);
   return Number(rows[0]?.count ?? 0);
 }
 
-async function verifyBootstrap(): Promise<void> {
+export async function verifyBootstrapDatabase(
+  dataSource: DataSource = publicDataSource,
+): Promise<BootstrapVerificationResult> {
   const adminEmail = process.env.BOOTSTRAP_ADMIN_EMAIL?.trim().toLowerCase();
   assert(Boolean(adminEmail), 'BOOTSTRAP_ADMIN_EMAIL is required');
 
-  await publicDataSource.initialize();
+  await dataSource.initialize();
   try {
-    const migrationCount = await count('SELECT COUNT(*) FROM public.public_schema_migrations');
+    const migrationCount = await count(
+      dataSource,
+      'SELECT COUNT(*) FROM public.public_schema_migrations',
+    );
     assert(migrationCount > 0, 'No public migration was registered');
 
     const companyTypeCount = await count(
+      dataSource,
       'SELECT COUNT(*) FROM public.company_types WHERE is_active = TRUE',
     );
     assert(
@@ -33,6 +51,7 @@ async function verifyBootstrap(): Promise<void> {
     );
 
     const personTypeCount = await count(
+      dataSource,
       'SELECT COUNT(*) FROM public.person_types WHERE is_active = TRUE',
     );
     assert(
@@ -41,6 +60,7 @@ async function verifyBootstrap(): Promise<void> {
     );
 
     const timezoneCount = await count(
+      dataSource,
       'SELECT COUNT(*) FROM public.timezones WHERE is_active = TRUE',
     );
     assert(
@@ -49,6 +69,7 @@ async function verifyBootstrap(): Promise<void> {
     );
 
     const adminCount = await count(
+      dataSource,
       `SELECT COUNT(*)
        FROM public.users
        WHERE email = $1
@@ -61,6 +82,7 @@ async function verifyBootstrap(): Promise<void> {
     assert(adminCount === 1, 'The platform administrator is missing or invalid');
 
     const tenantTableCount = await count(
+      dataSource,
       `SELECT COUNT(*)
        FROM information_schema.tables
        WHERE table_schema = 'public'
@@ -75,14 +97,17 @@ async function verifyBootstrap(): Promise<void> {
         `Catalogs: ${companyTypeCount} company types, ${personTypeCount} person types, ${timezoneCount} timezones.\n` +
         'Platform administrator: valid.\n',
     );
+    return { migrationCount, companyTypeCount, personTypeCount, timezoneCount };
   } finally {
-    await publicDataSource.destroy();
+    await dataSource.destroy();
   }
 }
 
-void verifyBootstrap().catch((error: unknown) => {
-  process.stderr.write(
-    `${error instanceof Error ? error.message : 'Bootstrap verification failed'}\n`,
-  );
-  process.exitCode = 1;
-});
+if (require.main === module) {
+  void verifyBootstrapDatabase().catch((error: unknown) => {
+    process.stderr.write(
+      `${error instanceof Error ? error.message : 'Bootstrap verification failed'}\n`,
+    );
+    process.exitCode = 1;
+  });
+}

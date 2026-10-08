@@ -24,6 +24,29 @@ TALLER_ENV_FILE=.env.production.local npm run config:verify:prod --workspace=app
 
 Después del bootstrap, `npm run db:verify:prod` comprueba migraciones, catálogos y administrador contra la base configurada. La API atiende `SIGTERM` mediante los hooks de cierre de NestJS, lo que permite cerrar conexiones antes de que Render retire una instancia.
 
+## Reinicio único de V1 a V2
+
+El reinicio conserva el recurso PostgreSQL, su URL y sus credenciales. Solamente elimina `public` y los schemas tenant V1 identificados mediante `pub_companias`, para después instalar V2. No guardes las variables `TALLER_RESET_*` permanentemente en Render.
+
+Primero detén V1 o escala su servicio a cero. El script se niega a ejecutar mientras detecte otras conexiones abiertas con el mismo usuario de PostgreSQL. Desde un Shell/Job que use las variables de la API compilada, ejecuta primero la previsualización:
+
+```bash
+npm run db:reset-v1:prod
+```
+
+La previsualización no modifica datos y muestra el nombre real de la base, el rol y los schemas que serían eliminados. Revisa el resultado y ejecuta una sola vez sustituyendo `<nombre-exacto>`:
+
+```bash
+TALLER_RESET_EXECUTE=true \
+TALLER_RESET_CONFIRMATION=RESET_V1_AND_INSTALL_V2 \
+TALLER_RESET_DATABASE=<nombre-exacto> \
+npm run db:reset-v1:prod
+```
+
+El script exige simultáneamente `NODE_ENV=production`, el marcador V1 `public.pub_companias`, ausencia de estructuras V2, la frase exacta, el nombre exacto consultado desde PostgreSQL y cero conexiones adicionales. Luego ejecuta migraciones, seeds, crea el administrador de plataforma y corre la verificación V2. Si únicamente deseas volver a verificar después del corte, usa `npm run db:verify:prod`.
+
+No configures este reinicio destructivo como Pre-deploy recurrente. Después del corte único, conserva solamente `npm run db:bootstrap:prod` como Pre-deploy idempotente.
+
 Variables requeridas en Render:
 
 ```dotenv
@@ -69,11 +92,12 @@ El build de producción ya apunta a `https://api.multiservicios247.com/api`. Agr
 ## Orden seguro de transición
 
 1. Conserva temporalmente las variables antiguas en Render; la aplicación nueva no las consume.
-2. Despliega la API y ejecuta el pre-deploy para aplicar migraciones.
-3. Ejecuta `npm run db:verify:prod` y verifica `GET https://api.multiservicios247.com/api/health`.
-4. Despliega el frontend y prueba login, recarga, cierre y reapertura del navegador, logout y cambio de contraseña.
-5. Confirma en las herramientas del navegador que la cookie tiene `HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/` y no tiene `Domain`.
-6. Comprueba que una petición a `/api/auth/refresh` desde un origen ajeno o sin `Origin`/`Referer` recibe `403`.
-7. Sólo entonces elimina de Render `JWT_SECRET`, `JWT_EXPIRES_IN` y cualquier variable del mecanismo anterior.
+2. Detén V1 y ejecuta la previsualización y el reinicio único descritos arriba.
+3. Despliega la API; los despliegues posteriores usan el pre-deploy idempotente.
+4. Ejecuta `npm run db:verify:prod` y verifica `GET https://api.multiservicios247.com/api/health`.
+5. Despliega el frontend y prueba login, recarga, cierre y reapertura del navegador, logout y cambio de contraseña.
+6. Confirma en las herramientas del navegador que la cookie tiene `HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/` y no tiene `Domain`.
+7. Comprueba que una petición a `/api/auth/refresh` desde un origen ajeno o sin `Origin`/`Referer` recibe `403`.
+8. Sólo entonces elimina de Render `JWT_SECRET`, `JWT_EXPIRES_IN` y cualquier variable del mecanismo anterior.
 
 No elimines `JWT_ACCESS_SECRET` ni `JWT_REFRESH_SECRET`: son las variables vigentes. Cambiar cualquiera de ellas invalida las sesiones relacionadas y requiere un nuevo inicio de sesión.
