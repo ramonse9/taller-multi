@@ -97,3 +97,5 @@ Como protección, la suite rechaza cualquier base cuyo nombre no termine en `_te
 El propietario de migraciones necesita permiso para crear schemas y extensiones durante bootstrap. Para producción se recomienda separar ese rol del rol de runtime: el runtime sólo necesita conexión, DML sobre `public` y los schemas tenant, y capacidad de aprovisionamiento si la API de plataforma permanecerá habilitada. `REVOKE CREATE ON SCHEMA public FROM PUBLIC` se aplica en la migración inicial.
 
 Ejecuta `npm test`, `npm run test:integration`, `npm run lint` y `npm run build` antes de desplegar. La configuración propuesta para Render está en [../../docs/render-production.md](../../docs/render-production.md).
+
+Producción usa exclusivamente los artefactos compilados: `npm run db:bootstrap:prod`, `npm run db:verify:prod` y `npm run config:verify:prod`. La aplicación activa los hooks de cierre de NestJS para responder ordenadamente a `SIGTERM`.

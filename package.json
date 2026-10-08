@@ -17,9 +17,17 @@
     "db:seed": "npm run seed:public --workspace=apps/taller-api",
     "db:bootstrap": "npm run bootstrap --workspace=apps/taller-api",
     "db:verify": "npm run bootstrap:verify --workspace=apps/taller-api",
+    "db:bootstrap:prod": "npm run db:bootstrap:prod --workspace=apps/taller-api",
+    "db:verify:prod": "npm run db:verify:prod --workspace=apps/taller-api",
+    "config:verify:prod": "npm run config:verify:prod --workspace=apps/taller-api",
     "build": "npm run build --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "test:integration": "npm run test:integration --workspace=apps/taller-api",
     "lint": "npm run lint --workspaces --if-present"
+  },
+  "overrides": {
+    "@nestjs/swagger": {
+      "js-yaml": "5.4.3"
+    }
   }
 }

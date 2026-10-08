@@ -61,6 +61,8 @@ describe('validateEnvironment', () => {
         AUTH_REFRESH_COOKIE_SECURE: 'true',
         AUTH_REFRESH_COOKIE_PATH: '/',
         AUTH_REQUIRE_TRUSTED_ORIGIN: 'true',
+        CORS_ORIGINS: 'https://app.multiservicios247.com',
+        TRUST_PROXY_HOPS: '1',
       }),
     );
 
@@ -74,8 +76,49 @@ describe('validateEnvironment', () => {
         validEnvironment({
           NODE_ENV: 'production',
           AUTH_REFRESH_COOKIE_SECURE: 'true',
+          CORS_ORIGINS: 'https://app.multiservicios247.com',
+          TRUST_PROXY_HOPS: '1',
         }),
       ),
     ).toThrow('AUTH_REQUIRE_TRUSTED_ORIGIN must be true in production');
+  });
+
+  it('rejects non-HTTPS or non-origin CORS values in production', () => {
+    expect(() =>
+      validateEnvironment(
+        validEnvironment({
+          NODE_ENV: 'production',
+          AUTH_REFRESH_COOKIE_SECURE: 'true',
+          AUTH_REQUIRE_TRUSTED_ORIGIN: 'true',
+          AUTH_REFRESH_COOKIE_NAME: '__Host-taller_refresh_token',
+          AUTH_REFRESH_COOKIE_PATH: '/',
+          TRUST_PROXY_HOPS: '1',
+          CORS_ORIGINS: 'http://app.multiservicios247.com/path',
+        }),
+      ),
+    ).toThrow('production CORS origin must be an exact HTTPS origin');
+  });
+
+  it('requires trusted proxy and the agreed sensitive rate limit in production', () => {
+    const production = {
+      NODE_ENV: 'production',
+      AUTH_REFRESH_COOKIE_SECURE: 'true',
+      AUTH_REQUIRE_TRUSTED_ORIGIN: 'true',
+      AUTH_REFRESH_COOKIE_NAME: '__Host-taller_refresh_token',
+      AUTH_REFRESH_COOKIE_PATH: '/',
+      CORS_ORIGINS: 'https://app.multiservicios247.com',
+    };
+    expect(() => validateEnvironment(validEnvironment(production))).toThrow(
+      'TRUST_PROXY_HOPS must be at least 1 in production',
+    );
+    expect(() =>
+      validateEnvironment(
+        validEnvironment({
+          ...production,
+          TRUST_PROXY_HOPS: '1',
+          SENSITIVE_RATE_LIMIT_MAX: '4',
+        }),
+      ),
+    ).toThrow('sensitive rate limiting must be 3 attempts per 60000 ms in production');
   });
 });

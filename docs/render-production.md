@@ -9,12 +9,20 @@ La cookie de renovación pertenece únicamente al host de la API. No se comparte
 
 ## API (Web Service)
 
-Configura el servicio desde la raíz del monorepo con Node.js 22:
+Configura el servicio desde la raíz del monorepo con Node.js 22.23.2, fijado en `.node-version`, `.nvmrc` y el rango `22.x` de `package.json`:
 
 - Build command: `npm ci && npm run build --workspace=apps/taller-api`
-- Pre-deploy command: `npm run db:bootstrap`
+- Pre-deploy command: `npm run db:bootstrap:prod`
 - Start command: `npm run start:prod --workspace=apps/taller-api`
 - Health check path: `/api/health`
+
+El build genera los scripts de migración; el pre-deploy ejecuta `node dist/database/bootstrap.js` y no depende de `ts-node` ni de otras dependencias de desarrollo. Antes de guardar las variables en Render puedes validarlas localmente, sin conectarte a PostgreSQL ni imprimir secretos:
+
+```bash
+TALLER_ENV_FILE=.env.production.local npm run config:verify:prod --workspace=apps/taller-api
+```
+
+Después del bootstrap, `npm run db:verify:prod` comprueba migraciones, catálogos y administrador contra la base configurada. La API atiende `SIGTERM` mediante los hooks de cierre de NestJS, lo que permite cerrar conexiones antes de que Render retire una instancia.
 
 Variables requeridas en Render:
 
@@ -62,7 +70,7 @@ El build de producción ya apunta a `https://api.multiservicios247.com/api`. Agr
 
 1. Conserva temporalmente las variables antiguas en Render; la aplicación nueva no las consume.
 2. Despliega la API y ejecuta el pre-deploy para aplicar migraciones.
-3. Verifica `GET https://api.multiservicios247.com/api/health`.
+3. Ejecuta `npm run db:verify:prod` y verifica `GET https://api.multiservicios247.com/api/health`.
 4. Despliega el frontend y prueba login, recarga, cierre y reapertura del navegador, logout y cambio de contraseña.
 5. Confirma en las herramientas del navegador que la cookie tiene `HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/` y no tiene `Domain`.
 6. Comprueba que una petición a `/api/auth/refresh` desde un origen ajeno o sin `Origin`/`Referer` recibe `403`.

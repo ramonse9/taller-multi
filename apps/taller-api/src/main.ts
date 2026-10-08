@@ -9,6 +9,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true });
+  app.enableShutdownHooks();
   const config = app.get(ConfigService);
   const trustProxyHops = config.getOrThrow<number>('TRUST_PROXY_HOPS');
   if (trustProxyHops > 0) app.set('trust proxy', trustProxyHops);

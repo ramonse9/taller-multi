@@ -162,6 +162,22 @@ export function validateEnvironment(config: Record<string, unknown>): Record<str
       'Invalid environment configuration: AUTH_REQUIRE_TRUSTED_ORIGIN must be true in production',
     );
   }
+  if (validated.NODE_ENV === Environment.Production) {
+    validateProductionOrigins(validated.CORS_ORIGINS);
+    if (validated.TRUST_PROXY_HOPS < 1) {
+      throw new Error(
+        'Invalid environment configuration: TRUST_PROXY_HOPS must be at least 1 in production',
+      );
+    }
+    if (
+      validated.SENSITIVE_RATE_LIMIT_TTL_MS !== 60000 ||
+      validated.SENSITIVE_RATE_LIMIT_MAX !== 3
+    ) {
+      throw new Error(
+        'Invalid environment configuration: sensitive rate limiting must be 3 attempts per 60000 ms in production',
+      );
+    }
+  }
   if (
     validated.AUTH_REFRESH_COOKIE_SAME_SITE === 'none' &&
     !validated.AUTH_REFRESH_COOKIE_SECURE
@@ -190,4 +206,32 @@ export function validateEnvironment(config: Record<string, unknown>): Record<str
     }
   }
   return validated as unknown as Record<string, unknown>;
+}
+
+function validateProductionOrigins(originsValue: string): void {
+  const origins = originsValue
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  if (origins.length === 0) {
+    throw new Error('Invalid environment configuration: CORS_ORIGINS cannot be empty');
+  }
+  for (const origin of origins) {
+    let parsed: URL;
+    try {
+      parsed = new URL(origin);
+    } catch {
+      throw new Error(`Invalid environment configuration: invalid CORS origin ${origin}`);
+    }
+    if (
+      parsed.protocol !== 'https:' ||
+      parsed.origin !== origin ||
+      parsed.username ||
+      parsed.password
+    ) {
+      throw new Error(
+        `Invalid environment configuration: production CORS origin must be an exact HTTPS origin: ${origin}`,
+      );
+    }
+  }
 }
