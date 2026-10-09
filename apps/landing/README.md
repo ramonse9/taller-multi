@@ -29,3 +29,11 @@ La compilación estática se genera en `apps/landing/dist`.
 - También se publica el evento de navegador `landing:whatsapp-click` para integraciones posteriores.
 - La landing no carga Google Analytics ni Meta Pixel por sí sola: sus identificadores deben configurarse durante el despliegue cuando estén disponibles.
 - El correo alternativo se muestra únicamente cuando `PUBLIC_CONTACT_EMAIL` contiene una dirección comercial confirmada.
+- Los detalles de Search Console, JSON-LD, consentimiento y validación viven en `docs/seo-technical.md`.
+
+## Validación SEO
+
+```bash
+npm run build:landing
+npm run validate:seo
+```

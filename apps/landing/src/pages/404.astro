@@ -1,0 +1,29 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import CtaLink from "../components/CtaLink.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+import SiteHeader from "../components/SiteHeader.astro";
+---
+
+<BaseLayout
+  title="Página no encontrada | Multiservicios 24/7"
+  description="La página solicitada no está disponible. Regresa al inicio de Multiservicios 24/7."
+  canonicalPath="/404/"
+  robots="noindex, nofollow"
+  schema="none"
+>
+  <SiteHeader />
+  <main id="contenido" class="error-page">
+    <div class="container error-page__panel">
+      <p class="error-page__code">404</p>
+      <p class="eyebrow">PÁGINA NO ENCONTRADA</p>
+      <h1>Esta dirección no lleva al taller</h1>
+      <p>
+        Es posible que el enlace haya cambiado o que la página ya no exista. Puedes
+        volver al inicio y continuar desde ahí.
+      </p>
+      <CtaLink href="/">Volver al inicio</CtaLink>
+    </div>
+  </main>
+  <SiteFooter />
+</BaseLayout>

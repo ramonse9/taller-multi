@@ -1,0 +1,23 @@
+<aside
+  class="analytics-consent"
+  data-analytics-consent
+  aria-labelledby="analytics-consent-title"
+  hidden
+>
+  <div>
+    <strong id="analytics-consent-title">Tu privacidad es primero</strong>
+    <p>
+      El sitio funciona sin analítica. Con tu permiso, podremos medir visitas y
+      solicitudes de demostración para mejorar la experiencia.
+      <a href="/aviso-de-privacidad/">Consulta el aviso de privacidad</a>.
+    </p>
+  </div>
+  <div class="analytics-consent__actions">
+    <button type="button" data-consent-choice="necessary">Solo necesarias</button>
+    <button type="button" data-consent-choice="analytics">Aceptar analítica</button>
+  </div>
+</aside>
+
+<script>
+  import "../scripts/consent";
+</script>

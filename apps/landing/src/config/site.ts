@@ -19,6 +19,8 @@ export const whatsappUrls = Object.fromEntries(
 ) as Record<WhatsAppTrafficSource, string>;
 
 const contactEmail = import.meta.env.PUBLIC_CONTACT_EMAIL?.trim() || null;
+const googleSiteVerification =
+  import.meta.env.PUBLIC_GOOGLE_SITE_VERIFICATION?.trim() || null;
 
 export const site = {
   name: "Multiservicios 24/7",
@@ -30,6 +32,7 @@ export const site = {
   whatsappBaseUrl,
   whatsappUrl: whatsappUrls.organic,
   contactEmail,
+  googleSiteVerification,
   title: "Software para talleres mecánicos | Multiservicios 24/7",
   description:
     "Administra clientes, vehículos, órdenes, inventario, compras y gastos. Conoce la utilidad de tu taller. Solicita una demostración por WhatsApp.",

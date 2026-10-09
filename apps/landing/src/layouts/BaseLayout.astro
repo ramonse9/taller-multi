@@ -1,20 +1,81 @@
 ---
 import "../styles/global.css";
 import { site } from "../config/site";
+import AnalyticsConsent from "../components/AnalyticsConsent.astro";
 import WhatsAppLink from "../components/WhatsAppLink.astro";
 
 interface Props {
   title?: string;
   description?: string;
   canonicalPath?: string;
+  imagePath?: string;
+  robots?: "index, follow" | "noindex, nofollow";
+  schema?: "full" | "site" | "none";
 }
 
 const {
   title = site.title,
   description = site.description,
   canonicalPath = "/",
+  imagePath = "/social/og-multiservicios-247.png",
+  robots = "index, follow",
+  schema = "full",
 } = Astro.props;
 const canonicalUrl = new URL(canonicalPath, site.url);
+const socialImageUrl = new URL(imagePath, site.url);
+const fullSchemaGraph = [
+  {
+    "@type": "Organization",
+    "@id": `${site.url}/#organization`,
+    name: site.name,
+    url: site.url,
+    logo: {
+      "@type": "ImageObject",
+      url: `${site.url}/icon-512.png`,
+      width: 512,
+      height: 512,
+    },
+    contactPoint: {
+      "@type": "ContactPoint",
+      contactType: "sales",
+      telephone: "+526675787701",
+      availableLanguage: ["es-MX"],
+    },
+  },
+  {
+    "@type": "WebSite",
+    "@id": `${site.url}/#website`,
+    url: site.url,
+    name: site.name,
+    inLanguage: "es-MX",
+    publisher: { "@id": `${site.url}/#organization` },
+  },
+  {
+    "@type": "SoftwareApplication",
+    "@id": `${site.url}/#software`,
+    name: site.name,
+    url: site.url,
+    applicationCategory: "BusinessApplication",
+    applicationSubCategory: "Software para talleres automotrices",
+    operatingSystem: "Web",
+    inLanguage: "es-MX",
+    description: site.description,
+    featureList: [
+      "Clientes y vehículos",
+      "Órdenes de servicio",
+      "Inventario y compras",
+      "Proveedores y gastos",
+      "Usuarios y permisos",
+      "Tablero y análisis de utilidad",
+    ],
+    publisher: { "@id": `${site.url}/#organization` },
+  },
+];
+const schemaGraph = schema === "site" ? fullSchemaGraph.slice(0, 2) : fullSchemaGraph;
+const structuredData = {
+  "@context": "https://schema.org",
+  "@graph": schemaGraph,
+};
 ---
 
 <!doctype html>
@@ -24,13 +85,44 @@ const canonicalUrl = new URL(canonicalPath, site.url);
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#14263c" />
     <meta name="description" content={description} />
+    <meta name="robots" content={robots} />
+    {site.googleSiteVerification && (
+      <meta name="google-site-verification" content={site.googleSiteVerification} />
+    )}
     <link rel="canonical" href={canonicalUrl} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="es_MX" />
+    <meta property="og:site_name" content={site.name} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={socialImageUrl} />
+    <meta property="og:image:secure_url" content={socialImageUrl} />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Multiservicios 24/7, software para talleres automotrices" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={socialImageUrl} />
+    <meta name="twitter:image:alt" content="Multiservicios 24/7, software para talleres automotrices" />
+
+    {schema !== "none" && (
+      <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
+    )}
     <title>{title}</title>
   </head>
   <body>
     <a class="skip-link" href="#contenido">Saltar al contenido</a>
     <slot />
+    <AnalyticsConsent />
     <WhatsAppLink
       placement="mobile_floating"
       variant="plain"

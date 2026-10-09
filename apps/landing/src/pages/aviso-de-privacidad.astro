@@ -1,0 +1,117 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+import SiteHeader from "../components/SiteHeader.astro";
+import WhatsAppLink from "../components/WhatsAppLink.astro";
+import { site } from "../config/site";
+---
+
+<BaseLayout
+  title="Aviso de privacidad | Multiservicios 24/7"
+  description="Consulta cómo Multiservicios 24/7 trata los datos de contacto, la analítica y las preferencias de privacidad de su sitio web."
+  canonicalPath="/aviso-de-privacidad/"
+  schema="site"
+>
+  <SiteHeader />
+  <main id="contenido" class="legal-page">
+    <div class="container legal-page__layout">
+      <header class="legal-page__header">
+        <p class="eyebrow">PRIVACIDAD DEL SITIO WEB</p>
+        <h1>Aviso de privacidad</h1>
+        <p>
+          Este aviso explica el tratamiento de datos en el sitio público de
+          Multiservicios 24/7. No describe la información operativa que cada taller
+          registra dentro de la aplicación autenticada.
+        </p>
+        <small>Última actualización: 9 de octubre de 2026.</small>
+      </header>
+
+      <article class="legal-content">
+        <section aria-labelledby="responsable-title">
+          <h2 id="responsable-title">Responsable y contacto</h2>
+          <p>
+            El servicio identificado comercialmente como Multiservicios 24/7 es
+            responsable del tratamiento descrito en este aviso. Para preguntas o para
+            ejercer derechos sobre tus datos, puedes comunicarte por WhatsApp al
+            <WhatsAppLink placement="privacy_responsible" variant="plain">
+              {site.whatsappDisplay}
+            </WhatsAppLink>{site.contactEmail ? ` o escribir a ${site.contactEmail}` : ""}.
+          </p>
+        </section>
+
+        <section aria-labelledby="datos-title">
+          <h2 id="datos-title">Información que podemos tratar</h2>
+          <ul>
+            <li>Los datos que decidas compartir al iniciar una conversación por WhatsApp.</li>
+            <li>La fuente de la visita y el lugar desde el que seleccionaste el enlace de WhatsApp.</li>
+            <li>Datos técnicos y de navegación que las herramientas de analítica procesen únicamente si otorgas tu consentimiento y dichas herramientas están configuradas.</li>
+          </ul>
+          <p>La landing no contiene un formulario de contacto ni solicita datos personales directamente.</p>
+        </section>
+
+        <section aria-labelledby="finalidades-title">
+          <h2 id="finalidades-title">Finalidades</h2>
+          <ul>
+            <li>Atender solicitudes de información y demostraciones.</li>
+            <li>Entender qué canales generan consultas sobre el producto.</li>
+            <li>Mejorar el contenido, la accesibilidad y el rendimiento del sitio.</li>
+            <li>Prevenir abuso y mantener la seguridad del servicio.</li>
+          </ul>
+        </section>
+
+        <section aria-labelledby="cookies-title">
+          <h2 id="cookies-title">Analítica, cookies y almacenamiento local</h2>
+          <p>
+            El sitio funciona sin analítica y no carga por sí mismo Google Analytics o
+            Meta Pixel. La preferencia elegida en el aviso de analítica se guarda en el
+            almacenamiento local del navegador con la clave
+            <code>ms247_analytics_consent</code>.
+          </p>
+          <p>
+            Si aceptas analítica y esas herramientas se configuran posteriormente, podrán
+            recibir eventos de navegación y conversión y utilizar sus propias tecnologías
+            de almacenamiento. Si eliges “Solo necesarias”, los clics de WhatsApp no se
+            envían a GA4 ni a Meta Pixel. Puedes cambiar la decisión eliminando los datos
+            del sitio desde la configuración de tu navegador.
+          </p>
+        </section>
+
+        <section aria-labelledby="terceros-title">
+          <h2 id="terceros-title">Servicios de terceros</h2>
+          <p>
+            Al abrir WhatsApp sales de este sitio y el tratamiento posterior queda sujeto
+            a las condiciones y políticas de WhatsApp y Meta. Si la analítica se habilita
+            con consentimiento, Google o Meta podrán actuar como proveedores tecnológicos
+            conforme a sus propios términos.
+          </p>
+        </section>
+
+        <section aria-labelledby="derechos-title">
+          <h2 id="derechos-title">Tus decisiones y derechos</h2>
+          <p>
+            Puedes solicitar acceso, corrección o eliminación de la información que hayas
+            compartido directamente, así como oponerte a su uso, utilizando los medios de
+            contacto indicados. La procedencia de la solicitud podrá verificarse antes de
+            atenderla.
+          </p>
+        </section>
+
+        <section aria-labelledby="cambios-title">
+          <h2 id="cambios-title">Cambios a este aviso</h2>
+          <p>
+            Cualquier actualización se publicará en esta misma dirección e indicará una
+            nueva fecha de revisión.
+          </p>
+        </section>
+
+        <div class="legal-content__contact">
+          <strong>¿Tienes una pregunta sobre privacidad?</strong>
+          <WhatsAppLink placement="privacy_notice" variant="secondary">
+            Contactar por WhatsApp
+          </WhatsAppLink>
+        </div>
+      </article>
+    </div>
+  </main>
+  <SiteFooter />
+</BaseLayout>

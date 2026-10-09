@@ -29,6 +29,14 @@ function detectTrafficSource(): WhatsAppTrafficSource {
 const trafficSource = detectTrafficSource();
 const trackingWindow = window as TrackingWindow;
 
+function hasAnalyticsConsent(): boolean {
+  try {
+    return window.localStorage.getItem("ms247_analytics_consent") === "analytics";
+  } catch {
+    return false;
+  }
+}
+
 document.querySelectorAll<HTMLAnchorElement>("[data-whatsapp-link]").forEach((link) => {
   link.href = whatsappUrls[trafficSource];
   link.dataset.whatsappSource = trafficSource;
@@ -43,15 +51,17 @@ document.querySelectorAll<HTMLAnchorElement>("[data-whatsapp-link]").forEach((li
         link_placement: placement,
       };
 
-      if (typeof trackingWindow.gtag === "function") {
-        trackingWindow.gtag("event", "generate_lead", parameters);
-      } else {
-        trackingWindow.dataLayer = trackingWindow.dataLayer ?? [];
-        trackingWindow.dataLayer.push({ event: "whatsapp_click", ...parameters });
-      }
+      if (hasAnalyticsConsent()) {
+        if (typeof trackingWindow.gtag === "function") {
+          trackingWindow.gtag("event", "generate_lead", parameters);
+        } else {
+          trackingWindow.dataLayer = trackingWindow.dataLayer ?? [];
+          trackingWindow.dataLayer.push({ event: "whatsapp_click", ...parameters });
+        }
 
-      if (typeof trackingWindow.fbq === "function") {
-        trackingWindow.fbq("track", "Contact", parameters);
+        if (typeof trackingWindow.fbq === "function") {
+          trackingWindow.fbq("track", "Contact", parameters);
+        }
       }
 
       window.dispatchEvent(
