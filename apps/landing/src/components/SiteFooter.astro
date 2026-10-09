@@ -1,5 +1,6 @@
 ---
 import { site } from "../config/site";
+import WhatsAppLink from "./WhatsAppLink.astro";
 const currentYear = new Date().getFullYear();
 ---
 
@@ -29,9 +30,12 @@ const currentYear = new Date().getFullYear();
 
     <div>
       <p class="site-footer__title">Contacto</p>
-      <a href={site.whatsappUrl} target="_blank" rel="noopener noreferrer">
+      <WhatsAppLink placement="footer" variant="plain">
         WhatsApp {site.whatsappDisplay}
-      </a>
+      </WhatsAppLink>
+      {site.contactEmail && (
+        <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>
+      )}
       <a href={site.appUrl}>Entrar a la plataforma</a>
     </div>
   </div>

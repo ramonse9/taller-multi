@@ -5,6 +5,7 @@ import ProductPreview from "../components/ProductPreview.astro";
 import SectionIntro from "../components/SectionIntro.astro";
 import SiteFooter from "../components/SiteFooter.astro";
 import SiteHeader from "../components/SiteHeader.astro";
+import WhatsAppLink from "../components/WhatsAppLink.astro";
 import { site } from "../config/site";
 
 const problems = [
@@ -62,7 +63,7 @@ const faqs = [
           <h1 id="hero-title">Controla cada orden y conoce la <em>utilidad</em> de tu taller</h1>
           <p class="hero__lead">Empieza con clientes, vehículos y órdenes de servicio. Agrega inventario, compras, gastos y análisis de utilidad cuando tu operación lo requiera.</p>
           <div class="hero__actions">
-            <CtaLink href={site.whatsappUrl} external label={`Solicitar demostración por WhatsApp al ${site.whatsappDisplay}`}>Solicitar demostración por WhatsApp</CtaLink>
+            <WhatsAppLink placement="hero" label={`Solicitar demostración por WhatsApp al ${site.whatsappDisplay}`}>Solicitar demostración por WhatsApp</WhatsAppLink>
             <CtaLink href="#como-funciona" variant="secondary">Ver cómo funciona</CtaLink>
           </div>
           <ul class="hero__proof" aria-label="Características principales">
@@ -99,7 +100,7 @@ const faqs = [
           <h2 id="basico-title">Empieza por el historial que sí necesitas</h2>
           <p class="story-copy__lead">Registra el trabajo sin preparar primero un catálogo. Puedes crear al cliente y al vehículo dentro del flujo, capturar servicios libremente y conservar cada orden.</p>
           <ul class="feature-list">{basicFeatures.map((feature) => <li>{feature}</li>)}</ul>
-          <CtaLink href={site.whatsappUrl} external variant="secondary">Quiero ver el flujo Básico</CtaLink>
+          <WhatsAppLink placement="basic_plan" variant="secondary">Quiero ver el flujo Básico</WhatsAppLink>
         </div>
         <div class="order-illustration" aria-label="Ejemplo ilustrativo de una orden de servicio">
           <div class="illustration-label">VISTA ILUSTRATIVA · SIN DATOS REALES</div>
@@ -178,8 +179,8 @@ const faqs = [
       <div class="container">
         <SectionIntro eyebrow="CRECE POR ETAPAS" title="Empieza con lo necesario. Agrega control cuando tenga sentido." titleId="planes-title" description="Los planes habilitan capacidades distintas sin eliminar la información capturada al cambiar de nivel." />
         <div class="plans-grid">
-          <article class="plan-card"><p class="plan-card__label">BÁSICO</p><h3>Historial y órdenes</h3><p>Para talleres que primero quieren organizar clientes, vehículos, servicios y cobros.</p><ul>{basicFeatures.map((feature) => <li>{feature}</li>)}</ul><CtaLink href={site.whatsappUrl} external variant="secondary">Consultar plan Básico</CtaLink></article>
-          <article class="plan-card plan-card--featured"><p class="plan-card__label">CONTROL</p><h3>Inventario y utilidad</h3><p>Para talleres que también necesitan compras, costos reales, gastos y análisis del resultado.</p><ul>{controlFeatures.map((feature) => <li>{feature}</li>)}</ul><CtaLink href={site.whatsappUrl} external>Consultar plan Control</CtaLink></article>
+          <article class="plan-card"><p class="plan-card__label">BÁSICO</p><h3>Historial y órdenes</h3><p>Para talleres que primero quieren organizar clientes, vehículos, servicios y cobros.</p><ul>{basicFeatures.map((feature) => <li>{feature}</li>)}</ul><WhatsAppLink placement="plan_basic" variant="secondary">Consultar plan Básico</WhatsAppLink></article>
+          <article class="plan-card plan-card--featured"><p class="plan-card__label">CONTROL</p><h3>Inventario y utilidad</h3><p>Para talleres que también necesitan compras, costos reales, gastos y análisis del resultado.</p><ul>{controlFeatures.map((feature) => <li>{feature}</li>)}</ul><WhatsAppLink placement="plan_control">Consultar plan Control</WhatsAppLink></article>
         </div>
         <div class="future-note"><span>ETAPA FUTURA</span><p><strong>Facturación electrónica.</strong> Está contemplada para una fase posterior y no forma parte de las capacidades actuales.</p></div>
       </div>
@@ -187,7 +188,7 @@ const faqs = [
 
     <section class="section faq-section" id="preguntas" aria-labelledby="preguntas-title">
       <div class="container faq-grid">
-        <div class="faq-intro"><p class="eyebrow">PREGUNTAS FRECUENTES</p><h2 id="preguntas-title">Lo importante antes de comenzar</h2><p>Si tu forma de trabajar es distinta, podemos revisarla directamente durante una demostración.</p><CtaLink href={site.whatsappUrl} external variant="secondary">Hacer una pregunta</CtaLink></div>
+        <div class="faq-intro"><p class="eyebrow">PREGUNTAS FRECUENTES</p><h2 id="preguntas-title">Lo importante antes de comenzar</h2><p>Si tu forma de trabajar es distinta, podemos revisarla directamente durante una demostración.</p><WhatsAppLink placement="faq" variant="secondary">Hacer una pregunta</WhatsAppLink></div>
         <div class="faq-list">{faqs.map(([question, answer], index) => <details open={index === 0}><summary>{question}</summary><p>{answer}</p></details>)}</div>
       </div>
     </section>
@@ -195,7 +196,7 @@ const faqs = [
     <section class="section final-cta" aria-labelledby="cta-title">
       <div class="container final-cta__panel">
         <div><p class="eyebrow">CONOCE EL FLUJO CON TUS PROPIOS CASOS</p><h2 id="cta-title">Veamos si Multiservicios 24/7 encaja con tu taller</h2><p>Escríbenos por WhatsApp para solicitar una demostración. Sin formulario y sin promesas genéricas: revisamos cómo registras una orden, sus insumos y el resultado del trabajo.</p></div>
-        <div class="final-cta__actions"><CtaLink href={site.whatsappUrl} external label={`Solicitar demostración por WhatsApp al ${site.whatsappDisplay}`}>Solicitar demostración</CtaLink><a href={site.appUrl}>Ya tengo cuenta: entrar a la plataforma</a></div>
+        <div class="final-cta__actions"><WhatsAppLink placement="final_cta" label={`Solicitar demostración por WhatsApp al ${site.whatsappDisplay}`}>Solicitar demostración</WhatsAppLink><a href={site.appUrl}>Ya tengo cuenta: entrar a la plataforma</a></div>
       </div>
     </section>
   </main>

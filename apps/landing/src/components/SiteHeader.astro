@@ -1,5 +1,6 @@
 ---
 import CtaLink from "./CtaLink.astro";
+import WhatsAppLink from "./WhatsAppLink.astro";
 import { site } from "../config/site";
 
 const navigation = [
@@ -27,14 +28,13 @@ const navigation = [
 
     <div class="site-header__actions">
       <CtaLink href={site.appUrl} variant="quiet">Entrar</CtaLink>
-      <CtaLink
-        href={site.whatsappUrl}
+      <WhatsAppLink
+        placement="header_desktop"
         variant="primary"
-        external
         label={`Solicitar demostración por WhatsApp al ${site.whatsappDisplay}`}
       >
         Solicitar demostración
-      </CtaLink>
+      </WhatsAppLink>
     </div>
 
     <details class="mobile-navigation">
@@ -42,9 +42,9 @@ const navigation = [
       <nav aria-label="Navegación móvil">
         {navigation.map((item) => <a href={item.href}>{item.label}</a>)}
         <a href={site.appUrl}>Entrar a la plataforma</a>
-        <a href={site.whatsappUrl} target="_blank" rel="noopener noreferrer">
+        <WhatsAppLink placement="header_mobile_menu" variant="plain">
           Solicitar demostración
-        </a>
+        </WhatsAppLink>
       </nav>
     </details>
   </div>

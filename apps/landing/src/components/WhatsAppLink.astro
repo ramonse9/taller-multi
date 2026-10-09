@@ -1,0 +1,36 @@
+---
+import { site } from "../config/site";
+
+interface Props {
+  placement: string;
+  variant?: "primary" | "secondary" | "quiet" | "plain";
+  label?: string;
+  class?: string;
+}
+
+const {
+  placement,
+  variant = "primary",
+  label = `Contactar por WhatsApp al ${site.whatsappDisplay}`,
+  class: className = "",
+} = Astro.props;
+
+const isButton = variant !== "plain";
+---
+
+<a
+  class:list={[
+    isButton && "cta-link",
+    isButton && `cta-link--${variant}`,
+    className,
+  ]}
+  href={site.whatsappUrl}
+  aria-label={label}
+  target="_blank"
+  rel="noopener noreferrer"
+  data-whatsapp-link
+  data-whatsapp-placement={placement}
+  data-whatsapp-source="organic"
+>
+  <slot />
+</a>
