@@ -1,0 +1,139 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import CtaLink from "../components/CtaLink.astro";
+import SectionIntro from "../components/SectionIntro.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+import SiteHeader from "../components/SiteHeader.astro";
+import { site } from "../config/site";
+---
+
+<BaseLayout>
+  <SiteHeader />
+
+  <main id="contenido">
+    <section class="hero section" aria-labelledby="hero-title">
+      <div class="container hero__grid">
+        <div class="hero__content">
+          <p class="eyebrow">SOFTWARE PARA TALLERES MECÁNICOS EN MÉXICO</p>
+          <h1 id="hero-title">
+            Controla cada orden y conoce la <em>utilidad</em> de tu taller
+          </h1>
+          <p class="hero__lead">
+            Registra clientes y vehículos, crea órdenes con servicios e insumos y,
+            cuando lo necesites, controla inventario, compras, gastos y utilidad
+            desde un solo lugar.
+          </p>
+          <div class="hero__actions">
+            <CtaLink
+              href={site.whatsappUrl}
+              external
+              label={`Solicitar demostración por WhatsApp al ${site.whatsappDisplay}`}
+            >
+              Solicitar demostración por WhatsApp
+            </CtaLink>
+            <CtaLink href="#como-funciona" variant="secondary">
+              Ver cómo funciona
+            </CtaLink>
+          </div>
+          <p class="hero__note">Sin formulario. Conversamos directamente por WhatsApp.</p>
+        </div>
+
+        <aside class="product-frame" aria-label="Vista conceptual del flujo del taller">
+          <div class="product-frame__topbar">
+            <span class="product-frame__brand">MS 24/7</span>
+            <span class="product-frame__label">Flujo operativo</span>
+          </div>
+          <div class="product-frame__body">
+            <div class="workflow-card">
+              <span class="workflow-card__index">01</span>
+              <div><small>CLIENTE</small><strong>Registra o selecciona</strong></div>
+              <span class="status status--complete">Listo</span>
+            </div>
+            <div class="workflow-card">
+              <span class="workflow-card__index">02</span>
+              <div><small>VEHÍCULO</small><strong>Conserva su historial</strong></div>
+              <span class="status status--complete">Listo</span>
+            </div>
+            <div class="workflow-card workflow-card--active">
+              <span class="workflow-card__index">03</span>
+              <div><small>ORDEN</small><strong>Servicios e insumos</strong></div>
+              <span class="status status--progress">En proceso</span>
+            </div>
+            <div class="product-frame__result">
+              <small>RESULTADO</small>
+              <strong>Ingresos − costos − gastos</strong>
+              <span>El sistema señala cuando falta información.</span>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section section--soft" id="como-funciona">
+      <div class="container">
+        <SectionIntro
+          eyebrow="BASE VISUAL"
+          title="Una experiencia clara desde el primer contacto"
+          description="Esta primera entrega establece la estructura, los componentes y el lenguaje visual que sostendrán la narrativa completa de la landing."
+        />
+        <div class="foundation-grid">
+          <article class="foundation-card">
+            <span class="foundation-card__number">01</span>
+            <h3>Contenido primero</h3>
+            <p>HTML semántico y legible antes de cargar cualquier comportamiento adicional.</p>
+          </article>
+          <article class="foundation-card">
+            <span class="foundation-card__number">02</span>
+            <h3>Identidad consistente</h3>
+            <p>Azul marino, superficies luminosas y estados relacionados con la aplicación.</p>
+          </article>
+          <article class="foundation-card">
+            <span class="foundation-card__number">03</span>
+            <h3>Conversación directa</h3>
+            <p>WhatsApp como siguiente paso claro, sin pedir primero un formulario extenso.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section design-foundation" id="control">
+      <div class="container design-foundation__grid">
+        <SectionIntro
+          eyebrow="SISTEMA VISUAL"
+          title="Profesional sin sentirse pesado"
+          description="El diseño combina una base editorial con componentes operativos inspirados en el tablero del producto."
+        />
+        <div class="status-showcase" aria-label="Colores de estatus del sistema">
+          <span class="status status--progress">En proceso</span>
+          <span class="status status--finished">Terminada</span>
+          <span class="status status--cancelled">Cancelada</span>
+          <span class="status status--pending">Pendiente</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section--navy" id="planes">
+      <div class="container closing-panel">
+        <div>
+          <p class="eyebrow">SIGUIENTE ETAPA</p>
+          <h2>La base está lista para contar la historia completa del producto</h2>
+          <p>
+            El siguiente bloque incorporará el recorrido real por órdenes, inventario,
+            gastos, permisos y utilidad sin promesas que el sistema todavía no cumple.
+          </p>
+        </div>
+        <CtaLink
+          href={site.whatsappUrl}
+          external
+          label={`Solicitar demostración por WhatsApp al ${site.whatsappDisplay}`}
+        >
+          Hablar por WhatsApp
+        </CtaLink>
+      </div>
+    </section>
+
+    <span id="preguntas" class="anchor-target" aria-hidden="true"></span>
+  </main>
+
+  <SiteFooter />
+</BaseLayout>

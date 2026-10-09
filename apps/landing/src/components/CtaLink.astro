@@ -1,0 +1,27 @@
+---
+interface Props {
+  href: string;
+  variant?: "primary" | "secondary" | "quiet";
+  external?: boolean;
+  label?: string;
+  class?: string;
+}
+
+const {
+  href,
+  variant = "primary",
+  external = false,
+  label,
+  class: className = "",
+} = Astro.props;
+---
+
+<a
+  class:list={["cta-link", `cta-link--${variant}`, className]}
+  href={href}
+  aria-label={label}
+  target={external ? "_blank" : undefined}
+  rel={external ? "noopener noreferrer" : undefined}
+>
+  <slot />
+</a>

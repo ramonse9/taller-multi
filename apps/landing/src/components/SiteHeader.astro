@@ -1,0 +1,50 @@
+---
+import CtaLink from "./CtaLink.astro";
+import { site } from "../config/site";
+
+const navigation = [
+  { href: "#como-funciona", label: "Cómo funciona" },
+  { href: "#control", label: "Control" },
+  { href: "#planes", label: "Planes" },
+  { href: "#preguntas", label: "Preguntas" },
+];
+---
+
+<header class="site-header">
+  <div class="container site-header__inner">
+    <a class="brand" href="/" aria-label={`${site.name}, ir al inicio`}>
+      <span class="brand__mark" aria-hidden="true">MS</span>
+      <span class="brand__name">
+        <strong>Multiservicios</strong>
+        <small>24/7</small>
+      </span>
+    </a>
+
+    <nav class="desktop-navigation" aria-label="Navegación principal">
+      {navigation.map((item) => <a href={item.href}>{item.label}</a>)}
+    </nav>
+
+    <div class="site-header__actions">
+      <CtaLink href={site.appUrl} variant="quiet">Entrar</CtaLink>
+      <CtaLink
+        href={site.whatsappUrl}
+        variant="primary"
+        external
+        label={`Solicitar demostración por WhatsApp al ${site.whatsappDisplay}`}
+      >
+        Solicitar demostración
+      </CtaLink>
+    </div>
+
+    <details class="mobile-navigation">
+      <summary aria-label="Abrir navegación">Menú</summary>
+      <nav aria-label="Navegación móvil">
+        {navigation.map((item) => <a href={item.href}>{item.label}</a>)}
+        <a href={site.appUrl}>Entrar a la plataforma</a>
+        <a href={site.whatsappUrl} target="_blank" rel="noopener noreferrer">
+          Solicitar demostración
+        </a>
+      </nav>
+    </details>
+  </div>
+</header>

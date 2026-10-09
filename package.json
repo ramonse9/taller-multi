@@ -8,11 +8,15 @@
   },
   "workspaces": [
     "apps/taller-api",
-    "apps/taller-web"
+    "apps/taller-web",
+    "apps/landing"
   ],
   "scripts": {
     "dev:api": "npm run start:dev --workspace=apps/taller-api",
     "dev:web": "npm run start --workspace=apps/taller-web",
+    "dev:landing": "npm run dev --workspace=apps/landing",
+    "build:landing": "npm run build --workspace=apps/landing",
+    "preview:landing": "npm run preview --workspace=apps/landing",
     "db:migrate": "npm run migration:public:run --workspace=apps/taller-api",
     "db:seed": "npm run seed:public --workspace=apps/taller-api",
     "db:bootstrap": "npm run bootstrap --workspace=apps/taller-api",

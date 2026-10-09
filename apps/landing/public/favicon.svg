@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Multiservicios 24/7">
+  <rect width="64" height="64" rx="12" fill="#14263c"/>
+  <path d="M14 43V21h7l11 13 11-13h7v22h-7V31L32 44 21 31v12z" fill="#fff"/>
+  <rect x="44" y="45" width="12" height="5" rx="2.5" fill="#e86a33"/>
+</svg>

@@ -6,6 +6,7 @@
 **/coverage/
 **/out-tsc/
 **/.angular/
+**/.astro/
 **/.cache/
 **/*.tsbuildinfo
 

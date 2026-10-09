@@ -8,6 +8,7 @@ Monorepo de la nueva plataforma multi-tenant para talleres y compañías de mult
 apps/
 ├── taller-api/         NestJS + PostgreSQL (aplicación activa)
 ├── taller-web/         Angular (aplicación activa)
+├── landing/            Astro + CSS3 (sitio comercial público)
 └── legacy/
     ├── backend-v1/     Backend anterior, sólo como referencia
     └── frontend-v2/    Frontend anterior, sólo como referencia
@@ -25,6 +26,9 @@ Los proyectos dentro de `legacy/` no son workspaces y no deben recibir nuevas fu
 ```bash
 npm run dev:api
 npm run dev:web
+npm run dev:landing
+npm run build:landing
+npm run preview:landing
 npm run db:bootstrap
 npm run db:verify
 npm run build

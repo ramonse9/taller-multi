@@ -1,0 +1,40 @@
+---
+import { site } from "../config/site";
+const currentYear = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+  <div class="container site-footer__grid">
+    <div>
+      <a class="brand brand--footer" href="/" aria-label={`${site.name}, ir al inicio`}>
+        <span class="brand__mark" aria-hidden="true">MS</span>
+        <span class="brand__name">
+          <strong>Multiservicios</strong>
+          <small>24/7</small>
+        </span>
+      </a>
+      <p class="site-footer__summary">
+        Software para organizar la operación y el control de talleres automotrices.
+      </p>
+    </div>
+
+    <div>
+      <p class="site-footer__title">Producto</p>
+      <a href="#como-funciona">Cómo funciona</a>
+      <a href="#control">Control</a>
+      <a href="#planes">Planes</a>
+    </div>
+
+    <div>
+      <p class="site-footer__title">Contacto</p>
+      <a href={site.whatsappUrl} target="_blank" rel="noopener noreferrer">
+        WhatsApp {site.whatsappDisplay}
+      </a>
+      <a href={site.appUrl}>Entrar a la plataforma</a>
+    </div>
+  </div>
+  <div class="container site-footer__legal">
+    <span>© {currentYear} {site.name}</span>
+    <span>Hecho para talleres automotrices en México.</span>
+  </div>
+</footer>
