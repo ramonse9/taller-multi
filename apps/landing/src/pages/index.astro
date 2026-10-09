@@ -1,139 +1,203 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import CtaLink from "../components/CtaLink.astro";
+import ProductPreview from "../components/ProductPreview.astro";
 import SectionIntro from "../components/SectionIntro.astro";
 import SiteFooter from "../components/SiteFooter.astro";
 import SiteHeader from "../components/SiteHeader.astro";
 import { site } from "../config/site";
+
+const problems = [
+  ["01", "La historia queda repartida", "Una parte está en la libreta, otra en Excel y otra en conversaciones. Encontrar qué se hizo a un vehículo vuelve a tomar tiempo."],
+  ["02", "Cobrar no es lo mismo que ganar", "El total de una orden no revela por sí solo cuánto costaron sus insumos ni qué gastos redujeron el resultado del mes."],
+  ["03", "El inventario se descubre tarde", "Sin entradas, salidas y existencias visibles, un producto puede faltar justo cuando el taller ya lo necesita."],
+];
+
+const workflow = [
+  ["Cliente", "Registra a la persona o empresa que solicita el servicio."],
+  ["Vehículo", "Conserva sus datos y consulta su historial de órdenes."],
+  ["Orden", "Documenta servicios, productos, notas, folios y estatus."],
+  ["Insumos", "Distingue lo que se cobra de lo que se utiliza en el trabajo."],
+  ["Costos", "Aplica costos capturados o FIFO cuando existe control de inventario."],
+  ["Utilidad", "Relaciona ingresos, costos directos y gastos del periodo."],
+];
+
+const basicFeatures = [
+  "Clientes y empresas", "Vehículos e historial", "Órdenes con folio automático",
+  "Folio externo opcional", "Servicios y conceptos libres", "Estatus y seguimiento interno",
+  "Control de pagada o pendiente",
+];
+
+const controlFeatures = [
+  "Productos y servicios de catálogo", "Proveedores y compras", "Existencias, movimientos y lotes",
+  "Costeo FIFO al terminar una orden", "Alertas de existencia baja", "Gastos operativos",
+  "Tablero y análisis de utilidad",
+];
+
+const moduleGroups = [
+  { title: "Operación diaria", description: "El recorrido central del taller, desde la recepción hasta el cierre del trabajo.", modules: ["Clientes", "Vehículos", "Órdenes"] },
+  { title: "Control del negocio", description: "Información para saber qué se utilizó, cuánto costó y qué queda disponible.", modules: ["Inventario", "Compras", "Proveedores", "Gastos"] },
+  { title: "Administración", description: "Acceso al equipo, indicadores del periodo y lectura de resultados.", modules: ["Usuarios", "Permisos", "Tablero", "Utilidad"] },
+];
+
+const faqs = [
+  ["¿Tengo que crear un catálogo antes de registrar una orden?", "No. En el plan Básico puedes capturar servicios y conceptos libremente dentro de la orden. El catálogo y el inventario se incorporan con el plan Control cuando el taller los necesita."],
+  ["¿Puedo conservar el folio que ya manejo en Excel?", "Sí. Cada orden recibe un folio del sistema y también puede guardar un folio externo opcional para facilitar la comparación durante la transición."],
+  ["¿Cómo se relacionan clientes, vehículos y órdenes?", "Cada cliente conserva su lista de vehículos y cada orden queda asociada al cliente o empresa y al vehículo atendido. Así puedes consultar su historial posteriormente."],
+  ["¿Puedo separar un servicio cobrado de los insumos que utiliza?", "Sí. La orden distingue los conceptos que forman el total cobrado de los insumos que solamente aportan costo. También puedes cobrar un producto por separado cuando corresponda."],
+  ["¿Cómo se calcula el costo de los productos del inventario?", "Al terminar una orden, los productos controlados consumen primero los lotes más antiguos mediante FIFO. Si la orden se reabre o cancela, las cantidades regresan a sus lotes originales."],
+  ["¿Qué sucede si todavía no conozco un costo?", "La orden puede continuar. El sistema diferencia un costo confirmado en cero de un costo todavía desconocido y señala cuándo la utilidad requiere información adicional."],
+  ["¿Puedo limitar lo que ve y hace cada usuario?", "Sí. Existen roles y permisos por acción para separar tareas de recepción, mecánica, almacén y administración, además de permisos personalizados."],
+  ["¿El sistema ya incluye facturación electrónica?", "No. Facturación se contempla como una etapa futura; actualmente el producto se concentra en la operación, el inventario, los gastos y la utilidad del taller."],
+];
 ---
 
 <BaseLayout>
   <SiteHeader />
-
   <main id="contenido">
     <section class="hero section" aria-labelledby="hero-title">
       <div class="container hero__grid">
         <div class="hero__content">
-          <p class="eyebrow">SOFTWARE PARA TALLERES MECÁNICOS EN MÉXICO</p>
-          <h1 id="hero-title">
-            Controla cada orden y conoce la <em>utilidad</em> de tu taller
-          </h1>
-          <p class="hero__lead">
-            Registra clientes y vehículos, crea órdenes con servicios e insumos y,
-            cuando lo necesites, controla inventario, compras, gastos y utilidad
-            desde un solo lugar.
-          </p>
+          <p class="eyebrow">SOFTWARE PARA TALLERES AUTOMOTRICES EN MÉXICO</p>
+          <h1 id="hero-title">Controla cada orden y conoce la <em>utilidad</em> de tu taller</h1>
+          <p class="hero__lead">Empieza con clientes, vehículos y órdenes de servicio. Agrega inventario, compras, gastos y análisis de utilidad cuando tu operación lo requiera.</p>
           <div class="hero__actions">
-            <CtaLink
-              href={site.whatsappUrl}
-              external
-              label={`Solicitar demostración por WhatsApp al ${site.whatsappDisplay}`}
-            >
-              Solicitar demostración por WhatsApp
-            </CtaLink>
-            <CtaLink href="#como-funciona" variant="secondary">
-              Ver cómo funciona
-            </CtaLink>
+            <CtaLink href={site.whatsappUrl} external label={`Solicitar demostración por WhatsApp al ${site.whatsappDisplay}`}>Solicitar demostración por WhatsApp</CtaLink>
+            <CtaLink href="#como-funciona" variant="secondary">Ver cómo funciona</CtaLink>
           </div>
-          <p class="hero__note">Sin formulario. Conversamos directamente por WhatsApp.</p>
+          <ul class="hero__proof" aria-label="Características principales">
+            <li>Opera desde el navegador</li><li>Empieza sin cargar un catálogo</li><li>Crece por etapas</li>
+          </ul>
         </div>
-
-        <aside class="product-frame" aria-label="Vista conceptual del flujo del taller">
-          <div class="product-frame__topbar">
-            <span class="product-frame__brand">MS 24/7</span>
-            <span class="product-frame__label">Flujo operativo</span>
-          </div>
-          <div class="product-frame__body">
-            <div class="workflow-card">
-              <span class="workflow-card__index">01</span>
-              <div><small>CLIENTE</small><strong>Registra o selecciona</strong></div>
-              <span class="status status--complete">Listo</span>
-            </div>
-            <div class="workflow-card">
-              <span class="workflow-card__index">02</span>
-              <div><small>VEHÍCULO</small><strong>Conserva su historial</strong></div>
-              <span class="status status--complete">Listo</span>
-            </div>
-            <div class="workflow-card workflow-card--active">
-              <span class="workflow-card__index">03</span>
-              <div><small>ORDEN</small><strong>Servicios e insumos</strong></div>
-              <span class="status status--progress">En proceso</span>
-            </div>
-            <div class="product-frame__result">
-              <small>RESULTADO</small>
-              <strong>Ingresos − costos − gastos</strong>
-              <span>El sistema señala cuando falta información.</span>
-            </div>
-          </div>
-        </aside>
+        <ProductPreview />
       </div>
     </section>
 
-    <section class="section section--soft" id="como-funciona">
+    <section class="section problem-section" aria-labelledby="problemas-title">
       <div class="container">
-        <SectionIntro
-          eyebrow="BASE VISUAL"
-          title="Una experiencia clara desde el primer contacto"
-          description="Esta primera entrega establece la estructura, los componentes y el lenguaje visual que sostendrán la narrativa completa de la landing."
-        />
-        <div class="foundation-grid">
-          <article class="foundation-card">
-            <span class="foundation-card__number">01</span>
-            <h3>Contenido primero</h3>
-            <p>HTML semántico y legible antes de cargar cualquier comportamiento adicional.</p>
-          </article>
-          <article class="foundation-card">
-            <span class="foundation-card__number">02</span>
-            <h3>Identidad consistente</h3>
-            <p>Azul marino, superficies luminosas y estados relacionados con la aplicación.</p>
-          </article>
-          <article class="foundation-card">
-            <span class="foundation-card__number">03</span>
-            <h3>Conversación directa</h3>
-            <p>WhatsApp como siguiente paso claro, sin pedir primero un formulario extenso.</p>
-          </article>
+        <SectionIntro eyebrow="CUANDO EL TALLER CRECE" title="La información también necesita orden" titleId="problemas-title" description="Una libreta, una hoja de cálculo o WhatsApp pueden resolver el día. El problema aparece cuando necesitas reconstruir el historial, saber qué falta cobrar o entender cuánto dejó realmente el trabajo." />
+        <div class="problem-grid">
+          {problems.map(([number, title, description]) => <article class="problem-card"><span>{number}</span><h3>{title}</h3><p>{description}</p></article>)}
+        </div>
+        <p class="section-bridge">Multiservicios 24/7 conecta la operación sin obligarte a implementar todo desde el primer día.</p>
+      </div>
+    </section>
+
+    <section class="section section--navy process-section" id="como-funciona" aria-labelledby="flujo-title">
+      <div class="container">
+        <SectionIntro eyebrow="UN MISMO RECORRIDO" title="Del vehículo que entra al resultado del trabajo" titleId="flujo-title" description="Cada dato se captura donde ocurre y acompaña a la orden hasta convertirse en historial e información para decidir." />
+        <ol class="process-list">
+          {workflow.map(([title, description], index) => <li><span class="process-list__number">{String(index + 1).padStart(2, "0")}</span><div><h3>{title}</h3><p>{description}</p></div></li>)}
+        </ol>
+      </div>
+    </section>
+
+    <section class="section" id="operacion" aria-labelledby="basico-title">
+      <div class="container story-grid">
+        <div class="story-copy">
+          <p class="eyebrow">PLAN BÁSICO · OPERACIÓN</p>
+          <h2 id="basico-title">Empieza por el historial que sí necesitas</h2>
+          <p class="story-copy__lead">Registra el trabajo sin preparar primero un catálogo. Puedes crear al cliente y al vehículo dentro del flujo, capturar servicios libremente y conservar cada orden.</p>
+          <ul class="feature-list">{basicFeatures.map((feature) => <li>{feature}</li>)}</ul>
+          <CtaLink href={site.whatsappUrl} external variant="secondary">Quiero ver el flujo Básico</CtaLink>
+        </div>
+        <div class="order-illustration" aria-label="Ejemplo ilustrativo de una orden de servicio">
+          <div class="illustration-label">VISTA ILUSTRATIVA · SIN DATOS REALES</div>
+          <div class="order-illustration__header"><div><small>ORDEN DE SERVICIO</small><strong>Trabajo en proceso</strong></div><span class="status status--progress">En proceso</span></div>
+          <dl class="order-illustration__identity">
+            <div><dt>Cliente</dt><dd>Persona o empresa</dd></div><div><dt>Vehículo</dt><dd>Datos e historial</dd></div><div><dt>Folios</dt><dd>Sistema + externo opcional</dd></div>
+          </dl>
+          <div class="order-illustration__concepts">
+            <p>SERVICIOS Y CONCEPTOS COBRABLES</p><div><span>Afinación mayor</span><strong>Precio capturable</strong></div>
+            <p>INSUMOS UTILIZADOS</p><div><span>Aceite y filtro</span><strong>Considerados en el costo</strong></div>
+          </div>
+          <div class="order-illustration__footer"><span class="status status--pending">Pendiente de pago</span><small>Notas internas independientes del estatus</small></div>
         </div>
       </div>
     </section>
 
-    <section class="section design-foundation" id="control">
-      <div class="container design-foundation__grid">
-        <SectionIntro
-          eyebrow="SISTEMA VISUAL"
-          title="Profesional sin sentirse pesado"
-          description="El diseño combina una base editorial con componentes operativos inspirados en el tablero del producto."
-        />
-        <div class="status-showcase" aria-label="Colores de estatus del sistema">
-          <span class="status status--progress">En proceso</span>
-          <span class="status status--finished">Terminada</span>
-          <span class="status status--cancelled">Cancelada</span>
-          <span class="status status--pending">Pendiente</span>
+    <section class="section section--soft" id="control" aria-labelledby="control-title">
+      <div class="container story-grid story-grid--reverse">
+        <div class="inventory-illustration" aria-label="Esquema ilustrativo del control de inventario">
+          <div class="illustration-label">CONTROL DE EXISTENCIAS</div>
+          <div class="inventory-illustration__product"><div><small>PRODUCTO</small><strong>Existencia por movimientos</strong></div><span class="status status--pending">Existencia baja</span></div>
+          <ol class="lot-list"><li><span>Lote más antiguo</span><small>Entrada · cantidad restante · costo</small></li><li><span>Siguiente lote</span><small>Entrada · cantidad restante · costo</small></li></ol>
+          <div class="fifo-note"><strong>FIFO al terminar la orden</strong><span>El costo real puede provenir de uno o varios lotes.</span></div>
+        </div>
+        <div class="story-copy">
+          <p class="eyebrow">PLAN CONTROL · INVENTARIO Y COSTOS</p>
+          <h2 id="control-title">Conoce qué entra, qué se utiliza y cuánto cuesta</h2>
+          <p class="story-copy__lead">Cuando necesitas más detalle, incorpora catálogo, compras, lotes, movimientos, proveedores y gastos sin abandonar el historial que ya construiste.</p>
+          <ul class="feature-list feature-list--blue">{controlFeatures.map((feature) => <li>{feature}</li>)}</ul>
         </div>
       </div>
     </section>
 
-    <section class="section section--navy" id="planes">
-      <div class="container closing-panel">
+    <section class="section profit-section" id="utilidad" aria-labelledby="utilidad-title">
+      <div class="container">
+        <SectionIntro eyebrow="UTILIDAD SIN ADIVINAR" title="Mira el resultado detrás de las ventas" titleId="utilidad-title" description="El tablero y la pantalla de Utilidad reúnen lo generado, lo cobrado, los costos directos y los gastos. Si falta el costo de un producto libre, el sistema lo señala en lugar de presentar una utilidad como exacta." />
+        <div class="profit-grid">
+          <div class="profit-equation" aria-label="Esquema del cálculo de utilidad operativa">
+            <div><small>INGRESOS COBRABLES</small><strong>Servicios y productos cobrados</strong></div><span aria-hidden="true">−</span>
+            <div><small>COSTO DIRECTO</small><strong>FIFO y costos capturados</strong></div><span aria-hidden="true">−</span>
+            <div><small>GASTOS</small><strong>Gastos operativos confirmados</strong></div><span aria-hidden="true">=</span>
+            <div class="profit-equation__result"><small>RESULTADO</small><strong>Utilidad operativa</strong></div>
+          </div>
+          <div class="profit-notes">
+            <article><span class="status status--finished">Generado</span><h3>Trabajo terminado</h3><p>Distingue el ingreso generado del dinero que ya fue marcado como pagado.</p></article>
+            <article><span class="status status--pending">Pendiente</span><h3>Cobro por completar</h3><p>Consulta las órdenes terminadas que todavía requieren seguimiento de cobro.</p></article>
+            <article><span class="status status--cancelled">Atención</span><h3>Costo desconocido</h3><p>Identifica órdenes cuya utilidad necesita completar el costo de un producto libre.</p></article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section--soft permissions-section" aria-labelledby="permisos-title">
+      <div class="container permissions-grid">
         <div>
-          <p class="eyebrow">SIGUIENTE ETAPA</p>
-          <h2>La base está lista para contar la historia completa del producto</h2>
-          <p>
-            El siguiente bloque incorporará el recorrido real por órdenes, inventario,
-            gastos, permisos y utilidad sin promesas que el sistema todavía no cumple.
-          </p>
+          <p class="eyebrow">USUARIOS Y PERMISOS</p><h2 id="permisos-title">Cada persona ve y hace lo que le corresponde</h2>
+          <p class="story-copy__lead">Separa la administración principal, la supervisión y la operación diaria. Los permisos se validan por acción, no solamente por pantalla.</p>
+          <div class="template-list" aria-label="Plantillas de permisos disponibles"><span>Recepción</span><span>Mecánico</span><span>Almacén</span><span>Administración</span></div>
         </div>
-        <CtaLink
-          href={site.whatsappUrl}
-          external
-          label={`Solicitar demostración por WhatsApp al ${site.whatsappDisplay}`}
-        >
-          Hablar por WhatsApp
-        </CtaLink>
+        <div class="role-stack" aria-label="Jerarquía de roles">
+          <div class="role-card role-card--primary"><span>01</span><strong>Administrador principal</strong><small>Control completo de la compañía</small></div>
+          <div class="role-card role-card--admin"><span>02</span><strong>Administrador</strong><small>Administra usuarios operativos</small></div>
+          <div class="role-card"><span>03</span><strong>Usuario</strong><small>Permisos por módulo y acción</small></div>
+        </div>
       </div>
     </section>
 
-    <span id="preguntas" class="anchor-target" aria-hidden="true"></span>
-  </main>
+    <section class="section modules-section" aria-labelledby="modulos-title">
+      <div class="container">
+        <SectionIntro eyebrow="MÓDULOS DISPONIBLES" title="Una sola plataforma para la operación y el control" titleId="modulos-title" description="La navegación se adapta al plan, al rol y a los permisos de cada usuario." align="center" />
+        <div class="module-grid">{moduleGroups.map((group) => <article class="module-card"><h3>{group.title}</h3><p>{group.description}</p><ul>{group.modules.map((module) => <li>{module}</li>)}</ul></article>)}</div>
+      </div>
+    </section>
 
+    <section class="section section--navy plans-section" id="planes" aria-labelledby="planes-title">
+      <div class="container">
+        <SectionIntro eyebrow="CRECE POR ETAPAS" title="Empieza con lo necesario. Agrega control cuando tenga sentido." titleId="planes-title" description="Los planes habilitan capacidades distintas sin eliminar la información capturada al cambiar de nivel." />
+        <div class="plans-grid">
+          <article class="plan-card"><p class="plan-card__label">BÁSICO</p><h3>Historial y órdenes</h3><p>Para talleres que primero quieren organizar clientes, vehículos, servicios y cobros.</p><ul>{basicFeatures.map((feature) => <li>{feature}</li>)}</ul><CtaLink href={site.whatsappUrl} external variant="secondary">Consultar plan Básico</CtaLink></article>
+          <article class="plan-card plan-card--featured"><p class="plan-card__label">CONTROL</p><h3>Inventario y utilidad</h3><p>Para talleres que también necesitan compras, costos reales, gastos y análisis del resultado.</p><ul>{controlFeatures.map((feature) => <li>{feature}</li>)}</ul><CtaLink href={site.whatsappUrl} external>Consultar plan Control</CtaLink></article>
+        </div>
+        <div class="future-note"><span>ETAPA FUTURA</span><p><strong>Facturación electrónica.</strong> Está contemplada para una fase posterior y no forma parte de las capacidades actuales.</p></div>
+      </div>
+    </section>
+
+    <section class="section faq-section" id="preguntas" aria-labelledby="preguntas-title">
+      <div class="container faq-grid">
+        <div class="faq-intro"><p class="eyebrow">PREGUNTAS FRECUENTES</p><h2 id="preguntas-title">Lo importante antes de comenzar</h2><p>Si tu forma de trabajar es distinta, podemos revisarla directamente durante una demostración.</p><CtaLink href={site.whatsappUrl} external variant="secondary">Hacer una pregunta</CtaLink></div>
+        <div class="faq-list">{faqs.map(([question, answer], index) => <details open={index === 0}><summary>{question}</summary><p>{answer}</p></details>)}</div>
+      </div>
+    </section>
+
+    <section class="section final-cta" aria-labelledby="cta-title">
+      <div class="container final-cta__panel">
+        <div><p class="eyebrow">CONOCE EL FLUJO CON TUS PROPIOS CASOS</p><h2 id="cta-title">Veamos si Multiservicios 24/7 encaja con tu taller</h2><p>Escríbenos por WhatsApp para solicitar una demostración. Sin formulario y sin promesas genéricas: revisamos cómo registras una orden, sus insumos y el resultado del trabajo.</p></div>
+        <div class="final-cta__actions"><CtaLink href={site.whatsappUrl} external label={`Solicitar demostración por WhatsApp al ${site.whatsappDisplay}`}>Solicitar demostración</CtaLink><a href={site.appUrl}>Ya tengo cuenta: entrar a la plataforma</a></div>
+      </div>
+    </section>
+  </main>
   <SiteFooter />
 </BaseLayout>
