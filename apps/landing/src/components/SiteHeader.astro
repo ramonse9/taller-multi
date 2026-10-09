@@ -14,7 +14,7 @@ const navigation = [
 
 <header class="site-header">
   <div class="container site-header__inner">
-    <a class="brand" href="/" aria-label={`${site.name}, ir al inicio`}>
+    <a class="brand" href="/">
       <span class="brand__mark" aria-hidden="true">MS</span>
       <span class="brand__name">
         <strong>Multiservicios</strong>
@@ -38,7 +38,7 @@ const navigation = [
     </div>
 
     <details class="mobile-navigation">
-      <summary aria-label="Abrir navegación">Menú</summary>
+      <summary aria-label="Menú: abrir navegación">Menú</summary>
       <nav aria-label="Navegación móvil">
         {navigation.map((item) => <a href={item.href}>{item.label}</a>)}
         <a href={site.appUrl}>Entrar a la plataforma</a>

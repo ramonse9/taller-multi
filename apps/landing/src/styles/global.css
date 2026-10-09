@@ -6,14 +6,14 @@
   --color-navy-850: #14263c;
   --color-navy-800: #19304a;
   --color-navy-700: #274968;
-  --color-blue-600: #2d73b8;
+  --color-blue-600: #286ba9;
   --color-blue-500: #4388c5;
   --color-blue-100: #dcecf9;
   --color-blue-050: #edf6fc;
 
   --color-ink: #142235;
   --color-text: #26384a;
-  --color-muted: #627486;
+  --color-muted: #596b7c;
   --color-paper: #fffefa;
   --color-surface: #ffffff;
   --color-surface-soft: #f1f6fa;
@@ -1164,6 +1164,10 @@ h3 {
   box-shadow: 0.22rem 0.22rem 0 var(--color-accent);
 }
 
+.brand--footer .brand__name small {
+  color: #8fc4ee;
+}
+
 .site-footer__summary {
   max-width: 28rem;
   margin: var(--space-5) 0 0;
@@ -1180,6 +1184,7 @@ h3 {
 
 .site-footer__grid > div:not(:first-child) {
   display: grid;
+  min-width: 0;
   align-content: start;
   gap: var(--space-3);
 }
@@ -1188,6 +1193,7 @@ h3 {
   width: fit-content;
   color: #aebfd0;
   font-size: 0.9rem;
+  overflow-wrap: anywhere;
   text-decoration-color: transparent;
   text-underline-offset: 0.25rem;
 }
@@ -1367,7 +1373,7 @@ h3 {
   }
 
   .site-footer__grid {
-    grid-template-columns: minmax(0, 2fr) repeat(2, minmax(9rem, 1fr));
+    grid-template-columns: minmax(0, 2fr) repeat(2, minmax(0, 1fr));
   }
 
   .site-footer__legal {

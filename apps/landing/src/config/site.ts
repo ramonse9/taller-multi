@@ -18,7 +18,9 @@ export const whatsappUrls = Object.fromEntries(
   ]),
 ) as Record<WhatsAppTrafficSource, string>;
 
-const contactEmail = import.meta.env.PUBLIC_CONTACT_EMAIL?.trim() || null;
+const contactEmail =
+  import.meta.env.PUBLIC_CONTACT_EMAIL?.trim() ||
+  "contacto@multiservicios247.com";
 const googleSiteVerification =
   import.meta.env.PUBLIC_GOOGLE_SITE_VERIFICATION?.trim() || null;
 

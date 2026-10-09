@@ -36,4 +36,8 @@ La compilación estática se genera en `apps/landing/dist`.
 ```bash
 npm run build:landing
 npm run validate:seo
+npm run validate:landing
 ```
+
+`validate:landing` compila el sitio y comprueba metadatos, datos estructurados,
+archivos técnicos y destinos de todos los enlaces internos antes de publicarlo.

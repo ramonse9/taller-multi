@@ -5,6 +5,8 @@ Esta versión usa dos orígenes HTTPS del mismo sitio:
 - Frontend: `https://app.multiservicios247.com`
 - API: `https://api.multiservicios247.com`
 
+La landing comercial se publica por separado en `https://www.multiservicios247.com`.
+
 La cookie de renovación pertenece únicamente al host de la API. No se comparte con el frontend ni queda disponible para JavaScript.
 
 La plantilla [render.yaml.example](../render.yaml.example) contiene estos valores en formato Blueprint, pero se mantiene como ejemplo de manera intencional. Como V1 ya existe en Render, importa los valores en los servicios actuales desde el Dashboard; no crees un Blueprint hasta confirmar que sus nombres coinciden exactamente, porque Render podría crear servicios nuevos. La base PostgreSQL existente no se declara en la plantilla y nunca debe sustituirse.
@@ -119,6 +121,58 @@ X-Content-Type-Options: nosniff
 X-Frame-Options: DENY
 Referrer-Policy: strict-origin-when-cross-origin
 ```
+
+## Landing pública (Static Site)
+
+La landing Astro es un tercer Static Site independiente. Mantén la raíz del servicio en la raíz del monorepo porque la instalación utiliza los npm workspaces.
+
+- Branch definitiva: `production`
+- Build command: `npm ci --include=dev --no-audit && npm run build:landing`
+- Publish directory: `apps/landing/dist`
+- Custom domain principal: `www.multiservicios247.com`
+- Variable: `PUBLIC_CONTACT_EMAIL=contacto@multiservicios247.com`
+- Variable opcional: `PUBLIC_GOOGLE_SITE_VERIFICATION=<token de Search Console>`
+
+No agregues una rewrite SPA: Astro genera archivos reales para `/`, `/aviso-de-privacidad/` y `404.html`. Render debe servir la 404 estática cuando una ruta no exista.
+
+Encabezados recomendados:
+
+```text
+/*           X-Content-Type-Options: nosniff
+/*           X-Frame-Options: DENY
+/*           Referrer-Policy: strict-origin-when-cross-origin
+/*           Permissions-Policy: camera=(), microphone=(), geolocation=()
+/_astro/*    Cache-Control: public, max-age=31536000, immutable
+```
+
+Render agrega automáticamente el dominio raíz correspondiente cuando se configura `www` y redirige el dominio raíz hacia `www`. También emite y renueva el certificado TLS y redirige HTTP a HTTPS.
+
+### Transición sin retirar la landing actual
+
+El Static Site `taller-landing` ya existe, sirve el dominio público y está conectado
+al repositorio anterior `ramonse9/taller-landing`. No se necesita crear otro servicio
+ni mover los dominios. La transición consiste en reutilizar este recurso:
+
+1. Valida localmente la rama `landing` con `npm run validate:landing` y Lighthouse.
+2. Integra el resultado en `production` y súbelo a `ramonse9/taller-multi`.
+3. En **Settings → Build → Source**, cambia únicamente el origen a
+   `ramonse9/taller-multi`.
+4. Conserva `production` como rama, deja vacío **Root Directory** y configura el
+   build y publish directory indicados arriba.
+5. Guarda las variables y encabezados, y permite que Render compile. El despliegue
+   anterior continúa atendiendo tráfico hasta que el nuevo termine correctamente.
+6. Verifica primero la URL `taller-landing.onrender.com` y después el dominio
+   público. No elimines el despliegue anterior.
+7. Confirma `200`, TLS, redirección del dominio raíz, 404, privacidad, robots,
+   sitemap, metadatos sociales y enlaces de WhatsApp antes de dar por terminado el
+   cambio.
+
+### Reversión
+
+Si la validación pública falla, abre **Deploys**, selecciona el despliegue estable
+anterior (`327c769` era el activo antes de esta transición) y usa **Rollback**.
+Confirma después HTTPS y la redirección del dominio raíz. No cambies DNS ni elimines
+el Static Site: el dominio ya apunta correctamente a `taller-landing.onrender.com`.
 
 ## Comprobaciones de dominio
 
