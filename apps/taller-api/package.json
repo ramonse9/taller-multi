@@ -29,6 +29,7 @@
     "db:reset-v1:prod": "node dist/database/reset-v1-to-v2.js",
     "config:verify:prod": "node dist/config/verify-production-environment.js",
     "platform-admin:password": "ts-node -r tsconfig-paths/register src/platform-users/change-platform-admin-password.ts --environment=local",
+    "platform-admin:password:local": "ts-node -r tsconfig-paths/register src/platform-users/change-platform-admin-password.ts --environment=local",
     "platform-admin:password:prod": "node dist/platform-users/change-platform-admin-password.js --environment=production"
   },
   "dependencies": {

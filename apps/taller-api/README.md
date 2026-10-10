@@ -20,6 +20,13 @@ Backend NestJS/PostgreSQL multi-tenant con aislamiento mediante un schema por co
 
 Los pasos internos también pueden ejecutarse por separado con `npm run db:migrate` y `npm run db:seed`. Repetir `db:bootstrap` no duplica catálogos ni usuarios, y no reemplaza la contraseña de un administrador existente. `BOOTSTRAP_ADMIN_EMAIL` y `BOOTSTRAP_ADMIN_PASSWORD` se exigen únicamente si todavía no existe un administrador de plataforma activo; pueden retirarse después del primer acceso verificado.
 
+El `platform_admin` cambia o recupera su contraseña mediante un comando local interactivo; esta
+operación no se expone en la aplicación web. Usa `npm run platform-admin:password:local` para la base
+local y `npm run platform-admin:password:prod` para la base indicada por `.env.production.local`.
+El procedimiento revoca todas las sesiones y queda registrado en una bitácora. Consulta la guía
+[Cambio y recuperación de contraseña del platform_admin](docs/platform-admin-password.md) antes de
+ejecutarlo.
+
 ## Onboarding y usuarios
 
 `POST /api/companies` recibe los datos de la compañía, el `loginCode` público y un objeto `admin` con `fullName`, `username`, `phone`, `password`, `timezoneCode` y correo opcional. El cliente no elige el schema: el servidor lo genera como `_<consecutivo>_<tipo>_<nombre_comercial>`, por ejemplo `_0003_mul_melkars_diagnostico_automotriz`. Los tipos vigentes son `mul`, `car` y `mec`; el nombre se normaliza sin acentos, con guiones bajos y dentro del límite de 63 caracteres de PostgreSQL.

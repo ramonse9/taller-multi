@@ -37,8 +37,10 @@ import { AdministrativePasswordResets1700000027000 } from '../../src/database/mi
 import { RetireMobilePasswordRecovery1700000028000 } from '../../src/database/migrations/public/1700000028000-retire-mobile-password-recovery';
 import { OrderItemBillingBehavior1700000029000 } from '../../src/database/migrations/public/1700000029000-order-item-billing-behavior';
 import { RefreshTokenSessions1700000034000 } from '../../src/database/migrations/public/1700000034000-refresh-token-sessions';
+import { PlatformAdminSecurityEvents1700000035000 } from '../../src/database/migrations/public/1700000035000-platform-admin-security-events';
 import { quoteIdentifier } from '../../src/database/schema-name';
 import { seedPublicCatalogs } from '../../src/database/seeds/public-catalogs.seed';
+import { changePlatformAdminPassword } from '../../src/platform-users/change-platform-admin-password';
 
 const PLATFORM_EMAIL = 'platform.integration@test.local';
 const PLATFORM_PASSWORD = 'PlatformIntegration-2026!';
@@ -605,6 +607,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         RetireMobilePasswordRecovery1700000028000,
         OrderItemBillingBehavior1700000029000,
         RefreshTokenSessions1700000034000,
+        PlatformAdminSecurityEvents1700000035000,
       ],
       migrationsTableName: 'public_schema_migrations',
       synchronize: false,
@@ -882,9 +885,9 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
 
     const reused = await request<unknown>('POST', '/auth/refresh', { cookie: firstCookie });
     expect(reused.status).toBe(401);
-    expect(
-      (await request<unknown>('POST', '/auth/refresh', { cookie: secondCookie })).status,
-    ).toBe(401);
+    expect((await request<unknown>('POST', '/auth/refresh', { cookie: secondCookie })).status).toBe(
+      401,
+    );
     expect(
       (
         await request<unknown>('GET', '/auth/me', {
@@ -966,11 +969,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     const swagger = SwaggerModule.createDocument(
       app,
       new DocumentBuilder()
-        .addCookieAuth(
-          'taller_refresh_token',
-          { type: 'apiKey', in: 'cookie' },
-          'refreshCookie',
-        )
+        .addCookieAuth('taller_refresh_token', { type: 'apiKey', in: 'cookie' }, 'refreshCookie')
         .build(),
     );
     expect(swagger.components?.securitySchemes?.refreshCookie).toMatchObject({
@@ -5231,6 +5230,57 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         })
       ).body.stock,
     ).toBe('10.000');
+  });
+
+  it('cambia la contraseña del platform_admin, revoca sesiones y permite un nuevo login', async () => {
+    const newPassword = 'PlatformChanged#2026';
+    const authenticated = await login(PLATFORM_EMAIL, PLATFORM_PASSWORD);
+    expect(authenticated.status).toBe(200);
+    const cookie = cookiePair(authenticated.setCookie!);
+    const payload = JSON.parse(
+      Buffer.from(authenticated.body.accessToken.split('.')[1]!, 'base64url').toString('utf8'),
+    ) as { jti: string };
+
+    await changePlatformAdminPassword(control, PLATFORM_EMAIL, newPassword, 'local');
+
+    const sessions = await control.query<
+      Array<{ revoked_at: Date | null; token_revoked_at: Date | null }>
+    >(
+      `SELECT session.revoked_at, refresh.revoked_at AS token_revoked_at
+       FROM public.auth_sessions session
+       JOIN public.auth_refresh_tokens refresh ON refresh.session_id = session.id
+       WHERE session.id = $1`,
+      [payload.jti],
+    );
+    expect(sessions.length).toBeGreaterThan(0);
+    expect(sessions.every(({ revoked_at }) => revoked_at !== null)).toBe(true);
+    expect(sessions.every(({ token_revoked_at }) => token_revoked_at !== null)).toBe(true);
+    expect(
+      (await request<unknown>('GET', '/auth/me', { token: authenticated.body.accessToken })).status,
+    ).toBe(401);
+    expect((await request<unknown>('POST', '/auth/refresh', { cookie })).status).toBe(401);
+    expect((await login(PLATFORM_EMAIL, PLATFORM_PASSWORD)).status).toBe(401);
+
+    const renewed = await login(PLATFORM_EMAIL, newPassword);
+    expect(renewed.status).toBe(200);
+    expect(renewed.body.user.role).toBe('platform_admin');
+
+    const events = await control.query<
+      Array<{ event_type: string; source: string; environment: string }>
+    >(
+      `SELECT event_type, source, environment
+       FROM public.platform_admin_security_events event
+       JOIN public.users user_account ON user_account.id = event.target_user_id
+       WHERE user_account.email = $1
+       ORDER BY event.created_at DESC
+       LIMIT 1`,
+      [PLATFORM_EMAIL],
+    );
+    expect(events[0]).toEqual({
+      event_type: 'password_changed',
+      source: 'local_admin_command',
+      environment: 'local',
+    });
   });
 
   async function createCompany(

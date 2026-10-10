@@ -31,6 +31,11 @@ export function validatePlatformAdminPassword(password: string): string[] {
   return errors;
 }
 
+export function assertProductionConfirmation(email: string, confirmation: string): void {
+  const phrase = `CAMBIAR ${email.trim().toLowerCase()}`;
+  if (confirmation !== phrase) throw new Error('Confirmación de producción incorrecta.');
+}
+
 export async function changePlatformAdminPassword(
   dataSource: DataSource,
   email: string,
@@ -203,7 +208,7 @@ async function main(): Promise<void> {
   if (environment === 'production') {
     const phrase = `CAMBIAR ${email}`;
     const typedPhrase = await promptLine(`Escribe "${phrase}" para confirmar producción: `);
-    if (typedPhrase !== phrase) throw new Error('Confirmación de producción incorrecta.');
+    assertProductionConfirmation(email, typedPhrase);
   }
 
   const { default: dataSource } = await import('../database/public-data-source');

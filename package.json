@@ -28,6 +28,7 @@
     "db:reset-v1:prod": "npm run db:reset-v1:prod --workspace=apps/taller-api",
     "config:verify:prod": "npm run config:verify:prod --workspace=apps/taller-api",
     "platform-admin:password": "npm run platform-admin:password --workspace=apps/taller-api",
+    "platform-admin:password:local": "npm run platform-admin:password:local --workspace=apps/taller-api",
     "platform-admin:password:prod": "npm run platform-admin:password:prod --workspace=apps/taller-api",
     "build": "npm run build --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",

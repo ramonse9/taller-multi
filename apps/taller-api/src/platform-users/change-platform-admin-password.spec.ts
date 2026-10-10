@@ -1,6 +1,7 @@
 import * as argon2 from 'argon2';
 import { DataSource, QueryRunner } from 'typeorm';
 import {
+  assertProductionConfirmation,
   changePlatformAdminPassword,
   validatePlatformAdminPassword,
 } from './change-platform-admin-password';
@@ -13,6 +14,15 @@ describe('platform admin password command', () => {
       'Debe incluir al menos un símbolo.',
     ]);
     expect(validatePlatformAdminPassword('NuevaClave#2026')).toEqual([]);
+  });
+
+  it('rejects an incorrect production confirmation', () => {
+    expect(() =>
+      assertProductionConfirmation('Admin@Example.com ', 'CAMBIAR otro@example.com'),
+    ).toThrow('Confirmación de producción incorrecta.');
+    expect(() =>
+      assertProductionConfirmation('Admin@Example.com ', 'CAMBIAR admin@example.com'),
+    ).not.toThrow();
   });
 
   it('updates the password, resets locks, revokes sessions and writes the audit event', async () => {
