@@ -101,10 +101,6 @@ export class CompaniesPage implements OnInit {
       nonNullable: true,
       validators: [Validators.required],
     }),
-    trialDays: new FormControl(14, {
-      nonNullable: true,
-      validators: [Validators.required, Validators.min(0), Validators.max(90)],
-    }),
     admin: new FormGroup({
       fullName: new FormControl("", {
         nonNullable: true,
@@ -251,7 +247,6 @@ export class CompaniesPage implements OnInit {
       withholdsIsr: raw.withholdsIsr,
       withholdsIva: raw.withholdsIva,
       planCode: raw.planCode,
-      trialDays: raw.trialDays,
       admin: {
         fullName: raw.admin.fullName.trim(),
         username: raw.admin.username.trim().toLowerCase(),
@@ -391,7 +386,6 @@ export class CompaniesPage implements OnInit {
       withholdsIsr: false,
       withholdsIva: false,
       planCode: "basic",
-      trialDays: 14,
       admin: {
         fullName: "",
         username: "",
@@ -403,6 +397,14 @@ export class CompaniesPage implements OnInit {
         timezoneCode: "America/Mazatlan",
       },
     });
+  }
+
+  selectedPlanName(): string {
+    return (
+      this.plans().find(
+        ({ code }) => code === this.form.controls.planCode.value,
+      )?.name ?? this.form.controls.planCode.value
+    );
   }
 
   private internationalPhone(

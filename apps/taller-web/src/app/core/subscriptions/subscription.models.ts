@@ -1,10 +1,6 @@
 export type SubscriptionPlanCode = "basic" | "control" | "invoicing";
 export type SubscriptionStatus =
-  | "trialing"
-  | "active"
-  | "past_due"
-  | "suspended"
-  | "canceled";
+  "active" | "past_due" | "suspended" | "canceled";
 export type SubscriptionFeature =
   | "customer_history"
   | "vehicle_history"
@@ -37,10 +33,6 @@ export interface SubscriptionSummary {
   planName: string;
   status: SubscriptionStatus;
   usable: boolean;
-  trialStartsAt: string | null;
-  trialEndsAt: string | null;
-  currentPeriodStartsAt: string | null;
-  currentPeriodEndsAt: string | null;
   features: SubscriptionFeature[];
   limits: SubscriptionLimits;
 }
@@ -53,7 +45,5 @@ export interface CompanySubscription extends SubscriptionSummary {
 export interface ChangeSubscriptionInput {
   planCode: SubscriptionPlanCode;
   status: SubscriptionStatus;
-  trialEndsAt?: string | null;
-  currentPeriodEndsAt?: string | null;
   reason?: string;
 }

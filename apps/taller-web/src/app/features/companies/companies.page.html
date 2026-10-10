@@ -306,7 +306,7 @@
                 El plan puede cambiar después sin eliminar información.
               </p>
             </div>
-            <div>
+            <div class="sm:col-span-2">
               <label class="field-label" for="company-plan">Plan <b>*</b></label
               ><select
                 class="field-control"
@@ -317,21 +317,6 @@
                 <option [value]="plan.code">{{ plan.name }}</option>
                 }
               </select>
-            </div>
-            <div>
-              <label class="field-label" for="trial-days"
-                >Días de prueba <b>*</b></label
-              ><input
-                class="field-control"
-                id="trial-days"
-                type="number"
-                min="0"
-                max="90"
-                formControlName="trialDays"
-              />@if (form.controls.trialDays.touched &&
-              form.controls.trialDays.invalid) {
-              <small class="field-error">Usa un valor entre 0 y 90 días.</small>
-              }
             </div>
           </div>
         </section>
@@ -508,17 +493,11 @@
           </div>
           <div class="summary-row">
             <dt>Estatus inicial</dt>
-            <dd>
-              {{ form.controls.trialDays.value > 0 ? 'Periodo de prueba' :
-              'Activo' }}
-            </dd>
+            <dd>Activa</dd>
           </div>
           <div class="summary-row">
             <dt>Suscripción</dt>
-            <dd>
-              {{ form.controls.planCode.value }} · {{
-              form.controls.trialDays.value }} días de prueba
-            </dd>
+            <dd>{{ selectedPlanName() }}</dd>
           </div>
         </dl>
         <div

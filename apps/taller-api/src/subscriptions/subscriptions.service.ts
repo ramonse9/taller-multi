@@ -98,6 +98,7 @@ export class SubscriptionsService {
       )) as Array<{ code: string }>;
       if (!plans[0]) throw new NotFoundException('Plan no encontrado');
 
+      const changesPeriodEnd = input.currentPeriodEndsAt !== undefined;
       const periodEndsAt = input.currentPeriodEndsAt ? new Date(input.currentPeriodEndsAt) : null;
       await runner.query(
         `UPDATE public.company_subscriptions
@@ -106,9 +107,13 @@ export class SubscriptionsService {
                WHEN $2::varchar = 'active' THEN COALESCE(current_period_starts_at, now())
                ELSE current_period_starts_at
              END,
-             current_period_ends_at = $3, updated_at = now()
-         WHERE company_id = $4`,
-        [input.planCode, input.status, periodEndsAt, companyId],
+             current_period_ends_at = CASE
+               WHEN $3::boolean THEN $4::timestamptz
+               ELSE current_period_ends_at
+             END,
+             updated_at = now()
+         WHERE company_id = $5`,
+        [input.planCode, input.status, changesPeriodEnd, periodEndsAt, companyId],
       );
       await runner.query(
         `INSERT INTO public.company_subscription_history(

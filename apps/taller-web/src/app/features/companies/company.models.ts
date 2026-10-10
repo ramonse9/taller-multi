@@ -9,7 +9,6 @@ export interface CreateCompanyInput {
   withholdsIsr: boolean;
   withholdsIva: boolean;
   planCode: SubscriptionPlanCode;
-  trialDays: number;
   admin: {
     fullName: string;
     username: string;
