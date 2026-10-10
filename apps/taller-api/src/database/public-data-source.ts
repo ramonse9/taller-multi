@@ -36,6 +36,7 @@ import { OrderPaymentDate1700000031000 } from './migrations/public/1700000031000
 import { ConfirmedExpenseEditing1700000032000 } from './migrations/public/1700000032000-confirmed-expense-editing';
 import { ServiceCostProfitability1700000033000 } from './migrations/public/1700000033000-service-cost-profitability';
 import { RefreshTokenSessions1700000034000 } from './migrations/public/1700000034000-refresh-token-sessions';
+import { PlatformAdminSecurityEvents1700000035000 } from './migrations/public/1700000035000-platform-admin-security-events';
 
 export default new DataSource({
   type: 'postgres',
@@ -78,6 +79,7 @@ export default new DataSource({
     ConfirmedExpenseEditing1700000032000,
     ServiceCostProfitability1700000033000,
     RefreshTokenSessions1700000034000,
+    PlatformAdminSecurityEvents1700000035000,
   ],
   migrationsTableName: 'public_schema_migrations',
   synchronize: false,
