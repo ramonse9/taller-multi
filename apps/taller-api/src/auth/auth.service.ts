@@ -41,6 +41,7 @@ interface RefreshTokenRow {
   user_role: PlatformRole;
   company_id: string | null;
   company_is_active: boolean | null;
+  subscription_status: string | null;
 }
 
 @Injectable()
@@ -88,8 +89,12 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
-    await this.users.update(user.id, { failedLoginAttempts: 0, lockedUntil: null });
     const subscription = company ? await this.subscriptions.getByCompanyId(company.id) : null;
+    if (subscription && !subscription.usable) {
+      throw new UnauthorizedException('Credenciales inválidas');
+    }
+
+    await this.users.update(user.id, { failedLoginAttempts: 0, lockedUntil: null });
     const permissions = await this.permissions.forUser(user.id, user.role);
     const tokens = await this.createSession(user.id, metadata);
     return {
@@ -139,11 +144,14 @@ export class AuthService {
                 user_account.is_active AS user_is_active,
                 user_account.role AS user_role,
                 user_account.company_id,
-                company.is_active AS company_is_active
+                company.is_active AS company_is_active,
+                subscription.status AS subscription_status
          FROM public.auth_refresh_tokens refresh
          JOIN public.auth_sessions session ON session.id = refresh.session_id
          JOIN public.users user_account ON user_account.id = session.user_id
          LEFT JOIN public.companies company ON company.id = user_account.company_id
+         LEFT JOIN public.company_subscriptions subscription
+           ON subscription.company_id = user_account.company_id
          WHERE refresh.token_hash = $1
          FOR UPDATE OF refresh, session`,
         [tokenHash],
@@ -160,7 +168,9 @@ export class AuthService {
       const membershipIsValid =
         stored.user_role === PlatformRole.PlatformAdmin
           ? stored.company_id === null
-          : stored.company_id !== null && stored.company_is_active === true;
+          : stored.company_id !== null &&
+            stored.company_is_active === true &&
+            stored.subscription_status === 'active';
       const sessionIsValid =
         !stored.token_revoked_at &&
         !stored.session_revoked_at &&

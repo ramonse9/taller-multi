@@ -44,7 +44,7 @@ export class SubscriptionsController {
 
   @Patch('companies/:companyId')
   @Roles(PlatformRole.PlatformAdmin)
-  @ApiOperation({ summary: 'Cambiar plan, estado o vigencia sin eliminar información tenant' })
+  @ApiOperation({ summary: 'Cambiar plan o estatus sin eliminar información tenant' })
   @ApiOkResponse({ type: CompanySubscriptionResponseDto })
   change(
     @CurrentUser() user: AuthenticatedUser,

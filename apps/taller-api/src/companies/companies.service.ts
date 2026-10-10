@@ -163,8 +163,8 @@ export class CompaniesService {
       const planCode = input.planCode ?? 'basic';
       await runner.query(
         `INSERT INTO public.company_subscriptions(
-           company_id, plan_code, status, current_period_starts_at
-         ) VALUES ($1, $2, 'active', now())`,
+           company_id, plan_code, status
+         ) VALUES ($1, $2, 'active')`,
         [saved.id, planCode],
       );
       await runner.query(

@@ -85,6 +85,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!user.companyId) throw new UnauthorizedException('Compañía requerida');
     const company = await this.companies.findOneBy({ id: user.companyId });
     if (!company?.isActive) throw new UnauthorizedException('Compañía inactiva');
+    const subscription = await this.subscriptions.getByCompanyId(company.id);
+    if (!subscription.usable) throw new UnauthorizedException('Compañía inactiva');
     return {
       id: user.id,
       email: user.email,
@@ -100,7 +102,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       companyLoginCode: company.loginCode,
       mustChangePassword: user.mustChangePassword,
       sessionId: payload.jti,
-      subscription: await this.subscriptions.getByCompanyId(company.id),
+      subscription,
       permissions: await this.permissions.forUser(user.id, user.role),
     };
   }

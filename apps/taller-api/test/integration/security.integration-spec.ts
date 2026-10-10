@@ -61,6 +61,11 @@ interface LoginResponse {
     companyName: string | null;
     mustChangePassword: boolean;
     permissions: string[];
+    subscription: {
+      planCode: 'basic' | 'control' | 'invoicing';
+      status: 'active' | 'past_due' | 'suspended' | 'canceled';
+      usable: boolean;
+    } | null;
   };
 }
 
@@ -995,34 +1000,16 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(schemas?.CreateCompanyDto?.properties).not.toHaveProperty('trialDays');
     expect(schemas?.SubscriptionResponseDto?.properties).not.toHaveProperty('trialStartsAt');
     expect(schemas?.SubscriptionResponseDto?.properties).not.toHaveProperty('trialEndsAt');
+    expect(schemas?.SubscriptionResponseDto?.properties).not.toHaveProperty(
+      'currentPeriodStartsAt',
+    );
+    expect(schemas?.SubscriptionResponseDto?.properties).not.toHaveProperty('currentPeriodEndsAt');
     expect(schemas?.ChangeSubscriptionDto?.properties).not.toHaveProperty('trialEndsAt');
+    expect(schemas?.ChangeSubscriptionDto?.properties).not.toHaveProperty('currentPeriodEndsAt');
     expect(schemas?.ChangeSubscriptionDto?.properties?.status?.enum).not.toContain('trialing');
   });
 
   it('cambia de plan sin borrar datos y bloquea capacidades cuando se suspende', async () => {
-    const obsoleteTrialOnboarding = await request<unknown>('POST', '/companies', {
-      token: platformToken,
-      body: {
-        name: 'Legacy Trial Integration',
-        loginCode: 'legacy_trial_integration',
-        companyTypeCode: 'mul',
-        personTypeCode: 'individual',
-        withholdsIsr: false,
-        withholdsIva: false,
-        planCode: 'basic',
-        trialDays: 14,
-        admin: {
-          fullName: 'Administrador prueba obsoleta',
-          username: 'legacy_trial_admin',
-          email: 'legacy.trial@test.local',
-          phone: '+526671110099',
-          password: TENANT_PASSWORD,
-          timezoneCode: 'America/Mazatlan',
-        },
-      },
-    });
-    expect(obsoleteTrialOnboarding.status).toBe(400);
-
     const tenant = await provisionAndLogin('Subscription Integration', 'plans.admin@test.local');
     const initial = await request<{
       planCode: string;
@@ -1039,20 +1026,6 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(initial.body).not.toHaveProperty('trialStartsAt');
     expect(initial.body).not.toHaveProperty('trialEndsAt');
     expect(initial.body.features).not.toContain('inventory');
-
-    const obsoleteTrialStatus = await request<unknown>(
-      'PATCH',
-      `/subscriptions/companies/${tenant.company.id}`,
-      {
-        token: platformToken,
-        body: {
-          planCode: 'basic',
-          status: 'trialing',
-          trialEndsAt: '2026-11-01T06:00:00.000Z',
-        },
-      },
-    );
-    expect(obsoleteTrialStatus.status).toBe(400);
 
     const subscriptionColumns = await control.query<Array<{ column_name: string }>>(
       `SELECT column_name
@@ -1108,6 +1081,10 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(upgraded.body.planCode).toBe('control');
     expect(upgraded.body.features).toEqual(expect.arrayContaining(['inventory', 'expenses']));
 
+    const activeSession = await login(tenant.company.admin.loginName, PERMANENT_PASSWORD);
+    expect(activeSession.status).toBe(200);
+    const activeCookie = cookiePair(activeSession.setCookie!);
+
     const suspended = await request<unknown>(
       'PATCH',
       `/subscriptions/companies/${tenant.company.id}`,
@@ -1117,15 +1094,93 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       },
     );
     expect(suspended.status).toBe(200);
-    expect((await listClients(tenant.accessToken)).status).toBe(403);
+    expect(
+      (
+        await control.query<Array<{ is_active: boolean }>>(
+          'SELECT is_active FROM public.companies WHERE id = $1',
+          [tenant.company.id],
+        )
+      )[0]?.is_active,
+    ).toBe(false);
+    expect((await listClients(tenant.accessToken)).status).toBe(401);
+    expect((await login(tenant.company.admin.loginName, PERMANENT_PASSWORD)).status).toBe(401);
+    expect((await request<unknown>('POST', '/auth/refresh', { cookie: activeCookie })).status).toBe(
+      401,
+    );
+
+    const reactivated = await request<unknown>(
+      'PATCH',
+      `/subscriptions/companies/${tenant.company.id}`,
+      {
+        token: platformToken,
+        body: { planCode: 'basic', status: 'active', reason: 'Reactivación' },
+      },
+    );
+    expect(reactivated.status).toBe(200);
+    expect(
+      (
+        await control.query<Array<{ is_active: boolean }>>(
+          'SELECT is_active FROM public.companies WHERE id = $1',
+          [tenant.company.id],
+        )
+      )[0]?.is_active,
+    ).toBe(true);
+    expect((await request<unknown>('POST', '/auth/refresh', { cookie: activeCookie })).status).toBe(
+      401,
+    );
+    const restoredSession = await login(tenant.company.admin.loginName, PERMANENT_PASSWORD);
+    expect(restoredSession.status).toBe(200);
+    const restored = await listClients(restoredSession.body.accessToken);
+    expect(restored.status).toBe(200);
+    expect(restored.body.items.map(({ id }) => id)).toContain(client.body.id);
+  });
+
+  it.each([
+    ['basic', 'Básico'],
+    ['control', 'Control'],
+    ['invoicing', 'Facturación'],
+  ] as const)('crea una compañía activa con el plan %s', async (planCode, planName) => {
+    const company = await createCompany(
+      `Onboarding ${planName}`,
+      `onboarding.${planCode}@test.local`,
+      planCode,
+    );
+    expect(company.status).toBe(201);
+
+    const subscriptions = await control.query<Array<{ plan_code: string; status: string }>>(
+      `SELECT plan_code, status
+       FROM public.company_subscriptions
+       WHERE company_id = $1`,
+      [company.body.id],
+    );
+    expect(subscriptions[0]).toEqual({ plan_code: planCode, status: 'active' });
+
+    const authenticated = await login(company.body.admin.loginName, TENANT_PASSWORD);
+    expect(authenticated.status).toBe(200);
+    expect(authenticated.body.user.subscription).toMatchObject({
+      planCode,
+      status: 'active',
+      usable: true,
+    });
+  });
+
+  it('mantiene la activación manual aun cuando exista una vigencia histórica vencida', async () => {
+    const tenant = await provisionAndLogin(
+      'Legacy Period Compatibility',
+      'legacy.period@test.local',
+    );
+    await control.query(
+      `UPDATE public.company_subscriptions
+       SET current_period_ends_at = now() - interval '1 day'
+       WHERE company_id = $1`,
+      [tenant.company.id],
+    );
 
     await request<unknown>('PATCH', `/subscriptions/companies/${tenant.company.id}`, {
       token: platformToken,
-      body: { planCode: 'basic', status: 'active', reason: 'Reactivación' },
+      body: { planCode: 'basic', status: 'active', reason: 'Activación manual' },
     });
-    const restored = await listClients(tenant.accessToken);
-    expect(restored.status).toBe(200);
-    expect(restored.body.items.map(({ id }) => id)).toContain(client.body.id);
+    expect((await login(tenant.company.admin.loginName, PERMANENT_PASSWORD)).status).toBe(200);
   });
 
   it('aplica la jerarquía company_admin → admin → user al administrar cuentas', async () => {
@@ -5349,6 +5404,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
   async function createCompany(
     name: string,
     adminEmail: string,
+    planCode?: 'basic' | 'control' | 'invoicing',
   ): Promise<HttpResult<CompanyResponse>> {
     return request<CompanyResponse>('POST', '/companies', {
       token: platformToken,
@@ -5359,6 +5415,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         personTypeCode: 'individual',
         withholdsIsr: false,
         withholdsIva: false,
+        ...(planCode ? { planCode } : {}),
         admin: {
           fullName: `Administrador ${name}`,
           username: adminEmail.split('@')[0]!.replaceAll('.', '_'),

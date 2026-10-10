@@ -28,8 +28,6 @@ interface SubscriptionRow {
   plan_code: SubscriptionPlanCode;
   plan_name: string;
   status: SubscriptionStatus;
-  current_period_starts_at: Date | null;
-  current_period_ends_at: Date | null;
 }
 
 interface PlanRow {
@@ -98,22 +96,18 @@ export class SubscriptionsService {
       )) as Array<{ code: string }>;
       if (!plans[0]) throw new NotFoundException('Plan no encontrado');
 
-      const changesPeriodEnd = input.currentPeriodEndsAt !== undefined;
-      const periodEndsAt = input.currentPeriodEndsAt ? new Date(input.currentPeriodEndsAt) : null;
       await runner.query(
         `UPDATE public.company_subscriptions
          SET plan_code = $1, status = $2,
-             current_period_starts_at = CASE
-               WHEN $2::varchar = 'active' THEN COALESCE(current_period_starts_at, now())
-               ELSE current_period_starts_at
-             END,
-             current_period_ends_at = CASE
-               WHEN $3::boolean THEN $4::timestamptz
-               ELSE current_period_ends_at
-             END,
              updated_at = now()
-         WHERE company_id = $5`,
-        [input.planCode, input.status, changesPeriodEnd, periodEndsAt, companyId],
+         WHERE company_id = $3`,
+        [input.planCode, input.status, companyId],
+      );
+      await runner.query(
+        `UPDATE public.companies
+         SET is_active = $2::varchar = 'active', updated_at = now()
+         WHERE id = $1`,
+        [companyId, input.status],
       );
       await runner.query(
         `INSERT INTO public.company_subscription_history(
@@ -130,6 +124,27 @@ export class SubscriptionsService {
           actor.id,
         ],
       );
+      if (input.status !== 'active') {
+        await runner.query(
+          `UPDATE public.auth_refresh_tokens refresh
+           SET revoked_at = COALESCE(refresh.revoked_at, now())
+           WHERE refresh.session_id IN (
+             SELECT session.id
+             FROM public.auth_sessions session
+             JOIN public.users user_account ON user_account.id = session.user_id
+             WHERE user_account.company_id = $1
+           )`,
+          [companyId],
+        );
+        await runner.query(
+          `UPDATE public.auth_sessions session
+           SET revoked_at = COALESCE(session.revoked_at, now())
+           FROM public.users user_account
+           WHERE user_account.id = session.user_id
+             AND user_account.company_id = $1`,
+          [companyId],
+        );
+      }
       await runner.commitTransaction();
     } catch (error: unknown) {
       if (runner.isTransactionActive) await runner.rollbackTransaction();
@@ -183,8 +198,7 @@ export class SubscriptionsService {
 
   private subscriptionSelect(withCompany = false): string {
     return `SELECT subscription.company_id, subscription.plan_code, plan.name AS plan_name,
-             subscription.status, subscription.current_period_starts_at,
-             subscription.current_period_ends_at
+             subscription.status
              ${withCompany ? ', company.name AS company_name, company.login_code AS company_login_code' : ''}
       FROM public.company_subscriptions subscription
       JOIN public.subscription_plans plan ON plan.code = subscription.plan_code
@@ -217,8 +231,6 @@ export class SubscriptionsService {
       planName: row.plan_name,
       status: row.status,
       usable: this.isUsable(row),
-      currentPeriodStartsAt: row.current_period_starts_at,
-      currentPeriodEndsAt: row.current_period_ends_at,
       features,
       limits,
     };
@@ -252,9 +264,7 @@ export class SubscriptionsService {
   }
 
   private isUsable(row: SubscriptionRow): boolean {
-    if (row.status !== 'active') return false;
-    const now = Date.now();
-    return row.current_period_ends_at === null || row.current_period_ends_at.getTime() > now;
+    return row.status === 'active';
   }
 
   private async lockSubscription(

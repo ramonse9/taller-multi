@@ -26,8 +26,6 @@ export interface SubscriptionSummary {
   planName: string;
   status: SubscriptionStatus;
   usable: boolean;
-  currentPeriodStartsAt: Date | null;
-  currentPeriodEndsAt: Date | null;
   features: SubscriptionFeature[];
   limits: Record<SubscriptionLimit, number | null>;
 }

@@ -111,7 +111,7 @@ describe('CompaniesService', () => {
     const subscriptionInsert = query.mock.calls.find(([sql]) =>
       sql.includes('INSERT INTO public.company_subscriptions'),
     );
-    expect(subscriptionInsert?.[0]).toContain("VALUES ($1, $2, 'active', now())");
+    expect(subscriptionInsert?.[0]).toContain("VALUES ($1, $2, 'active')");
     expect(subscriptionInsert?.[1]).toEqual([companyId, 'basic']);
   });
 });
