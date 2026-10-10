@@ -3,13 +3,10 @@ import { Transform, Type } from 'class-transformer';
 import {
   IsBoolean,
   IsIn,
-  IsInt,
   IsOptional,
   IsString,
   Length,
   Matches,
-  Max,
-  Min,
   ValidateNested,
 } from 'class-validator';
 import { COMPANY_TYPE_CODES, CompanyTypeCode } from '../../database/schema-name';
@@ -54,14 +51,6 @@ export class CreateCompanyDto {
   @IsOptional()
   @IsIn(SUBSCRIPTION_PLAN_CODES)
   planCode?: SubscriptionPlanCode = 'basic';
-
-  @ApiPropertyOptional({ default: 14, minimum: 0, maximum: 90 })
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  @Max(90)
-  trialDays?: number = 14;
 
   @ApiProperty({ type: CreateTenantAdminDto })
   @ValidateNested()

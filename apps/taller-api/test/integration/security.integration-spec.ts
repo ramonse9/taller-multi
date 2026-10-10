@@ -38,6 +38,7 @@ import { RetireMobilePasswordRecovery1700000028000 } from '../../src/database/mi
 import { OrderItemBillingBehavior1700000029000 } from '../../src/database/migrations/public/1700000029000-order-item-billing-behavior';
 import { RefreshTokenSessions1700000034000 } from '../../src/database/migrations/public/1700000034000-refresh-token-sessions';
 import { PlatformAdminSecurityEvents1700000035000 } from '../../src/database/migrations/public/1700000035000-platform-admin-security-events';
+import { RemoveSubscriptionTrials1700000036000 } from '../../src/database/migrations/public/1700000036000-remove-subscription-trials';
 import { quoteIdentifier } from '../../src/database/schema-name';
 import { seedPublicCatalogs } from '../../src/database/seeds/public-catalogs.seed';
 import { changePlatformAdminPassword } from '../../src/platform-users/change-platform-admin-password';
@@ -608,6 +609,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         OrderItemBillingBehavior1700000029000,
         RefreshTokenSessions1700000034000,
         PlatformAdminSecurityEvents1700000035000,
+        RemoveSubscriptionTrials1700000036000,
       ],
       migrationsTableName: 'public_schema_migrations',
       synchronize: false,
@@ -982,9 +984,45 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     )?.[1];
     expect(refreshPath?.post?.security).toContainEqual({ refreshCookie: [] });
     expect(refreshPath?.post?.responses).toHaveProperty('403');
+    const schemas = swagger.components?.schemas as
+      | Record<
+          string,
+          {
+            properties?: Record<string, { enum?: string[] }>;
+          }
+        >
+      | undefined;
+    expect(schemas?.CreateCompanyDto?.properties).not.toHaveProperty('trialDays');
+    expect(schemas?.SubscriptionResponseDto?.properties).not.toHaveProperty('trialStartsAt');
+    expect(schemas?.SubscriptionResponseDto?.properties).not.toHaveProperty('trialEndsAt');
+    expect(schemas?.ChangeSubscriptionDto?.properties).not.toHaveProperty('trialEndsAt');
+    expect(schemas?.ChangeSubscriptionDto?.properties?.status?.enum).not.toContain('trialing');
   });
 
   it('cambia de plan sin borrar datos y bloquea capacidades cuando se suspende', async () => {
+    const obsoleteTrialOnboarding = await request<unknown>('POST', '/companies', {
+      token: platformToken,
+      body: {
+        name: 'Legacy Trial Integration',
+        loginCode: 'legacy_trial_integration',
+        companyTypeCode: 'mul',
+        personTypeCode: 'individual',
+        withholdsIsr: false,
+        withholdsIva: false,
+        planCode: 'basic',
+        trialDays: 14,
+        admin: {
+          fullName: 'Administrador prueba obsoleta',
+          username: 'legacy_trial_admin',
+          email: 'legacy.trial@test.local',
+          phone: '+526671110099',
+          password: TENANT_PASSWORD,
+          timezoneCode: 'America/Mazatlan',
+        },
+      },
+    });
+    expect(obsoleteTrialOnboarding.status).toBe(400);
+
     const tenant = await provisionAndLogin('Subscription Integration', 'plans.admin@test.local');
     const initial = await request<{
       planCode: string;
@@ -995,10 +1033,35 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(initial.status).toBe(200);
     expect(initial.body).toMatchObject({
       planCode: 'basic',
-      status: 'trialing',
+      status: 'active',
       limits: { max_users: 3 },
     });
+    expect(initial.body).not.toHaveProperty('trialStartsAt');
+    expect(initial.body).not.toHaveProperty('trialEndsAt');
     expect(initial.body.features).not.toContain('inventory');
+
+    const obsoleteTrialStatus = await request<unknown>(
+      'PATCH',
+      `/subscriptions/companies/${tenant.company.id}`,
+      {
+        token: platformToken,
+        body: {
+          planCode: 'basic',
+          status: 'trialing',
+          trialEndsAt: '2026-11-01T06:00:00.000Z',
+        },
+      },
+    );
+    expect(obsoleteTrialStatus.status).toBe(400);
+
+    const subscriptionColumns = await control.query<Array<{ column_name: string }>>(
+      `SELECT column_name
+       FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'company_subscriptions'`,
+    );
+    expect(subscriptionColumns.map(({ column_name }) => column_name)).not.toEqual(
+      expect.arrayContaining(['trial_starts_at', 'trial_ends_at']),
+    );
 
     for (const username of ['limite_uno', 'limite_dos']) {
       const created = await request<UserResponse>('POST', '/users', {

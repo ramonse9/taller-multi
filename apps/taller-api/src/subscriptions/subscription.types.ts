@@ -1,13 +1,7 @@
 export const SUBSCRIPTION_PLAN_CODES = ['basic', 'control', 'invoicing'] as const;
 export type SubscriptionPlanCode = (typeof SUBSCRIPTION_PLAN_CODES)[number];
 
-export const SUBSCRIPTION_STATUSES = [
-  'trialing',
-  'active',
-  'past_due',
-  'suspended',
-  'canceled',
-] as const;
+export const SUBSCRIPTION_STATUSES = ['active', 'past_due', 'suspended', 'canceled'] as const;
 export type SubscriptionStatus = (typeof SUBSCRIPTION_STATUSES)[number];
 
 export const SUBSCRIPTION_FEATURES = [
@@ -23,11 +17,7 @@ export const SUBSCRIPTION_FEATURES = [
 ] as const;
 export type SubscriptionFeature = (typeof SUBSCRIPTION_FEATURES)[number];
 
-export const SUBSCRIPTION_LIMITS = [
-  'max_users',
-  'max_branches',
-  'max_monthly_invoices',
-] as const;
+export const SUBSCRIPTION_LIMITS = ['max_users', 'max_branches', 'max_monthly_invoices'] as const;
 export type SubscriptionLimit = (typeof SUBSCRIPTION_LIMITS)[number];
 
 export interface SubscriptionSummary {
@@ -36,8 +26,6 @@ export interface SubscriptionSummary {
   planName: string;
   status: SubscriptionStatus;
   usable: boolean;
-  trialStartsAt: Date | null;
-  trialEndsAt: Date | null;
   currentPeriodStartsAt: Date | null;
   currentPeriodEndsAt: Date | null;
   features: SubscriptionFeature[];

@@ -108,5 +108,10 @@ describe('CompaniesService', () => {
     });
     const adminInsert = query.mock.calls.find(([sql]) => sql.includes('INSERT INTO public.users'));
     expect(adminInsert?.[1]?.[3]).toEqual(expect.stringMatching(/^\$argon2id\$/));
+    const subscriptionInsert = query.mock.calls.find(([sql]) =>
+      sql.includes('INSERT INTO public.company_subscriptions'),
+    );
+    expect(subscriptionInsert?.[0]).toContain("VALUES ($1, $2, 'active', now())");
+    expect(subscriptionInsert?.[1]).toEqual([companyId, 'basic']);
   });
 });

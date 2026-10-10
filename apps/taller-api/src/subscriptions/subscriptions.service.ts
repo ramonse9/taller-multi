@@ -28,8 +28,6 @@ interface SubscriptionRow {
   plan_code: SubscriptionPlanCode;
   plan_name: string;
   status: SubscriptionStatus;
-  trial_starts_at: Date | null;
-  trial_ends_at: Date | null;
   current_period_starts_at: Date | null;
   current_period_ends_at: Date | null;
 }
@@ -100,26 +98,17 @@ export class SubscriptionsService {
       )) as Array<{ code: string }>;
       if (!plans[0]) throw new NotFoundException('Plan no encontrado');
 
-      const trialEndsAt = input.trialEndsAt ? new Date(input.trialEndsAt) : null;
-      const periodEndsAt = input.currentPeriodEndsAt
-        ? new Date(input.currentPeriodEndsAt)
-        : null;
-      const trialStartsAt = input.status === 'trialing' ? new Date() : null;
-      const periodStartsAt = input.status === 'active' ? new Date() : null;
+      const periodEndsAt = input.currentPeriodEndsAt ? new Date(input.currentPeriodEndsAt) : null;
       await runner.query(
         `UPDATE public.company_subscriptions
-         SET plan_code = $1, status = $2, trial_starts_at = $3, trial_ends_at = $4,
-             current_period_starts_at = $5, current_period_ends_at = $6, updated_at = now()
-         WHERE company_id = $7`,
-        [
-          input.planCode,
-          input.status,
-          trialStartsAt,
-          trialEndsAt,
-          periodStartsAt,
-          periodEndsAt,
-          companyId,
-        ],
+         SET plan_code = $1, status = $2,
+             current_period_starts_at = CASE
+               WHEN $2::varchar = 'active' THEN COALESCE(current_period_starts_at, now())
+               ELSE current_period_starts_at
+             END,
+             current_period_ends_at = $3, updated_at = now()
+         WHERE company_id = $4`,
+        [input.planCode, input.status, periodEndsAt, companyId],
       );
       await runner.query(
         `INSERT INTO public.company_subscription_history(
@@ -166,7 +155,9 @@ export class SubscriptionsService {
       [companyId],
     );
     if (Number(rows[0]?.total ?? 0) >= limit) {
-      throw new ConflictException(`El plan ${subscription.planName} permite hasta ${limit} usuarios activos`);
+      throw new ConflictException(
+        `El plan ${subscription.planName} permite hasta ${limit} usuarios activos`,
+      );
     }
   }
 
@@ -187,8 +178,8 @@ export class SubscriptionsService {
 
   private subscriptionSelect(withCompany = false): string {
     return `SELECT subscription.company_id, subscription.plan_code, plan.name AS plan_name,
-             subscription.status, subscription.trial_starts_at, subscription.trial_ends_at,
-             subscription.current_period_starts_at, subscription.current_period_ends_at
+             subscription.status, subscription.current_period_starts_at,
+             subscription.current_period_ends_at
              ${withCompany ? ', company.name AS company_name, company.login_code AS company_login_code' : ''}
       FROM public.company_subscriptions subscription
       JOIN public.subscription_plans plan ON plan.code = subscription.plan_code
@@ -221,8 +212,6 @@ export class SubscriptionsService {
       planName: row.plan_name,
       status: row.status,
       usable: this.isUsable(row),
-      trialStartsAt: row.trial_starts_at,
-      trialEndsAt: row.trial_ends_at,
       currentPeriodStartsAt: row.current_period_starts_at,
       currentPeriodEndsAt: row.current_period_ends_at,
       features,
@@ -249,19 +238,17 @@ export class SubscriptionsService {
        WHERE plan_code = $1`,
       [planCode],
     );
-    const limits = Object.fromEntries(
-      SUBSCRIPTION_LIMITS.map((code) => [code, null]),
-    ) as Record<SubscriptionLimit, number | null>;
+    const limits = Object.fromEntries(SUBSCRIPTION_LIMITS.map((code) => [code, null])) as Record<
+      SubscriptionLimit,
+      number | null
+    >;
     for (const row of rows) limits[row.limit_code] = row.limit_value;
     return limits;
   }
 
   private isUsable(row: SubscriptionRow): boolean {
-    const now = Date.now();
-    if (row.status === 'trialing') {
-      return row.trial_ends_at !== null && row.trial_ends_at.getTime() > now;
-    }
     if (row.status !== 'active') return false;
+    const now = Date.now();
     return row.current_period_ends_at === null || row.current_period_ends_at.getTime() > now;
   }
 

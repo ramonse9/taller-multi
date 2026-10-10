@@ -160,26 +160,18 @@ export class CompaniesService {
         withholdsIva: input.withholdsIva,
       });
       const saved = await runner.manager.save(company);
-      const trialDays = input.trialDays ?? 14;
       const planCode = input.planCode ?? 'basic';
-      const status = trialDays > 0 ? 'trialing' : 'active';
       await runner.query(
         `INSERT INTO public.company_subscriptions(
-           company_id, plan_code, status, trial_starts_at, trial_ends_at,
-           current_period_starts_at
-         ) VALUES (
-           $1, $2, $3,
-           CASE WHEN $4::integer > 0 THEN now() ELSE NULL END,
-           CASE WHEN $4::integer > 0 THEN now() + make_interval(days => $4) ELSE NULL END,
-           CASE WHEN $4::integer = 0 THEN now() ELSE NULL END
-         )`,
-        [saved.id, planCode, status, trialDays],
+           company_id, plan_code, status, current_period_starts_at
+         ) VALUES ($1, $2, 'active', now())`,
+        [saved.id, planCode],
       );
       await runner.query(
         `INSERT INTO public.company_subscription_history(
            company_id, new_plan_code, new_status, reason
          ) VALUES ($1, $2, $3, 'Asignación durante el onboarding')`,
-        [saved.id, planCode, status],
+        [saved.id, planCode, 'active'],
       );
       await runner.query(`CREATE SCHEMA ${quoteIdentifier(schemaName)}`);
       await this.tenantMigrator.migrateBase(runner, schemaName);

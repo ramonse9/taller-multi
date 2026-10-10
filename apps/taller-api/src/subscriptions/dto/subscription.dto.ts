@@ -27,8 +27,6 @@ export class SubscriptionResponseDto {
   @ApiProperty() planName!: string;
   @ApiProperty({ enum: SUBSCRIPTION_STATUSES }) status!: SubscriptionStatus;
   @ApiProperty() usable!: boolean;
-  @ApiPropertyOptional({ nullable: true, type: Date }) trialStartsAt!: Date | null;
-  @ApiPropertyOptional({ nullable: true, type: Date }) trialEndsAt!: Date | null;
   @ApiPropertyOptional({ nullable: true, type: Date }) currentPeriodStartsAt!: Date | null;
   @ApiPropertyOptional({ nullable: true, type: Date }) currentPeriodEndsAt!: Date | null;
   @ApiProperty({ enum: SUBSCRIPTION_FEATURES, isArray: true })
@@ -51,11 +49,6 @@ export class ChangeSubscriptionDto {
   @IsIn(SUBSCRIPTION_STATUSES)
   status!: SubscriptionStatus;
 
-  @ApiPropertyOptional({ nullable: true, example: '2026-11-01T06:00:00.000Z' })
-  @IsOptional()
-  @IsDateString()
-  trialEndsAt?: string | null;
-
   @ApiPropertyOptional({ nullable: true, example: '2026-11-30T06:00:00.000Z' })
   @IsOptional()
   @IsDateString()
@@ -63,9 +56,7 @@ export class ChangeSubscriptionDto {
 
   @ApiPropertyOptional({ example: 'Cambio solicitado por la compañía' })
   @IsOptional()
-  @Transform(({ value }: { value: unknown }) =>
-    typeof value === 'string' ? value.trim() : value,
-  )
+  @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
   @Length(2, 300)
   reason?: string;
