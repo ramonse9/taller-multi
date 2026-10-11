@@ -5,10 +5,11 @@ import { PlatformUser } from './entities/platform-user.entity';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 import { PasswordResetService } from './password-reset.service';
+import { PlatformCompanyUsersController } from './platform-company-users.controller';
 
 @Module({
   imports: [TypeOrmModule.forFeature([PlatformUser]), AuthModule],
-  controllers: [UsersController],
+  controllers: [UsersController, PlatformCompanyUsersController],
   providers: [UsersService, PasswordResetService],
   exports: [TypeOrmModule, PasswordResetService],
 })

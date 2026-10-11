@@ -38,6 +38,7 @@ import { ServiceCostProfitability1700000033000 } from './migrations/public/17000
 import { RefreshTokenSessions1700000034000 } from './migrations/public/1700000034000-refresh-token-sessions';
 import { PlatformAdminSecurityEvents1700000035000 } from './migrations/public/1700000035000-platform-admin-security-events';
 import { RemoveSubscriptionTrials1700000036000 } from './migrations/public/1700000036000-remove-subscription-trials';
+import { PlatformCompanyUserEvents1700000037000 } from './migrations/public/1700000037000-platform-company-user-events';
 
 export default new DataSource({
   type: 'postgres',
@@ -82,6 +83,7 @@ export default new DataSource({
     RefreshTokenSessions1700000034000,
     PlatformAdminSecurityEvents1700000035000,
     RemoveSubscriptionTrials1700000036000,
+    PlatformCompanyUserEvents1700000037000,
   ],
   migrationsTableName: 'public_schema_migrations',
   synchronize: false,

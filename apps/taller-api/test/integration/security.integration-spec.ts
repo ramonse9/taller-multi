@@ -39,6 +39,7 @@ import { OrderItemBillingBehavior1700000029000 } from '../../src/database/migrat
 import { RefreshTokenSessions1700000034000 } from '../../src/database/migrations/public/1700000034000-refresh-token-sessions';
 import { PlatformAdminSecurityEvents1700000035000 } from '../../src/database/migrations/public/1700000035000-platform-admin-security-events';
 import { RemoveSubscriptionTrials1700000036000 } from '../../src/database/migrations/public/1700000036000-remove-subscription-trials';
+import { PlatformCompanyUserEvents1700000037000 } from '../../src/database/migrations/public/1700000037000-platform-company-user-events';
 import { quoteIdentifier } from '../../src/database/schema-name';
 import { seedPublicCatalogs } from '../../src/database/seeds/public-catalogs.seed';
 import { changePlatformAdminPassword } from '../../src/platform-users/change-platform-admin-password';
@@ -90,6 +91,12 @@ interface UserResponse {
   phone: string | null;
   companyId: string;
   isActive: boolean;
+  mustChangePassword: boolean;
+}
+
+interface PaginatedUsersResponse {
+  totalItems: number;
+  items: UserResponse[];
 }
 
 interface PermissionTemplateResponse {
@@ -615,6 +622,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         RefreshTokenSessions1700000034000,
         PlatformAdminSecurityEvents1700000035000,
         RemoveSubscriptionTrials1700000036000,
+        PlatformCompanyUserEvents1700000037000,
       ],
       migrationsTableName: 'public_schema_migrations',
       synchronize: false,
@@ -1007,6 +1015,16 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(schemas?.ChangeSubscriptionDto?.properties).not.toHaveProperty('trialEndsAt');
     expect(schemas?.ChangeSubscriptionDto?.properties).not.toHaveProperty('currentPeriodEndsAt');
     expect(schemas?.ChangeSubscriptionDto?.properties?.status?.enum).not.toContain('trialing');
+    const platformCompanyUsersPath = Object.entries(swagger.paths).find(([path]) =>
+      path.endsWith('/companies/{companyId}/users'),
+    )?.[1];
+    expect(platformCompanyUsersPath?.get?.responses).toHaveProperty('200');
+    expect(platformCompanyUsersPath?.post?.responses).toHaveProperty('201');
+    expect(schemas?.CreatePlatformCompanyUserDto?.properties?.role?.enum).toEqual([
+      'company_admin',
+      'admin',
+      'user',
+    ]);
   });
 
   it('cambia de plan sin borrar datos y bloquea capacidades cuando se suspende', async () => {
@@ -1181,6 +1199,167 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       body: { planCode: 'basic', status: 'active', reason: 'Activación manual' },
     });
     expect((await login(tenant.company.admin.loginName, PERMANENT_PASSWORD)).status).toBe(200);
+  });
+
+  it('permite al platform_admin crear usuarios con permisos dentro de una compañía', async () => {
+    const tenant = await provisionAndLogin(
+      'Platform User Management',
+      'platform.users.admin@test.local',
+    );
+    const permissionCatalog = await request<Array<{ code: string }>>('GET', '/permissions', {
+      token: platformToken,
+    });
+    const templates = await request<Array<{ code: string }>>('GET', '/permissions/templates', {
+      token: platformToken,
+    });
+    expect(permissionCatalog.status).toBe(200);
+    expect(permissionCatalog.body.map(({ code }) => code)).toContain('clients.create');
+    expect(templates.status).toBe(200);
+    expect(templates.body.map(({ code }) => code)).toContain('reception');
+
+    const created = await request<{
+      user: UserResponse;
+      templateCode: string | null;
+      isCustomized: boolean;
+      automatic: boolean;
+      permissionCodes: string[];
+    }>('POST', `/companies/${tenant.company.id}/users`, {
+      token: platformToken,
+      body: {
+        fullName: 'Recepción creada por plataforma',
+        username: 'recepcion_plataforma',
+        email: null,
+        phone: '+526671115501',
+        password: 'Alta26a',
+        timezoneCode: 'America/Mazatlan',
+        role: 'user',
+        templateCode: 'reception',
+        permissionCodes: ['dashboard.view', 'clients.view', 'clients.create'],
+      },
+    });
+    expect(created.status).toBe(201);
+    expect(created.body.user).toMatchObject({
+      companyId: tenant.company.id,
+      role: 'user',
+      loginName: `recepcion_plataforma@${tenant.company.loginCode}`,
+      mustChangePassword: true,
+    });
+    expect(created.body).toMatchObject({
+      templateCode: 'reception',
+      isCustomized: true,
+      automatic: false,
+      permissionCodes: ['clients.create', 'clients.view', 'dashboard.view'],
+    });
+
+    const listed = await request<PaginatedUsersResponse>(
+      'GET',
+      `/companies/${tenant.company.id}/users?page=1&limit=20&search=recepcion_plataforma`,
+      { token: platformToken },
+    );
+    expect(listed.status).toBe(200);
+    expect(listed.body.items).toHaveLength(1);
+    expect(listed.body.items[0]?.id).toBe(created.body.user.id);
+
+    const temporaryLogin = await login(created.body.user.loginName, 'Alta26a');
+    expect(temporaryLogin.status).toBe(200);
+    expect(temporaryLogin.body.user.mustChangePassword).toBe(true);
+    expect(temporaryLogin.body.user.permissions).toEqual([
+      'dashboard.view',
+      'clients.view',
+      'clients.create',
+    ]);
+
+    const audit = await control.query<
+      Array<{
+        company_id: string;
+        target_user_id: string;
+        actor_user_id: string;
+        event_type: string;
+        target_role: string;
+        template_code: string | null;
+        permission_codes: string[];
+      }>
+    >(
+      `SELECT company_id, target_user_id, actor_user_id, event_type,
+              target_role, template_code, permission_codes
+       FROM public.platform_company_user_events
+       WHERE target_user_id = $1`,
+      [created.body.user.id],
+    );
+    expect(audit).toHaveLength(1);
+    expect(audit[0]).toMatchObject({
+      company_id: tenant.company.id,
+      target_user_id: created.body.user.id,
+      event_type: 'user_created',
+      target_role: 'user',
+      template_code: 'reception',
+      permission_codes: ['clients.create', 'clients.view', 'dashboard.view'],
+    });
+    expect(audit[0]?.actor_user_id).toBeTruthy();
+  });
+
+  it('protege el alta de usuarios de plataforma y revierte permisos incompatibles', async () => {
+    const tenant = await provisionAndLogin(
+      'Platform User Security',
+      'platform.users.security@test.local',
+    );
+    const tenantAttempt = await request<unknown>('POST', `/companies/${tenant.company.id}/users`, {
+      token: tenant.accessToken,
+      body: {
+        fullName: 'Intento tenant',
+        username: 'intento_tenant',
+        phone: '+526671115502',
+        password: 'Alta26a',
+        role: 'user',
+      },
+    });
+    expect(tenantAttempt.status).toBe(403);
+
+    const incompatible = await request<unknown>('POST', `/companies/${tenant.company.id}/users`, {
+      token: platformToken,
+      body: {
+        fullName: 'Permisos incompatibles',
+        username: 'permisos_incompatibles',
+        phone: '+526671115503',
+        password: 'Alta26a',
+        role: 'user',
+        permissionCodes: ['users.manage'],
+      },
+    });
+    expect(incompatible.status).toBe(400);
+    const rolledBack = await control.query<Array<{ total: string }>>(
+      `SELECT COUNT(*)::text AS total
+       FROM public.users
+       WHERE company_id = $1 AND username = 'permisos_incompatibles'`,
+      [tenant.company.id],
+    );
+    expect(rolledBack[0]?.total).toBe('0');
+
+    for (const index of [1, 2]) {
+      const allowed = await request<unknown>('POST', `/companies/${tenant.company.id}/users`, {
+        token: platformToken,
+        body: {
+          fullName: `Usuario dentro del límite ${index}`,
+          username: `usuario_limite_${index}`,
+          phone: `+52667111551${index}`,
+          password: 'Alta26a',
+          role: 'user',
+          templateCode: 'mechanic',
+        },
+      });
+      expect(allowed.status).toBe(201);
+    }
+    const overLimit = await request<unknown>('POST', `/companies/${tenant.company.id}/users`, {
+      token: platformToken,
+      body: {
+        fullName: 'Usuario fuera del límite',
+        username: 'usuario_fuera_limite',
+        phone: '+526671115519',
+        password: 'Alta26a',
+        role: 'user',
+      },
+    });
+    expect(overLimit.status).toBe(409);
   });
 
   it('aplica la jerarquía company_admin → admin → user al administrar cuentas', async () => {

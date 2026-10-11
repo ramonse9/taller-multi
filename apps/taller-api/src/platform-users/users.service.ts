@@ -12,8 +12,10 @@ import { DataSource, QueryFailedError, QueryRunner } from 'typeorm';
 import { AuthenticatedUser } from '../common/types/authenticated-user';
 import {
   ChangePasswordDto,
+  CreatePlatformCompanyUserDto,
   CreateUserDto,
   PaginatedUsersResponseDto,
+  PlatformCompanyUserResponseDto,
   ResetPasswordDto,
   UpdateUserDto,
   UserQueryDto,
@@ -57,6 +59,110 @@ export class UsersService {
 
   async list(user: AuthenticatedUser, query: UserQueryDto): Promise<PaginatedUsersResponseDto> {
     const companyId = this.companyIdForManager(user);
+    return this.listByCompany(companyId, query);
+  }
+
+  async listForPlatform(
+    actor: AuthenticatedUser,
+    companyId: string,
+    query: UserQueryDto,
+  ): Promise<PaginatedUsersResponseDto> {
+    this.assertPlatformAdmin(actor);
+    await this.assertCompanyExists(companyId);
+    return this.listByCompany(companyId, query);
+  }
+
+  async createForPlatform(
+    actor: AuthenticatedUser,
+    companyId: string,
+    input: CreatePlatformCompanyUserDto,
+  ): Promise<PlatformCompanyUserResponseDto> {
+    this.assertPlatformAdmin(actor);
+    if (!this.subscriptions) throw new Error('SubscriptionsService no disponible');
+    if (!this.permissions) throw new Error('PermissionsService no disponible');
+    await this.assertCompanyExists(companyId);
+    await this.subscriptions.assertCanCreateUser(companyId);
+
+    const passwordHash = await argon2.hash(input.password, { type: argon2.argon2id });
+    const runner = this.dataSource.createQueryRunner();
+    await runner.connect();
+    await runner.startTransaction('SERIALIZABLE');
+    try {
+      const companies = (await runner.query(
+        'SELECT id, is_active FROM public.companies WHERE id = $1 FOR SHARE',
+        [companyId],
+      )) as Array<{ id: string; is_active: boolean }>;
+      if (!companies[0]) throw new NotFoundException('Compañía no encontrada');
+      if (!companies[0].is_active) {
+        throw new ForbiddenException('La compañía está desactivada');
+      }
+      await this.validateTimezone(runner, input.timezoneCode);
+      const rows = (await runner.query(
+        `INSERT INTO public.users(
+           email, username, phone, password_hash, full_name, role, company_id,
+           timezone_code, must_change_password
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true)
+         RETURNING id, email, username, phone, phone_verified_at, full_name, role, company_id, timezone_code,
+                   (SELECT login_code FROM public.companies WHERE id = company_id) AS login_code,
+                   is_active, must_change_password, created_at, updated_at`,
+        [
+          input.email ?? null,
+          input.username,
+          input.phone,
+          passwordHash,
+          input.fullName,
+          input.role,
+          companyId,
+          input.timezoneCode,
+        ],
+      )) as UserRow[];
+      const created = rows[0];
+      if (!created) throw new Error('No se pudo crear el usuario');
+      const profile = await this.permissions.assignForPlatform(
+        runner,
+        created.id,
+        created.role,
+        actor.id,
+        {
+          templateCode: input.templateCode,
+          permissionCodes: input.permissionCodes,
+        },
+      );
+      await runner.query(
+        `INSERT INTO public.platform_company_user_events(
+           company_id, target_user_id, actor_user_id, event_type,
+           target_role, template_code, permission_codes
+         ) VALUES ($1, $2, $3, 'user_created', $4, $5, $6)`,
+        [
+          companyId,
+          created.id,
+          actor.id,
+          created.role,
+          profile.templateCode,
+          profile.permissionCodes,
+        ],
+      );
+      await runner.commitTransaction();
+      return {
+        user: this.toResponse(created),
+        templateCode: profile.templateCode,
+        isCustomized: profile.isCustomized,
+        automatic: profile.automatic,
+        permissionCodes: profile.permissionCodes,
+      };
+    } catch (error) {
+      if (runner.isTransactionActive) await runner.rollbackTransaction();
+      this.rethrowConflict(error);
+      throw error;
+    } finally {
+      await runner.release();
+    }
+  }
+
+  private async listByCompany(
+    companyId: string,
+    query: UserQueryDto,
+  ): Promise<PaginatedUsersResponseDto> {
     const search = query.search.trim();
     const escapedSearch = search.replace(/[\\%_]/g, '\\$&');
     const filter = `%${escapedSearch}%`;
@@ -304,6 +410,20 @@ export class UsersService {
       throw new ForbiddenException('Se requiere un administrador de la compañía');
     }
     return user.companyId;
+  }
+
+  private assertPlatformAdmin(actor: AuthenticatedUser): void {
+    if (actor.role !== PlatformRole.PlatformAdmin || actor.companyId !== null) {
+      throw new ForbiddenException('Se requiere administrador de plataforma');
+    }
+  }
+
+  private async assertCompanyExists(companyId: string): Promise<void> {
+    const rows = await this.dataSource.query<Array<{ id: string }>>(
+      'SELECT id FROM public.companies WHERE id = $1',
+      [companyId],
+    );
+    if (!rows[0]) throw new NotFoundException('Compañía no encontrada');
   }
 
   private assertCanAssignRole(user: AuthenticatedUser, role: PlatformRole): void {

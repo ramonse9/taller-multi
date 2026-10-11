@@ -49,6 +49,11 @@ const ADMIN_PERMISSION_CODES: PermissionCode[] = [
 
 const USER_FORBIDDEN_PERMISSION_CODES = new Set<PermissionCode>(ADMIN_PERMISSION_CODES);
 
+export interface PlatformPermissionAssignmentInput {
+  templateCode?: PermissionTemplateCode | null;
+  permissionCodes?: PermissionCode[];
+}
+
 @Injectable()
 export class PermissionsService {
   constructor(private readonly dataSource: DataSource) {}
@@ -219,6 +224,77 @@ export class PermissionsService {
         [userId, actorId, ADMIN_PERMISSION_CODES],
       );
     }
+  }
+
+  async assignForPlatform(
+    runner: QueryRunner,
+    userId: string,
+    role: PlatformRole,
+    actorId: string,
+    input: PlatformPermissionAssignmentInput,
+  ): Promise<UserPermissionProfile> {
+    if (role === PlatformRole.CompanyAdmin) {
+      if (input.templateCode !== undefined || input.permissionCodes !== undefined) {
+        throw new BadRequestException(
+          'El Administrador principal recibe todos los permisos automáticamente',
+        );
+      }
+      const rows = (await runner.query(
+        'SELECT code FROM public.permissions ORDER BY sort_order',
+      )) as Array<{ code: PermissionCode }>;
+      return {
+        userId,
+        role,
+        templateCode: null,
+        isCustomized: false,
+        automatic: true,
+        permissionCodes: rows.map(({ code }) => code),
+      };
+    }
+
+    if (input.templateCode === undefined && input.permissionCodes === undefined) {
+      await this.assignInitialPermissions(runner, userId, role, actorId);
+      const assigned = await this.forUserWithRunner(runner, userId);
+      return {
+        userId,
+        role,
+        templateCode: 'administration',
+        isCustomized: role === PlatformRole.Admin,
+        automatic: false,
+        permissionCodes: assigned,
+      };
+    }
+
+    const templateCode = input.templateCode ?? null;
+    const templatePermissions = templateCode
+      ? await this.templatePermissions(runner, templateCode)
+      : [];
+    const requested = [...(input.permissionCodes ?? templatePermissions)].sort();
+    this.assertRoleCompatible(role, requested);
+    const customized =
+      templateCode === null || requested.join('|') !== [...templatePermissions].sort().join('|');
+
+    if (requested.length > 0) {
+      await runner.query(
+        `INSERT INTO public.user_permissions(user_id, permission_code, granted_by_user_id)
+         SELECT $1, code, $3 FROM unnest($2::varchar[]) AS code`,
+        [userId, requested, actorId],
+      );
+    }
+    await runner.query(
+      `INSERT INTO public.user_permission_profiles(
+         user_id, template_code, is_customized, updated_by_user_id
+       ) VALUES ($1, $2, $3, $4)`,
+      [userId, templateCode, customized, actorId],
+    );
+    return {
+      userId,
+      role,
+      templateCode,
+      isCustomized: customized,
+      automatic: false,
+      permissionCodes: requested,
+    };
   }
 
   async syncRolePermissions(

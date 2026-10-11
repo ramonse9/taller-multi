@@ -22,6 +22,7 @@ export class PermissionsController {
   constructor(private readonly permissions: PermissionsService) {}
 
   @Get()
+  @Roles(PlatformRole.PlatformAdmin, PlatformRole.CompanyAdmin, PlatformRole.Admin)
   @RequiresPermissions('permissions.manage')
   @ApiOperation({ summary: 'Consultar catálogo de permisos por módulo y acción' })
   @ApiOkResponse({ type: PermissionCatalogItemDto, isArray: true })
@@ -30,6 +31,7 @@ export class PermissionsController {
   }
 
   @Get('templates')
+  @Roles(PlatformRole.PlatformAdmin, PlatformRole.CompanyAdmin, PlatformRole.Admin)
   @RequiresPermissions('permissions.manage')
   @ApiOperation({ summary: 'Consultar plantillas de permisos disponibles' })
   @ApiOkResponse({ type: PermissionTemplateDto, isArray: true })

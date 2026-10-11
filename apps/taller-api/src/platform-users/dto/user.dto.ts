@@ -1,6 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
+  ArrayUnique,
+  IsArray,
   IsBoolean,
   IsEmail,
   IsIn,
@@ -14,6 +16,12 @@ import {
   ValidateIf,
 } from 'class-validator';
 import { PlatformRole } from '../entities/platform-user.entity';
+import {
+  PERMISSION_CODES,
+  PERMISSION_TEMPLATE_CODES,
+  PermissionCode,
+  PermissionTemplateCode,
+} from '../../permissions/permission.types';
 
 const normalizeNullableEmail = ({ value }: { value: unknown }): unknown =>
   typeof value === 'string' ? value.trim().toLowerCase() || null : value;
@@ -86,6 +94,20 @@ export class CreateUserDto extends CreateTenantAdminDto {
   })
   @IsIn(TENANT_ROLES)
   role: TenantRole = PlatformRole.User;
+}
+
+export class CreatePlatformCompanyUserDto extends CreateUserDto {
+  @ApiPropertyOptional({ enum: PERMISSION_TEMPLATE_CODES, nullable: true })
+  @IsOptional()
+  @IsIn(PERMISSION_TEMPLATE_CODES)
+  templateCode?: PermissionTemplateCode | null;
+
+  @ApiPropertyOptional({ enum: PERMISSION_CODES, isArray: true })
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
+  @IsIn(PERMISSION_CODES, { each: true })
+  permissionCodes?: PermissionCode[];
 }
 
 export class UpdateUserDto {
@@ -214,4 +236,13 @@ export class PaginatedUsersResponseDto {
   @ApiProperty() totalPages!: number;
   @ApiProperty() hasNextPage!: boolean;
   @ApiProperty({ type: UserResponseDto, isArray: true }) items!: UserResponseDto[];
+}
+
+export class PlatformCompanyUserResponseDto {
+  @ApiProperty({ type: UserResponseDto }) user!: UserResponseDto;
+  @ApiPropertyOptional({ enum: PERMISSION_TEMPLATE_CODES, nullable: true })
+  templateCode!: PermissionTemplateCode | null;
+  @ApiProperty() isCustomized!: boolean;
+  @ApiProperty() automatic!: boolean;
+  @ApiProperty({ enum: PERMISSION_CODES, isArray: true }) permissionCodes!: PermissionCode[];
 }
