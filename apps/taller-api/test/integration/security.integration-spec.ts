@@ -1362,6 +1362,168 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(overLimit.status).toBe(409);
   });
 
+  it('aísla el alta y el listado de usuarios administrados por plataforma entre compañías', async () => {
+    const alpha = await createCompany(
+      'Platform Users Isolation Alpha',
+      'platform.users.alpha@test.local',
+    );
+    const beta = await createCompany(
+      'Platform Users Isolation Beta',
+      'platform.users.beta@test.local',
+    );
+    expect(alpha.status).toBe(201);
+    expect(beta.status).toBe(201);
+
+    const commonUsername = 'recepcion_compartida';
+    const alphaUser = await request<{ user: UserResponse }>(
+      'POST',
+      `/companies/${alpha.body.id}/users`,
+      {
+        token: platformToken,
+        body: {
+          fullName: 'Recepción exclusiva Alpha',
+          username: commonUsername,
+          phone: '+526671115521',
+          password: 'Alpha26a',
+          timezoneCode: 'America/Mazatlan',
+          role: 'user',
+          templateCode: 'reception',
+        },
+      },
+    );
+    const betaUser = await request<{ user: UserResponse }>(
+      'POST',
+      `/companies/${beta.body.id}/users`,
+      {
+        token: platformToken,
+        body: {
+          fullName: 'Recepción exclusiva Beta',
+          username: commonUsername,
+          phone: '+526671115522',
+          password: 'Beta26b',
+          timezoneCode: 'America/Mazatlan',
+          role: 'user',
+          templateCode: 'reception',
+        },
+      },
+    );
+    expect(alphaUser.status).toBe(201);
+    expect(betaUser.status).toBe(201);
+    expect(alphaUser.body.user.companyId).toBe(alpha.body.id);
+    expect(betaUser.body.user.companyId).toBe(beta.body.id);
+    expect(alphaUser.body.user.loginName).toBe(`${commonUsername}@${alpha.body.loginCode}`);
+    expect(betaUser.body.user.loginName).toBe(`${commonUsername}@${beta.body.loginCode}`);
+
+    const alphaList = await request<PaginatedUsersResponse>(
+      'GET',
+      `/companies/${alpha.body.id}/users?search=${commonUsername}`,
+      { token: platformToken },
+    );
+    const betaList = await request<PaginatedUsersResponse>(
+      'GET',
+      `/companies/${beta.body.id}/users?search=${commonUsername}`,
+      { token: platformToken },
+    );
+    expect(alphaList.status).toBe(200);
+    expect(betaList.status).toBe(200);
+    expect(alphaList.body.items.map(({ id }) => id)).toEqual([alphaUser.body.user.id]);
+    expect(betaList.body.items.map(({ id }) => id)).toEqual([betaUser.body.user.id]);
+
+    const alphaLogin = await login(alphaUser.body.user.loginName, 'Alpha26a');
+    const betaLogin = await login(betaUser.body.user.loginName, 'Beta26b');
+    expect(alphaLogin.body.user.companyId).toBe(alpha.body.id);
+    expect(betaLogin.body.user.companyId).toBe(beta.body.id);
+    expect(
+      (
+        await request<unknown>('GET', '/companies/11111111-1111-4111-8111-111111111111/users', {
+          token: platformToken,
+        })
+      ).status,
+    ).toBe(404);
+  });
+
+  it('obliga a cambiar la contraseña temporal creada por plataforma y revoca esa sesión', async () => {
+    const company = await createCompany(
+      'Platform Temporary Password',
+      'platform.temporary.admin@test.local',
+    );
+    expect(company.status).toBe(201);
+    const created = await request<{ user: UserResponse }>(
+      'POST',
+      `/companies/${company.body.id}/users`,
+      {
+        token: platformToken,
+        body: {
+          fullName: 'Usuario con contraseña temporal',
+          username: 'temporal_plataforma',
+          phone: '+526671115523',
+          password: 'Temporal7',
+          timezoneCode: 'America/Mazatlan',
+          role: 'user',
+          permissionCodes: ['clients.view'],
+        },
+      },
+    );
+    expect(created.status).toBe(201);
+    expect(created.body.user.mustChangePassword).toBe(true);
+
+    const temporary = await login(created.body.user.loginName, 'Temporal7');
+    expect(temporary.status).toBe(200);
+    expect(temporary.body.user.mustChangePassword).toBe(true);
+    expect(
+      (
+        await request<unknown>('GET', '/clients?page=1&limit=20', {
+          token: temporary.body.accessToken,
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await request<LoginResponse['user']>('GET', '/auth/me', {
+          token: temporary.body.accessToken,
+        })
+      ).status,
+    ).toBe(200);
+
+    const incorrectCurrentPassword = await request<unknown>('PATCH', '/users/me/password', {
+      token: temporary.body.accessToken,
+      body: { currentPassword: 'Error28a', newPassword: 'Final28a' },
+    });
+    expect(incorrectCurrentPassword.status).toBe(401);
+    const changed = await request<unknown>('PATCH', '/users/me/password', {
+      token: temporary.body.accessToken,
+      body: { currentPassword: 'Temporal7', newPassword: 'Final28a' },
+    });
+    expect(changed.status).toBe(204);
+    expect(
+      (
+        await request<unknown>('GET', '/auth/me', {
+          token: temporary.body.accessToken,
+        })
+      ).status,
+    ).toBe(401);
+    expect(
+      (
+        await request<unknown>('POST', '/auth/refresh', {
+          cookie: cookiePair(temporary.setCookie!),
+        })
+      ).status,
+    ).toBe(401);
+    expect((await login(created.body.user.loginName, 'Temporal7')).status).toBe(401);
+
+    const permanent = await login(created.body.user.loginName, 'Final28a');
+    expect(permanent.status).toBe(200);
+    expect(permanent.body.user.mustChangePassword).toBe(false);
+    expect(permanent.body.user.permissions).toEqual(['clients.view']);
+    expect(
+      (
+        await request<PaginatedClients>('GET', '/clients?page=1&limit=20', {
+          token: permanent.body.accessToken,
+        })
+      ).status,
+    ).toBe(200);
+  });
+
   it('aplica la jerarquía company_admin → admin → user al administrar cuentas', async () => {
     const tenant = await provisionAndLogin('Role Hierarchy Integration', 'roles.admin@test.local');
     await request<unknown>('PATCH', `/subscriptions/companies/${tenant.company.id}`, {
