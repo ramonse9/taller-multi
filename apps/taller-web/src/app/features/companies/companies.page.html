@@ -166,14 +166,22 @@
             >
             }
           </div>
-          <button
-            type="button"
-            class="border border-[#e86a33] bg-[#ffe2d5] px-4 py-2 text-sm font-bold text-[#9b3f19] transition hover:bg-[#e86a33] hover:text-white disabled:cursor-not-allowed disabled:opacity-45 dark:bg-[#5b3528] dark:text-[#ffc4aa]"
-            [disabled]="!company.isActive || !company.admin.isActive"
-            (click)="openPasswordReset(company)"
-          >
-            Asignar contraseña temporal
-          </button>
+          <div class="grid gap-2 sm:min-w-56">
+            <a
+              class="border border-[#31597f] bg-[#dceaf5] px-4 py-2 text-center text-sm font-bold text-[#244b68] transition hover:bg-[#31597f] hover:text-white dark:border-[#6d92b6] dark:bg-[#294866] dark:text-[#dceeff]"
+              [routerLink]="['/companies', company.id, 'users']"
+            >
+              Administrar usuarios
+            </a>
+            <button
+              type="button"
+              class="border border-[#e86a33] bg-[#ffe2d5] px-4 py-2 text-sm font-bold text-[#9b3f19] transition hover:bg-[#e86a33] hover:text-white disabled:cursor-not-allowed disabled:opacity-45 dark:bg-[#5b3528] dark:text-[#ffc4aa]"
+              [disabled]="!company.isActive || !company.admin.isActive"
+              (click)="openPasswordReset(company)"
+            >
+              Asignar contraseña temporal
+            </button>
+          </div>
         </article>
         } @empty {
         <div

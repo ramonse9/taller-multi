@@ -37,6 +37,15 @@ export const routes: Routes = [
           ),
       },
       {
+        path: "companies/:companyId/users",
+        canActivate: [roleGuard],
+        data: { roles: ["platform_admin"] },
+        loadComponent: () =>
+          import("./features/users/platform-company-users.page").then(
+            (m) => m.PlatformCompanyUsersPage,
+          ),
+      },
+      {
         path: "companies",
         canActivate: [roleGuard],
         data: { roles: ["platform_admin"] },

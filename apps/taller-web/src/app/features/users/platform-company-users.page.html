@@ -1,0 +1,448 @@
+<main>
+  <header class="topbar">
+    <div>
+      <a class="back-link" routerLink="/companies">← Volver a compañías</a>
+      <p class="breadcrumb">PLATAFORMA / COMPAÑÍAS / USUARIOS</p>
+      <h1>{{ company()?.name || 'Usuarios' }}</h1>
+    </div>
+    <div class="topbar-actions">
+      <button
+        type="button"
+        class="theme-toggle"
+        (click)="theme.toggle()"
+        [attr.aria-label]="theme.isDark() ? 'Usar tema claro' : 'Usar tema oscuro'"
+        [title]="theme.isDark() ? 'Usar tema claro' : 'Usar tema oscuro'"
+      >
+        {{ theme.isDark() ? '☀' : '◐' }}
+      </button>
+      <button
+        class="primary"
+        type="button"
+        [disabled]="loadingContext() || !company()?.isActive"
+        (click)="openCreate()"
+      >
+        <span>＋</span> Nuevo usuario
+      </button>
+    </div>
+  </header>
+
+  <section class="content">
+    <div class="company-context">
+      <div>
+        <span
+          class="company-status"
+          [class.inactive]="company() && !company()?.isActive"
+        >
+          {{ company()?.isActive ? 'Compañía activa' : 'Compañía inactiva' }}
+        </span>
+        <strong>&#64;{{ company()?.loginCode || 'compania' }}</strong>
+      </div>
+      <p>
+        Consulta sus accesos y crea usuarios con rol, plantilla y permisos
+        individuales sin ingresar a la cuenta de la compañía.
+      </p>
+    </div>
+
+    @if (company() && !company()?.isActive) {
+    <div class="inactive-banner" role="status">
+      La compañía está desactivada. Puedes consultar sus usuarios, pero debes
+      reactivarla antes de crear un acceso nuevo.
+    </div>
+    }
+
+    <div class="intro-row">
+      <p>Usuarios registrados dentro de esta compañía.</p>
+      <div class="count">
+        <strong>{{ data().totalItems }}</strong><span>RESULTADOS</span>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <label class="search">
+        <span>⌕</span>
+        <input
+          [formControl]="search"
+          type="search"
+          placeholder="Buscar por nombre, usuario, celular o correo"
+        />
+      </label>
+      <div class="segments" aria-label="Estatus">
+        <button
+          type="button"
+          [class.selected]="activeFilter() === true"
+          (click)="filterBy(true)"
+        >
+          Activos
+        </button>
+        <button
+          type="button"
+          [class.selected]="activeFilter() === false"
+          (click)="filterBy(false)"
+        >
+          Inactivos
+        </button>
+        <button
+          type="button"
+          [class.selected]="activeFilter() === null"
+          (click)="filterBy(null)"
+        >
+          Todos
+        </button>
+      </div>
+    </div>
+
+    @if (notice()) {
+    <div class="notice" role="status">✓ {{ notice() }}</div>
+    } @if (error()) {
+    <div class="error-banner" role="alert">
+      {{ error() }} <button type="button" (click)="load()">Reintentar</button>
+    </div>
+    }
+
+    <div class="users-cards" [class.loading]="loading()">
+      @for (user of data().items; track user.id) {
+      <article class="user-card">
+        <div class="user-card-heading">
+          <span class="avatar">{{ initials(user.fullName) }}</span>
+          <div class="user-card-identity">
+            <strong>{{ user.fullName }}</strong>
+            <small>{{ user.loginName }}</small>
+            @if (user.phone) { <small>{{ user.phone }}</small> }
+          </div>
+          <span
+            class="role"
+            [class.admin]="user.role === 'admin'"
+            [class.company-admin]="user.role === 'company_admin'"
+          >
+            {{ roleLabel(user.role) }}
+          </span>
+        </div>
+        <dl class="user-card-details">
+          <div>
+            <dt>Estatus</dt>
+            <dd>
+              {{ user.isActive ? 'Acceso activo' : 'Acceso desactivado' }}
+            </dd>
+          </div>
+          <div>
+            <dt>Registro</dt>
+            <dd>{{ formatShortDate(user.createdAt) }}</dd>
+          </div>
+          <div class="user-card-scope">
+            <dt>Alcance administrativo</dt>
+            <dd>{{ managementScope(user.role) }}</dd>
+          </div>
+        </dl>
+      </article>
+      } @empty { @if (!loading()) {
+      <div class="empty users-card-empty">
+        <span>◎</span>
+        <h2>No hay usuarios aquí</h2>
+        <p>Cambia los filtros o registra un nuevo acceso.</p>
+      </div>
+      } } @if (loading()) {
+      <div class="loader" aria-label="Cargando">
+        <span></span><span></span><span></span>
+      </div>
+      }
+    </div>
+
+    <div class="table-wrap users-table" [class.loading]="loading()">
+      <table>
+        <thead>
+          <tr>
+            <th>Usuario</th>
+            <th>Rol</th>
+            <th>Zona horaria</th>
+            <th>Registro</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (user of data().items; track user.id) {
+          <tr>
+            <td>
+              <div class="person">
+                <span class="avatar">{{ initials(user.fullName) }}</span>
+                <div>
+                  <strong>{{ user.fullName }}</strong>
+                  <small>{{ user.loginName }}</small>
+                  @if (user.phone) { <small>{{ user.phone }}</small> }
+                </div>
+              </div>
+            </td>
+            <td>
+              <span
+                class="role"
+                [class.admin]="user.role === 'admin'"
+                [class.company-admin]="user.role === 'company_admin'"
+              >
+                {{ roleLabel(user.role) }}
+              </span>
+              <small
+                >{{ user.isActive ? 'Acceso activo' : 'Acceso desactivado'
+                }}</small
+              >
+              <small class="scope">{{ managementScope(user.role) }}</small>
+            </td>
+            <td><span class="timezone">{{ user.timezoneCode }}</span></td>
+            <td>{{ formatShortDate(user.createdAt) }}</td>
+          </tr>
+          } @empty { @if (!loading()) {
+          <tr>
+            <td colspan="4">
+              <div class="empty">
+                <span>◎</span>
+                <h2>No hay usuarios aquí</h2>
+                <p>Cambia los filtros o registra un nuevo acceso.</p>
+              </div>
+            </td>
+          </tr>
+          } }
+        </tbody>
+      </table>
+      @if (loading()) {
+      <div class="loader" aria-label="Cargando">
+        <span></span><span></span><span></span>
+      </div>
+      }
+    </div>
+
+    <footer class="pagination">
+      <span>Página {{ data().page }} de {{ data().totalPages || 1 }}</span>
+      <div>
+        <button
+          type="button"
+          (click)="previous()"
+          [disabled]="data().page <= 1"
+        >
+          ← Anterior
+        </button>
+        <button type="button" (click)="next()" [disabled]="!data().hasNextPage">
+          Siguiente →
+        </button>
+      </div>
+    </footer>
+  </section>
+</main>
+
+@if (editorOpen()) {
+<div class="backdrop" (click)="closeEditor()" role="presentation">
+  <section
+    class="editor"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="platform-user-editor-title"
+    (click)="$event.stopPropagation()"
+  >
+    <header>
+      <div>
+        <p class="breadcrumb">NUEVO ACCESO / {{ company()?.name }}</p>
+        <h2 id="platform-user-editor-title">Nuevo usuario</h2>
+      </div>
+      <button
+        class="close"
+        type="button"
+        (click)="closeEditor()"
+        aria-label="Cerrar"
+      >
+        ×
+      </button>
+    </header>
+    <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+      <div class="field full">
+        <label for="platform-user-name">Nombre completo <b>*</b></label>
+        <input
+          id="platform-user-name"
+          formControlName="fullName"
+          autocomplete="name"
+        />
+        @if (form.controls.fullName.touched && form.controls.fullName.invalid) {
+        <small>Escribe un nombre válido.</small>
+        }
+      </div>
+      <div class="field">
+        <label for="platform-user-username">Usuario <b>*</b></label>
+        <div class="login-name-inputs">
+          <input
+            id="platform-user-username"
+            formControlName="username"
+            autocomplete="off"
+          />
+          <span>&#64;{{ company()?.loginCode }}</span>
+        </div>
+        @if (form.controls.username.touched && form.controls.username.invalid) {
+        <small>Usa letras, números, punto, guion o guion bajo.</small>
+        }
+      </div>
+      <div class="field">
+        <label for="platform-user-phone">Celular <b>*</b></label>
+        <div class="phone-inputs">
+          <input
+            id="platform-user-phone-country-code"
+            class="phone-country-code"
+            type="tel"
+            formControlName="phoneCountryCode"
+            autocomplete="tel-country-code"
+            aria-label="Lada internacional"
+          />
+          <input
+            id="platform-user-phone"
+            type="tel"
+            formControlName="phone"
+            autocomplete="tel-national"
+            inputmode="numeric"
+            maxlength="13"
+            placeholder="667 122 33 44"
+            (input)="formatPhone()"
+          />
+        </div>
+        @if ((form.controls.phoneCountryCode.touched &&
+        form.controls.phoneCountryCode.invalid) || (form.controls.phone.touched
+        && form.controls.phone.invalid)) {
+        <small>Captura una lada válida y los 10 dígitos del celular.</small>
+        }
+      </div>
+      <div class="field full">
+        <label for="platform-user-email">Correo (opcional)</label>
+        <input
+          id="platform-user-email"
+          type="email"
+          formControlName="email"
+          autocomplete="email"
+        />
+        @if (form.controls.email.touched && form.controls.email.invalid) {
+        <small>Escribe un correo válido.</small>
+        }
+      </div>
+      <div class="field">
+        <label for="platform-user-role">Rol <b>*</b></label>
+        <select
+          id="platform-user-role"
+          formControlName="role"
+          (change)="roleChanged()"
+        >
+          <option value="user">Usuario</option>
+          <option value="admin">Administrador</option>
+          <option value="company_admin">Administrador principal</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="platform-user-timezone">Zona horaria <b>*</b></label>
+        <select id="platform-user-timezone" formControlName="timezoneCode">
+          @for (timezone of timezones(); track timezone.code) {
+          <option [value]="timezone.code">{{ timezone.description }}</option>
+          }
+        </select>
+      </div>
+      <div class="field full">
+        <label for="platform-user-password">Contraseña temporal <b>*</b></label>
+        <input
+          id="platform-user-password"
+          type="password"
+          formControlName="password"
+          autocomplete="new-password"
+          placeholder="Entre 6 y 10 caracteres"
+        />
+        @if (form.controls.password.touched && form.controls.password.invalid) {
+        <small>Usa de 6 a 10 caracteres, con una letra y un número.</small>
+        }
+        <p class="temporary-password-help">
+          El usuario deberá reemplazarla al iniciar sesión. Sus permisos
+          quedarán dentro de {{ company()?.name }}.
+        </p>
+      </div>
+
+      <section
+        class="permissions-panel full"
+        aria-labelledby="platform-permissions-title"
+      >
+        <div class="permissions-heading">
+          <div>
+            <p class="section-kicker">ACCESO POR SECCIONES</p>
+            <h3 id="platform-permissions-title">Permisos</h3>
+            <p>
+              El rol define su jerarquía; la plantilla y la matriz controlan las
+              operaciones disponibles dentro de la compañía.
+            </p>
+          </div>
+          @if (targetRole() === 'company_admin') {
+          <span class="permission-state automatic">Acceso automático</span>
+          } @else if (permissionsCustomized()) {
+          <span class="permission-state customized">Personalizado</span>
+          } @else {
+          <span class="permission-state">Plantilla</span>
+          }
+        </div>
+
+        @if (targetRole() === 'company_admin') {
+        <div class="permission-callout">
+          <strong>Administrador principal</strong>
+          <span>
+            Recibe acceso completo automáticamente y puede administrar
+            Administradores y Usuarios de esta compañía.
+          </span>
+        </div>
+        } @else {
+        <div class="permission-tools platform-permission-tools">
+          <label>
+            <span>Plantilla</span>
+            <select
+              [value]="selectedTemplate() ?? ''"
+              (change)="applyTemplate($any($event.target).value)"
+              [disabled]="permissionsLoading()"
+            >
+              @for (template of permissionTemplates(); track template.code) {
+              <option [value]="template.code">
+                {{ template.name }} — {{ template.description }}
+              </option>
+              }
+            </select>
+          </label>
+        </div>
+        @if (permissionsLoading()) {
+        <div class="permissions-status">Cargando permisos…</div>
+        } @else {
+        <div class="permissions-summary">
+          <strong>{{ selectedPermissions().length }}</strong> permisos
+          seleccionados. Puedes ajustar cada acción de manera individual.
+        </div>
+        <div class="permission-matrix">
+          @for (group of permissionGroups(); track group.module) {
+          <fieldset>
+            <legend>{{ group.label }}</legend>
+            @for (permission of group.permissions; track permission.code) {
+            <label class="permission-option">
+              <input
+                type="checkbox"
+                [checked]="hasSelectedPermission(permission.code)"
+                [disabled]="permissionLocked(permission.code)"
+                (change)="togglePermission(permission.code, $any($event.target).checked)"
+              />
+              <span>
+                <strong>{{ permission.name }}</strong>
+                <small>{{ permission.description }}</small>
+              </span>
+            </label>
+            }
+          </fieldset>
+          }
+        </div>
+        } }
+      </section>
+
+      <footer>
+        <button class="ghost" type="button" (click)="closeEditor()">
+          Cancelar
+        </button>
+        <button
+          class="primary"
+          type="submit"
+          [disabled]="saving() || permissionsLoading()"
+        >
+          {{ saving() ? 'Guardando…' : 'Crear usuario' }}
+        </button>
+      </footer>
+    </form>
+  </section>
+</div>
+}

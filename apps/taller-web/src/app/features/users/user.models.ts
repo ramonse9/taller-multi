@@ -1,10 +1,7 @@
 export type TenantRole = "company_admin" | "admin" | "user";
 
 export type PermissionTemplateCode =
-  | "reception"
-  | "mechanic"
-  | "warehouse"
-  | "administration";
+  "reception" | "mechanic" | "warehouse" | "administration";
 
 export interface PermissionCatalogItem {
   code: string;
@@ -71,6 +68,19 @@ export interface CreateUserInput {
   password: string;
   timezoneCode: string;
   role: TenantRole;
+}
+
+export interface CreatePlatformCompanyUserInput extends CreateUserInput {
+  templateCode?: PermissionTemplateCode | null;
+  permissionCodes?: string[];
+}
+
+export interface PlatformCompanyUserResponse {
+  user: TenantUser;
+  templateCode: PermissionTemplateCode | null;
+  isCustomized: boolean;
+  automatic: boolean;
+  permissionCodes: string[];
 }
 
 export interface UpdateUserInput {

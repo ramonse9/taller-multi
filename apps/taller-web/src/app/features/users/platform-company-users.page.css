@@ -1,0 +1,97 @@
+.back-link {
+  display: inline-block;
+  margin-bottom: 0.8rem;
+  color: var(--users-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.back-link:hover,
+.back-link:focus-visible {
+  color: var(--orange);
+  text-decoration: underline;
+  text-underline-offset: 0.2rem;
+}
+
+.company-context {
+  display: grid;
+  grid-template-columns: minmax(12rem, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 1.4rem;
+  padding: 1rem 1.2rem;
+  border: 1px solid var(--users-line);
+  background: var(--users-surface);
+}
+
+.company-context > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.company-context strong {
+  font: 600 0.78rem var(--mono);
+}
+
+.company-context p {
+  margin: 0;
+  color: var(--users-muted);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.company-status {
+  padding: 0.35rem 0.55rem;
+  background: #cfe7d9;
+  color: #285b3e;
+  font: 700 0.58rem var(--mono);
+  text-transform: uppercase;
+}
+
+.company-status.inactive {
+  background: #ffdcd2;
+  color: #842f1d;
+}
+
+:host.dark .company-status {
+  background: #3b6855;
+  color: #e4f7ec;
+}
+
+:host.dark .company-status.inactive {
+  background: #633d3d;
+  color: #ffd9d4;
+}
+
+.inactive-banner {
+  margin-bottom: 1.4rem;
+  padding: 0.85rem 1rem;
+  border-left: 3px solid #c26737;
+  background: #ffedc9;
+  color: #704b16;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+:host.dark .inactive-banner {
+  background: #5b4727;
+  color: #ffd18a;
+}
+
+.platform-permission-tools {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.platform-permission-tools label {
+  max-width: 40rem;
+}
+
+@media (max-width: 700px) {
+  .company-context {
+    grid-template-columns: 1fr;
+    gap: 0.7rem;
+  }
+}

@@ -8,6 +8,7 @@ import {
   signal,
 } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
+import { RouterLink } from "@angular/router";
 import {
   FormControl,
   FormGroup,
@@ -32,7 +33,7 @@ import { CompanyResponse, CreateCompanyInput } from "./company.models";
 
 @Component({
   selector: "app-companies-page",
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, RouterLink],
   templateUrl: "./companies.page.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
