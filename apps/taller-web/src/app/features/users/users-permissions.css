@@ -1,7 +1,7 @@
 .permissions-panel {
   margin-top: 0.7rem;
   padding-top: 1.6rem;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--users-line);
 }
 .permissions-heading {
   display: flex;
@@ -22,7 +22,7 @@
 .permissions-heading p:not(.section-kicker) {
   max-width: 38rem;
   margin: 0.35rem 0 0;
-  color: var(--muted);
+  color: var(--users-muted);
   font-size: 0.76rem;
   line-height: 1.55;
 }
@@ -69,6 +69,9 @@
 }
 .permission-tools select {
   width: 100%;
+  border-color: var(--users-line);
+  background: var(--users-surface);
+  color: var(--users-text);
 }
 .copy-permissions {
   display: grid;
@@ -83,12 +86,12 @@
 .permissions-summary {
   margin-top: 1.2rem;
   padding: 0.8rem 1rem;
-  background: #e1e9f1;
-  color: var(--muted);
+  background: var(--users-fill-strong);
+  color: var(--users-muted);
   font-size: 0.72rem;
 }
 .permissions-summary strong {
-  color: var(--ink);
+  color: var(--users-text);
 }
 .permission-matrix {
   display: grid;
@@ -100,12 +103,12 @@
   min-width: 0;
   margin: 0;
   padding: 0.85rem;
-  border: 1px solid var(--line);
-  background: #fff;
+  border: 1px solid var(--users-line);
+  background: var(--users-surface);
 }
 .permission-matrix legend {
   padding: 0 0.35rem;
-  color: var(--ink);
+  color: var(--users-text);
   font: 700 0.68rem var(--mono);
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -116,7 +119,7 @@
   gap: 0.55rem;
   align-items: start;
   padding: 0.55rem 0;
-  border-bottom: 1px solid #e2e7ec;
+  border-bottom: 1px solid var(--users-line);
   cursor: pointer;
 }
 .permission-option:last-child {
@@ -132,18 +135,42 @@
   display: block;
 }
 .permission-option strong {
-  color: var(--ink);
+  color: var(--users-text);
   font-size: 0.72rem;
 }
 .permission-option small {
   margin-top: 0.18rem;
-  color: var(--muted);
+  color: var(--users-muted);
   font-size: 0.65rem;
   line-height: 1.4;
 }
 .permission-option:has(input:disabled) {
   cursor: not-allowed;
   opacity: 0.68;
+}
+
+.dark .permission-state {
+  background: #3b6855;
+  color: #e4f7ec;
+}
+.dark .permission-state.customized {
+  background: #7b513e;
+  color: #ffe6d9;
+}
+.dark .permission-state.automatic {
+  background: #365774;
+  color: #e3f2ff;
+}
+.dark .permission-callout {
+  border-left-color: #67ad86;
+  background: #254533;
+  color: #d9f3e4;
+}
+.dark .permission-callout span {
+  color: #b9d9c7;
+}
+.dark .permission-tools select {
+  color-scheme: dark;
 }
 
 .users-cards {
