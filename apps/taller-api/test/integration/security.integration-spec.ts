@@ -974,6 +974,26 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       preferredCfdiUseCode: 'G03',
     });
 
+    const companyCreated = await request<ClientResponse>('POST', '/clients', {
+      token: alpha.accessToken,
+      body: {
+        type: 'company',
+        displayName: 'Empresa Fiscal Alpha',
+        taxId: 'fsa010101ab1',
+        fiscalName: '  Empresa Fiscal Alpha, S.A. de C.V. ',
+        fiscalPostalCode: '80000',
+        fiscalRegimeCode: '601',
+        preferredCfdiUseCode: 'G03',
+      },
+    });
+    expect(companyCreated.status).toBe(201);
+    expect(companyCreated.body).toMatchObject({
+      type: 'company',
+      taxId: 'FSA010101AB1',
+      fiscalRegimeCode: '601',
+      preferredCfdiUseCode: 'G03',
+    });
+
     const incompatible = await request<unknown>('POST', '/clients', {
       token: alpha.accessToken,
       body: {
@@ -1054,14 +1074,53 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       token: beta.accessToken,
     });
     expect(foreignLookup.status).toBe(404);
+    const foreignUpdate = await request<unknown>('PATCH', `/clients/${created.body.id}`, {
+      token: beta.accessToken,
+      body: { fiscalPostalCode: '81000' },
+    });
+    expect(foreignUpdate.status).toBe(404);
 
     const betaList = await listClients(beta.accessToken);
     expect(betaList.body.items).toHaveLength(0);
 
     const swagger = SwaggerModule.createDocument(app, new DocumentBuilder().build());
-    expect(Object.keys(swagger.paths).some((path) => path.endsWith('/clients/cfdi-uses'))).toBe(
-      true,
-    );
+    const fiscalRegimesPath = Object.entries(swagger.paths).find(([path]) =>
+      path.endsWith('/clients/fiscal-regimes'),
+    )?.[1];
+    const cfdiUsesPath = Object.entries(swagger.paths).find(([path]) =>
+      path.endsWith('/clients/cfdi-uses'),
+    )?.[1];
+    expect(fiscalRegimesPath?.get).toBeDefined();
+    expect(cfdiUsesPath?.get).toBeDefined();
+    expect(JSON.stringify(fiscalRegimesPath?.get?.parameters)).toContain('customerType');
+    expect(JSON.stringify(cfdiUsesPath?.get?.parameters)).toContain('customerType');
+    expect(JSON.stringify(cfdiUsesPath?.get?.parameters)).toContain('fiscalRegimeCode');
+
+    const schemas = swagger.components?.schemas as
+      | Record<
+          string,
+          {
+            properties?: Record<
+              string,
+              { nullable?: boolean; minLength?: number; maxLength?: number }
+            >;
+          }
+        >
+      | undefined;
+    const expectedFiscalFields = {
+      fiscalName: { minLength: 2, maxLength: 180 },
+      fiscalPostalCode: { minLength: 5, maxLength: 5 },
+      fiscalRegimeCode: { minLength: 3, maxLength: 3 },
+      preferredCfdiUseCode: { minLength: 3, maxLength: 4 },
+    };
+    for (const schemaName of ['CreateClientDto', 'UpdateClientDto', 'ClientResponseDto']) {
+      for (const [field, limits] of Object.entries(expectedFiscalFields)) {
+        expect(schemas?.[schemaName]?.properties?.[field]).toMatchObject({
+          nullable: true,
+          ...limits,
+        });
+      }
+    }
     const cfdiUseSchema = JSON.stringify(swagger.components?.schemas?.CfdiUseResponseDto);
     expect(cfdiUseSchema).toContain('description');
     expect(cfdiUseSchema).toContain('validFrom');

@@ -76,6 +76,8 @@ export class CreateClientDto {
   @ApiPropertyOptional({
     example: 'ANA LÓPEZ PÉREZ',
     nullable: true,
+    minLength: 2,
+    maxLength: 180,
     description: 'Nombre o razón social exactamente como aparece en la constancia fiscal',
   })
   @Transform(normalizeNullableFiscalName)
@@ -84,7 +86,7 @@ export class CreateClientDto {
   @Length(2, 180)
   fiscalName?: string | null;
 
-  @ApiPropertyOptional({ example: '80000', nullable: true })
+  @ApiPropertyOptional({ example: '80000', nullable: true, minLength: 5, maxLength: 5 })
   @Transform(trimNullableString)
   @IsOptional()
   @IsString()
@@ -94,6 +96,8 @@ export class CreateClientDto {
   @ApiPropertyOptional({
     example: '612',
     nullable: true,
+    minLength: 3,
+    maxLength: 3,
     description: 'Clave del catálogo de regímenes fiscales del SAT',
   })
   @Transform(normalizeNullableUppercaseCode)
@@ -105,6 +109,8 @@ export class CreateClientDto {
   @ApiPropertyOptional({
     example: 'G03',
     nullable: true,
+    minLength: 3,
+    maxLength: 4,
     description:
       'Clave vigente del catálogo c_UsoCFDI. Requiere régimen fiscal y debe ser compatible con el tipo de persona y dicho régimen',
   })
@@ -230,10 +236,14 @@ export class ClientResponseDto {
   @ApiProperty({ nullable: true, type: String }) legalName!: string | null;
   @ApiProperty({ nullable: true, type: String }) contactName!: string | null;
   @ApiProperty({ nullable: true, type: String }) taxId!: string | null;
-  @ApiProperty({ nullable: true, type: String }) fiscalName!: string | null;
-  @ApiProperty({ nullable: true, type: String }) fiscalPostalCode!: string | null;
-  @ApiProperty({ nullable: true, type: String }) fiscalRegimeCode!: string | null;
-  @ApiProperty({ nullable: true, type: String }) preferredCfdiUseCode!: string | null;
+  @ApiProperty({ nullable: true, type: String, minLength: 2, maxLength: 180 })
+  fiscalName!: string | null;
+  @ApiProperty({ nullable: true, type: String, minLength: 5, maxLength: 5 })
+  fiscalPostalCode!: string | null;
+  @ApiProperty({ nullable: true, type: String, minLength: 3, maxLength: 3 })
+  fiscalRegimeCode!: string | null;
+  @ApiProperty({ nullable: true, type: String, minLength: 3, maxLength: 4 })
+  preferredCfdiUseCode!: string | null;
   @ApiProperty({ nullable: true, type: String }) email!: string | null;
   @ApiProperty({ nullable: true, type: String }) phone!: string | null;
   @ApiProperty({ nullable: true, type: String }) notes!: string | null;
