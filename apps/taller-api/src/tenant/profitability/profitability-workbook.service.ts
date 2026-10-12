@@ -46,7 +46,21 @@ export class ProfitabilityWorkbookService {
     workbook.modified = new Date();
     workbook.calcProperties.fullCalcOnLoad = true;
 
-    const worksheet = workbook.addWorksheet(report.label, {
+    const summaryName = `Resumen ${report.label}`;
+    const ordersName = `Órdenes ${report.label}`;
+    const summarySheet = workbook.addWorksheet(summaryName, {
+      properties: { defaultRowHeight: 20 },
+      views: [{ showGridLines: false }],
+      pageSetup: {
+        orientation: 'landscape',
+        paperSize: 9,
+        fitToPage: true,
+        fitToWidth: 1,
+        fitToHeight: 0,
+        margins: { left: 0.3, right: 0.3, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 },
+      },
+    });
+    const ordersSheet = workbook.addWorksheet(ordersName, {
       properties: { defaultRowHeight: 20 },
       views: [{ showGridLines: false }],
       pageSetup: {
@@ -59,35 +73,45 @@ export class ProfitabilityWorkbookService {
       },
     });
 
-    this.configureColumns(worksheet);
-    this.writeHeading(worksheet, report, companyName);
-    this.writeSummary(worksheet, report);
-    this.writeOrders(worksheet, report);
+    this.configureSummaryColumns(summarySheet);
+    this.writeHeading(summarySheet, report, companyName, 'Resumen mensual de órdenes y utilidad');
+    this.writeSummary(summarySheet, report);
+    summarySheet.pageSetup.printArea = 'A1:N7';
+
+    this.configureOrderColumns(ordersSheet);
+    this.writeHeading(ordersSheet, report, companyName, 'Detalle mensual de órdenes');
+    this.writeOrders(ordersSheet, report);
 
     const bytes = await workbook.xlsx.writeBuffer();
     return {
       buffer: Buffer.from(bytes),
       contentType: XLSX_CONTENT_TYPE,
       filename: `reporte-ordenes-utilidad-${this.periodSlug(report)}.xlsx`,
-      worksheetName: report.label,
+      worksheetName: summaryName,
     };
   }
 
-  private configureColumns(worksheet: Worksheet): void {
+  private configureSummaryColumns(worksheet: Worksheet): void {
+    worksheet.columns = Array.from({ length: 14 }, () => ({ width: 16 }));
+  }
+
+  private configureOrderColumns(worksheet: Worksheet): void {
     worksheet.columns = [
       { key: 'folio', width: 17 },
       { key: 'externalFolio', width: 18 },
       { key: 'completedOn', width: 15 },
       { key: 'customer', width: 27 },
-      { key: 'vehicle', width: 34 },
+      { key: 'vehicle', width: 30 },
+      { key: 'vehicleYear', width: 11 },
+      { key: 'vehicleColor', width: 16 },
       { key: 'licensePlate', width: 14 },
       { key: 'serialNumber', width: 18 },
+      { key: 'concepts', width: 54 },
       { key: 'paymentStatus', width: 15 },
       { key: 'paidOn', width: 15 },
-      { key: 'income', width: 16 },
-      { key: 'directCost', width: 16 },
-      { key: 'grossProfit', width: 16 },
-      { key: 'grossMargin', width: 14 },
+      { key: 'income', width: 17 },
+      { key: 'directCost', width: 17 },
+      { key: 'grossProfit', width: 17 },
       { key: 'costComplete', width: 18 },
     ];
   }
@@ -96,30 +120,29 @@ export class ProfitabilityWorkbookService {
     worksheet: Worksheet,
     report: MonthlyProfitabilityReportResponseDto,
     companyName: string,
+    titleText: string,
   ): void {
-    worksheet.mergeCells('A2:N2');
+    const lastColumn = worksheet.columnCount === 16 ? 'P' : 'N';
+    worksheet.mergeCells(`A2:${lastColumn}2`);
     const title = worksheet.getCell('A2');
-    title.value = 'Reporte mensual de órdenes y utilidad';
+    title.value = titleText;
     title.font = { name: FONT_NAME, size: 15, bold: true, color: { argb: COLORS.navy } };
     title.alignment = { vertical: 'middle' };
     worksheet.getRow(2).height = 24;
 
-    worksheet.mergeCells('A3:N3');
+    worksheet.mergeCells(`A3:${lastColumn}3`);
     const subtitle = worksheet.getCell('A3');
     subtitle.value = `${companyName}. Periodo: ${report.label}. Zona horaria: ${report.timezoneCode}.`;
     subtitle.font = { name: FONT_NAME, size: 10, italic: true, color: { argb: COLORS.slate } };
     subtitle.alignment = { vertical: 'middle' };
 
-    worksheet.mergeCells('A4:N4');
+    worksheet.mergeCells(`A4:${lastColumn}4`);
     const divider = worksheet.getCell('A4');
     divider.border = { bottom: { style: 'thin', color: { argb: COLORS.border } } };
     worksheet.getRow(4).height = 7;
   }
 
-  private writeSummary(
-    worksheet: Worksheet,
-    report: MonthlyProfitabilityReportResponseDto,
-  ): void {
+  private writeSummary(worksheet: Worksheet, report: MonthlyProfitabilityReportResponseDto): void {
     const summary = report.summary;
     const generatedIncome = this.money(summary.generatedIncome);
     const grossProfit = this.money(summary.grossProfit);
@@ -187,7 +210,9 @@ export class ProfitabilityWorkbookService {
     worksheet.mergeCells('I5:N5');
     worksheet.mergeCells('I6:N6');
     const status = worksheet.getCell('I5');
-    status.value = summary.isComplete ? 'Información de costos completa' : 'Información de costos incompleta';
+    status.value = summary.isComplete
+      ? 'Información de costos completa'
+      : 'Información de costos incompleta';
     status.font = {
       name: FONT_NAME,
       size: 10,
@@ -218,11 +243,8 @@ export class ProfitabilityWorkbookService {
     }
   }
 
-  private writeOrders(
-    worksheet: Worksheet,
-    report: MonthlyProfitabilityReportResponseDto,
-  ): void {
-    const headerRowNumber = 10;
+  private writeOrders(worksheet: Worksheet, report: MonthlyProfitabilityReportResponseDto): void {
+    const headerRowNumber = 5;
     const firstDataRowNumber = headerRowNumber + 1;
     const headers = [
       'Folio del sistema',
@@ -230,14 +252,16 @@ export class ProfitabilityWorkbookService {
       'Fecha de terminación',
       'Cliente o empresa',
       'Vehículo',
+      'Año',
+      'Color',
       'Placa',
       'Número de serie',
+      'Resumen de conceptos',
       'Cobro',
       'Fecha de pago',
-      'Ingreso',
+      'Total de la orden',
       'Costo directo',
       'Utilidad bruta',
-      'Margen bruto',
       'Costo completo',
     ];
     const header = worksheet.getRow(headerRowNumber);
@@ -250,6 +274,19 @@ export class ProfitabilityWorkbookService {
       cell.border = { right: { style: 'thin', color: { argb: COLORS.white } } };
     });
 
+    if (report.orders.length === 0) {
+      worksheet.mergeCells(`A${firstDataRowNumber}:P${firstDataRowNumber}`);
+      const empty = worksheet.getCell(`A${firstDataRowNumber}`);
+      empty.value = 'No hay órdenes terminadas en este periodo.';
+      empty.font = { name: FONT_NAME, size: 10, italic: true, color: { argb: COLORS.slate } };
+      empty.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.surface } };
+      empty.alignment = { horizontal: 'center', vertical: 'middle' };
+      worksheet.getRow(firstDataRowNumber).height = 30;
+      worksheet.pageSetup.printTitlesRow = `${headerRowNumber}:${headerRowNumber}`;
+      worksheet.pageSetup.printArea = `A1:P${firstDataRowNumber}`;
+      return;
+    }
+
     for (const order of report.orders) {
       const income = this.money(order.income);
       const grossProfit = order.grossProfit === null ? null : this.money(order.grossProfit);
@@ -258,20 +295,20 @@ export class ProfitabilityWorkbookService {
         externalFolio: order.externalFolio ?? '',
         completedOn: this.date(order.completedOn),
         customer: order.customerName,
-        vehicle: [order.vehicleBrand, order.vehicleModel, order.vehicleYear, order.vehicleColor]
-          .filter((value) => value !== null && value !== undefined && value !== '')
-          .join(' '),
+        vehicle: [order.vehicleBrand, order.vehicleModel].join(' '),
+        vehicleYear: order.vehicleYear,
+        vehicleColor: order.vehicleColor,
         licensePlate: order.vehicleLicensePlate ?? '',
         serialNumber: order.vehicleSerialNumber ?? '',
+        concepts: this.conceptSummary(order.concepts),
         paymentStatus: order.isPaid ? 'Pagada' : 'Pendiente',
         paidOn: order.paidOn ? this.date(order.paidOn) : null,
         income,
         directCost: this.money(order.directCost),
         grossProfit,
-        grossMargin: grossProfit === null || income === 0 ? null : grossProfit / income,
         costComplete: order.isCostComplete ? 'Sí' : 'No',
       });
-      row.height = 24;
+      row.height = Math.max(28, order.concepts.length * 18);
       row.font = { name: FONT_NAME, size: 10, color: { argb: COLORS.navy } };
       row.alignment = { vertical: 'middle' };
       row.getCell('completedOn').numFmt = DATE_FORMAT;
@@ -279,7 +316,7 @@ export class ProfitabilityWorkbookService {
       row.getCell('income').numFmt = CURRENCY_FORMAT;
       row.getCell('directCost').numFmt = CURRENCY_FORMAT;
       row.getCell('grossProfit').numFmt = CURRENCY_FORMAT;
-      row.getCell('grossMargin').numFmt = PERCENT_FORMAT;
+      row.getCell('concepts').alignment = { vertical: 'middle', wrapText: true };
       row.getCell('paymentStatus').alignment = { horizontal: 'center', vertical: 'middle' };
       row.getCell('costComplete').alignment = { horizontal: 'center', vertical: 'middle' };
 
@@ -317,53 +354,6 @@ export class ProfitabilityWorkbookService {
     }
 
     const lastDataRowNumber = firstDataRowNumber + report.orders.length - 1;
-    const totalsRowNumber = Math.max(firstDataRowNumber, lastDataRowNumber + 1);
-    const totals = worksheet.getRow(totalsRowNumber);
-    totals.getCell('folio').value = 'Totales';
-    worksheet.mergeCells(`A${totalsRowNumber}:I${totalsRowNumber}`);
-    totals.getCell('income').value = this.totalFormula(
-      'J',
-      firstDataRowNumber,
-      lastDataRowNumber,
-      this.money(report.summary.generatedIncome),
-    );
-    totals.getCell('directCost').value = this.totalFormula(
-      'K',
-      firstDataRowNumber,
-      lastDataRowNumber,
-      this.money(report.summary.directCost),
-    );
-    totals.getCell('grossProfit').value = this.totalFormula(
-      'L',
-      firstDataRowNumber,
-      lastDataRowNumber,
-      this.money(report.summary.grossProfit),
-    );
-    totals.getCell('grossMargin').value = {
-      formula: `IF(J${totalsRowNumber}=0,"",L${totalsRowNumber}/J${totalsRowNumber})`,
-      result:
-        this.money(report.summary.generatedIncome) === 0
-          ? ''
-          : this.money(report.summary.grossProfit) / this.money(report.summary.generatedIncome),
-    };
-    totals.getCell('costComplete').value = report.summary.isComplete
-      ? 'Completo'
-      : `${report.summary.incompleteCostOrderCount} incompleta(s)`;
-    totals.height = 26;
-    totals.font = { name: FONT_NAME, size: 10, bold: true, color: { argb: COLORS.navy } };
-    totals.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.surface } };
-    totals.alignment = { vertical: 'middle' };
-    totals.getCell('folio').alignment = { horizontal: 'right', vertical: 'middle' };
-    totals.getCell('income').numFmt = CURRENCY_FORMAT;
-    totals.getCell('directCost').numFmt = CURRENCY_FORMAT;
-    totals.getCell('grossProfit').numFmt = CURRENCY_FORMAT;
-    totals.getCell('grossMargin').numFmt = PERCENT_FORMAT;
-    totals.getCell('costComplete').alignment = { horizontal: 'center', vertical: 'middle' };
-    totals.eachCell((cell) => {
-      cell.border = { top: { style: 'medium', color: { argb: COLORS.blue } } };
-    });
-
-    worksheet.autoFilter = `A${headerRowNumber}:N${Math.max(headerRowNumber, lastDataRowNumber)}`;
     worksheet.views = [
       {
         state: 'frozen',
@@ -373,7 +363,7 @@ export class ProfitabilityWorkbookService {
       },
     ];
     worksheet.pageSetup.printTitlesRow = `${headerRowNumber}:${headerRowNumber}`;
-    worksheet.pageSetup.printArea = `A1:N${totalsRowNumber}`;
+    worksheet.pageSetup.printArea = `A1:P${lastDataRowNumber}`;
   }
 
   private summaryMetric(
@@ -408,20 +398,29 @@ export class ProfitabilityWorkbookService {
     if (numberFormat) valueCell.numFmt = numberFormat;
   }
 
-  private totalFormula(
-    column: string,
-    firstDataRow: number,
-    lastDataRow: number,
-    result: number,
-  ): number | { formula: string; result: number } {
-    return lastDataRow < firstDataRow
-      ? result
-      : { formula: `SUM(${column}${firstDataRow}:${column}${lastDataRow})`, result };
+  private conceptSummary(
+    concepts: MonthlyProfitabilityReportResponseDto['orders'][number]['concepts'],
+  ): string {
+    if (concepts.length === 0) return 'Sin conceptos';
+    return concepts
+      .map((concept) => {
+        const type = concept.type === 'service' ? 'Servicio' : 'Producto';
+        const billing = concept.affectsOrderTotal ? 'Cobrable' : 'Insumo';
+        return `${this.quantity(concept.quantity)} × ${concept.description} — ${type} · ${billing}`;
+      })
+      .join('\n');
+  }
+
+  private quantity(value: string): string {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return value;
+    return parsed.toFixed(3).replace(/\.?0+$/, '');
   }
 
   private money(value: string): number {
     const parsed = Number(value);
-    if (!Number.isFinite(parsed)) throw new Error(`Importe inválido en el reporte mensual: ${value}`);
+    if (!Number.isFinite(parsed))
+      throw new Error(`Importe inválido en el reporte mensual: ${value}`);
     return parsed;
   }
 

@@ -3012,6 +3012,13 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
             quantity: 1,
           },
           { description: 'Servicio libre', quantity: 1, unitPrice: 200, unitCost: 20 },
+          {
+            kind: 'product',
+            description: 'Insumo incluido',
+            quantity: 2,
+            unitCost: 0,
+            affectsOrderTotal: false,
+          },
         ],
       },
     });
@@ -3020,6 +3027,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       { kind: 'product', unitCost: '80.00' },
       { kind: 'service', unitCost: '50.00' },
       { kind: 'service', unitCost: '20.00' },
+      { kind: 'product', unitCost: '0.00' },
     ]);
     const unknownCostService = await request<OrderResponse>('POST', '/orders', {
       token: tenant.accessToken,
@@ -3256,10 +3264,11 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     );
     const incompleteWorkbook = new Workbook();
     await incompleteWorkbook.xlsx.load(Uint8Array.from(incompleteWorkbookResponse.body).buffer);
-    const incompleteSheet = incompleteWorkbook.getWorksheet('Octubre 2026')!;
-    expect(incompleteSheet.getCell('I5').value).toBe('Información de costos incompleta');
-    expect(incompleteSheet.getCell('L11').value).toBeNull();
-    expect(incompleteSheet.getCell('N11').value).toBe('No');
+    const incompleteSummary = incompleteWorkbook.getWorksheet('Resumen Octubre 2026')!;
+    const incompleteOrders = incompleteWorkbook.getWorksheet('Órdenes Octubre 2026')!;
+    expect(incompleteSummary.getCell('I5').value).toBe('Información de costos incompleta');
+    expect(incompleteOrders.getCell('O6').value).toBeNull();
+    expect(incompleteOrders.getCell('P6').value).toBe('No');
     const incompleteProductDashboard = await request<DashboardSummaryResponse>(
       'GET',
       '/dashboard/summary',
@@ -3507,6 +3516,12 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
             quantity: '1.000',
             affectsOrderTotal: true,
           },
+          {
+            description: 'Insumo incluido',
+            type: 'product',
+            quantity: '2.000',
+            affectsOrderTotal: false,
+          },
         ],
       }),
     ]);
@@ -3523,25 +3538,35 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     );
     const parsedWorkbook = new Workbook();
     await parsedWorkbook.xlsx.load(Uint8Array.from(monthlyWorkbook.body).buffer);
-    const octoberSheet = parsedWorkbook.getWorksheet('Octubre 2026');
-    expect(octoberSheet).toBeDefined();
-    expect(octoberSheet!.getCell('A2').value).toBe('Reporte mensual de órdenes y utilidad');
-    expect(octoberSheet!.getCell('A11').value).toBe(order.body.folio);
-    expect(octoberSheet!.getCell('B11').value).toBe('CBS-2026-100');
-    expect(octoberSheet!.getCell('C11').value).toBeInstanceOf(Date);
-    expect(octoberSheet!.getCell('H11').value).toBe('Pagada');
-    expect(octoberSheet!.getCell('J11').value).toBe(700);
-    expect(octoberSheet!.getCell('J11').numFmt).toContain('$');
-    expect(octoberSheet!.getCell('M11').numFmt).toBe('0.00%');
-    expect(octoberSheet!.getCell('J12').value).toMatchObject({
-      formula: 'SUM(J11:J11)',
-      result: 700,
-    });
-    expect(octoberSheet!.autoFilter).toBe('A10:N11');
-    expect(octoberSheet!.getColumn(4).width).toBe(27);
-    expect(octoberSheet!.views[0]).toMatchObject({ state: 'frozen', ySplit: 10 });
-    expect(octoberSheet!.getCell('D7').value).toBe(120);
-    expect(octoberSheet!.getCell('F7').value).toBe(430);
+    expect(parsedWorkbook.worksheets.map(({ name }) => name)).toEqual([
+      'Resumen Octubre 2026',
+      'Órdenes Octubre 2026',
+    ]);
+    const octoberSummary = parsedWorkbook.getWorksheet('Resumen Octubre 2026')!;
+    const octoberOrders = parsedWorkbook.getWorksheet('Órdenes Octubre 2026')!;
+    expect(octoberSummary.getCell('A2').value).toBe('Resumen mensual de órdenes y utilidad');
+    expect(octoberSummary.getCell('D7').value).toBe(120);
+    expect(octoberSummary.getCell('F7').value).toBe(430);
+    expect(octoberOrders.getCell('A2').value).toBe('Detalle mensual de órdenes');
+    expect(octoberOrders.getCell('A6').value).toBe(order.body.folio);
+    expect(octoberOrders.getCell('B6').value).toBe('CBS-2026-100');
+    expect(octoberOrders.getCell('C6').value).toBeInstanceOf(Date);
+    expect(octoberOrders.getCell('D6').value).toBe('Cliente Rentable');
+    expect(octoberOrders.getCell('E6').value).toBe(
+      'Marca Utilidad Integration Modelo Utilidad Integration',
+    );
+    expect(octoberOrders.getCell('F6').value).toBe(2025);
+    expect(octoberOrders.getCell('G6').value).toBe('Gris');
+    expect(octoberOrders.getCell('J6').value).toContain('2 × Insumo incluido — Producto · Insumo');
+    expect(octoberOrders.getCell('J6').value).toContain('Servicio libre — Servicio · Cobrable');
+    expect(octoberOrders.getCell('J6').alignment).toMatchObject({ wrapText: true });
+    expect(octoberOrders.getCell('K6').value).toBe('Pagada');
+    expect(octoberOrders.getCell('M6').value).toBe(700);
+    expect(octoberOrders.getCell('M6').numFmt).toContain('$');
+    expect(octoberOrders.getCell('N6').value).toBe(150);
+    expect(octoberOrders.getCell('O6').value).toBe(550);
+    expect(octoberOrders.autoFilter).toBeUndefined();
+    expect(octoberOrders.views[0]).toMatchObject({ state: 'frozen', ySplit: 5 });
 
     await control.query(
       `UPDATE ${quoteIdentifier(tenant.company.schemaName)}.orders
@@ -3762,11 +3787,13 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     );
     const isolatedWorkbook = new Workbook();
     await isolatedWorkbook.xlsx.load(Uint8Array.from(isolatedWorkbookResponse.body).buffer);
-    const isolatedSheet = isolatedWorkbook.getWorksheet('Octubre 2026')!;
-    expect(isolatedSheet.autoFilter).toBe('A10:N10');
-    expect(isolatedSheet.getCell('A11').value).toBe('Totales');
-    expect(isolatedSheet.getCell('J11').value).toBe(0);
-    expect(isolatedSheet.getCell('A12').value).toBeNull();
+    const isolatedSummary = isolatedWorkbook.getWorksheet('Resumen Octubre 2026')!;
+    const isolatedOrders = isolatedWorkbook.getWorksheet('Órdenes Octubre 2026')!;
+    expect(isolatedSummary.getCell('B6').value).toBe(0);
+    expect(isolatedSummary.getCell('F7').value).toBe(0);
+    expect(isolatedOrders.autoFilter).toBeUndefined();
+    expect(isolatedOrders.getCell('A6').value).toBe('No hay órdenes terminadas en este periodo.');
+    expect(isolatedOrders.getCell('A7').value).toBeNull();
 
     const pending = await request<OrderResponse>(
       'PATCH',
@@ -3796,13 +3823,13 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     );
     const pendingWorkbook = new Workbook();
     await pendingWorkbook.xlsx.load(Uint8Array.from(pendingWorkbookResponse.body).buffer);
-    const pendingSheet = pendingWorkbook.getWorksheet('Octubre 2026')!;
-    const pendingOrderRow = Array.from({ length: pendingSheet.rowCount - 10 }, (_, index) =>
-      pendingSheet.getRow(index + 11),
+    const pendingSheet = pendingWorkbook.getWorksheet('Órdenes Octubre 2026')!;
+    const pendingOrderRow = Array.from({ length: pendingSheet.rowCount - 5 }, (_, index) =>
+      pendingSheet.getRow(index + 6),
     ).find((row) => row.getCell(1).value === order.body.folio);
     expect(pendingOrderRow).toBeDefined();
-    expect(pendingOrderRow!.getCell(8).value).toBe('Pendiente');
-    expect(pendingOrderRow!.getCell(9).value).toBeNull();
+    expect(pendingOrderRow!.getCell(11).value).toBe('Pendiente');
+    expect(pendingOrderRow!.getCell(12).value).toBeNull();
     expect(
       (
         await request<unknown>(
