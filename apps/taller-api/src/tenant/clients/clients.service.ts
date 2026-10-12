@@ -21,6 +21,12 @@ import {
   PaginatedClientsResponseDto,
   UpdateClientDto,
 } from './dto/client.dto';
+import {
+  COMPANY_RFC_PATTERN,
+  GENERIC_RFCS,
+  PERSON_RFC_PATTERN,
+  RFC_PATTERN,
+} from './rfc-validation';
 
 interface ClientRow {
   id: string;
@@ -209,8 +215,10 @@ export class ClientsService {
 
   create(user: AuthenticatedUser, input: CreateClientDto): Promise<ClientResponseDto> {
     return this.tenant.run(user, async (runner, schema) => {
+      const taxId = this.normalizeTaxId(input.taxId);
       const fiscalRegimeCode = this.normalizeUppercaseCode(input.fiscalRegimeCode);
       const preferredCfdiUseCode = this.normalizeUppercaseCode(input.preferredCfdiUseCode);
+      this.assertTaxIdCompatibility(input.type, taxId);
       await this.assertFiscalRegimeCompatibility(runner, input.type, fiscalRegimeCode);
       await this.assertCfdiUseCompatibility(
         runner,
@@ -232,7 +240,7 @@ export class ClientsService {
             input.displayName,
             input.type === CustomerType.Company ? (input.legalName ?? null) : null,
             input.type === CustomerType.Company ? (input.contactName ?? null) : null,
-            this.normalizeTaxId(input.taxId),
+            taxId,
             this.normalizeFiscalName(input.fiscalName),
             this.normalizePostalCode(input.fiscalPostalCode),
             fiscalRegimeCode,
@@ -255,6 +263,7 @@ export class ClientsService {
       const current = await this.findOne(runner, schema, id);
       if (!current) throw new NotFoundException('Cliente no encontrado');
       const customerType = input.type ?? current.customer_type;
+      const taxId = input.taxId === undefined ? current.tax_id : this.normalizeTaxId(input.taxId);
       const fiscalRegimeCode =
         input.fiscalRegimeCode === undefined
           ? current.fiscal_regime_code
@@ -263,6 +272,7 @@ export class ClientsService {
         input.preferredCfdiUseCode === undefined
           ? current.preferred_cfdi_use_code
           : this.normalizeUppercaseCode(input.preferredCfdiUseCode);
+      this.assertTaxIdCompatibility(customerType, taxId);
       await this.assertFiscalRegimeCompatibility(runner, customerType, fiscalRegimeCode);
       await this.assertCfdiUseCompatibility(
         runner,
@@ -293,7 +303,7 @@ export class ClientsService {
                 ? current.contact_name
                 : input.contactName
               : null,
-            input.taxId === undefined ? current.tax_id : this.normalizeTaxId(input.taxId),
+            taxId,
             input.fiscalName === undefined
               ? current.fiscal_name
               : this.normalizeFiscalName(input.fiscalName),
@@ -330,6 +340,26 @@ export class ClientsService {
 
   private normalizeTaxId(value: string | null | undefined): string | null {
     return value?.trim().toUpperCase() || null;
+  }
+
+  private assertTaxIdCompatibility(
+    customerType: CustomerType,
+    taxId: string | null | undefined,
+  ): void {
+    if (!taxId || GENERIC_RFCS.has(taxId)) return;
+    if (!RFC_PATTERN.test(taxId)) {
+      throw new BadRequestException('El RFC tiene una estructura inválida');
+    }
+    if (customerType === CustomerType.Person && COMPANY_RFC_PATTERN.test(taxId)) {
+      throw new BadRequestException(
+        'No se puede usar un RFC de persona moral para una persona física',
+      );
+    }
+    if (customerType === CustomerType.Company && PERSON_RFC_PATTERN.test(taxId)) {
+      throw new BadRequestException(
+        'No se puede usar un RFC de persona física para una persona moral',
+      );
+    }
   }
 
   private normalizeFiscalName(value: string | null | undefined): string | null {

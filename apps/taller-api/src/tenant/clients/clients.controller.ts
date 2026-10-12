@@ -99,7 +99,8 @@ export class ClientsController {
   @RequiresPermissions('clients.create')
   @ApiCreatedResponse({ type: ClientResponseDto })
   @ApiBadRequestResponse({
-    description: 'El régimen fiscal o el Uso CFDI no existe, no está vigente o es incompatible',
+    description:
+      'El RFC, régimen fiscal o Uso CFDI tiene estructura inválida, no existe, no está vigente o es incompatible',
   })
   create(
     @CurrentUser() user: AuthenticatedUser,
@@ -111,7 +112,8 @@ export class ClientsController {
   @Patch(':id')
   @ApiOkResponse({ type: ClientResponseDto })
   @ApiBadRequestResponse({
-    description: 'El régimen fiscal o el Uso CFDI no existe, no está vigente o es incompatible',
+    description:
+      'El RFC, régimen fiscal o Uso CFDI tiene estructura inválida, no existe, no está vigente o es incompatible',
   })
   update(
     @CurrentUser() user: AuthenticatedUser,

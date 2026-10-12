@@ -46,6 +46,9 @@ describe('TenantMigrator', () => {
     expect(customers).toContain(
       'CHECK (preferred_cfdi_use_code IS NULL OR fiscal_regime_code IS NOT NULL)',
     );
+    expect(customers).toContain("tax_id IN ('XAXX010101000', 'XEXX010101000')");
+    expect(customers).toContain("customer_type = 'person'");
+    expect(customers).toContain("customer_type = 'company'");
     expect(statements.join('\n')).not.toContain('corporate_customers');
     expect(statements.join('\n')).not.toContain('corporate_customer_id');
   });

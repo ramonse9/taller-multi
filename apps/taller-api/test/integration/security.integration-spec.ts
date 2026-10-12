@@ -43,6 +43,7 @@ import { RemoveSubscriptionTrials1700000036000 } from '../../src/database/migrat
 import { PlatformCompanyUserEvents1700000037000 } from '../../src/database/migrations/public/1700000037000-platform-company-user-events';
 import { CustomerFiscalProfile1700000038000 } from '../../src/database/migrations/public/1700000038000-customer-fiscal-profile';
 import { CfdiUseCatalog1700000039000 } from '../../src/database/migrations/public/1700000039000-cfdi-use-catalog';
+import { CustomerRfcValidation1700000040000 } from '../../src/database/migrations/public/1700000040000-customer-rfc-validation';
 import { quoteIdentifier } from '../../src/database/schema-name';
 import { seedPublicCatalogs } from '../../src/database/seeds/public-catalogs.seed';
 import { changePlatformAdminPassword } from '../../src/platform-users/change-platform-admin-password';
@@ -122,6 +123,7 @@ interface ClientResponse {
   displayName: string;
   legalName: string | null;
   contactName: string | null;
+  taxId: string | null;
   fiscalName: string | null;
   fiscalPostalCode: string | null;
   fiscalRegimeCode: string | null;
@@ -704,6 +706,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         PlatformCompanyUserEvents1700000037000,
         CustomerFiscalProfile1700000038000,
         CfdiUseCatalog1700000039000,
+        CustomerRfcValidation1700000040000,
       ],
       migrationsTableName: 'public_schema_migrations',
       synchronize: false,
@@ -1062,6 +1065,153 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     const cfdiUseSchema = JSON.stringify(swagger.components?.schemas?.CfdiUseResponseDto);
     expect(cfdiUseSchema).toContain('description');
     expect(cfdiUseSchema).toContain('validFrom');
+  });
+
+  it('valida la estructura y el tipo del RFC sin consultar el padrón del SAT', async () => {
+    const alpha = await provisionAndLogin('RFC Alpha Integration', 'rfc.alpha@test.local');
+    const beta = await provisionAndLogin('RFC Beta Integration', 'rfc.beta@test.local');
+
+    const person = await request<ClientResponse>('POST', '/clients', {
+      token: alpha.accessToken,
+      body: {
+        type: 'person',
+        displayName: 'Persona con RFC',
+        taxId: '  lopa900101ab1  ',
+      },
+    });
+    expect(person.status).toBe(201);
+    expect(person.body.taxId).toBe('LOPA900101AB1');
+
+    const company = await request<ClientResponse>('POST', '/clients', {
+      token: alpha.accessToken,
+      body: { type: 'company', displayName: 'Empresa con RFC', taxId: 'mda010101ab1' },
+    });
+    expect(company.status).toBe(201);
+    expect(company.body.taxId).toBe('MDA010101AB1');
+
+    const genericNational = await request<ClientResponse>('POST', '/clients', {
+      token: alpha.accessToken,
+      body: {
+        type: 'company',
+        displayName: 'Público general',
+        taxId: 'XAXX010101000',
+      },
+    });
+    expect(genericNational.status).toBe(201);
+
+    const genericForeign = await request<ClientResponse>('POST', '/clients', {
+      token: alpha.accessToken,
+      body: {
+        type: 'person',
+        displayName: 'Residente extranjero',
+        taxId: 'XEXX010101000',
+      },
+    });
+    expect(genericForeign.status).toBe(201);
+
+    const emptyRfc = await request<ClientResponse>('POST', '/clients', {
+      token: alpha.accessToken,
+      body: { type: 'person', displayName: 'RFC vacío', taxId: '' },
+    });
+    expect(emptyRfc.status).toBe(201);
+    expect(emptyRfc.body.taxId).toBeNull();
+
+    const nullRfc = await request<ClientResponse>('POST', '/clients', {
+      token: alpha.accessToken,
+      body: { type: 'company', displayName: 'RFC nulo', taxId: null },
+    });
+    expect(nullRfc.status).toBe(201);
+    expect(nullRfc.body.taxId).toBeNull();
+
+    const invalidStructure = await request<unknown>('POST', '/clients', {
+      token: alpha.accessToken,
+      body: { type: 'person', displayName: 'RFC inválido', taxId: 'INVALIDO123' },
+    });
+    expect(invalidStructure.status).toBe(400);
+
+    const moralAsPerson = await request<unknown>('POST', '/clients', {
+      token: alpha.accessToken,
+      body: { type: 'person', displayName: 'Moral como física', taxId: 'ABC010101AB1' },
+    });
+    expect(moralAsPerson.status).toBe(400);
+
+    const personAsCompany = await request<unknown>('POST', '/clients', {
+      token: alpha.accessToken,
+      body: { type: 'company', displayName: 'Física como moral', taxId: 'CAMR900101AB1' },
+    });
+    expect(personAsCompany.status).toBe(400);
+
+    const changing = await request<ClientResponse>('POST', '/clients', {
+      token: alpha.accessToken,
+      body: { type: 'person', displayName: 'Cambio de tipo', taxId: 'CAMR900101AB1' },
+    });
+    expect(changing.status).toBe(201);
+    expect(
+      (
+        await request<unknown>('PATCH', `/clients/${changing.body.id}`, {
+          token: alpha.accessToken,
+          body: { type: 'company' },
+        })
+      ).status,
+    ).toBe(400);
+
+    const changedTogether = await request<ClientResponse>('PATCH', `/clients/${changing.body.id}`, {
+      token: alpha.accessToken,
+      body: { type: 'company', taxId: ' mec010101ab1 ' },
+    });
+    expect(changedTogether.status).toBe(200);
+    expect(changedTogether.body).toMatchObject({ type: 'company', taxId: 'MEC010101AB1' });
+
+    const removed = await request<ClientResponse>('PATCH', `/clients/${changing.body.id}`, {
+      token: alpha.accessToken,
+      body: { type: 'person', taxId: null },
+    });
+    expect(removed.status).toBe(200);
+    expect(removed.body).toMatchObject({ type: 'person', taxId: null });
+
+    const regimeClient = await request<ClientResponse>('POST', '/clients', {
+      token: alpha.accessToken,
+      body: {
+        type: 'person',
+        displayName: 'Cambio con régimen',
+        fiscalRegimeCode: '612',
+      },
+    });
+    expect(regimeClient.status).toBe(201);
+    expect(
+      (
+        await request<unknown>('PATCH', `/clients/${regimeClient.body.id}`, {
+          token: alpha.accessToken,
+          body: { type: 'company' },
+        })
+      ).status,
+    ).toBe(400);
+
+    await expect(
+      control.query(
+        `UPDATE ${quoteIdentifier(alpha.company.schemaName)}.customers
+         SET tax_id = 'RFC-INVALIDO' WHERE id = $1`,
+        [person.body.id],
+      ),
+    ).rejects.toMatchObject({ code: '23514' });
+    await expect(
+      control.query(
+        `UPDATE ${quoteIdentifier(alpha.company.schemaName)}.customers
+         SET customer_type = 'company' WHERE id = $1`,
+        [person.body.id],
+      ),
+    ).rejects.toMatchObject({ code: '23514' });
+
+    const foreignLookup = await request<unknown>('GET', `/clients/${person.body.id}`, {
+      token: beta.accessToken,
+    });
+    expect(foreignLookup.status).toBe(404);
+
+    const swagger = SwaggerModule.createDocument(app, new DocumentBuilder().build());
+    const createClientSchema = JSON.stringify(swagger.components?.schemas?.CreateClientDto);
+    expect(createClientSchema).toContain('13 caracteres para persona física');
+    expect(createClientSchema).toContain('XAXX010101000');
+    expect(createClientSchema).toContain('XEXX010101000');
   });
 
   it('reutiliza el pool y libera las conexiones tenant después de cada solicitud', async () => {
@@ -3055,10 +3205,10 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     ).toBe(400);
 
     const versions = await control.query<Array<{ version: number }>>(
-      'SELECT version FROM public.tenant_schema_versions WHERE company_id = $1 AND version = 25',
+      'SELECT version FROM public.tenant_schema_versions WHERE company_id = $1 AND version = 26',
       [tenant.company.id],
     );
-    expect(versions).toEqual([{ version: 25 }]);
+    expect(versions).toEqual([{ version: 26 }]);
 
     const isolated = await provisionAndLogin(
       'Expense Isolated Integration',

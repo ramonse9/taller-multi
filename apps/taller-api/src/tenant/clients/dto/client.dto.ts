@@ -12,6 +12,7 @@ import {
   Max,
   Min,
 } from 'class-validator';
+import { RFC_PATTERN } from '../rfc-validation';
 
 const trimNullableString = ({ value }: { value: unknown }): unknown =>
   typeof value === 'string' ? value.trim() || null : value;
@@ -60,11 +61,16 @@ export class CreateClientDto {
   @Length(2, 180)
   contactName?: string | null;
 
-  @ApiPropertyOptional({ example: 'LOPA900101AB1', nullable: true })
+  @ApiPropertyOptional({
+    example: 'LOPA900101AB1',
+    nullable: true,
+    description:
+      'RFC opcional: 13 caracteres para persona física, 12 para persona moral; admite los genéricos XAXX010101000 y XEXX010101000',
+  })
   @Transform(normalizeNullableTaxId)
   @IsOptional()
   @IsString()
-  @Matches(/^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/, { message: 'taxId debe ser un RFC válido' })
+  @Matches(RFC_PATTERN, { message: 'El RFC tiene una estructura inválida' })
   taxId?: string | null;
 
   @ApiPropertyOptional({

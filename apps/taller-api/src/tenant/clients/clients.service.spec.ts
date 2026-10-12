@@ -100,7 +100,7 @@ describe('ClientsService', () => {
     await service.create(user, {
       type: CustomerType.Person,
       displayName: 'Ana López',
-      taxId: 'lopa900101ab1',
+      taxId: '  lopa900101ab1  ',
       fiscalName: '  Ana   López Pérez ',
       fiscalPostalCode: '80000',
       fiscalRegimeCode: '612',
@@ -124,6 +124,164 @@ describe('ClientsService', () => {
       null,
       user.id,
     ]);
+  });
+
+  it('accepts an ordinary 12-character RFC for a company', async () => {
+    const companyRow = {
+      ...row,
+      customer_type: CustomerType.Company,
+      tax_id: 'ABC010101AB1',
+      fiscal_name: null,
+      fiscal_postal_code: null,
+      fiscal_regime_code: null,
+      preferred_cfdi_use_code: null,
+    };
+    query.mockResolvedValueOnce([companyRow]);
+
+    const result = await service.create(user, {
+      type: CustomerType.Company,
+      displayName: 'Empresa válida',
+      taxId: 'abc010101ab1',
+    });
+
+    expect(result.taxId).toBe('ABC010101AB1');
+    expect(query.mock.calls[0]?.[1]?.[4]).toBe('ABC010101AB1');
+  });
+
+  it.each([
+    [CustomerType.Company, 'XAXX010101000'],
+    [CustomerType.Person, 'XEXX010101000'],
+  ])('accepts generic RFC %s without inferring the customer type', async (type, taxId) => {
+    query.mockResolvedValueOnce([
+      {
+        ...row,
+        customer_type: type,
+        tax_id: taxId,
+        fiscal_name: null,
+        fiscal_postal_code: null,
+        fiscal_regime_code: null,
+        preferred_cfdi_use_code: null,
+      },
+    ]);
+
+    const result = await service.create(user, {
+      type,
+      displayName: 'Cliente genérico',
+      taxId,
+    });
+
+    expect(result.taxId).toBe(taxId);
+  });
+
+  it.each([undefined, null, '', '   '])('accepts an omitted or empty RFC: %p', async (taxId) => {
+    query.mockResolvedValueOnce([
+      {
+        ...row,
+        tax_id: null,
+        fiscal_name: null,
+        fiscal_postal_code: null,
+        fiscal_regime_code: null,
+        preferred_cfdi_use_code: null,
+      },
+    ]);
+
+    const result = await service.create(user, {
+      type: CustomerType.Person,
+      displayName: 'Cliente sin RFC',
+      taxId,
+    });
+
+    expect(result.taxId).toBeNull();
+    expect(query.mock.calls[0]?.[1]?.[4]).toBeNull();
+  });
+
+  it('distinguishes an invalid RFC structure from an incompatible customer type', async () => {
+    await expect(
+      service.create(user, {
+        type: CustomerType.Person,
+        displayName: 'RFC inválido',
+        taxId: 'RFC-INVALIDO',
+      }),
+    ).rejects.toThrow('El RFC tiene una estructura inválida');
+
+    await expect(
+      service.create(user, {
+        type: CustomerType.Person,
+        displayName: 'Moral como física',
+        taxId: 'ABC010101AB1',
+      }),
+    ).rejects.toThrow('RFC de persona moral para una persona física');
+
+    await expect(
+      service.create(user, {
+        type: CustomerType.Company,
+        displayName: 'Física como moral',
+        taxId: 'LOPA900101AB1',
+      }),
+    ).rejects.toThrow('RFC de persona física para una persona moral');
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it('revalidates the existing RFC when changing the customer type', async () => {
+    const current = {
+      ...row,
+      fiscal_regime_code: null,
+      preferred_cfdi_use_code: null,
+    };
+    query.mockResolvedValueOnce([current]);
+
+    await expect(service.update(user, row.id, { type: CustomerType.Company })).rejects.toThrow(
+      'RFC de persona física para una persona moral',
+    );
+    expect(query).toHaveBeenCalledTimes(1);
+  });
+
+  it('allows changing customer type and RFC together, including removal with null', async () => {
+    const current = {
+      ...row,
+      fiscal_regime_code: null,
+      preferred_cfdi_use_code: null,
+    };
+    const changed = {
+      ...current,
+      customer_type: CustomerType.Company,
+      tax_id: 'ABC010101AB1',
+    };
+    query.mockResolvedValueOnce([current]).mockResolvedValueOnce([[changed], 1]);
+
+    const result = await service.update(user, row.id, {
+      type: CustomerType.Company,
+      taxId: ' abc010101ab1 ',
+    });
+    expect(result).toMatchObject({ type: CustomerType.Company, taxId: 'ABC010101AB1' });
+
+    query.mockReset();
+    query.mockResolvedValueOnce([current]).mockResolvedValueOnce([
+      [
+        {
+          ...current,
+          customer_type: CustomerType.Company,
+          tax_id: null,
+        },
+      ],
+      1,
+    ]);
+    const cleared = await service.update(user, row.id, {
+      type: CustomerType.Company,
+      taxId: null,
+    });
+    expect(cleared).toMatchObject({ type: CustomerType.Company, taxId: null });
+  });
+
+  it('revalidates the existing fiscal regime when changing the customer type', async () => {
+    const current = { ...row, tax_id: null, preferred_cfdi_use_code: null };
+    query
+      .mockResolvedValueOnce([current])
+      .mockResolvedValueOnce([{ supports_person: true, supports_company: false }]);
+
+    await expect(service.update(user, row.id, { type: CustomerType.Company })).rejects.toThrow(
+      'régimen fiscal no es compatible con una persona moral',
+    );
   });
 
   it('lists current CFDI uses compatible with customer type and fiscal regime', async () => {
