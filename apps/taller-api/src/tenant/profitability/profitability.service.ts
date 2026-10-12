@@ -165,6 +165,12 @@ interface MonthlyReportOrderRow {
   direct_cost: string;
   gross_profit: string | null;
   has_unknown_product_cost: boolean;
+  concepts: Array<{
+    description: string;
+    type: 'product' | 'service';
+    quantity: string;
+    affectsOrderTotal: boolean;
+  }>;
 }
 
 const MONTH_NAMES = [
@@ -266,7 +272,19 @@ export class ProfitabilityService {
              SELECT 1 FROM ${schema}.order_items item
              WHERE item.order_id = service_order.id
                AND ${unknownOrderItemCostSql('item')}
-           ) AS has_unknown_product_cost
+           ) AS has_unknown_product_cost,
+           COALESCE((
+             SELECT jsonb_agg(
+               jsonb_build_object(
+                 'description', item.description,
+                 'type', item.kind,
+                 'quantity', item.quantity::text,
+                 'affectsOrderTotal', item.affects_order_total
+               ) ORDER BY item.position
+             )
+             FROM ${schema}.order_items item
+             WHERE item.order_id = service_order.id
+           ), '[]'::jsonb) AS concepts
          FROM context
          JOIN ${schema}.orders service_order
            ON service_order.status = 'completed'
@@ -909,6 +927,7 @@ export class ProfitabilityService {
       grossProfit: row.gross_profit,
       hasUnknownProductCost: row.has_unknown_product_cost,
       isCostComplete: !row.has_unknown_product_cost,
+      concepts: row.concepts,
     };
   }
 }

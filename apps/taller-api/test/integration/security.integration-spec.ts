@@ -452,6 +452,12 @@ interface MonthlyProfitabilityReportResponse {
     grossProfit: string | null;
     hasUnknownProductCost: boolean;
     isCostComplete: boolean;
+    concepts: Array<{
+      description: string;
+      type: 'product' | 'service';
+      quantity: string;
+      affectsOrderTotal: boolean;
+    }>;
   }>;
 }
 
@@ -3482,6 +3488,26 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         grossProfit: '550.00',
         hasUnknownProductCost: false,
         isCostComplete: true,
+        concepts: [
+          {
+            description: product.body.name,
+            type: 'product',
+            quantity: '1.000',
+            affectsOrderTotal: true,
+          },
+          {
+            description: catalogService.body.name,
+            type: 'service',
+            quantity: '1.000',
+            affectsOrderTotal: true,
+          },
+          {
+            description: 'Servicio libre',
+            type: 'service',
+            quantity: '1.000',
+            affectsOrderTotal: true,
+          },
+        ],
       }),
     ]);
     const monthlyWorkbook = await requestBinary(
@@ -3771,9 +3797,8 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     const pendingWorkbook = new Workbook();
     await pendingWorkbook.xlsx.load(Uint8Array.from(pendingWorkbookResponse.body).buffer);
     const pendingSheet = pendingWorkbook.getWorksheet('Octubre 2026')!;
-    const pendingOrderRow = Array.from(
-      { length: pendingSheet.rowCount - 10 },
-      (_, index) => pendingSheet.getRow(index + 11),
+    const pendingOrderRow = Array.from({ length: pendingSheet.rowCount - 10 }, (_, index) =>
+      pendingSheet.getRow(index + 11),
     ).find((row) => row.getCell(1).value === order.body.folio);
     expect(pendingOrderRow).toBeDefined();
     expect(pendingOrderRow!.getCell(8).value).toBe('Pendiente');

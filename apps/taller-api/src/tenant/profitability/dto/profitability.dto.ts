@@ -50,6 +50,15 @@ export class MonthlyProfitabilitySummaryResponseDto {
   @ApiProperty() isComplete!: boolean;
 }
 
+export class MonthlyProfitabilityOrderConceptResponseDto {
+  @ApiProperty() description!: string;
+  @ApiProperty({ enum: ['product', 'service'] }) type!: 'product' | 'service';
+  @ApiProperty({ description: 'Cantidad histórica entregada como texto decimal' })
+  quantity!: string;
+  @ApiProperty({ description: 'Indica si el concepto forma parte del total cobrado al cliente' })
+  affectsOrderTotal!: boolean;
+}
+
 export class MonthlyProfitabilityOrderResponseDto {
   @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty() folio!: string;
@@ -72,6 +81,8 @@ export class MonthlyProfitabilityOrderResponseDto {
   @ApiProperty({ nullable: true, type: String }) grossProfit!: string | null;
   @ApiProperty() hasUnknownProductCost!: boolean;
   @ApiProperty() isCostComplete!: boolean;
+  @ApiProperty({ type: MonthlyProfitabilityOrderConceptResponseDto, isArray: true })
+  concepts!: MonthlyProfitabilityOrderConceptResponseDto[];
 }
 
 export class MonthlyProfitabilityReportResponseDto {
