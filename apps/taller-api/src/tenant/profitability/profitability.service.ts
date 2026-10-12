@@ -315,13 +315,19 @@ export class ProfitabilityService {
     return this.tenant.run(user, async (runner, schemaName) => {
       const schema = quoteIdentifier(schemaName);
       const endingMonth = query.endingMonth ? `${query.endingMonth}-01` : null;
-      const parameters = [query.months, endingMonth];
+      const parameters = [query.months, endingMonth, user.id];
       const bounds = `SELECT
-        COALESCE($2::date, date_trunc('month', current_date)::date) AS focus_start,
-        (COALESCE($2::date, date_trunc('month', current_date)::date)
+        COALESCE($2::date,
+          date_trunc('month', current_timestamp AT TIME ZONE user_account.timezone_code)::date)
+          AS focus_start,
+        (COALESCE($2::date,
+          date_trunc('month', current_timestamp AT TIME ZONE user_account.timezone_code)::date)
           - (($1::int - 1) * interval '1 month'))::date AS range_start,
-        (COALESCE($2::date, date_trunc('month', current_date)::date)
-          + interval '1 month')::date AS focus_end`;
+        (COALESCE($2::date,
+          date_trunc('month', current_timestamp AT TIME ZONE user_account.timezone_code)::date)
+          + interval '1 month')::date AS focus_end,
+        user_account.timezone_code
+        FROM public.users user_account WHERE user_account.id = $3`;
 
       const monthRows = (await runner.query(
         `WITH bounds AS (${bounds}), months AS (
@@ -329,7 +335,9 @@ export class ProfitabilityService {
              AS starts_on
            FROM bounds
          ), generated AS (
-           SELECT date_trunc('month', service_order.closed_at)::date AS starts_on,
+           SELECT date_trunc(
+               'month', service_order.closed_at AT TIME ZONE bounds.timezone_code
+             )::date AS starts_on,
              count(*)::int AS completed_order_count,
              count(*) FILTER (WHERE EXISTS (
                SELECT 1 FROM ${schema}.order_items item
@@ -342,20 +350,30 @@ export class ProfitabilityService {
              COALESCE(sum(service_order.gross_profit), 0) AS gross_profit
            FROM bounds JOIN ${schema}.orders service_order
              ON service_order.status = 'completed'
-            AND service_order.closed_at >= bounds.range_start
-            AND service_order.closed_at < bounds.focus_end
-           GROUP BY date_trunc('month', service_order.closed_at)::date
+            AND service_order.closed_at >= bounds.range_start::timestamp
+              AT TIME ZONE bounds.timezone_code
+            AND service_order.closed_at < bounds.focus_end::timestamp
+              AT TIME ZONE bounds.timezone_code
+           GROUP BY date_trunc(
+             'month', service_order.closed_at AT TIME ZONE bounds.timezone_code
+           )::date
          ), collected AS (
-           SELECT date_trunc('month', service_order.paid_at)::date AS starts_on,
+           SELECT date_trunc(
+               'month', service_order.paid_at AT TIME ZONE bounds.timezone_code
+             )::date AS starts_on,
              count(*)::int AS order_count,
              COALESCE(sum(service_order.total), 0) AS income,
              COALESCE(sum(service_order.total_cost), 0) AS direct_cost,
              COALESCE(sum(service_order.gross_profit), 0) AS gross_profit
            FROM bounds JOIN ${schema}.orders service_order
              ON service_order.status = 'completed' AND service_order.is_paid = true
-            AND service_order.paid_at >= bounds.range_start
-            AND service_order.paid_at < bounds.focus_end
-           GROUP BY date_trunc('month', service_order.paid_at)::date
+            AND service_order.paid_at >= bounds.range_start::timestamp
+              AT TIME ZONE bounds.timezone_code
+            AND service_order.paid_at < bounds.focus_end::timestamp
+              AT TIME ZONE bounds.timezone_code
+           GROUP BY date_trunc(
+             'month', service_order.paid_at AT TIME ZONE bounds.timezone_code
+           )::date
          ), expense_totals AS (
            SELECT date_trunc('month', expense.occurred_on)::date AS starts_on,
              COALESCE(sum(expense.amount), 0) AS amount
@@ -404,8 +422,10 @@ export class ProfitabilityService {
              ::numeric(14,2)::text AS pending_amount
          FROM bounds LEFT JOIN ${schema}.orders service_order
            ON service_order.status = 'completed'
-          AND service_order.closed_at >= bounds.focus_start
-          AND service_order.closed_at < bounds.focus_end`,
+          AND service_order.closed_at >= bounds.focus_start::timestamp
+            AT TIME ZONE bounds.timezone_code
+          AND service_order.closed_at < bounds.focus_end::timestamp
+            AT TIME ZONE bounds.timezone_code`,
         parameters,
       )) as CollectionBreakdownRow[];
 
@@ -469,10 +489,15 @@ export class ProfitabilityService {
     }
     return this.tenant.run(user, async (runner, schemaName) => {
       const schema = quoteIdentifier(schemaName);
-      const parameters = [query.occurredFrom ?? null, query.occurredTo ?? null];
+      const parameters = [query.occurredFrom ?? null, query.occurredTo ?? null, user.id];
       const bounds = `SELECT
-        COALESCE($1::date, date_trunc('month', current_date)::date) AS from_date,
-        COALESCE($2::date, current_date) AS to_date`;
+        COALESCE($1::date,
+          date_trunc('month', current_timestamp AT TIME ZONE user_account.timezone_code)::date)
+          AS from_date,
+        COALESCE($2::date,
+          (current_timestamp AT TIME ZONE user_account.timezone_code)::date) AS to_date,
+        user_account.timezone_code
+        FROM public.users user_account WHERE user_account.id = $3`;
       const totalsRows = (await runner.query(
         `WITH bounds AS (${bounds}), order_totals AS (
            SELECT count(service_order.id)::int AS completed_order_count,
@@ -525,7 +550,10 @@ export class ProfitabilityService {
              ), 0) AS collected_gross_profit
            FROM bounds LEFT JOIN ${schema}.orders service_order
              ON service_order.status = 'completed'
-            AND service_order.closed_at::date BETWEEN bounds.from_date AND bounds.to_date
+            AND service_order.closed_at >= bounds.from_date::timestamp
+              AT TIME ZONE bounds.timezone_code
+            AND service_order.closed_at < (bounds.to_date + 1)::timestamp
+              AT TIME ZONE bounds.timezone_code
          ), receivables AS (
            SELECT count(service_order.id)::int AS receivable_order_count,
              COALESCE(sum(service_order.total), 0) AS receivable_amount
@@ -533,13 +561,17 @@ export class ProfitabilityService {
              ON service_order.status <> 'cancelled'
             AND service_order.is_paid = false
             AND service_order.total IS NOT NULL
-            AND service_order.created_at::date <= bounds.to_date
+            AND service_order.created_at < (bounds.to_date + 1)::timestamp
+              AT TIME ZONE bounds.timezone_code
          ), fifo AS (
            SELECT COALESCE(sum(allocation.quantity * allocation.unit_cost), 0) AS fifo_product_cost
            FROM bounds
            JOIN ${schema}.orders service_order
              ON service_order.status = 'completed'
-            AND service_order.closed_at::date BETWEEN bounds.from_date AND bounds.to_date
+            AND service_order.closed_at >= bounds.from_date::timestamp
+              AT TIME ZONE bounds.timezone_code
+            AND service_order.closed_at < (bounds.to_date + 1)::timestamp
+              AT TIME ZONE bounds.timezone_code
            JOIN ${schema}.inventory_movements movement
              ON movement.order_id = service_order.id AND movement.movement_type = 'exit'
             AND NOT EXISTS (
@@ -600,7 +632,10 @@ export class ProfitabilityService {
          FROM bounds
          JOIN ${schema}.orders service_order
            ON service_order.status = 'completed'
-          AND service_order.closed_at::date BETWEEN bounds.from_date AND bounds.to_date
+          AND service_order.closed_at >= bounds.from_date::timestamp
+            AT TIME ZONE bounds.timezone_code
+          AND service_order.closed_at < (bounds.to_date + 1)::timestamp
+            AT TIME ZONE bounds.timezone_code
          JOIN ${schema}.customers customer ON customer.id = service_order.customer_id
          GROUP BY customer.id, customer.display_name, customer.customer_type
          ORDER BY sum(service_order.total) DESC NULLS LAST, customer.display_name`,
@@ -614,7 +649,10 @@ export class ProfitabilityService {
            FROM bounds
            JOIN ${schema}.orders service_order
              ON service_order.status = 'completed'
-            AND service_order.closed_at::date BETWEEN bounds.from_date AND bounds.to_date
+            AND service_order.closed_at >= bounds.from_date::timestamp
+              AT TIME ZONE bounds.timezone_code
+            AND service_order.closed_at < (bounds.to_date + 1)::timestamp
+              AT TIME ZONE bounds.timezone_code
            JOIN ${schema}.order_items item ON item.order_id = service_order.id
          )
          SELECT type, count(*)::int AS item_count,
@@ -665,7 +703,10 @@ export class ProfitabilityService {
          FROM bounds
          JOIN ${schema}.orders service_order
            ON service_order.status = 'completed'
-          AND service_order.closed_at::date BETWEEN bounds.from_date AND bounds.to_date
+          AND service_order.closed_at >= bounds.from_date::timestamp
+            AT TIME ZONE bounds.timezone_code
+          AND service_order.closed_at < (bounds.to_date + 1)::timestamp
+            AT TIME ZONE bounds.timezone_code
          JOIN ${schema}.customers customer ON customer.id = service_order.customer_id
          LEFT JOIN fifo ON fifo.order_id = service_order.id
          ORDER BY service_order.closed_at DESC, service_order.folio DESC`,
@@ -717,7 +758,9 @@ export class ProfitabilityService {
     const format = granularity === 'day' ? 'YYYY-MM-DD' : 'YYYY-MM';
     const rows = (await runner.query(
       `WITH bounds AS (${bounds}), order_period AS (
-         SELECT date_trunc('${granularity}', service_order.closed_at)::date AS period,
+         SELECT date_trunc(
+             '${granularity}', service_order.closed_at AT TIME ZONE bounds.timezone_code
+           )::date AS period,
            count(*)::int AS completed_order_count,
            COALESCE(sum(service_order.total), 0) AS income,
            COALESCE(sum(service_order.total) FILTER (WHERE service_order.is_paid), 0)
@@ -730,8 +773,13 @@ export class ProfitabilityService {
              AS collected_gross_profit
          FROM bounds JOIN ${schema}.orders service_order
            ON service_order.status = 'completed'
-          AND service_order.closed_at::date BETWEEN bounds.from_date AND bounds.to_date
-         GROUP BY date_trunc('${granularity}', service_order.closed_at)::date
+          AND service_order.closed_at >= bounds.from_date::timestamp
+            AT TIME ZONE bounds.timezone_code
+          AND service_order.closed_at < (bounds.to_date + 1)::timestamp
+            AT TIME ZONE bounds.timezone_code
+         GROUP BY date_trunc(
+           '${granularity}', service_order.closed_at AT TIME ZONE bounds.timezone_code
+         )::date
        ), expense_period AS (
          SELECT date_trunc('${granularity}', expense.occurred_on)::date AS period,
            COALESCE(sum(expense.amount), 0) AS operating_expenses

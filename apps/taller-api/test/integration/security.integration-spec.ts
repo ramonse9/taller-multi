@@ -3516,6 +3516,30 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(octoberSheet!.views[0]).toMatchObject({ state: 'frozen', ySplit: 10 });
     expect(octoberSheet!.getCell('D7').value).toBe(120);
     expect(octoberSheet!.getCell('F7').value).toBe(430);
+
+    await control.query(
+      `UPDATE ${quoteIdentifier(tenant.company.schemaName)}.orders
+       SET closed_at = '2026-10-12 01:30:00+00' WHERE id = $1`,
+      [order.body.id],
+    );
+    const localClosingDay = await request<ProfitabilityReportResponse>(
+      'GET',
+      '/profitability?occurredFrom=2026-10-01&occurredTo=2026-10-11',
+      { token: tenant.accessToken },
+    );
+    expect(localClosingDay.body.orders.map(({ id }) => id)).toContain(order.body.id);
+    expect(localClosingDay.body.byDay).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ period: '2026-10-11', completedOrderCount: 1 }),
+      ]),
+    );
+    const dayBeforeClosing = await request<ProfitabilityReportResponse>(
+      'GET',
+      '/profitability?occurredFrom=2026-10-01&occurredTo=2026-10-10',
+      { token: tenant.accessToken },
+    );
+    expect(dayBeforeClosing.body.orders.map(({ id }) => id)).not.toContain(order.body.id);
+
     expect(
       (
         await request<unknown>('GET', '/profitability/monthly-report?year=2026&month=13', {
@@ -3547,6 +3571,15 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         )
       ).body.orders,
     ).toEqual([]);
+    const localMonthAnalytics = await request<ProfitabilityAnalyticsResponse>(
+      'GET',
+      '/profitability/analytics?months=6&endingMonth=2026-10',
+      { token: tenant.accessToken },
+    );
+    expect(localMonthAnalytics.body.summary).toMatchObject({
+      completedOrderCount: 1,
+      generatedIncome: '700.00',
+    });
     await control.query(
       `UPDATE ${quoteIdentifier(tenant.company.schemaName)}.orders
        SET closed_at = '2026-10-02 12:00:00+00' WHERE id = $1`,
