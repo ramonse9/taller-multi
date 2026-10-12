@@ -15,7 +15,8 @@ import {
   Validators,
 } from "@angular/forms";
 import { RouterLink } from "@angular/router";
-import { finalize, forkJoin } from "rxjs";
+import { EMPTY, finalize, forkJoin, switchMap } from "rxjs";
+import { AuthService } from "../../core/auth/auth.service";
 import { formatShortDate } from "../../core/dates/date-format";
 import { apiErrorMessage } from "../../core/http/api-error";
 import { ThemeService } from "../../core/theme/theme.service";
@@ -82,6 +83,7 @@ const emptyReport = (): ProfitabilityReport => ({
 export class ProfitabilityPage implements OnInit {
   private readonly profitability = inject(ProfitabilityService);
   private readonly destroyRef = inject(DestroyRef);
+  readonly auth = inject(AuthService);
   readonly theme = inject(ThemeService);
   readonly formatShortDate = formatShortDate;
   readonly report = signal<ProfitabilityReport>(emptyReport());
@@ -90,7 +92,29 @@ export class ProfitabilityPage implements OnInit {
   readonly selectedMonthPeriod = signal<string | null>(null);
   readonly loading = signal(true);
   readonly error = signal("");
+  readonly exporting = signal(false);
+  readonly exportError = signal("");
+  readonly exportNotice = signal("");
+  readonly exportEmpty = signal("");
   readonly periodView = signal<"day" | "month">("day");
+  readonly exportMonths = [
+    { value: 1, label: "Enero" },
+    { value: 2, label: "Febrero" },
+    { value: 3, label: "Marzo" },
+    { value: 4, label: "Abril" },
+    { value: 5, label: "Mayo" },
+    { value: 6, label: "Junio" },
+    { value: 7, label: "Julio" },
+    { value: 8, label: "Agosto" },
+    { value: 9, label: "Septiembre" },
+    { value: 10, label: "Octubre" },
+    { value: 11, label: "Noviembre" },
+    { value: 12, label: "Diciembre" },
+  ] as const;
+  readonly exportYears = Array.from(
+    { length: new Date().getFullYear() - 1999 },
+    (_, index) => new Date().getFullYear() - index,
+  );
   readonly profitableOrders = computed(() =>
     this.report()
       .orders.filter((order) => order.isComplete && order.grossProfit !== null)
@@ -206,8 +230,25 @@ export class ProfitabilityPage implements OnInit {
       validators: [Validators.required],
     }),
   });
+  readonly exportPeriod = new FormGroup({
+    month: new FormControl(new Date().getMonth() + 1, {
+      nonNullable: true,
+      validators: [Validators.required, Validators.min(1), Validators.max(12)],
+    }),
+    year: new FormControl(new Date().getFullYear(), {
+      nonNullable: true,
+      validators: [Validators.required, Validators.min(2000), Validators.max(2200)],
+    }),
+  });
 
   ngOnInit(): void {
+    this.exportPeriod.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.exportError.set("");
+        this.exportNotice.set("");
+        this.exportEmpty.set("");
+      });
     this.load();
   }
 
@@ -270,6 +311,58 @@ export class ProfitabilityPage implements OnInit {
     });
     this.periodView.set("month");
     this.load();
+  }
+
+  exportToExcel(): void {
+    if (this.exportPeriod.invalid || this.exporting()) {
+      this.exportPeriod.markAllAsTouched();
+      return;
+    }
+    const { year, month } = this.exportPeriod.getRawValue();
+    this.exporting.set(true);
+    this.exportError.set("");
+    this.exportNotice.set("");
+    this.exportEmpty.set("");
+
+    this.profitability
+      .monthlyReport(year, month)
+      .pipe(
+        switchMap((report) => {
+          if (
+            report.summary.completedOrderCount === 0 &&
+            Number(report.summary.operatingExpenses) === 0
+          ) {
+            this.exportEmpty.set(
+              `No hay órdenes terminadas ni gastos confirmados en ${report.label}. Selecciona otro periodo para generar el archivo.`,
+            );
+            return EMPTY;
+          }
+          return this.profitability.downloadMonthlyReport(year, month);
+        }),
+        finalize(() => this.exporting.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: ({ blob, filename }) => {
+          this.download(blob, filename);
+          this.exportNotice.set(
+            `El reporte de ${this.exportPeriodLabel()} se descargó correctamente.`,
+          );
+        },
+        error: (error: unknown) =>
+          this.exportError.set(
+            apiErrorMessage(
+              error,
+              "No pudimos generar el archivo de Excel. Inténtalo nuevamente.",
+            ),
+          ),
+      });
+  }
+
+  exportPeriodLabel(): string {
+    const { year, month } = this.exportPeriod.getRawValue();
+    const monthName = this.exportMonths.find(({ value }) => value === month)?.label ?? "Periodo";
+    return `${monthName} ${year}`;
   }
 
   periodRows(): ProfitabilityPeriodRow[] {
@@ -358,5 +451,17 @@ export class ProfitabilityPage implements OnInit {
           ? "precios de conceptos cobrables"
           : "costos de productos libres";
     return `Revisa ${count} ${order}: faltan ${issue}. Los servicios sin costo capturado se consideran con costo $0.00.`;
+  }
+
+  private download(blob: Blob, filename: string): void {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.hidden = true;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
   }
 }

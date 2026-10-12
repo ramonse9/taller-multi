@@ -80,6 +80,98 @@
         </button>
       </div>
     </form>
+    @if (auth.hasFeature('profitability') &&
+    auth.hasPermission('profitability.view')) {
+    <section
+      class="mb-6 border border-[#b9c9d8] bg-[#edf5fb] p-4 sm:p-5 dark:border-[#45627f] dark:bg-[#1a2d43]"
+      aria-labelledby="monthly-export-title"
+      [attr.aria-busy]="exporting()"
+    >
+      <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+        <div class="min-w-0">
+          <p class="eyebrow">REPORTE MENSUAL</p>
+          <h2
+            class="m-0 font-[var(--display)] text-2xl font-semibold"
+            id="monthly-export-title"
+          >
+            Órdenes y utilidad en Excel
+          </h2>
+          <p class="mb-0 mt-2 max-w-2xl text-sm text-[#566878] dark:text-[#b9c8d8]">
+            Incluye las órdenes terminadas, lo cobrado y pendiente, costos,
+            gastos y utilidad del mes seleccionado.
+          </p>
+        </div>
+        <form
+          class="grid gap-3 sm:grid-cols-[minmax(9rem,1fr)_minmax(7rem,.75fr)_auto] sm:items-end"
+          [formGroup]="exportPeriod"
+          (ngSubmit)="exportToExcel()"
+        >
+          <div>
+            <label class="field-label" for="profitability-export-month">Mes</label>
+            <select
+              class="field-control w-full"
+              id="profitability-export-month"
+              formControlName="month"
+              [disabled]="exporting()"
+            >
+              @for (month of exportMonths; track month.value) {
+              <option [ngValue]="month.value">{{ month.label }}</option>
+              }
+            </select>
+          </div>
+          <div>
+            <label class="field-label" for="profitability-export-year">Año</label>
+            <select
+              class="field-control w-full"
+              id="profitability-export-year"
+              formControlName="year"
+              [disabled]="exporting()"
+            >
+              @for (year of exportYears; track year) {
+              <option [ngValue]="year">{{ year }}</option>
+              }
+            </select>
+          </div>
+          <button
+            class="primary min-h-11 w-full whitespace-nowrap sm:w-auto"
+            type="submit"
+            [disabled]="exporting()"
+          >
+            {{ exporting() ? 'Generando archivo…' : '↓ Exportar a Excel' }}
+          </button>
+        </form>
+      </div>
+      @if (exporting()) {
+      <p class="mb-0 mt-4 text-sm text-[#365d7d] dark:text-[#c2d8eb]" aria-live="polite">
+        Preparando {{ exportPeriodLabel() }}. La descarga comenzará en cuanto el archivo esté listo.
+      </p>
+      } @if (exportNotice()) {
+      <p
+        class="mb-0 mt-4 bg-[#cfe9da] px-4 py-3 text-sm text-[#245b3b] dark:bg-[#294e42] dark:text-[#c9f0df]"
+        role="status"
+      >
+        ✓ {{ exportNotice() }}
+      </p>
+      } @if (exportEmpty()) {
+      <p
+        class="mb-0 mt-4 border-l-4 border-[#d6922e] bg-[#fff4dc] px-4 py-3 text-sm text-[#704b14] dark:bg-[#49351b] dark:text-[#ffd18a]"
+        role="status"
+      >
+        {{ exportEmpty() }}
+      </p>
+      } @if (exportError()) {
+      <div
+        class="mt-4 flex flex-wrap items-center justify-between gap-3 bg-[#ffdcd2] px-4 py-3 text-sm text-[#8e3214] dark:bg-[#633d3d] dark:text-[#ffd9d4]"
+        role="alert"
+      >
+        <span>{{ exportError() }}</span>
+        <button class="bg-transparent p-0 underline" type="button" (click)="exportToExcel()">
+          Reintentar
+        </button>
+      </div>
+      }
+    </section>
+    }
     @if (error()) {
     <div
       class="mb-5 bg-[#ffdcd2] px-4 py-3 text-sm text-[#8e3214] dark:bg-[#633d3d] dark:text-[#ffd9d4]"

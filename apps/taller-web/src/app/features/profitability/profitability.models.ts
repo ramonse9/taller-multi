@@ -110,3 +110,33 @@ export interface ProfitabilityAnalytics {
   summary: ProfitabilityAnalyticsMonth;
   series: ProfitabilityAnalyticsMonth[];
 }
+
+export interface MonthlyProfitabilityReportSummary {
+  completedOrderCount: number;
+  paidOrderCount: number;
+  pendingOrderCount: number;
+  incompleteCostOrderCount: number;
+  generatedIncome: string;
+  collectedIncome: string;
+  outstandingIncome: string;
+  directCost: string;
+  grossProfit: string;
+  operatingExpenses: string;
+  netProfit: string;
+  isComplete: boolean;
+}
+
+export interface MonthlyProfitabilityReport {
+  period: string;
+  label: string;
+  startsOn: string;
+  endsOn: string;
+  timezoneCode: string;
+  summary: MonthlyProfitabilityReportSummary;
+  orders: Array<{ id: string }>;
+}
+
+export interface ProfitabilityWorkbookDownload {
+  blob: Blob;
+  filename: string;
+}
