@@ -7,6 +7,10 @@ export interface Client {
   legalName: string | null;
   contactName: string | null;
   taxId: string | null;
+  fiscalName: string | null;
+  fiscalPostalCode: string | null;
+  fiscalRegimeCode: string | null;
+  preferredCfdiUseCode: string | null;
   email: string | null;
   phone: string | null;
   notes: string | null;
@@ -23,10 +27,31 @@ export interface ClientInput {
   legalName: string | null;
   contactName: string | null;
   taxId: string | null;
+  fiscalName?: string | null;
+  fiscalPostalCode?: string | null;
+  fiscalRegimeCode?: string | null;
+  preferredCfdiUseCode?: string | null;
   email: string | null;
   phone: string | null;
   notes: string | null;
   isActive?: boolean;
+}
+
+export interface FiscalRegime {
+  code: string;
+  name: string;
+  supportsPerson: boolean;
+  supportsCompany: boolean;
+}
+
+export interface CfdiUse {
+  code: string;
+  description: string;
+  supportsPerson: boolean;
+  supportsCompany: boolean;
+  validFrom: string;
+  validTo: string | null;
+  isActive: boolean;
 }
 
 export interface ClientListItem extends Client {

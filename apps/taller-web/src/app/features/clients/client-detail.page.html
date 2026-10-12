@@ -2,7 +2,7 @@
   class="min-h-screen bg-[#fbfaf7] text-[#17251e] transition-colors dark:bg-[#111d2e] dark:text-[#edf4fb]"
 >
   <header
-    class="flex min-h-36 items-center justify-between gap-4 border-b border-[#d5dce3] bg-[#fbfaf7]/90 px-[clamp(1.5rem,5vw,5rem)] py-9 max-sm:min-h-0 max-sm:items-end max-sm:py-6 dark:border-[#38516d] dark:bg-[#162438]/95"
+    class="flex min-h-36 items-center justify-between gap-4 border-b border-[#d5dce3] bg-[#fbfaf7]/90 px-[clamp(1.5rem,5vw,5rem)] py-9 max-sm:min-h-0 max-sm:flex-wrap max-sm:items-start max-sm:py-6 dark:border-[#38516d] dark:bg-[#162438]/95"
   >
     <div>
       <a
@@ -25,7 +25,17 @@
       </p>
       }
     </div>
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-2 max-sm:w-full max-sm:justify-end">
+      @if (auth.hasPermission('clients.edit') && client()) {
+      <button
+        class="secondary-tw no-underline max-sm:px-3"
+        type="button"
+        (click)="openClientEditor()"
+        aria-label="Editar cliente"
+      >
+        <span aria-hidden="true">✎</span><span class="ml-1 max-sm:hidden">Editar cliente</span>
+      </button>
+      }
       @if (auth.hasPermission('orders.view')) {
       <a
         class="secondary-tw no-underline max-sm:hidden"
@@ -247,6 +257,14 @@
     </div>
   </section>
 </main>
+
+@if (clientEditorOpen() && client(); as currentClient) {
+<app-client-editor
+  [client]="currentClient"
+  (closed)="closeClientEditor()"
+  (saved)="clientSaved($event)"
+/>
+}
 
 @if (editorOpen()) {
 <div

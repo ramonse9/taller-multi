@@ -34,10 +34,11 @@ import {
 import { VehiclesService } from "../vehicles/vehicles.service";
 import { Client } from "./client.models";
 import { ClientsService } from "./clients.service";
+import { ClientEditorComponent } from "./client-editor.component";
 
 @Component({
   selector: "app-client-detail-page",
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, ClientEditorComponent],
   templateUrl: "./client-detail.page.html",
   host: {
     class: "block min-h-screen",
@@ -69,6 +70,7 @@ export class ClientDetailPage implements OnInit {
   readonly catalogError = signal("");
   readonly catalogNotice = signal("");
   readonly notice = signal("");
+  readonly clientEditorOpen = signal(false);
   readonly editorOpen = signal(false);
   readonly editing = signal<Vehicle | null>(null);
   readonly history = signal<VehicleHistory | null>(null);
@@ -118,6 +120,20 @@ export class ClientDetailPage implements OnInit {
       return;
     }
     this.loadPage();
+  }
+
+  openClientEditor(): void {
+    this.clientEditorOpen.set(true);
+  }
+
+  closeClientEditor(): void {
+    this.clientEditorOpen.set(false);
+  }
+
+  clientSaved(client: Client): void {
+    this.client.set(client);
+    this.clientEditorOpen.set(false);
+    this.showNotice("Cliente actualizado.");
   }
 
   loadPage(): void {

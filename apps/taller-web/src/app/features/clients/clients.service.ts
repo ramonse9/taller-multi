@@ -2,7 +2,14 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { Client, ClientInput, PaginatedClients } from './client.models';
+import {
+  CfdiUse,
+  Client,
+  ClientInput,
+  CustomerType,
+  FiscalRegime,
+  PaginatedClients,
+} from './client.models';
 
 @Injectable({ providedIn: 'root' })
 export class ClientsService {
@@ -20,6 +27,21 @@ export class ClientsService {
 
   getOne(id: string): Observable<Client> {
     return this.http.get<Client>(`${this.endpoint}/${id}`);
+  }
+
+  listFiscalRegimes(customerType: CustomerType): Observable<FiscalRegime[]> {
+    const params = new HttpParams().set('customerType', customerType);
+    return this.http.get<FiscalRegime[]>(`${this.endpoint}/fiscal-regimes`, { params });
+  }
+
+  listCfdiUses(
+    customerType: CustomerType,
+    fiscalRegimeCode: string,
+  ): Observable<CfdiUse[]> {
+    const params = new HttpParams()
+      .set('customerType', customerType)
+      .set('fiscalRegimeCode', fiscalRegimeCode);
+    return this.http.get<CfdiUse[]>(`${this.endpoint}/cfdi-uses`, { params });
   }
 
   create(input: ClientInput): Observable<Client> {
