@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { QueryRunner } from 'typeorm';
 import { PlatformRole } from '../../platform-users/entities/platform-user.entity';
 import { TenantSessionService } from '../tenant-session.service';
@@ -31,6 +31,10 @@ const row = {
   legal_name: null,
   contact_name: null,
   tax_id: 'LOPA900101AB1',
+  fiscal_name: 'ANA LÓPEZ PÉREZ',
+  fiscal_postal_code: '80000',
+  fiscal_regime_code: '612',
+  preferred_cfdi_use_code: 'G03',
   email: 'ana@example.com',
   phone: '6671234567',
   notes: null,
@@ -81,25 +85,72 @@ describe('ClientsService', () => {
   });
 
   it('creates with server-controlled audit users and normalizes RFC', async () => {
+    query.mockResolvedValueOnce([{ supports_person: true, supports_company: false }]);
     query.mockResolvedValueOnce([row]);
 
     await service.create(user, {
       type: CustomerType.Person,
       displayName: 'Ana López',
       taxId: 'lopa900101ab1',
+      fiscalName: '  Ana   López Pérez ',
+      fiscalPostalCode: '80000',
+      fiscalRegimeCode: '612',
+      preferredCfdiUseCode: 'G03',
     });
 
-    expect(query.mock.calls[0]?.[1]).toEqual([
+    expect(query.mock.calls[0]?.[0]).toContain('public.sat_fiscal_regimes');
+    expect(query.mock.calls[1]?.[1]).toEqual([
       CustomerType.Person,
       'Ana López',
       null,
       null,
       'LOPA900101AB1',
+      'ANA LÓPEZ PÉREZ',
+      '80000',
+      '612',
+      'G03',
       null,
       null,
       null,
       user.id,
     ]);
+  });
+
+  it('lists only fiscal regimes compatible with the requested customer type', async () => {
+    query.mockResolvedValueOnce([
+      {
+        code: '601',
+        name: 'General de Ley Personas Morales',
+        supports_person: false,
+        supports_company: true,
+      },
+    ]);
+
+    const result = await service.listFiscalRegimes(user, CustomerType.Company);
+
+    expect(query.mock.calls[0]?.[0]).toContain('supports_company = true');
+    expect(result).toEqual([
+      {
+        code: '601',
+        name: 'General de Ley Personas Morales',
+        supportsPerson: false,
+        supportsCompany: true,
+      },
+    ]);
+  });
+
+  it('rejects a fiscal regime that is incompatible with the customer type', async () => {
+    query.mockResolvedValueOnce([{ supports_person: false, supports_company: true }]);
+
+    await expect(
+      service.create(user, {
+        type: CustomerType.Person,
+        displayName: 'Persona con régimen moral',
+        fiscalRegimeCode: '601',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(query).toHaveBeenCalledTimes(1);
   });
 
   it('does not find ids outside the active tenant', async () => {

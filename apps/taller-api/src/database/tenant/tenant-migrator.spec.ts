@@ -37,6 +37,10 @@ describe('TenantMigrator', () => {
     expect(customers).toContain('display_name varchar(180) NOT NULL');
     expect(customers).toContain('legal_name varchar(180)');
     expect(customers).toContain('contact_name varchar(180)');
+    expect(customers).toContain('fiscal_name varchar(180)');
+    expect(customers).toContain('fiscal_postal_code varchar(5)');
+    expect(customers).toContain('REFERENCES public.sat_fiscal_regimes(code)');
+    expect(customers).toContain('preferred_cfdi_use_code varchar(4)');
     expect(statements.join('\n')).not.toContain('corporate_customers');
     expect(statements.join('\n')).not.toContain('corporate_customer_id');
   });

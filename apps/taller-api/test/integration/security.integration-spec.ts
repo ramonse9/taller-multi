@@ -41,6 +41,7 @@ import { RefreshTokenSessions1700000034000 } from '../../src/database/migrations
 import { PlatformAdminSecurityEvents1700000035000 } from '../../src/database/migrations/public/1700000035000-platform-admin-security-events';
 import { RemoveSubscriptionTrials1700000036000 } from '../../src/database/migrations/public/1700000036000-remove-subscription-trials';
 import { PlatformCompanyUserEvents1700000037000 } from '../../src/database/migrations/public/1700000037000-platform-company-user-events';
+import { CustomerFiscalProfile1700000038000 } from '../../src/database/migrations/public/1700000038000-customer-fiscal-profile';
 import { quoteIdentifier } from '../../src/database/schema-name';
 import { seedPublicCatalogs } from '../../src/database/seeds/public-catalogs.seed';
 import { changePlatformAdminPassword } from '../../src/platform-users/change-platform-admin-password';
@@ -120,6 +121,10 @@ interface ClientResponse {
   displayName: string;
   legalName: string | null;
   contactName: string | null;
+  fiscalName: string | null;
+  fiscalPostalCode: string | null;
+  fiscalRegimeCode: string | null;
+  preferredCfdiUseCode: string | null;
   createdByUserId: string;
   updatedByUserId: string;
 }
@@ -127,6 +132,13 @@ interface ClientResponse {
 interface PaginatedClients {
   totalItems: number;
   items: ClientResponse[];
+}
+
+interface FiscalRegimeResponse {
+  code: string;
+  name: string;
+  supportsPerson: boolean;
+  supportsCompany: boolean;
 }
 
 interface HttpResult<T> {
@@ -679,6 +691,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         PlatformAdminSecurityEvents1700000035000,
         RemoveSubscriptionTrials1700000036000,
         PlatformCompanyUserEvents1700000037000,
+        CustomerFiscalProfile1700000038000,
       ],
       migrationsTableName: 'public_schema_migrations',
       synchronize: false,
@@ -877,6 +890,58 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     ]);
     expect(alphaRows).toEqual([{ display_name: 'Cliente exclusivo Alpha' }]);
     expect(betaRows).toEqual([{ display_name: 'Cliente exclusivo Beta' }]);
+  });
+
+  it('normaliza el perfil fiscal y valida el régimen para personas físicas y morales', async () => {
+    const alpha = await provisionAndLogin('Fiscal Alpha Integration', 'fiscal.alpha@test.local');
+    const beta = await provisionAndLogin('Fiscal Beta Integration', 'fiscal.beta@test.local');
+
+    const personRegimes = await request<FiscalRegimeResponse[]>(
+      'GET',
+      '/clients/fiscal-regimes?customerType=person',
+      { token: alpha.accessToken },
+    );
+    expect(personRegimes.status).toBe(200);
+    expect(personRegimes.body.some((regime) => regime.code === '612')).toBe(true);
+    expect(personRegimes.body.some((regime) => regime.code === '601')).toBe(false);
+
+    const created = await request<ClientResponse>('POST', '/clients', {
+      token: alpha.accessToken,
+      body: {
+        type: 'person',
+        displayName: 'Cliente Fiscal Alpha',
+        taxId: 'lopa900101ab1',
+        fiscalName: '  Ana   López Pérez ',
+        fiscalPostalCode: '80000',
+        fiscalRegimeCode: '612',
+        preferredCfdiUseCode: 'g03',
+      },
+    });
+    expect(created.status).toBe(201);
+    expect(created.body).toMatchObject({
+      fiscalName: 'ANA LÓPEZ PÉREZ',
+      fiscalPostalCode: '80000',
+      fiscalRegimeCode: '612',
+      preferredCfdiUseCode: 'G03',
+    });
+
+    const incompatible = await request<unknown>('POST', '/clients', {
+      token: alpha.accessToken,
+      body: {
+        type: 'person',
+        displayName: 'Régimen incompatible',
+        fiscalRegimeCode: '601',
+      },
+    });
+    expect(incompatible.status).toBe(400);
+
+    const foreignLookup = await request<unknown>('GET', `/clients/${created.body.id}`, {
+      token: beta.accessToken,
+    });
+    expect(foreignLookup.status).toBe(404);
+
+    const betaList = await listClients(beta.accessToken);
+    expect(betaList.body.items).toHaveLength(0);
   });
 
   it('reutiliza el pool y libera las conexiones tenant después de cada solicitud', async () => {
@@ -2870,10 +2935,10 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     ).toBe(400);
 
     const versions = await control.query<Array<{ version: number }>>(
-      'SELECT version FROM public.tenant_schema_versions WHERE company_id = $1 AND version = 23',
+      'SELECT version FROM public.tenant_schema_versions WHERE company_id = $1 AND version = 24',
       [tenant.company.id],
     );
-    expect(versions).toEqual([{ version: 23 }]);
+    expect(versions).toEqual([{ version: 24 }]);
 
     const isolated = await provisionAndLogin(
       'Expense Isolated Integration',

@@ -22,6 +22,8 @@ import {
   ClientResponseDto,
   ClientsTotalResponseDto,
   CreateClientDto,
+  FiscalRegimeQueryDto,
+  FiscalRegimeResponseDto,
   PaginatedClientsResponseDto,
   UpdateClientDto,
 } from './dto/client.dto';
@@ -52,6 +54,16 @@ export class ClientsController {
   @ApiOkResponse({ type: ClientsTotalResponseDto })
   total(@CurrentUser() user: AuthenticatedUser): Promise<ClientsTotalResponseDto> {
     return this.clients.total(user);
+  }
+
+  @Get('fiscal-regimes')
+  @RequiresPermissions('clients.view')
+  @ApiOkResponse({ type: FiscalRegimeResponseDto, isArray: true })
+  fiscalRegimes(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: FiscalRegimeQueryDto,
+  ): Promise<FiscalRegimeResponseDto[]> {
+    return this.clients.listFiscalRegimes(user, query.customerType);
   }
 
   @Get(':id')

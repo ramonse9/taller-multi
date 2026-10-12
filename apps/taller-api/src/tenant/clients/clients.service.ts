@@ -15,6 +15,7 @@ import {
   ClientsTotalResponseDto,
   CreateClientDto,
   CustomerType,
+  FiscalRegimeResponseDto,
   PaginatedClientsResponseDto,
   UpdateClientDto,
 } from './dto/client.dto';
@@ -26,6 +27,10 @@ interface ClientRow {
   legal_name: string | null;
   contact_name: string | null;
   tax_id: string | null;
+  fiscal_name: string | null;
+  fiscal_postal_code: string | null;
+  fiscal_regime_code: string | null;
+  preferred_cfdi_use_code: string | null;
   email: string | null;
   phone: string | null;
   notes: string | null;
@@ -42,7 +47,8 @@ interface ClientListRow extends ClientRow {
 }
 
 const CLIENT_COLUMNS = `id, customer_type, display_name, legal_name, contact_name,
-  tax_id, email, phone, notes,
+  tax_id, fiscal_name, fiscal_postal_code, fiscal_regime_code, preferred_cfdi_use_code,
+  email, phone, notes,
   is_active, created_by_user_id, updated_by_user_id, created_at, updated_at`;
 
 @Injectable()
@@ -56,6 +62,7 @@ export class ClientsService {
       const where = search
         ? `is_active = $1 AND (
             display_name ILIKE $2 ESCAPE '\\' OR legal_name ILIKE $2 ESCAPE '\\' OR
+            fiscal_name ILIKE $2 ESCAPE '\\' OR
             contact_name ILIKE $2 ESCAPE '\\' OR tax_id ILIKE $2 ESCAPE '\\' OR
             email ILIKE $2 ESCAPE '\\' OR phone ILIKE $2 ESCAPE '\\'
           )`
@@ -111,15 +118,49 @@ export class ClientsService {
     });
   }
 
+  listFiscalRegimes(
+    user: AuthenticatedUser,
+    customerType?: CustomerType,
+  ): Promise<FiscalRegimeResponseDto[]> {
+    return this.tenant.run(user, async (runner) => {
+      const compatibilityColumn =
+        customerType === CustomerType.Person
+          ? 'supports_person'
+          : customerType === CustomerType.Company
+            ? 'supports_company'
+            : null;
+      const rows = (await runner.query(
+        `SELECT code, name, supports_person, supports_company
+         FROM public.sat_fiscal_regimes
+         WHERE is_active = true${compatibilityColumn ? ` AND ${compatibilityColumn} = true` : ''}
+         ORDER BY code`,
+      )) as Array<{
+        code: string;
+        name: string;
+        supports_person: boolean;
+        supports_company: boolean;
+      }>;
+      return rows.map((row) => ({
+        code: row.code,
+        name: row.name,
+        supportsPerson: row.supports_person,
+        supportsCompany: row.supports_company,
+      }));
+    });
+  }
+
   create(user: AuthenticatedUser, input: CreateClientDto): Promise<ClientResponseDto> {
     return this.tenant.run(user, async (runner, schema) => {
+      const fiscalRegimeCode = this.normalizeUppercaseCode(input.fiscalRegimeCode);
+      await this.assertFiscalRegimeCompatibility(runner, input.type, fiscalRegimeCode);
       try {
         const rows = (await runner.query(
           `INSERT INTO ${quoteIdentifier(schema)}.customers
             (customer_type, display_name, legal_name, contact_name,
-             tax_id, email, phone, notes,
+             tax_id, fiscal_name, fiscal_postal_code, fiscal_regime_code, preferred_cfdi_use_code,
+             email, phone, notes,
              created_by_user_id, updated_by_user_id)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $13)
            RETURNING ${CLIENT_COLUMNS}`,
           [
             input.type,
@@ -127,6 +168,10 @@ export class ClientsService {
             input.type === CustomerType.Company ? (input.legalName ?? null) : null,
             input.type === CustomerType.Company ? (input.contactName ?? null) : null,
             this.normalizeTaxId(input.taxId),
+            this.normalizeFiscalName(input.fiscalName),
+            this.normalizePostalCode(input.fiscalPostalCode),
+            fiscalRegimeCode,
+            this.normalizeUppercaseCode(input.preferredCfdiUseCode),
             input.email ?? null,
             input.phone ?? null,
             input.notes ?? null,
@@ -145,12 +190,19 @@ export class ClientsService {
       const current = await this.findOne(runner, schema, id);
       if (!current) throw new NotFoundException('Cliente no encontrado');
       const customerType = input.type ?? current.customer_type;
+      const fiscalRegimeCode =
+        input.fiscalRegimeCode === undefined
+          ? current.fiscal_regime_code
+          : this.normalizeUppercaseCode(input.fiscalRegimeCode);
+      await this.assertFiscalRegimeCompatibility(runner, customerType, fiscalRegimeCode);
       try {
         const result = (await runner.query(
           `UPDATE ${quoteIdentifier(schema)}.customers SET
              customer_type = $2, display_name = $3, legal_name = $4, contact_name = $5,
-             tax_id = $6, email = $7, phone = $8, notes = $9, is_active = $10,
-             updated_by_user_id = $11, updated_at = now()
+             tax_id = $6, fiscal_name = $7, fiscal_postal_code = $8,
+             fiscal_regime_code = $9, preferred_cfdi_use_code = $10,
+             email = $11, phone = $12, notes = $13, is_active = $14,
+             updated_by_user_id = $15, updated_at = now()
            WHERE id = $1 RETURNING ${CLIENT_COLUMNS}`,
           [
             id,
@@ -167,6 +219,16 @@ export class ClientsService {
                 : input.contactName
               : null,
             input.taxId === undefined ? current.tax_id : this.normalizeTaxId(input.taxId),
+            input.fiscalName === undefined
+              ? current.fiscal_name
+              : this.normalizeFiscalName(input.fiscalName),
+            input.fiscalPostalCode === undefined
+              ? current.fiscal_postal_code
+              : this.normalizePostalCode(input.fiscalPostalCode),
+            fiscalRegimeCode,
+            input.preferredCfdiUseCode === undefined
+              ? current.preferred_cfdi_use_code
+              : this.normalizeUppercaseCode(input.preferredCfdiUseCode),
             input.email === undefined ? current.email : input.email,
             input.phone === undefined ? current.phone : input.phone,
             input.notes === undefined ? current.notes : input.notes,
@@ -197,6 +259,43 @@ export class ClientsService {
     return value?.trim().toUpperCase() || null;
   }
 
+  private normalizeFiscalName(value: string | null | undefined): string | null {
+    return value?.trim().replace(/\s+/g, ' ').toLocaleUpperCase('es-MX') || null;
+  }
+
+  private normalizePostalCode(value: string | null | undefined): string | null {
+    return value?.trim() || null;
+  }
+
+  private normalizeUppercaseCode(value: string | null | undefined): string | null {
+    return value?.trim().toUpperCase() || null;
+  }
+
+  private async assertFiscalRegimeCompatibility(
+    runner: QueryRunner,
+    customerType: CustomerType,
+    fiscalRegimeCode: string | null | undefined,
+  ): Promise<void> {
+    if (!fiscalRegimeCode) return;
+    const rows = (await runner.query(
+      `SELECT supports_person, supports_company
+       FROM public.sat_fiscal_regimes
+       WHERE code = $1 AND is_active = true`,
+      [fiscalRegimeCode],
+    )) as Array<{ supports_person: boolean; supports_company: boolean }>;
+    const regime = rows[0];
+    if (!regime) throw new BadRequestException('El régimen fiscal no existe o está inactivo');
+    const compatible =
+      customerType === CustomerType.Person ? regime.supports_person : regime.supports_company;
+    if (!compatible) {
+      throw new BadRequestException(
+        `El régimen fiscal no es compatible con una ${
+          customerType === CustomerType.Person ? 'persona física' : 'persona moral'
+        }`,
+      );
+    }
+  }
+
   private escapeLike(value: string): string {
     return value.replaceAll('\\', '\\\\').replaceAll('%', '\\%').replaceAll('_', '\\_');
   }
@@ -218,6 +317,10 @@ export class ClientsService {
       legalName: row.legal_name,
       contactName: row.contact_name,
       taxId: row.tax_id,
+      fiscalName: row.fiscal_name,
+      fiscalPostalCode: row.fiscal_postal_code,
+      fiscalRegimeCode: row.fiscal_regime_code,
+      preferredCfdiUseCode: row.preferred_cfdi_use_code,
       email: row.email,
       phone: row.phone,
       notes: row.notes,

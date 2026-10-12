@@ -22,6 +22,14 @@ const normalizeNullableEmail = ({ value }: { value: unknown }): unknown =>
 const normalizeNullableTaxId = ({ value }: { value: unknown }): unknown =>
   typeof value === 'string' ? value.trim().toUpperCase() || null : value;
 
+const normalizeNullableFiscalName = ({ value }: { value: unknown }): unknown =>
+  typeof value === 'string'
+    ? value.trim().replace(/\s+/g, ' ').toLocaleUpperCase('es-MX') || null
+    : value;
+
+const normalizeNullableUppercaseCode = ({ value }: { value: unknown }): unknown =>
+  typeof value === 'string' ? value.trim().toUpperCase() || null : value;
+
 export enum CustomerType {
   Person = 'person',
   Company = 'company',
@@ -58,6 +66,49 @@ export class CreateClientDto {
   @IsString()
   @Matches(/^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/, { message: 'taxId debe ser un RFC válido' })
   taxId?: string | null;
+
+  @ApiPropertyOptional({
+    example: 'ANA LÓPEZ PÉREZ',
+    nullable: true,
+    description: 'Nombre o razón social exactamente como aparece en la constancia fiscal',
+  })
+  @Transform(normalizeNullableFiscalName)
+  @IsOptional()
+  @IsString()
+  @Length(2, 180)
+  fiscalName?: string | null;
+
+  @ApiPropertyOptional({ example: '80000', nullable: true })
+  @Transform(trimNullableString)
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{5}$/, { message: 'fiscalPostalCode debe contener exactamente 5 dígitos' })
+  fiscalPostalCode?: string | null;
+
+  @ApiPropertyOptional({
+    example: '612',
+    nullable: true,
+    description: 'Clave del catálogo de regímenes fiscales del SAT',
+  })
+  @Transform(normalizeNullableUppercaseCode)
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{3}$/, { message: 'fiscalRegimeCode debe contener exactamente 3 dígitos' })
+  fiscalRegimeCode?: string | null;
+
+  @ApiPropertyOptional({
+    example: 'G03',
+    nullable: true,
+    description:
+      'Uso de CFDI preferido; se conserva como preferencia hasta implementar facturación',
+  })
+  @Transform(normalizeNullableUppercaseCode)
+  @IsOptional()
+  @IsString()
+  @Matches(/^[A-Z0-9]{3,4}$/, {
+    message: 'preferredCfdiUseCode debe ser una clave válida de 3 o 4 caracteres',
+  })
+  preferredCfdiUseCode?: string | null;
 
   @ApiPropertyOptional({ nullable: true })
   @Transform(normalizeNullableEmail)
@@ -118,6 +169,24 @@ export class ClientQueryDto {
   isActive = true;
 }
 
+export class FiscalRegimeQueryDto {
+  @ApiPropertyOptional({
+    enum: CustomerType,
+    description: 'Limita el catálogo a regímenes compatibles con persona física o moral',
+  })
+  @IsOptional()
+  @IsEnum(CustomerType)
+  customerType?: CustomerType;
+}
+
+export class FiscalRegimeResponseDto {
+  @ApiProperty({ example: '612' }) code!: string;
+  @ApiProperty({ example: 'Personas Físicas con Actividades Empresariales y Profesionales' })
+  name!: string;
+  @ApiProperty() supportsPerson!: boolean;
+  @ApiProperty() supportsCompany!: boolean;
+}
+
 export class ClientResponseDto {
   @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty({ enum: CustomerType }) type!: CustomerType;
@@ -125,6 +194,10 @@ export class ClientResponseDto {
   @ApiProperty({ nullable: true, type: String }) legalName!: string | null;
   @ApiProperty({ nullable: true, type: String }) contactName!: string | null;
   @ApiProperty({ nullable: true, type: String }) taxId!: string | null;
+  @ApiProperty({ nullable: true, type: String }) fiscalName!: string | null;
+  @ApiProperty({ nullable: true, type: String }) fiscalPostalCode!: string | null;
+  @ApiProperty({ nullable: true, type: String }) fiscalRegimeCode!: string | null;
+  @ApiProperty({ nullable: true, type: String }) preferredCfdiUseCode!: string | null;
   @ApiProperty({ nullable: true, type: String }) email!: string | null;
   @ApiProperty({ nullable: true, type: String }) phone!: string | null;
   @ApiProperty({ nullable: true, type: String }) notes!: string | null;
