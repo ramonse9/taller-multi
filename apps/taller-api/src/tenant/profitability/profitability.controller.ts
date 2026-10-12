@@ -1,5 +1,12 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Controller, Get, Query, Res, StreamableFile, UseGuards } from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiProduces,
+  ApiTags,
+} from '@nestjs/swagger';
+import { Response } from 'express';
 import { JwtAuthGuard } from '../../auth/roles';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../../common/types/authenticated-user';
@@ -14,6 +21,7 @@ import {
   ProfitabilityReportResponseDto,
 } from './dto/profitability.dto';
 import { ProfitabilityService } from './profitability.service';
+import { ProfitabilityWorkbookService } from './profitability-workbook.service';
 
 @ApiTags('profitability')
 @ApiBearerAuth()
@@ -21,7 +29,35 @@ import { ProfitabilityService } from './profitability.service';
 @RequiresFeature('profitability')
 @Controller('profitability')
 export class ProfitabilityController {
-  constructor(private readonly profitability: ProfitabilityService) {}
+  constructor(
+    private readonly profitability: ProfitabilityService,
+    private readonly workbook: ProfitabilityWorkbookService,
+  ) {}
+
+  @Get('monthly-report.xlsx')
+  @RequiresPermissions('profitability.view')
+  @ApiOperation({ summary: 'Descargar órdenes y utilidad de un mes en formato XLSX' })
+  @ApiProduces('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+  @ApiOkResponse({
+    description: 'Archivo XLSX con resumen mensual y una fila por orden',
+    content: {
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': {
+        schema: { type: 'string', format: 'binary' },
+      },
+    },
+  })
+  async monthlyReportWorkbook(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: MonthlyProfitabilityReportQueryDto,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<StreamableFile> {
+    const report = await this.profitability.monthlyReport(user, query);
+    const file = await this.workbook.build(report, user.companyName ?? 'Taller');
+    response.setHeader('Content-Type', file.contentType);
+    response.setHeader('Content-Disposition', `attachment; filename="${file.filename}"`);
+    response.setHeader('Cache-Control', 'private, no-store');
+    return new StreamableFile(file.buffer);
+  }
 
   @Get('monthly-report')
   @RequiresPermissions('profitability.view')

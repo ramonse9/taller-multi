@@ -19,6 +19,7 @@ import { ExpensesController } from './expenses/expenses.controller';
 import { ExpensesService } from './expenses/expenses.service';
 import { ProfitabilityController } from './profitability/profitability.controller';
 import { ProfitabilityService } from './profitability/profitability.service';
+import { ProfitabilityWorkbookService } from './profitability/profitability-workbook.service';
 import { DashboardController } from './dashboard/dashboard.controller';
 import { DashboardService } from './dashboard/dashboard.service';
 
@@ -49,6 +50,7 @@ import { DashboardService } from './dashboard/dashboard.service';
     PurchasesService,
     ExpensesService,
     ProfitabilityService,
+    ProfitabilityWorkbookService,
     DashboardService,
   ],
   exports: [TenantSessionService],

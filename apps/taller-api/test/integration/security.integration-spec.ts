@@ -3,6 +3,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as argon2 from 'argon2';
+import { Workbook } from 'exceljs';
 import { AddressInfo } from 'node:net';
 import { DataSource } from 'typeorm';
 import { AppModule } from '../../src/app.module';
@@ -132,6 +133,13 @@ interface HttpResult<T> {
   status: number;
   body: T;
   setCookie: string | null;
+}
+
+interface BinaryHttpResult {
+  status: number;
+  body: Buffer;
+  contentType: string | null;
+  contentDisposition: string | null;
 }
 
 interface PoolStats {
@@ -2069,6 +2077,13 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         })
       ).status,
     ).toBe(403);
+    expect(
+      (
+        await request<unknown>('GET', '/profitability/monthly-report.xlsx?year=2026&month=10', {
+          token: operatorLogin.body.accessToken,
+        })
+      ).status,
+    ).toBe(403);
 
     const fakeId = '11111111-1111-4111-8111-111111111111';
     expect(
@@ -3459,6 +3474,35 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         isCostComplete: true,
       }),
     ]);
+    const monthlyWorkbook = await requestBinary(
+      '/profitability/monthly-report.xlsx?year=2026&month=10',
+      tenant.accessToken,
+    );
+    expect(monthlyWorkbook.status).toBe(200);
+    expect(monthlyWorkbook.contentType).toBe(
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    expect(monthlyWorkbook.contentDisposition).toBe(
+      'attachment; filename="reporte-ordenes-utilidad-octubre-2026.xlsx"',
+    );
+    const parsedWorkbook = new Workbook();
+    await parsedWorkbook.xlsx.load(Uint8Array.from(monthlyWorkbook.body).buffer);
+    const octoberSheet = parsedWorkbook.getWorksheet('Octubre 2026');
+    expect(octoberSheet).toBeDefined();
+    expect(octoberSheet!.getCell('A2').value).toBe('Reporte mensual de órdenes y utilidad');
+    expect(octoberSheet!.getCell('A11').value).toBe(order.body.folio);
+    expect(octoberSheet!.getCell('B11').value).toBe('CBS-2026-100');
+    expect(octoberSheet!.getCell('C11').value).toBeInstanceOf(Date);
+    expect(octoberSheet!.getCell('J11').value).toBe(700);
+    expect(octoberSheet!.getCell('J11').numFmt).toContain('$');
+    expect(octoberSheet!.getCell('M11').numFmt).toBe('0.00%');
+    expect(octoberSheet!.getCell('J12').value).toMatchObject({
+      formula: 'SUM(J11:J11)',
+      result: 700,
+    });
+    expect(octoberSheet!.autoFilter).toBe('A10:N11');
+    expect(octoberSheet!.getColumn(4).width).toBe(27);
+    expect(octoberSheet!.views[0]).toMatchObject({ state: 'frozen', ySplit: 10 });
     expect(
       (
         await request<unknown>('GET', '/profitability/monthly-report?year=2026&month=13', {
@@ -6021,6 +6065,22 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       status: response.status,
       body: (text ? JSON.parse(text) : undefined) as T,
       setCookie: response.headers.get('set-cookie'),
+    };
+  }
+
+  async function requestBinary(path: string, token: string): Promise<BinaryHttpResult> {
+    const response = await fetch(`${baseUrl}${path}`, {
+      headers: {
+        Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        Authorization: `Bearer ${token}`,
+        Origin: 'http://127.0.0.1:4200',
+      },
+    });
+    return {
+      status: response.status,
+      body: Buffer.from(await response.arrayBuffer()),
+      contentType: response.headers.get('content-type'),
+      contentDisposition: response.headers.get('content-disposition'),
     };
   }
 
