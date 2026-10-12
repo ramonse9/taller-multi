@@ -100,7 +100,7 @@ export class CreateClientDto {
     example: 'G03',
     nullable: true,
     description:
-      'Uso de CFDI preferido; se conserva como preferencia hasta implementar facturación',
+      'Clave vigente del catálogo c_UsoCFDI. Requiere régimen fiscal y debe ser compatible con el tipo de persona y dicho régimen',
   })
   @Transform(normalizeNullableUppercaseCode)
   @IsOptional()
@@ -185,6 +185,36 @@ export class FiscalRegimeResponseDto {
   name!: string;
   @ApiProperty() supportsPerson!: boolean;
   @ApiProperty() supportsCompany!: boolean;
+}
+
+export class CfdiUseQueryDto {
+  @ApiPropertyOptional({
+    enum: CustomerType,
+    description: 'Limita el catálogo a usos compatibles con persona física o moral',
+  })
+  @IsOptional()
+  @IsEnum(CustomerType)
+  customerType?: CustomerType;
+
+  @ApiPropertyOptional({
+    example: '612',
+    description: 'Limita el catálogo a usos compatibles con este régimen fiscal del SAT',
+  })
+  @Transform(normalizeNullableUppercaseCode)
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{3}$/, { message: 'fiscalRegimeCode debe contener exactamente 3 dígitos' })
+  fiscalRegimeCode?: string;
+}
+
+export class CfdiUseResponseDto {
+  @ApiProperty({ example: 'G03' }) code!: string;
+  @ApiProperty({ example: 'Gastos en general.' }) description!: string;
+  @ApiProperty() supportsPerson!: boolean;
+  @ApiProperty() supportsCompany!: boolean;
+  @ApiProperty({ example: '2022-01-01' }) validFrom!: string;
+  @ApiProperty({ example: null, nullable: true, type: String }) validTo!: string | null;
+  @ApiProperty() isActive!: boolean;
 }
 
 export class ClientResponseDto {

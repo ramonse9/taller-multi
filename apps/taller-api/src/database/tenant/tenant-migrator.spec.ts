@@ -40,7 +40,12 @@ describe('TenantMigrator', () => {
     expect(customers).toContain('fiscal_name varchar(180)');
     expect(customers).toContain('fiscal_postal_code varchar(5)');
     expect(customers).toContain('REFERENCES public.sat_fiscal_regimes(code)');
-    expect(customers).toContain('preferred_cfdi_use_code varchar(4)');
+    expect(customers).toContain(
+      'preferred_cfdi_use_code varchar(4) REFERENCES public.sat_cfdi_uses(code)',
+    );
+    expect(customers).toContain(
+      'CHECK (preferred_cfdi_use_code IS NULL OR fiscal_regime_code IS NOT NULL)',
+    );
     expect(statements.join('\n')).not.toContain('corporate_customers');
     expect(statements.join('\n')).not.toContain('corporate_customer_id');
   });

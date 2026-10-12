@@ -8,8 +8,8 @@ export interface TenantMigration {
   up(queryRunner: QueryRunner, schemaName: string): Promise<void>;
 }
 
-export const TENANT_BASE_VERSION = 24;
-export const TENANT_BASE_NAME = 'tenant-base-v24';
+export const TENANT_BASE_VERSION = 25;
+export const TENANT_BASE_NAME = 'tenant-base-v25';
 
 /**
  * Dynamic tenant migrations deliberately use qualified identifiers everywhere.
@@ -36,7 +36,7 @@ export class TenantMigrator {
         tax_id varchar(20),
         fiscal_name varchar(180), fiscal_postal_code varchar(5),
         fiscal_regime_code varchar(3) REFERENCES public.sat_fiscal_regimes(code),
-        preferred_cfdi_use_code varchar(4),
+        preferred_cfdi_use_code varchar(4) REFERENCES public.sat_cfdi_uses(code),
         email citext, phone varchar(30), notes text,
         is_active boolean NOT NULL DEFAULT true,
         created_by_user_id uuid NOT NULL REFERENCES public.users(id),
@@ -45,6 +45,7 @@ export class TenantMigrator {
         UNIQUE (tax_id),
         CHECK (fiscal_postal_code IS NULL OR fiscal_postal_code ~ '^[0-9]{5}$'),
         CHECK (preferred_cfdi_use_code IS NULL OR preferred_cfdi_use_code ~ '^[A-Z0-9]{3,4}$'),
+        CHECK (preferred_cfdi_use_code IS NULL OR fiscal_regime_code IS NOT NULL),
         CHECK (
           customer_type = 'company' OR
           (legal_name IS NULL AND contact_name IS NULL)

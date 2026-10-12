@@ -9,7 +9,13 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/roles';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../../common/types/authenticated-user';
@@ -18,6 +24,8 @@ import { PermissionGuard, RequiresPermissions } from '../../permissions/permissi
 import { PermissionsService } from '../../permissions/permissions.service';
 import { ClientsService } from './clients.service';
 import {
+  CfdiUseQueryDto,
+  CfdiUseResponseDto,
   ClientQueryDto,
   ClientResponseDto,
   ClientsTotalResponseDto,
@@ -66,6 +74,17 @@ export class ClientsController {
     return this.clients.listFiscalRegimes(user, query.customerType);
   }
 
+  @Get('cfdi-uses')
+  @RequiresPermissions('clients.view')
+  @ApiOkResponse({ type: CfdiUseResponseDto, isArray: true })
+  @ApiBadRequestResponse({ description: 'El régimen fiscal no existe o no es compatible' })
+  cfdiUses(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: CfdiUseQueryDto,
+  ): Promise<CfdiUseResponseDto[]> {
+    return this.clients.listCfdiUses(user, query);
+  }
+
   @Get(':id')
   @RequiresPermissions('clients.view')
   @ApiOkResponse({ type: ClientResponseDto })
@@ -79,6 +98,9 @@ export class ClientsController {
   @Post()
   @RequiresPermissions('clients.create')
   @ApiCreatedResponse({ type: ClientResponseDto })
+  @ApiBadRequestResponse({
+    description: 'El régimen fiscal o el Uso CFDI no existe, no está vigente o es incompatible',
+  })
   create(
     @CurrentUser() user: AuthenticatedUser,
     @Body() input: CreateClientDto,
@@ -88,6 +110,9 @@ export class ClientsController {
 
   @Patch(':id')
   @ApiOkResponse({ type: ClientResponseDto })
+  @ApiBadRequestResponse({
+    description: 'El régimen fiscal o el Uso CFDI no existe, no está vigente o es incompatible',
+  })
   update(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,

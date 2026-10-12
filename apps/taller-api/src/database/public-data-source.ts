@@ -40,6 +40,7 @@ import { PlatformAdminSecurityEvents1700000035000 } from './migrations/public/17
 import { RemoveSubscriptionTrials1700000036000 } from './migrations/public/1700000036000-remove-subscription-trials';
 import { PlatformCompanyUserEvents1700000037000 } from './migrations/public/1700000037000-platform-company-user-events';
 import { CustomerFiscalProfile1700000038000 } from './migrations/public/1700000038000-customer-fiscal-profile';
+import { CfdiUseCatalog1700000039000 } from './migrations/public/1700000039000-cfdi-use-catalog';
 
 export default new DataSource({
   type: 'postgres',
@@ -86,6 +87,7 @@ export default new DataSource({
     RemoveSubscriptionTrials1700000036000,
     PlatformCompanyUserEvents1700000037000,
     CustomerFiscalProfile1700000038000,
+    CfdiUseCatalog1700000039000,
   ],
   migrationsTableName: 'public_schema_migrations',
   synchronize: false,

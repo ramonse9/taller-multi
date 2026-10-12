@@ -86,6 +86,15 @@ describe('ClientsService', () => {
 
   it('creates with server-controlled audit users and normalizes RFC', async () => {
     query.mockResolvedValueOnce([{ supports_person: true, supports_company: false }]);
+    query.mockResolvedValueOnce([
+      {
+        supports_person: true,
+        supports_company: true,
+        is_active: true,
+        is_current: true,
+        supports_regime: true,
+      },
+    ]);
     query.mockResolvedValueOnce([row]);
 
     await service.create(user, {
@@ -99,7 +108,8 @@ describe('ClientsService', () => {
     });
 
     expect(query.mock.calls[0]?.[0]).toContain('public.sat_fiscal_regimes');
-    expect(query.mock.calls[1]?.[1]).toEqual([
+    expect(query.mock.calls[1]?.[0]).toContain('public.sat_cfdi_uses');
+    expect(query.mock.calls[2]?.[1]).toEqual([
       CustomerType.Person,
       'Ana López',
       null,
@@ -114,6 +124,125 @@ describe('ClientsService', () => {
       null,
       user.id,
     ]);
+  });
+
+  it('lists current CFDI uses compatible with customer type and fiscal regime', async () => {
+    query
+      .mockResolvedValueOnce([{ supports_person: true, supports_company: false }])
+      .mockResolvedValueOnce([
+        {
+          code: 'G03',
+          description: 'Gastos en general.',
+          supports_person: true,
+          supports_company: true,
+          valid_from: '2022-01-01',
+          valid_to: null,
+          is_active: true,
+        },
+      ]);
+
+    const result = await service.listCfdiUses(user, {
+      customerType: CustomerType.Person,
+      fiscalRegimeCode: '612',
+    });
+
+    expect(query.mock.calls[1]?.[0]).toContain('cfdi_use.supports_person = true');
+    expect(query.mock.calls[1]?.[0]).toContain('public.sat_cfdi_use_fiscal_regimes');
+    expect(query.mock.calls[1]?.[1]).toEqual(['612']);
+    expect(result).toEqual([
+      {
+        code: 'G03',
+        description: 'Gastos en general.',
+        supportsPerson: true,
+        supportsCompany: true,
+        validFrom: '2022-01-01',
+        validTo: null,
+        isActive: true,
+      },
+    ]);
+  });
+
+  it('requires a fiscal regime when a CFDI use is selected', async () => {
+    await expect(
+      service.create(user, {
+        type: CustomerType.Person,
+        displayName: 'Sin régimen',
+        preferredCfdiUseCode: 'G03',
+      }),
+    ).rejects.toThrow('Selecciona un régimen fiscal');
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it('rejects an unknown CFDI use even when its format is valid', async () => {
+    query
+      .mockResolvedValueOnce([{ supports_person: true, supports_company: false }])
+      .mockResolvedValueOnce([]);
+
+    await expect(
+      service.create(user, {
+        type: CustomerType.Person,
+        displayName: 'Uso inexistente',
+        fiscalRegimeCode: '612',
+        preferredCfdiUseCode: 'ZZZ',
+      }),
+    ).rejects.toThrow('no existe en el catálogo del SAT');
+  });
+
+  it('rejects inactive and incompatible CFDI uses', async () => {
+    query
+      .mockResolvedValueOnce([{ supports_person: true, supports_company: false }])
+      .mockResolvedValueOnce([
+        {
+          supports_person: true,
+          supports_company: true,
+          is_active: false,
+          is_current: true,
+          supports_regime: true,
+        },
+      ]);
+
+    await expect(
+      service.create(user, {
+        type: CustomerType.Person,
+        displayName: 'Uso inactivo',
+        fiscalRegimeCode: '612',
+        preferredCfdiUseCode: 'G03',
+      }),
+    ).rejects.toThrow('inactivo o fuera de vigencia');
+
+    query.mockReset();
+    query
+      .mockResolvedValueOnce([{ supports_person: true, supports_company: false }])
+      .mockResolvedValueOnce([
+        {
+          supports_person: true,
+          supports_company: true,
+          is_active: true,
+          is_current: true,
+          supports_regime: false,
+        },
+      ]);
+    await expect(
+      service.create(user, {
+        type: CustomerType.Person,
+        displayName: 'Uso incompatible',
+        fiscalRegimeCode: '612',
+        preferredCfdiUseCode: 'CN01',
+      }),
+    ).rejects.toThrow('no es compatible con el régimen fiscal');
+  });
+
+  it('allows null to remove the preferred CFDI use', async () => {
+    const cleared = { ...row, preferred_cfdi_use_code: null };
+    query
+      .mockResolvedValueOnce([row])
+      .mockResolvedValueOnce([{ supports_person: true, supports_company: false }])
+      .mockResolvedValueOnce([[cleared], 1]);
+
+    const result = await service.update(user, row.id, { preferredCfdiUseCode: null });
+
+    expect(result.preferredCfdiUseCode).toBeNull();
+    expect(query.mock.calls[2]?.[1]?.[9]).toBeNull();
   });
 
   it('lists only fiscal regimes compatible with the requested customer type', async () => {

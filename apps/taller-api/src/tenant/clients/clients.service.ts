@@ -9,6 +9,8 @@ import { AuthenticatedUser } from '../../common/types/authenticated-user';
 import { quoteIdentifier } from '../../database/schema-name';
 import { TenantSessionService } from '../tenant-session.service';
 import {
+  CfdiUseQueryDto,
+  CfdiUseResponseDto,
   ClientQueryDto,
   ClientListItemResponseDto,
   ClientResponseDto,
@@ -149,10 +151,73 @@ export class ClientsService {
     });
   }
 
+  listCfdiUses(user: AuthenticatedUser, query: CfdiUseQueryDto): Promise<CfdiUseResponseDto[]> {
+    return this.tenant.run(user, async (runner) => {
+      const fiscalRegimeCode = this.normalizeUppercaseCode(query.fiscalRegimeCode);
+      await this.assertFiscalRegimeCompatibility(runner, query.customerType, fiscalRegimeCode);
+
+      const compatibilityColumn =
+        query.customerType === CustomerType.Person
+          ? 'cfdi_use.supports_person'
+          : query.customerType === CustomerType.Company
+            ? 'cfdi_use.supports_company'
+            : null;
+      const parameters: unknown[] = [];
+      const conditions = [
+        'cfdi_use.is_active = true',
+        'cfdi_use.valid_from <= CURRENT_DATE',
+        '(cfdi_use.valid_to IS NULL OR cfdi_use.valid_to >= CURRENT_DATE)',
+      ];
+      if (compatibilityColumn) conditions.push(`${compatibilityColumn} = true`);
+      if (fiscalRegimeCode) {
+        parameters.push(fiscalRegimeCode);
+        conditions.push(`EXISTS (
+          SELECT 1 FROM public.sat_cfdi_use_fiscal_regimes compatibility
+          WHERE compatibility.cfdi_use_code = cfdi_use.code
+            AND compatibility.fiscal_regime_code = $${parameters.length}
+        )`);
+      }
+
+      const rows = (await runner.query(
+        `SELECT cfdi_use.code, cfdi_use.description,
+                cfdi_use.supports_person, cfdi_use.supports_company,
+                cfdi_use.valid_from::text, cfdi_use.valid_to::text, cfdi_use.is_active
+         FROM public.sat_cfdi_uses cfdi_use
+         WHERE ${conditions.join(' AND ')}
+         ORDER BY cfdi_use.code`,
+        parameters,
+      )) as Array<{
+        code: string;
+        description: string;
+        supports_person: boolean;
+        supports_company: boolean;
+        valid_from: string;
+        valid_to: string | null;
+        is_active: boolean;
+      }>;
+      return rows.map((row) => ({
+        code: row.code,
+        description: row.description,
+        supportsPerson: row.supports_person,
+        supportsCompany: row.supports_company,
+        validFrom: row.valid_from,
+        validTo: row.valid_to,
+        isActive: row.is_active,
+      }));
+    });
+  }
+
   create(user: AuthenticatedUser, input: CreateClientDto): Promise<ClientResponseDto> {
     return this.tenant.run(user, async (runner, schema) => {
       const fiscalRegimeCode = this.normalizeUppercaseCode(input.fiscalRegimeCode);
+      const preferredCfdiUseCode = this.normalizeUppercaseCode(input.preferredCfdiUseCode);
       await this.assertFiscalRegimeCompatibility(runner, input.type, fiscalRegimeCode);
+      await this.assertCfdiUseCompatibility(
+        runner,
+        input.type,
+        fiscalRegimeCode,
+        preferredCfdiUseCode,
+      );
       try {
         const rows = (await runner.query(
           `INSERT INTO ${quoteIdentifier(schema)}.customers
@@ -171,7 +236,7 @@ export class ClientsService {
             this.normalizeFiscalName(input.fiscalName),
             this.normalizePostalCode(input.fiscalPostalCode),
             fiscalRegimeCode,
-            this.normalizeUppercaseCode(input.preferredCfdiUseCode),
+            preferredCfdiUseCode,
             input.email ?? null,
             input.phone ?? null,
             input.notes ?? null,
@@ -194,7 +259,17 @@ export class ClientsService {
         input.fiscalRegimeCode === undefined
           ? current.fiscal_regime_code
           : this.normalizeUppercaseCode(input.fiscalRegimeCode);
+      const preferredCfdiUseCode =
+        input.preferredCfdiUseCode === undefined
+          ? current.preferred_cfdi_use_code
+          : this.normalizeUppercaseCode(input.preferredCfdiUseCode);
       await this.assertFiscalRegimeCompatibility(runner, customerType, fiscalRegimeCode);
+      await this.assertCfdiUseCompatibility(
+        runner,
+        customerType,
+        fiscalRegimeCode,
+        preferredCfdiUseCode,
+      );
       try {
         const result = (await runner.query(
           `UPDATE ${quoteIdentifier(schema)}.customers SET
@@ -226,9 +301,7 @@ export class ClientsService {
               ? current.fiscal_postal_code
               : this.normalizePostalCode(input.fiscalPostalCode),
             fiscalRegimeCode,
-            input.preferredCfdiUseCode === undefined
-              ? current.preferred_cfdi_use_code
-              : this.normalizeUppercaseCode(input.preferredCfdiUseCode),
+            preferredCfdiUseCode,
             input.email === undefined ? current.email : input.email,
             input.phone === undefined ? current.phone : input.phone,
             input.notes === undefined ? current.notes : input.notes,
@@ -273,7 +346,7 @@ export class ClientsService {
 
   private async assertFiscalRegimeCompatibility(
     runner: QueryRunner,
-    customerType: CustomerType,
+    customerType: CustomerType | undefined,
     fiscalRegimeCode: string | null | undefined,
   ): Promise<void> {
     if (!fiscalRegimeCode) return;
@@ -285,6 +358,7 @@ export class ClientsService {
     )) as Array<{ supports_person: boolean; supports_company: boolean }>;
     const regime = rows[0];
     if (!regime) throw new BadRequestException('El régimen fiscal no existe o está inactivo');
+    if (!customerType) return;
     const compatible =
       customerType === CustomerType.Person ? regime.supports_person : regime.supports_company;
     if (!compatible) {
@@ -292,6 +366,60 @@ export class ClientsService {
         `El régimen fiscal no es compatible con una ${
           customerType === CustomerType.Person ? 'persona física' : 'persona moral'
         }`,
+      );
+    }
+  }
+
+  private async assertCfdiUseCompatibility(
+    runner: QueryRunner,
+    customerType: CustomerType,
+    fiscalRegimeCode: string | null | undefined,
+    cfdiUseCode: string | null | undefined,
+  ): Promise<void> {
+    if (!cfdiUseCode) return;
+    if (!fiscalRegimeCode) {
+      throw new BadRequestException(
+        'Selecciona un régimen fiscal antes de guardar el Uso de CFDI preferido',
+      );
+    }
+
+    const rows = (await runner.query(
+      `SELECT cfdi_use.supports_person, cfdi_use.supports_company,
+              cfdi_use.is_active,
+              cfdi_use.valid_from <= CURRENT_DATE AND
+                (cfdi_use.valid_to IS NULL OR cfdi_use.valid_to >= CURRENT_DATE) AS is_current,
+              EXISTS (
+                SELECT 1 FROM public.sat_cfdi_use_fiscal_regimes compatibility
+                WHERE compatibility.cfdi_use_code = cfdi_use.code
+                  AND compatibility.fiscal_regime_code = $2
+              ) AS supports_regime
+       FROM public.sat_cfdi_uses cfdi_use
+       WHERE cfdi_use.code = $1`,
+      [cfdiUseCode, fiscalRegimeCode],
+    )) as Array<{
+      supports_person: boolean;
+      supports_company: boolean;
+      is_active: boolean;
+      is_current: boolean;
+      supports_regime: boolean;
+    }>;
+    const use = rows[0];
+    if (!use) throw new BadRequestException('El Uso de CFDI no existe en el catálogo del SAT');
+    if (!use.is_active || !use.is_current) {
+      throw new BadRequestException('El Uso de CFDI está inactivo o fuera de vigencia');
+    }
+    const supportsCustomerType =
+      customerType === CustomerType.Person ? use.supports_person : use.supports_company;
+    if (!supportsCustomerType) {
+      throw new BadRequestException(
+        `El Uso de CFDI no es compatible con una ${
+          customerType === CustomerType.Person ? 'persona física' : 'persona moral'
+        }`,
+      );
+    }
+    if (!use.supports_regime) {
+      throw new BadRequestException(
+        'El Uso de CFDI no es compatible con el régimen fiscal seleccionado',
       );
     }
   }

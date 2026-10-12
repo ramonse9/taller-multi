@@ -42,6 +42,7 @@ import { PlatformAdminSecurityEvents1700000035000 } from '../../src/database/mig
 import { RemoveSubscriptionTrials1700000036000 } from '../../src/database/migrations/public/1700000036000-remove-subscription-trials';
 import { PlatformCompanyUserEvents1700000037000 } from '../../src/database/migrations/public/1700000037000-platform-company-user-events';
 import { CustomerFiscalProfile1700000038000 } from '../../src/database/migrations/public/1700000038000-customer-fiscal-profile';
+import { CfdiUseCatalog1700000039000 } from '../../src/database/migrations/public/1700000039000-cfdi-use-catalog';
 import { quoteIdentifier } from '../../src/database/schema-name';
 import { seedPublicCatalogs } from '../../src/database/seeds/public-catalogs.seed';
 import { changePlatformAdminPassword } from '../../src/platform-users/change-platform-admin-password';
@@ -139,6 +140,16 @@ interface FiscalRegimeResponse {
   name: string;
   supportsPerson: boolean;
   supportsCompany: boolean;
+}
+
+interface CfdiUseResponse {
+  code: string;
+  description: string;
+  supportsPerson: boolean;
+  supportsCompany: boolean;
+  validFrom: string;
+  validTo: string | null;
+  isActive: boolean;
 }
 
 interface HttpResult<T> {
@@ -692,6 +703,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         RemoveSubscriptionTrials1700000036000,
         PlatformCompanyUserEvents1700000037000,
         CustomerFiscalProfile1700000038000,
+        CfdiUseCatalog1700000039000,
       ],
       migrationsTableName: 'public_schema_migrations',
       synchronize: false,
@@ -905,6 +917,40 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(personRegimes.body.some((regime) => regime.code === '612')).toBe(true);
     expect(personRegimes.body.some((regime) => regime.code === '601')).toBe(false);
 
+    const personUses = await request<CfdiUseResponse[]>(
+      'GET',
+      '/clients/cfdi-uses?customerType=person&fiscalRegimeCode=612',
+      { token: alpha.accessToken },
+    );
+    expect(personUses.status).toBe(200);
+    expect(personUses.body.map(({ code }) => code)).toEqual(
+      expect.arrayContaining(['G01', 'G03', 'S01', 'CP01']),
+    );
+    expect(personUses.body.map(({ code }) => code)).not.toContain('CN01');
+    expect(personUses.body.every(({ isActive }) => isActive)).toBe(true);
+
+    const companyUses = await request<CfdiUseResponse[]>(
+      'GET',
+      '/clients/cfdi-uses?customerType=company&fiscalRegimeCode=601',
+      { token: alpha.accessToken },
+    );
+    expect(companyUses.status).toBe(200);
+    expect(companyUses.body.map(({ code }) => code)).toEqual(
+      expect.arrayContaining(['G01', 'G03', 'S01', 'CP01']),
+    );
+    expect(companyUses.body.map(({ code }) => code)).not.toContain('D01');
+
+    const payrollUses = await request<CfdiUseResponse[]>(
+      'GET',
+      '/clients/cfdi-uses?customerType=person&fiscalRegimeCode=605',
+      { token: alpha.accessToken },
+    );
+    expect(payrollUses.status).toBe(200);
+    expect(payrollUses.body.map(({ code }) => code)).toEqual(
+      expect.arrayContaining(['D01', 'S01', 'CP01', 'CN01']),
+    );
+    expect(payrollUses.body.map(({ code }) => code)).not.toContain('G01');
+
     const created = await request<ClientResponse>('POST', '/clients', {
       token: alpha.accessToken,
       body: {
@@ -935,6 +981,72 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     });
     expect(incompatible.status).toBe(400);
 
+    const missingRegime = await request<unknown>('POST', '/clients', {
+      token: alpha.accessToken,
+      body: {
+        type: 'person',
+        displayName: 'Uso sin régimen',
+        preferredCfdiUseCode: 'G03',
+      },
+    });
+    expect(missingRegime.status).toBe(400);
+
+    const unknownUse = await request<unknown>('POST', '/clients', {
+      token: alpha.accessToken,
+      body: {
+        type: 'person',
+        displayName: 'Uso inexistente',
+        fiscalRegimeCode: '612',
+        preferredCfdiUseCode: 'ZZZ',
+      },
+    });
+    expect(unknownUse.status).toBe(400);
+
+    const incompatiblePersonType = await request<unknown>('POST', '/clients', {
+      token: alpha.accessToken,
+      body: {
+        type: 'company',
+        displayName: 'Uso personal en empresa',
+        fiscalRegimeCode: '601',
+        preferredCfdiUseCode: 'D01',
+      },
+    });
+    expect(incompatiblePersonType.status).toBe(400);
+
+    const incompatibleUseRegime = await request<unknown>('POST', '/clients', {
+      token: alpha.accessToken,
+      body: {
+        type: 'person',
+        displayName: 'Uso incompatible con régimen',
+        fiscalRegimeCode: '605',
+        preferredCfdiUseCode: 'G01',
+      },
+    });
+    expect(incompatibleUseRegime.status).toBe(400);
+
+    await control.query("UPDATE public.sat_cfdi_uses SET is_active = false WHERE code = 'S01'");
+    try {
+      const inactiveUse = await request<unknown>('POST', '/clients', {
+        token: alpha.accessToken,
+        body: {
+          type: 'person',
+          displayName: 'Uso inactivo',
+          fiscalRegimeCode: '612',
+          preferredCfdiUseCode: 'S01',
+        },
+      });
+      expect(inactiveUse.status).toBe(400);
+    } finally {
+      await control.query("UPDATE public.sat_cfdi_uses SET is_active = true WHERE code = 'S01'");
+    }
+
+    const cleared = await request<ClientResponse>('PATCH', `/clients/${created.body.id}`, {
+      token: alpha.accessToken,
+      body: { preferredCfdiUseCode: null },
+    });
+    expect(cleared.status).toBe(200);
+    expect(cleared.body.preferredCfdiUseCode).toBeNull();
+
     const foreignLookup = await request<unknown>('GET', `/clients/${created.body.id}`, {
       token: beta.accessToken,
     });
@@ -942,6 +1054,14 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
 
     const betaList = await listClients(beta.accessToken);
     expect(betaList.body.items).toHaveLength(0);
+
+    const swagger = SwaggerModule.createDocument(app, new DocumentBuilder().build());
+    expect(Object.keys(swagger.paths).some((path) => path.endsWith('/clients/cfdi-uses'))).toBe(
+      true,
+    );
+    const cfdiUseSchema = JSON.stringify(swagger.components?.schemas?.CfdiUseResponseDto);
+    expect(cfdiUseSchema).toContain('description');
+    expect(cfdiUseSchema).toContain('validFrom');
   });
 
   it('reutiliza el pool y libera las conexiones tenant después de cada solicitud', async () => {
@@ -2935,10 +3055,10 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     ).toBe(400);
 
     const versions = await control.query<Array<{ version: number }>>(
-      'SELECT version FROM public.tenant_schema_versions WHERE company_id = $1 AND version = 24',
+      'SELECT version FROM public.tenant_schema_versions WHERE company_id = $1 AND version = 25',
       [tenant.company.id],
     );
-    expect(versions).toEqual([{ version: 24 }]);
+    expect(versions).toEqual([{ version: 25 }]);
 
     const isolated = await provisionAndLogin(
       'Expense Isolated Integration',
