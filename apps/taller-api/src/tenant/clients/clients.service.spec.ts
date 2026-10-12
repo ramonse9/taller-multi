@@ -392,15 +392,12 @@ describe('ClientsService', () => {
 
   it('allows null to remove the preferred CFDI use', async () => {
     const cleared = { ...row, preferred_cfdi_use_code: null };
-    query
-      .mockResolvedValueOnce([row])
-      .mockResolvedValueOnce([{ supports_person: true, supports_company: false }])
-      .mockResolvedValueOnce([[cleared], 1]);
+    query.mockResolvedValueOnce([row]).mockResolvedValueOnce([[cleared], 1]);
 
     const result = await service.update(user, row.id, { preferredCfdiUseCode: null });
 
     expect(result.preferredCfdiUseCode).toBeNull();
-    expect(query.mock.calls[2]?.[1]?.[9]).toBeNull();
+    expect(query.mock.calls[1]?.[1]?.[9]).toBeNull();
   });
 
   it('lists only fiscal regimes compatible with the requested customer type', async () => {
@@ -438,6 +435,146 @@ describe('ClientsService', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
 
     expect(query).toHaveBeenCalledTimes(1);
+  });
+
+  it('calculates a complete and invoice-ready fiscal profile without persisting a flag', async () => {
+    query.mockResolvedValueOnce([
+      {
+        ...row,
+        fiscal_regime_exists: true,
+        fiscal_regime_active: true,
+        fiscal_regime_supports_customer_type: true,
+        cfdi_use_exists: true,
+        cfdi_use_active: true,
+        cfdi_use_current: true,
+        cfdi_use_supports_customer_type: true,
+        cfdi_use_supports_regime: true,
+      },
+    ]);
+
+    const result = await service.getOne(user, row.id);
+
+    expect(result.fiscalReadiness).toEqual({
+      isFiscalProfileComplete: true,
+      isReadyToInvoice: true,
+      missingFields: [],
+      validationIssues: [],
+    });
+    expect(query.mock.calls[0]?.[0]).toContain('fiscal_regime_exists');
+    expect(query.mock.calls[0]?.[0]).toContain('cfdi_use_supports_regime');
+  });
+
+  it('accepts a moral customer with regime 601 and both generic RFCs in readiness', async () => {
+    for (const [type, taxId, regime] of [
+      [CustomerType.Company, 'ABC010101AB1', '601'],
+      [CustomerType.Person, 'XAXX010101000', '612'],
+      [CustomerType.Company, 'XEXX010101000', '601'],
+    ] as const) {
+      query.mockResolvedValueOnce([
+        {
+          ...row,
+          customer_type: type,
+          tax_id: taxId,
+          fiscal_regime_code: regime,
+          fiscal_regime_exists: true,
+          fiscal_regime_active: true,
+          fiscal_regime_supports_customer_type: true,
+          cfdi_use_exists: true,
+          cfdi_use_active: true,
+          cfdi_use_current: true,
+          cfdi_use_supports_customer_type: true,
+          cfdi_use_supports_regime: true,
+        },
+      ]);
+      const result = await service.getOne(user, row.id);
+      expect(result.fiscalReadiness.isReadyToInvoice).toBe(true);
+      expect(result.fiscalReadiness.validationIssues).toEqual([]);
+    }
+  });
+
+  it('reports stable missing codes for an existing customer without fiscal information', async () => {
+    query.mockResolvedValueOnce([
+      {
+        ...row,
+        tax_id: null,
+        fiscal_name: null,
+        fiscal_postal_code: null,
+        fiscal_regime_code: null,
+        preferred_cfdi_use_code: null,
+        fiscal_regime_exists: false,
+        cfdi_use_exists: false,
+      },
+    ]);
+
+    const result = await service.getOne(user, row.id);
+
+    expect(result.fiscalReadiness).toMatchObject({
+      isFiscalProfileComplete: false,
+      isReadyToInvoice: false,
+    });
+    expect(result.fiscalReadiness.missingFields.map(({ code }) => code)).toEqual([
+      'RFC_REQUIRED',
+      'FISCAL_NAME_REQUIRED',
+      'FISCAL_POSTAL_CODE_REQUIRED',
+      'FISCAL_REGIME_REQUIRED',
+      'CFDI_USE_REQUIRED',
+    ]);
+    expect(result.fiscalReadiness.validationIssues).toEqual([]);
+  });
+
+  it('distinguishes inactive and incompatible catalog data from missing fields', async () => {
+    query.mockResolvedValueOnce([
+      {
+        ...row,
+        fiscal_regime_exists: true,
+        fiscal_regime_active: false,
+        fiscal_regime_supports_customer_type: false,
+        cfdi_use_exists: true,
+        cfdi_use_active: false,
+        cfdi_use_current: false,
+        cfdi_use_supports_customer_type: false,
+        cfdi_use_supports_regime: false,
+      },
+    ]);
+
+    const result = await service.getOne(user, row.id);
+
+    expect(result.fiscalReadiness.missingFields).toEqual([]);
+    expect(result.fiscalReadiness.validationIssues.map(({ code }) => code)).toEqual([
+      'FISCAL_REGIME_INACTIVE',
+      'CFDI_USE_INACTIVE',
+      'CFDI_USE_OUT_OF_VALIDITY',
+      'CFDI_USE_INCOMPATIBLE_WITH_CUSTOMER_TYPE',
+      'CFDI_USE_INCOMPATIBLE_WITH_FISCAL_REGIME',
+    ]);
+    expect(result.fiscalReadiness.isFiscalProfileComplete).toBe(false);
+    expect(result.fiscalReadiness.isReadyToInvoice).toBe(false);
+  });
+
+  it('does not block unrelated customer edits when a stored fiscal catalog value became invalid', async () => {
+    const stale = {
+      ...row,
+      fiscal_name: 'NOMBRE ANTERIOR',
+      fiscal_regime_exists: true,
+      fiscal_regime_active: false,
+      fiscal_regime_supports_customer_type: true,
+      cfdi_use_exists: true,
+      cfdi_use_active: true,
+      cfdi_use_current: true,
+      cfdi_use_supports_customer_type: true,
+      cfdi_use_supports_regime: true,
+    };
+    const updated = { ...stale, fiscal_name: 'NOMBRE NUEVO' };
+    query.mockResolvedValueOnce([stale]).mockResolvedValueOnce([[updated], 1]);
+
+    const result = await service.update(user, row.id, { fiscalName: 'Nombre nuevo' });
+
+    expect(result.fiscalName).toBe('NOMBRE NUEVO');
+    expect(result.fiscalReadiness.validationIssues).toContainEqual(
+      expect.objectContaining({ code: 'FISCAL_REGIME_INACTIVE' }),
+    );
+    expect(query).toHaveBeenCalledTimes(2);
+    expect(query.mock.calls[1]?.[0]).toContain('UPDATE');
   });
 
   it('does not find ids outside the active tenant', async () => {

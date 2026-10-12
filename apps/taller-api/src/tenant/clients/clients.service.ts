@@ -17,6 +17,9 @@ import {
   ClientsTotalResponseDto,
   CreateClientDto,
   CustomerType,
+  FiscalReadinessIssueCode,
+  FiscalReadinessMissingCode,
+  FiscalReadinessResponseDto,
   FiscalRegimeResponseDto,
   PaginatedClientsResponseDto,
   UpdateClientDto,
@@ -47,6 +50,14 @@ interface ClientRow {
   updated_by_user_id: string;
   created_at: Date;
   updated_at: Date;
+  fiscal_regime_exists?: boolean;
+  fiscal_regime_active?: boolean;
+  fiscal_regime_supports_customer_type?: boolean;
+  cfdi_use_exists?: boolean;
+  cfdi_use_active?: boolean;
+  cfdi_use_current?: boolean;
+  cfdi_use_supports_customer_type?: boolean;
+  cfdi_use_supports_regime?: boolean;
 }
 
 interface ClientListRow extends ClientRow {
@@ -59,6 +70,52 @@ const CLIENT_COLUMNS = `id, customer_type, display_name, legal_name, contact_nam
   email, phone, notes,
   is_active, created_by_user_id, updated_by_user_id, created_at, updated_at`;
 
+const CLIENT_SELECT_COLUMNS = `customer.id, customer.customer_type, customer.display_name,
+  customer.legal_name, customer.contact_name, customer.tax_id, customer.fiscal_name,
+  customer.fiscal_postal_code, customer.fiscal_regime_code,
+  customer.preferred_cfdi_use_code, customer.email, customer.phone, customer.notes,
+  customer.is_active, customer.created_by_user_id, customer.updated_by_user_id,
+  customer.created_at, customer.updated_at`;
+
+const FISCAL_READINESS_COLUMNS = `
+  fiscal_regime.code IS NOT NULL AS fiscal_regime_exists,
+  COALESCE(fiscal_regime.is_active, false) AS fiscal_regime_active,
+  COALESCE(
+    CASE customer.customer_type
+      WHEN 'person' THEN fiscal_regime.supports_person
+      WHEN 'company' THEN fiscal_regime.supports_company
+      ELSE false
+    END,
+    false
+  ) AS fiscal_regime_supports_customer_type,
+  cfdi_use.code IS NOT NULL AS cfdi_use_exists,
+  COALESCE(cfdi_use.is_active, false) AS cfdi_use_active,
+  COALESCE(
+    cfdi_use.valid_from <= CURRENT_DATE
+      AND (cfdi_use.valid_to IS NULL OR cfdi_use.valid_to >= CURRENT_DATE),
+    false
+  ) AS cfdi_use_current,
+  COALESCE(
+    CASE customer.customer_type
+      WHEN 'person' THEN cfdi_use.supports_person
+      WHEN 'company' THEN cfdi_use.supports_company
+      ELSE false
+    END,
+    false
+  ) AS cfdi_use_supports_customer_type,
+  EXISTS (
+    SELECT 1
+    FROM public.sat_cfdi_use_fiscal_regimes fiscal_compatibility
+    WHERE fiscal_compatibility.cfdi_use_code = customer.preferred_cfdi_use_code
+      AND fiscal_compatibility.fiscal_regime_code = customer.fiscal_regime_code
+  ) AS cfdi_use_supports_regime`;
+
+const FISCAL_CATALOG_JOINS = `
+  LEFT JOIN public.sat_fiscal_regimes fiscal_regime
+    ON fiscal_regime.code = customer.fiscal_regime_code
+  LEFT JOIN public.sat_cfdi_uses cfdi_use
+    ON cfdi_use.code = customer.preferred_cfdi_use_code`;
+
 @Injectable()
 export class ClientsService {
   constructor(private readonly tenant: TenantSessionService) {}
@@ -68,32 +125,37 @@ export class ClientsService {
       const table = `${quoteIdentifier(schema)}.customers`;
       const search = query.search.trim();
       const where = search
-        ? `is_active = $1 AND (
-            display_name ILIKE $2 ESCAPE '\\' OR legal_name ILIKE $2 ESCAPE '\\' OR
-            fiscal_name ILIKE $2 ESCAPE '\\' OR
-            contact_name ILIKE $2 ESCAPE '\\' OR tax_id ILIKE $2 ESCAPE '\\' OR
-            email ILIKE $2 ESCAPE '\\' OR phone ILIKE $2 ESCAPE '\\'
+        ? `customer.is_active = $1 AND (
+            customer.display_name ILIKE $2 ESCAPE '\\' OR
+            customer.legal_name ILIKE $2 ESCAPE '\\' OR
+            customer.fiscal_name ILIKE $2 ESCAPE '\\' OR
+            customer.contact_name ILIKE $2 ESCAPE '\\' OR
+            customer.tax_id ILIKE $2 ESCAPE '\\' OR
+            customer.email ILIKE $2 ESCAPE '\\' OR
+            customer.phone ILIKE $2 ESCAPE '\\'
           )`
-        : 'is_active = $1';
+        : 'customer.is_active = $1';
       const parameters: unknown[] = search
         ? [query.isActive, `%${this.escapeLike(search)}%`]
         : [query.isActive];
       const countRows = (await runner.query(
-        `SELECT count(*)::int AS total FROM ${table} WHERE ${where}`,
+        `SELECT count(*)::int AS total FROM ${table} customer WHERE ${where}`,
         parameters,
       )) as Array<{ total: number }>;
       const totalItems = countRows[0]?.total ?? 0;
       const offset = (query.page - 1) * query.limit;
       const rows = (await runner.query(
-        `SELECT ${CLIENT_COLUMNS},
+        `SELECT ${CLIENT_SELECT_COLUMNS}, ${FISCAL_READINESS_COLUMNS},
                 (SELECT count(*)::int
                  FROM ${quoteIdentifier(schema)}.vehicles vehicle
                  WHERE vehicle.customer_id = customer.id) AS vehicle_count,
                 (SELECT count(*)::int
                  FROM ${quoteIdentifier(schema)}.orders service_order
                  WHERE service_order.customer_id = customer.id) AS order_count
-         FROM ${table} customer WHERE ${where}
-         ORDER BY created_at DESC, id DESC
+         FROM ${table} customer
+         ${FISCAL_CATALOG_JOINS}
+         WHERE ${where}
+         ORDER BY customer.created_at DESC, customer.id DESC
          LIMIT $${parameters.length + 1} OFFSET $${parameters.length + 2}`,
         [...parameters, query.limit, offset],
       )) as ClientListRow[];
@@ -272,14 +334,27 @@ export class ClientsService {
         input.preferredCfdiUseCode === undefined
           ? current.preferred_cfdi_use_code
           : this.normalizeUppercaseCode(input.preferredCfdiUseCode);
-      this.assertTaxIdCompatibility(customerType, taxId);
-      await this.assertFiscalRegimeCompatibility(runner, customerType, fiscalRegimeCode);
-      await this.assertCfdiUseCompatibility(
-        runner,
-        customerType,
-        fiscalRegimeCode,
-        preferredCfdiUseCode,
-      );
+      const typeChanged = input.type !== undefined && input.type !== current.customer_type;
+      const taxIdChanged = input.taxId !== undefined && taxId !== current.tax_id;
+      const fiscalRegimeChanged =
+        input.fiscalRegimeCode !== undefined && fiscalRegimeCode !== current.fiscal_regime_code;
+      const cfdiUseChanged =
+        input.preferredCfdiUseCode !== undefined &&
+        preferredCfdiUseCode !== current.preferred_cfdi_use_code;
+      if (typeChanged || taxIdChanged) {
+        this.assertTaxIdCompatibility(customerType, taxId);
+      }
+      if (typeChanged || fiscalRegimeChanged) {
+        await this.assertFiscalRegimeCompatibility(runner, customerType, fiscalRegimeCode);
+      }
+      if (typeChanged || fiscalRegimeChanged || cfdiUseChanged) {
+        await this.assertCfdiUseCompatibility(
+          runner,
+          customerType,
+          fiscalRegimeCode,
+          preferredCfdiUseCode,
+        );
+      }
       try {
         const result = (await runner.query(
           `UPDATE ${quoteIdentifier(schema)}.customers SET
@@ -319,7 +394,23 @@ export class ClientsService {
             user.id,
           ],
         )) as [ClientRow[], number];
-        return this.toResponse(result[0][0]!);
+        const updated = result[0][0]!;
+        const readinessRow =
+          typeChanged || fiscalRegimeChanged || cfdiUseChanged
+            ? updated
+            : {
+                ...updated,
+                fiscal_regime_exists: current.fiscal_regime_exists,
+                fiscal_regime_active: current.fiscal_regime_active,
+                fiscal_regime_supports_customer_type:
+                  current.fiscal_regime_supports_customer_type,
+                cfdi_use_exists: current.cfdi_use_exists,
+                cfdi_use_active: current.cfdi_use_active,
+                cfdi_use_current: current.cfdi_use_current,
+                cfdi_use_supports_customer_type: current.cfdi_use_supports_customer_type,
+                cfdi_use_supports_regime: current.cfdi_use_supports_regime,
+              };
+        return this.toResponse(readinessRow);
       } catch (error: unknown) {
         this.rethrowConstraint(error);
       }
@@ -332,7 +423,10 @@ export class ClientsService {
     id: string,
   ): Promise<ClientRow | undefined> {
     const rows = (await runner.query(
-      `SELECT ${CLIENT_COLUMNS} FROM ${quoteIdentifier(schema)}.customers WHERE id = $1`,
+      `SELECT ${CLIENT_SELECT_COLUMNS}, ${FISCAL_READINESS_COLUMNS}
+       FROM ${quoteIdentifier(schema)}.customers customer
+       ${FISCAL_CATALOG_JOINS}
+       WHERE customer.id = $1`,
       [id],
     )) as ClientRow[];
     return rows[0];
@@ -479,6 +573,7 @@ export class ClientsService {
       fiscalPostalCode: row.fiscal_postal_code,
       fiscalRegimeCode: row.fiscal_regime_code,
       preferredCfdiUseCode: row.preferred_cfdi_use_code,
+      fiscalReadiness: this.calculateFiscalReadiness(row),
       email: row.email,
       phone: row.phone,
       notes: row.notes,
@@ -487,6 +582,169 @@ export class ClientsService {
       updatedByUserId: row.updated_by_user_id,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
+    };
+  }
+
+  private calculateFiscalReadiness(row: ClientRow): FiscalReadinessResponseDto {
+    const missingFields: FiscalReadinessResponseDto['missingFields'] = [];
+    const validationIssues: FiscalReadinessResponseDto['validationIssues'] = [];
+    const addMissing = (
+      code: FiscalReadinessMissingCode,
+      field: string,
+      message: string,
+    ): void => {
+      missingFields.push({ code, field, message });
+    };
+    const addIssue = (
+      code: FiscalReadinessIssueCode,
+      field: string,
+      message: string,
+    ): void => {
+      validationIssues.push({ code, field, message });
+    };
+
+    const taxId = this.normalizeTaxId(row.tax_id);
+    if (!taxId) {
+      addMissing(FiscalReadinessMissingCode.TaxIdRequired, 'taxId', 'Falta el RFC.');
+    } else if (!RFC_PATTERN.test(taxId)) {
+      addIssue(
+        FiscalReadinessIssueCode.TaxIdInvalid,
+        'taxId',
+        'El RFC tiene una estructura inválida.',
+      );
+    } else if (!GENERIC_RFCS.has(taxId)) {
+      const incompatible =
+        (row.customer_type === CustomerType.Person && COMPANY_RFC_PATTERN.test(taxId)) ||
+        (row.customer_type === CustomerType.Company && PERSON_RFC_PATTERN.test(taxId));
+      if (incompatible) {
+        addIssue(
+          FiscalReadinessIssueCode.TaxIdIncompatible,
+          'taxId',
+          `El RFC no corresponde a una ${
+            row.customer_type === CustomerType.Person ? 'persona física' : 'persona moral'
+          }.`,
+        );
+      }
+    }
+
+    if (!row.fiscal_name?.trim()) {
+      addMissing(
+        FiscalReadinessMissingCode.FiscalNameRequired,
+        'fiscalName',
+        `Falta ${
+          row.customer_type === CustomerType.Person
+            ? 'el nombre fiscal'
+            : 'la razón social fiscal'
+        }.`,
+      );
+    }
+
+    if (!row.fiscal_postal_code) {
+      addMissing(
+        FiscalReadinessMissingCode.FiscalPostalCodeRequired,
+        'fiscalPostalCode',
+        'Falta el código postal fiscal.',
+      );
+    } else if (!/^\d{5}$/.test(row.fiscal_postal_code)) {
+      addIssue(
+        FiscalReadinessIssueCode.FiscalPostalCodeInvalid,
+        'fiscalPostalCode',
+        'El código postal fiscal debe contener exactamente 5 dígitos.',
+      );
+    }
+
+    if (!row.fiscal_regime_code) {
+      addMissing(
+        FiscalReadinessMissingCode.FiscalRegimeRequired,
+        'fiscalRegimeCode',
+        'Falta el régimen fiscal.',
+      );
+    } else if (row.fiscal_regime_exists === false) {
+      addIssue(
+        FiscalReadinessIssueCode.FiscalRegimeNotFound,
+        'fiscalRegimeCode',
+        'El régimen fiscal no existe en el catálogo.',
+      );
+    } else if (row.fiscal_regime_active === false) {
+      addIssue(
+        FiscalReadinessIssueCode.FiscalRegimeInactive,
+        'fiscalRegimeCode',
+        'El régimen fiscal está inactivo.',
+      );
+    } else if (row.fiscal_regime_supports_customer_type === false) {
+      addIssue(
+        FiscalReadinessIssueCode.FiscalRegimeIncompatible,
+        'fiscalRegimeCode',
+        `El régimen fiscal no es compatible con una ${
+          row.customer_type === CustomerType.Person ? 'persona física' : 'persona moral'
+        }.`,
+      );
+    }
+
+    if (!row.preferred_cfdi_use_code) {
+      addMissing(
+        FiscalReadinessMissingCode.CfdiUseRequired,
+        'preferredCfdiUseCode',
+        'Falta el Uso de CFDI preferido.',
+      );
+    } else if (row.cfdi_use_exists === false) {
+      addIssue(
+        FiscalReadinessIssueCode.CfdiUseNotFound,
+        'preferredCfdiUseCode',
+        'El Uso de CFDI no existe en el catálogo.',
+      );
+    } else {
+      if (row.cfdi_use_active === false) {
+        addIssue(
+          FiscalReadinessIssueCode.CfdiUseInactive,
+          'preferredCfdiUseCode',
+          'El Uso de CFDI está inactivo.',
+        );
+      }
+      if (row.cfdi_use_current === false) {
+        addIssue(
+          FiscalReadinessIssueCode.CfdiUseOutOfValidity,
+          'preferredCfdiUseCode',
+          'El Uso de CFDI está fuera de vigencia.',
+        );
+      }
+      if (row.cfdi_use_supports_customer_type === false) {
+        addIssue(
+          FiscalReadinessIssueCode.CfdiUseIncompatibleWithCustomerType,
+          'preferredCfdiUseCode',
+          `El Uso de CFDI no es compatible con una ${
+            row.customer_type === CustomerType.Person ? 'persona física' : 'persona moral'
+          }.`,
+        );
+      }
+      if (row.cfdi_use_supports_regime === false) {
+        addIssue(
+          FiscalReadinessIssueCode.CfdiUseIncompatibleWithFiscalRegime,
+          'preferredCfdiUseCode',
+          'El Uso de CFDI no es compatible con el régimen fiscal seleccionado.',
+        );
+      }
+    }
+
+    const profileFields = new Set([
+      'taxId',
+      'fiscalName',
+      'fiscalPostalCode',
+      'fiscalRegimeCode',
+    ]);
+    const isFiscalProfileComplete =
+      !missingFields.some(({ field }) => profileFields.has(field)) &&
+      !validationIssues.some(({ field }) => profileFields.has(field));
+    const isReadyToInvoice =
+      isFiscalProfileComplete &&
+      !missingFields.some(({ field }) => field === 'preferredCfdiUseCode') &&
+      !validationIssues.some(({ field }) => field === 'preferredCfdiUseCode');
+
+    return {
+      isFiscalProfileComplete,
+      isReadyToInvoice,
+      missingFields,
+      validationIssues,
     };
   }
 

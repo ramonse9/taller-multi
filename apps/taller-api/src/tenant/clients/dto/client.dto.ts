@@ -229,6 +229,64 @@ export class CfdiUseResponseDto {
   @ApiProperty() isActive!: boolean;
 }
 
+export enum FiscalReadinessMissingCode {
+  TaxIdRequired = 'RFC_REQUIRED',
+  FiscalNameRequired = 'FISCAL_NAME_REQUIRED',
+  FiscalPostalCodeRequired = 'FISCAL_POSTAL_CODE_REQUIRED',
+  FiscalRegimeRequired = 'FISCAL_REGIME_REQUIRED',
+  CfdiUseRequired = 'CFDI_USE_REQUIRED',
+}
+
+export enum FiscalReadinessIssueCode {
+  TaxIdInvalid = 'RFC_INVALID',
+  TaxIdIncompatible = 'RFC_INCOMPATIBLE_WITH_CUSTOMER_TYPE',
+  FiscalPostalCodeInvalid = 'FISCAL_POSTAL_CODE_INVALID',
+  FiscalRegimeNotFound = 'FISCAL_REGIME_NOT_FOUND',
+  FiscalRegimeInactive = 'FISCAL_REGIME_INACTIVE',
+  FiscalRegimeIncompatible = 'FISCAL_REGIME_INCOMPATIBLE_WITH_CUSTOMER_TYPE',
+  CfdiUseNotFound = 'CFDI_USE_NOT_FOUND',
+  CfdiUseInactive = 'CFDI_USE_INACTIVE',
+  CfdiUseOutOfValidity = 'CFDI_USE_OUT_OF_VALIDITY',
+  CfdiUseIncompatibleWithCustomerType = 'CFDI_USE_INCOMPATIBLE_WITH_CUSTOMER_TYPE',
+  CfdiUseIncompatibleWithFiscalRegime = 'CFDI_USE_INCOMPATIBLE_WITH_FISCAL_REGIME',
+}
+
+export class FiscalReadinessMissingFieldDto {
+  @ApiProperty({ enum: FiscalReadinessMissingCode, example: 'RFC_REQUIRED' })
+  code!: FiscalReadinessMissingCode;
+
+  @ApiProperty({ example: 'taxId' })
+  field!: string;
+
+  @ApiProperty({ example: 'Falta el RFC.' })
+  message!: string;
+}
+
+export class FiscalReadinessValidationIssueDto {
+  @ApiProperty({ enum: FiscalReadinessIssueCode, example: 'FISCAL_REGIME_INACTIVE' })
+  code!: FiscalReadinessIssueCode;
+
+  @ApiProperty({ example: 'fiscalRegimeCode' })
+  field!: string;
+
+  @ApiProperty({ example: 'El régimen fiscal está inactivo.' })
+  message!: string;
+}
+
+export class FiscalReadinessResponseDto {
+  @ApiProperty({ description: 'Indica si RFC, nombre, código postal y régimen son válidos' })
+  isFiscalProfileComplete!: boolean;
+
+  @ApiProperty({ description: 'Indica si además existe un Uso CFDI vigente y compatible' })
+  isReadyToInvoice!: boolean;
+
+  @ApiProperty({ type: FiscalReadinessMissingFieldDto, isArray: true })
+  missingFields!: FiscalReadinessMissingFieldDto[];
+
+  @ApiProperty({ type: FiscalReadinessValidationIssueDto, isArray: true })
+  validationIssues!: FiscalReadinessValidationIssueDto[];
+}
+
 export class ClientResponseDto {
   @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty({ enum: CustomerType }) type!: CustomerType;
@@ -244,6 +302,8 @@ export class ClientResponseDto {
   fiscalRegimeCode!: string | null;
   @ApiProperty({ nullable: true, type: String, minLength: 3, maxLength: 4 })
   preferredCfdiUseCode!: string | null;
+  @ApiProperty({ type: FiscalReadinessResponseDto })
+  fiscalReadiness!: FiscalReadinessResponseDto;
   @ApiProperty({ nullable: true, type: String }) email!: string | null;
   @ApiProperty({ nullable: true, type: String }) phone!: string | null;
   @ApiProperty({ nullable: true, type: String }) notes!: string | null;

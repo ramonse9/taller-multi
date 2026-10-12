@@ -125,6 +125,60 @@
         >
       </div>
     </section>
+
+    <section
+      class="mb-7 border p-5 sm:p-6"
+      [class]="currentClient.fiscalReadiness.isReadyToInvoice
+        ? 'border-[#8fc5a7] bg-[#edf8f1] dark:border-[#47715f] dark:bg-[#203b35]'
+        : 'border-[#d8b76b] bg-[#fff8e5] dark:border-[#7c6937] dark:bg-[#3c3526]'"
+      aria-labelledby="fiscal-readiness-title"
+    >
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div class="min-w-0">
+          <p class="eyebrow">PREPARACIÓN PARA FACTURACIÓN</p>
+          <h2
+            class="m-0 font-[var(--display)] text-2xl font-semibold"
+            id="fiscal-readiness-title"
+          >
+            {{ currentClient.fiscalReadiness.isReadyToInvoice
+              ? 'Cliente listo para facturar'
+              : currentClient.fiscalReadiness.isFiscalProfileComplete
+                ? 'Perfil fiscal completo'
+                : 'Datos fiscales pendientes' }}
+          </h2>
+          @if (currentClient.fiscalReadiness.isReadyToInvoice) {
+          <p class="mb-0 mt-2 text-sm text-[#526675] dark:text-[#c2d0df]">
+            El Uso CFDI guardado funcionará solamente como valor inicial y podrá cambiarse
+            en cada factura futura sin modificar al cliente.
+          </p>
+          } @else {
+          <p class="mb-0 mt-2 text-sm text-[#526675] dark:text-[#c2d0df]">
+            Esto no impide registrar vehículos ni órdenes. Completa la información cuando
+            necesites facturar.
+          </p>
+          <ul class="mb-0 mt-3 grid gap-1 pl-5 text-sm">
+            @for (item of currentClient.fiscalReadiness.missingFields; track item.code) {
+            <li>{{ item.message }}</li>
+            }
+            @for (item of currentClient.fiscalReadiness.validationIssues; track item.code) {
+            <li>{{ item.message }}</li>
+            }
+          </ul>
+          }
+        </div>
+        @if (auth.hasPermission('clients.edit')) {
+        <button
+          class="secondary-tw shrink-0"
+          type="button"
+          (click)="openClientEditor()"
+        >
+          {{ currentClient.fiscalReadiness.isReadyToInvoice
+            ? 'Revisar datos fiscales'
+            : 'Completar datos fiscales' }}
+        </button>
+        }
+      </div>
+    </section>
     }
 
     <div class="mb-5 flex items-end justify-between gap-5">

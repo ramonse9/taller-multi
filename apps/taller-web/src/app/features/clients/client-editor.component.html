@@ -175,6 +175,38 @@
             Puedes registrar al cliente sin estos datos. Serán necesarios cuando quieras
             facturar una orden.
           </p>
+          <div
+            class="mt-4 border px-3 py-3 text-xs"
+            [class]="!client || fiscalDataChanged()
+              ? 'border-[#d8b76b] bg-[#fff1c9] text-[#765415] dark:border-[#7c6937] dark:bg-[#4b4027] dark:text-[#ffe9a8]'
+              : client.fiscalReadiness.isReadyToInvoice
+                ? 'border-[#8fc5a7] bg-[#dff0e6] text-[#245b3b] dark:border-[#47715f] dark:bg-[#294e42] dark:text-[#c9f0df]'
+                : 'border-[#d8b76b] bg-[#fff1c9] text-[#765415] dark:border-[#7c6937] dark:bg-[#4b4027] dark:text-[#ffe9a8]'"
+            role="status"
+          >
+            @if (!client) {
+            <strong class="block">Preparación fiscal pendiente</strong>
+            <span>La API calculará el estatus cuando guardes al cliente.</span>
+            } @else if (fiscalDataChanged()) {
+            <strong class="block">Cambios fiscales sin validar</strong>
+            <span>La API volverá a calcular el estatus cuando guardes los cambios.</span>
+            } @else if (client.fiscalReadiness.isReadyToInvoice) {
+            <strong class="block">Listo para facturar</strong>
+            <span>El Uso CFDI es una preferencia y podrá cambiarse en cada factura futura.</span>
+            } @else {
+            <strong class="block">
+              {{ client.fiscalReadiness.isFiscalProfileComplete
+                ? 'Perfil completo · falta la preferencia de Uso CFDI'
+                : 'Perfil fiscal incompleto' }}
+            </strong>
+            @for (item of client.fiscalReadiness.missingFields; track item.code) {
+            <span class="mt-1 block">• {{ item.message }}</span>
+            }
+            @for (item of client.fiscalReadiness.validationIssues; track item.code) {
+            <span class="mt-1 block">• {{ item.message }}</span>
+            }
+            }
+          </div>
         </header>
 
         <div class="grid grid-cols-1 gap-5 p-4 sm:grid-cols-2 sm:p-6">

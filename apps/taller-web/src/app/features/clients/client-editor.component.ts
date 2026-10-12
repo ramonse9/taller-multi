@@ -21,7 +21,7 @@ import {
   ValidatorFn,
   Validators,
 } from "@angular/forms";
-import { finalize } from "rxjs";
+import { finalize, merge } from "rxjs";
 import { AuthService } from "../../core/auth/auth.service";
 import { apiErrorMessage } from "../../core/http/api-error";
 import {
@@ -65,6 +65,7 @@ export class ClientEditorComponent implements OnInit {
   readonly usesLoading = signal(false);
   readonly regimesError = signal("");
   readonly usesError = signal("");
+  readonly fiscalDataChanged = signal(false);
 
   private regimeRequestId = 0;
   private useRequestId = 0;
@@ -152,6 +153,16 @@ export class ClientEditorComponent implements OnInit {
         this.catalogNotice.set("");
         this.loadCfdiUses(this.form.controls.type.value, code, true);
       });
+    merge(
+      this.form.controls.type.valueChanges,
+      this.form.controls.taxId.valueChanges,
+      this.form.controls.fiscalName.valueChanges,
+      this.form.controls.fiscalPostalCode.valueChanges,
+      this.form.controls.fiscalRegimeCode.valueChanges,
+      this.form.controls.preferredCfdiUseCode.valueChanges,
+    )
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.fiscalDataChanged.set(true));
 
     this.loadFiscalRegimes(this.form.controls.type.value, false);
   }

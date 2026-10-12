@@ -128,6 +128,12 @@ interface ClientResponse {
   fiscalPostalCode: string | null;
   fiscalRegimeCode: string | null;
   preferredCfdiUseCode: string | null;
+  fiscalReadiness: {
+    isFiscalProfileComplete: boolean;
+    isReadyToInvoice: boolean;
+    missingFields: Array<{ code: string; field: string; message: string }>;
+    validationIssues: Array<{ code: string; field: string; message: string }>;
+  };
   createdByUserId: string;
   updatedByUserId: string;
 }
@@ -972,6 +978,12 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       fiscalPostalCode: '80000',
       fiscalRegimeCode: '612',
       preferredCfdiUseCode: 'G03',
+      fiscalReadiness: {
+        isFiscalProfileComplete: true,
+        isReadyToInvoice: true,
+        missingFields: [],
+        validationIssues: [],
+      },
     });
 
     const companyCreated = await request<ClientResponse>('POST', '/clients', {
@@ -992,7 +1004,29 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       taxId: 'FSA010101AB1',
       fiscalRegimeCode: '601',
       preferredCfdiUseCode: 'G03',
+      fiscalReadiness: {
+        isFiscalProfileComplete: true,
+        isReadyToInvoice: true,
+      },
     });
+
+    const partial = await request<ClientResponse>('POST', '/clients', {
+      token: alpha.accessToken,
+      body: { type: 'person', displayName: 'Cliente fiscal pendiente' },
+    });
+    expect(partial.status).toBe(201);
+    expect(partial.body.fiscalReadiness).toMatchObject({
+      isFiscalProfileComplete: false,
+      isReadyToInvoice: false,
+      validationIssues: [],
+    });
+    expect(partial.body.fiscalReadiness.missingFields.map(({ code }) => code)).toEqual([
+      'RFC_REQUIRED',
+      'FISCAL_NAME_REQUIRED',
+      'FISCAL_POSTAL_CODE_REQUIRED',
+      'FISCAL_REGIME_REQUIRED',
+      'CFDI_USE_REQUIRED',
+    ]);
 
     const incompatible = await request<unknown>('POST', '/clients', {
       token: alpha.accessToken,
@@ -1069,6 +1103,84 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     });
     expect(cleared.status).toBe(200);
     expect(cleared.body.preferredCfdiUseCode).toBeNull();
+    expect(cleared.body.fiscalReadiness).toMatchObject({
+      isFiscalProfileComplete: true,
+      isReadyToInvoice: false,
+    });
+    expect(cleared.body.fiscalReadiness.missingFields).toEqual([
+      expect.objectContaining({ code: 'CFDI_USE_REQUIRED', field: 'preferredCfdiUseCode' }),
+    ]);
+
+    await control.query("UPDATE public.sat_fiscal_regimes SET is_active = false WHERE code = '612'");
+    try {
+      const inactiveRegime = await request<ClientResponse>('GET', `/clients/${created.body.id}`, {
+        token: alpha.accessToken,
+      });
+      expect(inactiveRegime.status).toBe(200);
+      expect(inactiveRegime.body.fiscalReadiness.validationIssues).toContainEqual(
+        expect.objectContaining({ code: 'FISCAL_REGIME_INACTIVE' }),
+      );
+      expect(inactiveRegime.body.fiscalReadiness.isFiscalProfileComplete).toBe(false);
+
+      const ordinaryEditWithStaleCatalog = await request<ClientResponse>(
+        'PATCH',
+        `/clients/${created.body.id}`,
+        {
+          token: alpha.accessToken,
+          body: {
+            type: 'person',
+            displayName: 'Cliente Fiscal Alpha actualizado',
+            taxId: 'LOPA900101AB1',
+            fiscalName: 'ANA LÓPEZ PÉREZ',
+            fiscalPostalCode: '80000',
+            fiscalRegimeCode: '612',
+            preferredCfdiUseCode: null,
+          },
+        },
+      );
+      expect(ordinaryEditWithStaleCatalog.status).toBe(200);
+      expect(ordinaryEditWithStaleCatalog.body.fiscalReadiness.validationIssues).toContainEqual(
+        expect.objectContaining({ code: 'FISCAL_REGIME_INACTIVE' }),
+      );
+    } finally {
+      await control.query("UPDATE public.sat_fiscal_regimes SET is_active = true WHERE code = '612'");
+    }
+
+    await request<ClientResponse>('PATCH', `/clients/${created.body.id}`, {
+      token: alpha.accessToken,
+      body: { preferredCfdiUseCode: 'G03' },
+    });
+    await control.query(
+      "DELETE FROM public.sat_cfdi_use_fiscal_regimes WHERE cfdi_use_code = 'G03' AND fiscal_regime_code = '612'",
+    );
+    try {
+      const incompatibleStoredUse = await request<ClientResponse>(
+        'GET',
+        `/clients/${created.body.id}`,
+        { token: alpha.accessToken },
+      );
+      expect(incompatibleStoredUse.status).toBe(200);
+      expect(incompatibleStoredUse.body.fiscalReadiness.validationIssues).toContainEqual(
+        expect.objectContaining({ code: 'CFDI_USE_INCOMPATIBLE_WITH_FISCAL_REGIME' }),
+      );
+      expect(incompatibleStoredUse.body.fiscalReadiness.isReadyToInvoice).toBe(false);
+    } finally {
+      await control.query(
+        `INSERT INTO public.sat_cfdi_use_fiscal_regimes
+          (cfdi_use_code, fiscal_regime_code)
+         VALUES ('G03', '612')
+         ON CONFLICT DO NOTHING`,
+      );
+    }
+
+    const readinessColumns = await control.query<Array<{ column_name: string }>>(
+      `SELECT column_name
+       FROM information_schema.columns
+       WHERE table_schema = $1 AND table_name = 'customers'
+         AND column_name IN ('is_fiscal_profile_complete', 'is_ready_to_invoice')`,
+      [alpha.company.schemaName],
+    );
+    expect(readinessColumns).toEqual([]);
 
     const foreignLookup = await request<unknown>('GET', `/clients/${created.body.id}`, {
       token: beta.accessToken,
@@ -1124,6 +1236,13 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     const cfdiUseSchema = JSON.stringify(swagger.components?.schemas?.CfdiUseResponseDto);
     expect(cfdiUseSchema).toContain('description');
     expect(cfdiUseSchema).toContain('validFrom');
+    const readinessSchema = JSON.stringify(
+      swagger.components?.schemas?.FiscalReadinessResponseDto,
+    );
+    expect(readinessSchema).toContain('isFiscalProfileComplete');
+    expect(readinessSchema).toContain('isReadyToInvoice');
+    expect(readinessSchema).toContain('missingFields');
+    expect(readinessSchema).toContain('validationIssues');
   });
 
   it('valida la estructura y el tipo del RFC sin consultar el padrón del SAT', async () => {
@@ -1157,6 +1276,12 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       },
     });
     expect(genericNational.status).toBe(201);
+    expect(genericNational.body.fiscalReadiness.missingFields).not.toContainEqual(
+      expect.objectContaining({ field: 'taxId' }),
+    );
+    expect(genericNational.body.fiscalReadiness.validationIssues).not.toContainEqual(
+      expect.objectContaining({ field: 'taxId' }),
+    );
 
     const genericForeign = await request<ClientResponse>('POST', '/clients', {
       token: alpha.accessToken,
@@ -1167,6 +1292,12 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       },
     });
     expect(genericForeign.status).toBe(201);
+    expect(genericForeign.body.fiscalReadiness.missingFields).not.toContainEqual(
+      expect.objectContaining({ field: 'taxId' }),
+    );
+    expect(genericForeign.body.fiscalReadiness.validationIssues).not.toContainEqual(
+      expect.objectContaining({ field: 'taxId' }),
+    );
 
     const emptyRfc = await request<ClientResponse>('POST', '/clients', {
       token: alpha.accessToken,
@@ -5461,6 +5592,10 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     const customer = await request<ClientResponse>('POST', '/clients', {
       token: tenant.accessToken,
       body: { type: 'company', displayName: 'Flotilla Órdenes Integration' },
+    });
+    expect(customer.body.fiscalReadiness).toMatchObject({
+      isFiscalProfileComplete: false,
+      isReadyToInvoice: false,
     });
     const otherCustomer = await request<ClientResponse>('POST', '/clients', {
       token: tenant.accessToken,

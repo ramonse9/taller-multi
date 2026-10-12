@@ -1,5 +1,18 @@
 export type CustomerType = "person" | "company";
 
+export interface FiscalReadinessItem {
+  code: string;
+  field: string;
+  message: string;
+}
+
+export interface FiscalReadiness {
+  isFiscalProfileComplete: boolean;
+  isReadyToInvoice: boolean;
+  missingFields: FiscalReadinessItem[];
+  validationIssues: FiscalReadinessItem[];
+}
+
 export interface Client {
   id: string;
   type: CustomerType;
@@ -11,6 +24,7 @@ export interface Client {
   fiscalPostalCode: string | null;
   fiscalRegimeCode: string | null;
   preferredCfdiUseCode: string | null;
+  fiscalReadiness: FiscalReadiness;
   email: string | null;
   phone: string | null;
   notes: string | null;
