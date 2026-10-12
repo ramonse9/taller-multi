@@ -4,6 +4,9 @@ import { quoteIdentifier } from '../../database/schema-name';
 import { TenantSessionService } from '../tenant-session.service';
 import { unknownOrderItemCostSql } from '../orders/order-cost-rules';
 import {
+  MonthlyProfitabilityOrderResponseDto,
+  MonthlyProfitabilityReportQueryDto,
+  MonthlyProfitabilityReportResponseDto,
   ProfitabilityAnalyticsMonthResponseDto,
   ProfitabilityAnalyticsQueryDto,
   ProfitabilityAnalyticsResponseDto,
@@ -124,9 +127,186 @@ interface OrderRow {
   is_paid: boolean;
 }
 
+interface MonthlyReportSummaryRow {
+  timezone_code: string;
+  starts_on: string;
+  ends_on: string;
+  completed_order_count: number;
+  paid_order_count: number;
+  pending_order_count: number;
+  incomplete_cost_order_count: number;
+  generated_income: string;
+  collected_income: string;
+  outstanding_income: string;
+  direct_cost: string;
+  gross_profit: string;
+  operating_expenses: string;
+  net_profit: string;
+}
+
+interface MonthlyReportOrderRow {
+  id: string;
+  folio: string;
+  external_folio: string | null;
+  completed_on: string;
+  paid_on: string | null;
+  customer_id: string;
+  customer_name: string;
+  customer_type: 'person' | 'company';
+  vehicle_id: string;
+  vehicle_brand: string;
+  vehicle_model: string;
+  vehicle_year: number;
+  vehicle_color: string;
+  vehicle_serial_number: string | null;
+  vehicle_license_plate: string | null;
+  is_paid: boolean;
+  income: string;
+  direct_cost: string;
+  gross_profit: string | null;
+  has_unknown_product_cost: boolean;
+}
+
+const MONTH_NAMES = [
+  'Enero',
+  'Febrero',
+  'Marzo',
+  'Abril',
+  'Mayo',
+  'Junio',
+  'Julio',
+  'Agosto',
+  'Septiembre',
+  'Octubre',
+  'Noviembre',
+  'Diciembre',
+] as const;
+
 @Injectable()
 export class ProfitabilityService {
   constructor(private readonly tenant: TenantSessionService) {}
+
+  monthlyReport(
+    user: AuthenticatedUser,
+    query: MonthlyProfitabilityReportQueryDto,
+  ): Promise<MonthlyProfitabilityReportResponseDto> {
+    return this.tenant.run(user, async (runner, schemaName) => {
+      const schema = quoteIdentifier(schemaName);
+      const parameters = [query.year, query.month, user.id];
+      const context = `SELECT make_date($1::int, $2::int, 1) AS starts_on,
+        (make_date($1::int, $2::int, 1) + interval '1 month')::date AS ends_exclusive,
+        user_account.timezone_code
+        FROM public.users user_account WHERE user_account.id = $3`;
+      const summaryRows = (await runner.query(
+        `WITH context AS (${context}), month_orders AS (
+           SELECT service_order.*
+           FROM context
+           JOIN ${schema}.orders service_order
+             ON service_order.status = 'completed'
+            AND service_order.closed_at >= context.starts_on::timestamp
+              AT TIME ZONE context.timezone_code
+            AND service_order.closed_at < context.ends_exclusive::timestamp
+              AT TIME ZONE context.timezone_code
+         ), order_totals AS (
+           SELECT count(*)::int AS completed_order_count,
+             count(*) FILTER (WHERE is_paid)::int AS paid_order_count,
+             count(*) FILTER (WHERE NOT is_paid)::int AS pending_order_count,
+             count(*) FILTER (WHERE EXISTS (
+               SELECT 1 FROM ${schema}.order_items item
+               WHERE item.order_id = month_orders.id
+                 AND ${unknownOrderItemCostSql('item')}
+             ))::int AS incomplete_cost_order_count,
+             COALESCE(sum(total), 0) AS generated_income,
+             COALESCE(sum(total) FILTER (WHERE is_paid), 0) AS collected_income,
+             COALESCE(sum(total) FILTER (WHERE NOT is_paid), 0) AS outstanding_income,
+             COALESCE(sum(total_cost), 0) AS direct_cost,
+             COALESCE(sum(gross_profit), 0) AS gross_profit
+           FROM month_orders
+         ), expense_totals AS (
+           SELECT COALESCE(sum(expense.amount), 0) AS operating_expenses
+           FROM context LEFT JOIN ${schema}.expenses expense
+             ON expense.status = 'confirmed'
+            AND expense.occurred_on >= context.starts_on
+            AND expense.occurred_on < context.ends_exclusive
+         )
+         SELECT context.timezone_code, context.starts_on::text,
+           (context.ends_exclusive - 1)::text AS ends_on,
+           order_totals.completed_order_count,
+           order_totals.paid_order_count,
+           order_totals.pending_order_count,
+           order_totals.incomplete_cost_order_count,
+           order_totals.generated_income::numeric(14,2)::text AS generated_income,
+           order_totals.collected_income::numeric(14,2)::text AS collected_income,
+           order_totals.outstanding_income::numeric(14,2)::text AS outstanding_income,
+           order_totals.direct_cost::numeric(14,2)::text AS direct_cost,
+           order_totals.gross_profit::numeric(14,2)::text AS gross_profit,
+           expense_totals.operating_expenses::numeric(14,2)::text AS operating_expenses,
+           (order_totals.gross_profit - expense_totals.operating_expenses)
+             ::numeric(14,2)::text AS net_profit
+         FROM context CROSS JOIN order_totals CROSS JOIN expense_totals`,
+        parameters,
+      )) as MonthlyReportSummaryRow[];
+      const orderRows = (await runner.query(
+        `WITH context AS (${context})
+         SELECT service_order.id, service_order.folio::text, service_order.external_folio,
+           to_char(service_order.closed_at AT TIME ZONE context.timezone_code, 'YYYY-MM-DD')
+             AS completed_on,
+           CASE WHEN service_order.paid_at IS NULL THEN NULL ELSE
+             to_char(service_order.paid_at AT TIME ZONE context.timezone_code, 'YYYY-MM-DD')
+           END AS paid_on,
+           customer.id AS customer_id, customer.display_name AS customer_name,
+           customer.customer_type, vehicle.id AS vehicle_id, brand.name AS vehicle_brand,
+           model.name AS vehicle_model, vehicle.model_year::int AS vehicle_year,
+           vehicle.color AS vehicle_color, vehicle.serial_number AS vehicle_serial_number,
+           vehicle.license_plate AS vehicle_license_plate, service_order.is_paid,
+           COALESCE(service_order.total, 0)::numeric(14,2)::text AS income,
+           COALESCE(service_order.total_cost, 0)::numeric(14,2)::text AS direct_cost,
+           service_order.gross_profit::numeric(14,2)::text AS gross_profit,
+           EXISTS (
+             SELECT 1 FROM ${schema}.order_items item
+             WHERE item.order_id = service_order.id
+               AND ${unknownOrderItemCostSql('item')}
+           ) AS has_unknown_product_cost
+         FROM context
+         JOIN ${schema}.orders service_order
+           ON service_order.status = 'completed'
+          AND service_order.closed_at >= context.starts_on::timestamp
+            AT TIME ZONE context.timezone_code
+          AND service_order.closed_at < context.ends_exclusive::timestamp
+            AT TIME ZONE context.timezone_code
+         JOIN ${schema}.customers customer ON customer.id = service_order.customer_id
+         JOIN ${schema}.vehicles vehicle ON vehicle.id = service_order.vehicle_id
+         JOIN public.vehicle_brands brand ON brand.id = vehicle.brand_id
+         JOIN public.vehicle_models model ON model.id = vehicle.model_id
+         ORDER BY service_order.closed_at, service_order.folio`,
+        parameters,
+      )) as MonthlyReportOrderRow[];
+      const summary = summaryRows[0];
+      if (!summary) throw new Error('No se pudo resolver el periodo mensual');
+      return {
+        period: `${query.year}-${String(query.month).padStart(2, '0')}`,
+        label: `${MONTH_NAMES[query.month - 1]} ${query.year}`,
+        startsOn: summary.starts_on,
+        endsOn: summary.ends_on,
+        timezoneCode: summary.timezone_code,
+        summary: {
+          completedOrderCount: summary.completed_order_count,
+          paidOrderCount: summary.paid_order_count,
+          pendingOrderCount: summary.pending_order_count,
+          incompleteCostOrderCount: summary.incomplete_cost_order_count,
+          generatedIncome: summary.generated_income,
+          collectedIncome: summary.collected_income,
+          outstandingIncome: summary.outstanding_income,
+          directCost: summary.direct_cost,
+          grossProfit: summary.gross_profit,
+          operatingExpenses: summary.operating_expenses,
+          netProfit: summary.net_profit,
+          isComplete: summary.incomplete_cost_order_count === 0,
+        },
+        orders: orderRows.map((row) => this.toMonthlyReportOrder(row)),
+      };
+    });
+  }
 
   analytics(
     user: AuthenticatedUser,
@@ -655,6 +835,32 @@ export class ProfitabilityService {
       hasUnknownProductCost: row.has_unknown_product_cost,
       isComplete: row.is_complete,
       isPaid: row.is_paid,
+    };
+  }
+
+  private toMonthlyReportOrder(row: MonthlyReportOrderRow): MonthlyProfitabilityOrderResponseDto {
+    return {
+      id: row.id,
+      folio: row.folio,
+      externalFolio: row.external_folio,
+      completedOn: row.completed_on,
+      paidOn: row.paid_on,
+      customerId: row.customer_id,
+      customerName: row.customer_name,
+      customerType: row.customer_type,
+      vehicleId: row.vehicle_id,
+      vehicleBrand: row.vehicle_brand,
+      vehicleModel: row.vehicle_model,
+      vehicleYear: row.vehicle_year,
+      vehicleColor: row.vehicle_color,
+      vehicleSerialNumber: row.vehicle_serial_number,
+      vehicleLicensePlate: row.vehicle_license_plate,
+      isPaid: row.is_paid,
+      income: row.income,
+      directCost: row.direct_cost,
+      grossProfit: row.gross_profit,
+      hasUnknownProductCost: row.has_unknown_product_cost,
+      isCostComplete: !row.has_unknown_product_cost,
     };
   }
 }

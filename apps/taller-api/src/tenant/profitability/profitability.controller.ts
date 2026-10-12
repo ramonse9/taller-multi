@@ -6,6 +6,8 @@ import { AuthenticatedUser } from '../../common/types/authenticated-user';
 import { RequiresFeature, SubscriptionGuard } from '../../subscriptions/subscription.guard';
 import { PermissionGuard, RequiresPermissions } from '../../permissions/permission.guard';
 import {
+  MonthlyProfitabilityReportQueryDto,
+  MonthlyProfitabilityReportResponseDto,
   ProfitabilityAnalyticsQueryDto,
   ProfitabilityAnalyticsResponseDto,
   ProfitabilityQueryDto,
@@ -20,6 +22,17 @@ import { ProfitabilityService } from './profitability.service';
 @Controller('profitability')
 export class ProfitabilityController {
   constructor(private readonly profitability: ProfitabilityService) {}
+
+  @Get('monthly-report')
+  @RequiresPermissions('profitability.view')
+  @ApiOperation({ summary: 'Consultar órdenes y utilidad de un mes para exportación' })
+  @ApiOkResponse({ type: MonthlyProfitabilityReportResponseDto })
+  monthlyReport(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: MonthlyProfitabilityReportQueryDto,
+  ): Promise<MonthlyProfitabilityReportResponseDto> {
+    return this.profitability.monthlyReport(user, query);
+  }
 
   @Get('analytics')
   @RequiresPermissions('profitability.view')

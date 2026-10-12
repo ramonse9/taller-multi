@@ -405,6 +405,48 @@ interface ProfitabilityAnalyticsResponse {
   }>;
 }
 
+interface MonthlyProfitabilityReportResponse {
+  period: string;
+  label: string;
+  startsOn: string;
+  endsOn: string;
+  timezoneCode: string;
+  summary: {
+    completedOrderCount: number;
+    paidOrderCount: number;
+    pendingOrderCount: number;
+    incompleteCostOrderCount: number;
+    generatedIncome: string;
+    collectedIncome: string;
+    outstandingIncome: string;
+    directCost: string;
+    grossProfit: string;
+    operatingExpenses: string;
+    netProfit: string;
+    isComplete: boolean;
+  };
+  orders: Array<{
+    id: string;
+    folio: string;
+    externalFolio: string | null;
+    completedOn: string;
+    paidOn: string | null;
+    customerId: string;
+    customerName: string;
+    vehicleId: string;
+    vehicleBrand: string;
+    vehicleModel: string;
+    vehicleYear: number;
+    vehicleColor: string;
+    isPaid: boolean;
+    income: string;
+    directCost: string;
+    grossProfit: string | null;
+    hasUnknownProductCost: boolean;
+    isCostComplete: boolean;
+  }>;
+}
+
 interface DashboardSummaryResponse {
   period: { month: string; startsOn: string; endsOn: string };
   access: {
@@ -2020,6 +2062,13 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         })
       ).status,
     ).toBe(403);
+    expect(
+      (
+        await request<unknown>('GET', '/profitability/monthly-report?year=2026&month=10', {
+          token: operatorLogin.body.accessToken,
+        })
+      ).status,
+    ).toBe(403);
 
     const fakeId = '11111111-1111-4111-8111-111111111111';
     expect(
@@ -2853,6 +2902,13 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         })
       ).status,
     ).toBe(403);
+    expect(
+      (
+        await request<unknown>('GET', '/profitability/monthly-report?year=2026&month=10', {
+          token: tenant.accessToken,
+        })
+      ).status,
+    ).toBe(403);
     await request<unknown>('PATCH', `/subscriptions/companies/${tenant.company.id}`, {
       token: platformToken,
       body: { planCode: 'control', status: 'active', reason: 'Utilidad de integración' },
@@ -2921,6 +2977,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       body: {
         customerId: customer.body.id,
         vehicleId: vehicle.body.id,
+        externalFolio: 'CBS-2026-100',
         items: [
           {
             productServiceId: product.body.id,
@@ -3148,6 +3205,30 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         }),
       ]),
     );
+    await control.query(
+      `UPDATE ${quoteIdentifier(tenant.company.schemaName)}.orders
+       SET closed_at = '2026-10-03 12:00:00+00' WHERE id = $1`,
+      [productWithoutCost.body.id],
+    );
+    const incompleteMonthlyReport = await request<MonthlyProfitabilityReportResponse>(
+      'GET',
+      '/profitability/monthly-report?year=2026&month=10',
+      { token: tenant.accessToken },
+    );
+    expect(incompleteMonthlyReport.body.summary).toMatchObject({
+      completedOrderCount: 1,
+      incompleteCostOrderCount: 1,
+      generatedIncome: '100.00',
+      isComplete: false,
+    });
+    expect(incompleteMonthlyReport.body.orders).toEqual([
+      expect.objectContaining({
+        id: productWithoutCost.body.id,
+        grossProfit: null,
+        hasUnknownProductCost: true,
+        isCostComplete: false,
+      }),
+    ]);
     const incompleteProductDashboard = await request<DashboardSummaryResponse>(
       'GET',
       '/dashboard/summary',
@@ -3331,6 +3412,90 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     });
     expect(report.body.orders.map(({ id }) => id)).not.toContain(productWithoutCost.body.id);
 
+    const monthlyReport = await request<MonthlyProfitabilityReportResponse>(
+      'GET',
+      '/profitability/monthly-report?year=2026&month=10',
+      { token: tenant.accessToken },
+    );
+    expect(monthlyReport.status).toBe(200);
+    expect(monthlyReport.body).toMatchObject({
+      period: '2026-10',
+      label: 'Octubre 2026',
+      startsOn: '2026-10-01',
+      endsOn: '2026-10-31',
+      timezoneCode: 'America/Mazatlan',
+      summary: {
+        completedOrderCount: 1,
+        paidOrderCount: 1,
+        pendingOrderCount: 0,
+        incompleteCostOrderCount: 0,
+        generatedIncome: '700.00',
+        collectedIncome: '700.00',
+        outstandingIncome: '0.00',
+        directCost: '150.00',
+        grossProfit: '550.00',
+        operatingExpenses: '120.00',
+        netProfit: '430.00',
+        isComplete: true,
+      },
+    });
+    expect(monthlyReport.body.orders).toEqual([
+      expect.objectContaining({
+        id: order.body.id,
+        externalFolio: 'CBS-2026-100',
+        completedOn: '2026-10-02',
+        customerId: customer.body.id,
+        customerName: 'Cliente Rentable',
+        vehicleId: vehicle.body.id,
+        vehicleBrand: 'Marca Utilidad Integration',
+        vehicleModel: 'Modelo Utilidad Integration',
+        vehicleYear: 2025,
+        vehicleColor: 'Gris',
+        isPaid: true,
+        income: '700.00',
+        directCost: '150.00',
+        grossProfit: '550.00',
+        hasUnknownProductCost: false,
+        isCostComplete: true,
+      }),
+    ]);
+    expect(
+      (
+        await request<unknown>('GET', '/profitability/monthly-report?year=2026&month=13', {
+          token: tenant.accessToken,
+        })
+      ).status,
+    ).toBe(400);
+
+    await control.query(
+      `UPDATE ${quoteIdentifier(tenant.company.schemaName)}.orders
+       SET closed_at = '2026-11-01 06:30:00+00' WHERE id = $1`,
+      [order.body.id],
+    );
+    const localMonthBoundary = await request<MonthlyProfitabilityReportResponse>(
+      'GET',
+      '/profitability/monthly-report?year=2026&month=10',
+      { token: tenant.accessToken },
+    );
+    expect(localMonthBoundary.body.orders[0]).toMatchObject({
+      id: order.body.id,
+      completedOn: '2026-10-31',
+    });
+    expect(
+      (
+        await request<MonthlyProfitabilityReportResponse>(
+          'GET',
+          '/profitability/monthly-report?year=2026&month=11',
+          { token: tenant.accessToken },
+        )
+      ).body.orders,
+    ).toEqual([]);
+    await control.query(
+      `UPDATE ${quoteIdentifier(tenant.company.schemaName)}.orders
+       SET closed_at = '2026-10-02 12:00:00+00' WHERE id = $1`,
+      [order.body.id],
+    );
+
     const updatedExpense = await request<ExpenseResponse>('PATCH', `/expenses/${expense.body.id}`, {
       token: tenant.accessToken,
       body: { amount: 150 },
@@ -3460,6 +3625,21 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       isComplete: true,
     });
     expect(isolatedReport.body.orders).toEqual([]);
+    const isolatedMonthlyReport = await request<MonthlyProfitabilityReportResponse>(
+      'GET',
+      '/profitability/monthly-report?year=2026&month=10',
+      { token: isolated.accessToken },
+    );
+    expect(isolatedMonthlyReport.status).toBe(200);
+    expect(isolatedMonthlyReport.body.summary).toMatchObject({
+      completedOrderCount: 0,
+      generatedIncome: '0.00',
+      directCost: '0.00',
+      operatingExpenses: '0.00',
+      netProfit: '0.00',
+      isComplete: true,
+    });
+    expect(isolatedMonthlyReport.body.orders).toEqual([]);
 
     const pending = await request<OrderResponse>(
       'PATCH',
@@ -3512,6 +3692,13 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(
       (
         await request<unknown>('GET', '/profitability', {
+          token: tenant.accessToken,
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await request<unknown>('GET', '/profitability/monthly-report?year=2026&month=10', {
           token: tenant.accessToken,
         })
       ).status,

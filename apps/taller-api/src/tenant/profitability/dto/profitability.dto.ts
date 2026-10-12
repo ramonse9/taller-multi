@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsDateString, IsIn, IsInt, IsOptional, Matches } from 'class-validator';
+import { IsDateString, IsIn, IsInt, IsOptional, Matches, Max, Min } from 'class-validator';
 
 export class ProfitabilityQueryDto {
   @ApiPropertyOptional({ format: 'date', description: 'Por defecto, primer día del mes actual' })
@@ -12,6 +12,79 @@ export class ProfitabilityQueryDto {
   @IsOptional()
   @IsDateString({ strict: true })
   occurredTo?: string;
+}
+
+export class MonthlyProfitabilityReportQueryDto {
+  @ApiProperty({ example: 2026, minimum: 2000, maximum: 2200 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(2000)
+  @Max(2200)
+  year!: number;
+
+  @ApiProperty({ example: 10, minimum: 1, maximum: 12 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(12)
+  month!: number;
+}
+
+export class MonthlyProfitabilitySummaryResponseDto {
+  @ApiProperty() completedOrderCount!: number;
+  @ApiProperty() paidOrderCount!: number;
+  @ApiProperty() pendingOrderCount!: number;
+  @ApiProperty({ description: 'Órdenes con al menos un producto cuyo costo es desconocido' })
+  incompleteCostOrderCount!: number;
+  @ApiProperty() generatedIncome!: string;
+  @ApiProperty() collectedIncome!: string;
+  @ApiProperty() outstandingIncome!: string;
+  @ApiProperty() directCost!: string;
+  @ApiProperty({
+    description: 'Suma de utilidad conocida; revisar isComplete antes de interpretarla',
+  })
+  grossProfit!: string;
+  @ApiProperty() operatingExpenses!: string;
+  @ApiProperty({ description: 'Utilidad bruta conocida menos gastos operativos confirmados' })
+  netProfit!: string;
+  @ApiProperty() isComplete!: boolean;
+}
+
+export class MonthlyProfitabilityOrderResponseDto {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty() folio!: string;
+  @ApiProperty({ nullable: true, type: String }) externalFolio!: string | null;
+  @ApiProperty({ format: 'date' }) completedOn!: string;
+  @ApiProperty({ format: 'date', nullable: true, type: String }) paidOn!: string | null;
+  @ApiProperty({ format: 'uuid' }) customerId!: string;
+  @ApiProperty() customerName!: string;
+  @ApiProperty({ enum: ['person', 'company'] }) customerType!: 'person' | 'company';
+  @ApiProperty({ format: 'uuid' }) vehicleId!: string;
+  @ApiProperty() vehicleBrand!: string;
+  @ApiProperty() vehicleModel!: string;
+  @ApiProperty() vehicleYear!: number;
+  @ApiProperty() vehicleColor!: string;
+  @ApiProperty({ nullable: true, type: String }) vehicleSerialNumber!: string | null;
+  @ApiProperty({ nullable: true, type: String }) vehicleLicensePlate!: string | null;
+  @ApiProperty() isPaid!: boolean;
+  @ApiProperty() income!: string;
+  @ApiProperty() directCost!: string;
+  @ApiProperty({ nullable: true, type: String }) grossProfit!: string | null;
+  @ApiProperty() hasUnknownProductCost!: boolean;
+  @ApiProperty() isCostComplete!: boolean;
+}
+
+export class MonthlyProfitabilityReportResponseDto {
+  @ApiProperty({ example: '2026-10' }) period!: string;
+  @ApiProperty({ example: 'Octubre 2026' }) label!: string;
+  @ApiProperty({ format: 'date' }) startsOn!: string;
+  @ApiProperty({ format: 'date' }) endsOn!: string;
+  @ApiProperty({ description: 'Zona horaria usada para resolver las fechas de terminación' })
+  timezoneCode!: string;
+  @ApiProperty({ type: MonthlyProfitabilitySummaryResponseDto })
+  summary!: MonthlyProfitabilitySummaryResponseDto;
+  @ApiProperty({ type: MonthlyProfitabilityOrderResponseDto, isArray: true })
+  orders!: MonthlyProfitabilityOrderResponseDto[];
 }
 
 export class ProfitabilityTotalsResponseDto {
