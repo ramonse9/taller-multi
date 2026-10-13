@@ -83,6 +83,9 @@ describe('PRUEBAS_DEMO_DATASET', () => {
       const generatedRevenue = completed.reduce((total, order) => total + orderRevenue(order), 0);
       const collectedRevenue = paid.reduce((total, order) => total + orderRevenue(order), 0);
       const directCost = completed.reduce((total, order) => total + orderCost(order), 0);
+      const operatingExpenses = PRUEBAS_DEMO_DATASET.expenses
+        .filter(({ occurredOn }) => occurredOn.startsWith(month))
+        .reduce((total, expense) => total + expense.amount, 0);
 
       expect({
         orderCount: orders.length,
@@ -93,7 +96,25 @@ describe('PRUEBAS_DEMO_DATASET', () => {
         outstandingRevenue: generatedRevenue - collectedRevenue,
         directCost,
         grossProfit: generatedRevenue - directCost,
+        operatingExpenses,
+        netProfit: generatedRevenue - directCost - operatingExpenses,
       }).toEqual(expected);
     }
+  });
+
+  it('incluye gastos recurrentes y los tres gastos extraordinarios de octubre', () => {
+    expect(PRUEBAS_DEMO_DATASET.expenses).toHaveLength(18);
+    expect(
+      PRUEBAS_DEMO_DATASET.expenses.filter(({ recurrenceType }) => recurrenceType === 'recurring'),
+    ).toHaveLength(15);
+    expect(
+      PRUEBAS_DEMO_DATASET.expenses
+        .filter(({ recurrenceType }) => recurrenceType === 'one_time')
+        .map(({ description }) => description),
+    ).toEqual([
+      'Mantenimiento de gatos hidráulicos',
+      'Reparación de compresor del taller',
+      'Compra de equipo de seguridad',
+    ]);
   });
 });

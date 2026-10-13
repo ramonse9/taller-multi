@@ -56,6 +56,19 @@ export interface DemoMonthlyExpectation {
   outstandingRevenue: number;
   directCost: number;
   grossProfit: number;
+  operatingExpenses: number;
+  netProfit: number;
+}
+
+export interface DemoExpense {
+  key: string;
+  categoryCode: 'rent' | 'payroll' | 'utilities' | 'tools' | 'other';
+  occurredOn: string;
+  description: string;
+  reference: string;
+  amount: number;
+  notes: string;
+  recurrenceType: 'recurring' | 'one_time';
 }
 
 const service = (
@@ -653,6 +666,188 @@ export const PRUEBAS_DEMO_DATASET = {
       ],
     },
   ] satisfies DemoOrder[],
+  expenses: [
+    {
+      key: 'aug-rent',
+      categoryCode: 'rent',
+      occurredOn: '2026-08-01',
+      description: 'Renta mensual del taller',
+      reference: 'DEMO-GTO-2026-08-RENTA',
+      amount: 4800,
+      notes: 'Gasto recurrente demostrativo.',
+      recurrenceType: 'recurring',
+    },
+    {
+      key: 'aug-payroll',
+      categoryCode: 'payroll',
+      occurredOn: '2026-08-05',
+      description: 'Apoyo de nómina del mes',
+      reference: 'DEMO-GTO-2026-08-NOMINA',
+      amount: 6000,
+      notes: 'Gasto recurrente demostrativo.',
+      recurrenceType: 'recurring',
+    },
+    {
+      key: 'aug-electricity',
+      categoryCode: 'utilities',
+      occurredOn: '2026-08-12',
+      description: 'Servicio de electricidad',
+      reference: 'DEMO-GTO-2026-08-LUZ',
+      amount: 980,
+      notes: 'Consumo eléctrico del taller.',
+      recurrenceType: 'recurring',
+    },
+    {
+      key: 'aug-water',
+      categoryCode: 'utilities',
+      occurredOn: '2026-08-15',
+      description: 'Servicio de agua',
+      reference: 'DEMO-GTO-2026-08-AGUA',
+      amount: 280,
+      notes: 'Servicio mensual del taller.',
+      recurrenceType: 'recurring',
+    },
+    {
+      key: 'aug-internet',
+      categoryCode: 'utilities',
+      occurredOn: '2026-08-20',
+      description: 'Servicio de internet',
+      reference: 'DEMO-GTO-2026-08-INTERNET',
+      amount: 649,
+      notes: 'Servicio mensual del taller.',
+      recurrenceType: 'recurring',
+    },
+    {
+      key: 'sep-rent',
+      categoryCode: 'rent',
+      occurredOn: '2026-09-01',
+      description: 'Renta mensual del taller',
+      reference: 'DEMO-GTO-2026-09-RENTA',
+      amount: 4800,
+      notes: 'Gasto recurrente demostrativo.',
+      recurrenceType: 'recurring',
+    },
+    {
+      key: 'sep-payroll',
+      categoryCode: 'payroll',
+      occurredOn: '2026-09-05',
+      description: 'Apoyo de nómina del mes',
+      reference: 'DEMO-GTO-2026-09-NOMINA',
+      amount: 6000,
+      notes: 'Gasto recurrente demostrativo.',
+      recurrenceType: 'recurring',
+    },
+    {
+      key: 'sep-electricity',
+      categoryCode: 'utilities',
+      occurredOn: '2026-09-12',
+      description: 'Servicio de electricidad',
+      reference: 'DEMO-GTO-2026-09-LUZ',
+      amount: 1120,
+      notes: 'Consumo eléctrico del taller.',
+      recurrenceType: 'recurring',
+    },
+    {
+      key: 'sep-water',
+      categoryCode: 'utilities',
+      occurredOn: '2026-09-15',
+      description: 'Servicio de agua',
+      reference: 'DEMO-GTO-2026-09-AGUA',
+      amount: 310,
+      notes: 'Servicio mensual del taller.',
+      recurrenceType: 'recurring',
+    },
+    {
+      key: 'sep-internet',
+      categoryCode: 'utilities',
+      occurredOn: '2026-09-20',
+      description: 'Servicio de internet',
+      reference: 'DEMO-GTO-2026-09-INTERNET',
+      amount: 649,
+      notes: 'Servicio mensual del taller.',
+      recurrenceType: 'recurring',
+    },
+    {
+      key: 'oct-rent',
+      categoryCode: 'rent',
+      occurredOn: '2026-10-01',
+      description: 'Renta mensual del taller',
+      reference: 'DEMO-GTO-2026-10-RENTA',
+      amount: 4800,
+      notes: 'Gasto recurrente demostrativo.',
+      recurrenceType: 'recurring',
+    },
+    {
+      key: 'oct-payroll',
+      categoryCode: 'payroll',
+      occurredOn: '2026-10-05',
+      description: 'Apoyo de nómina del mes',
+      reference: 'DEMO-GTO-2026-10-NOMINA',
+      amount: 6000,
+      notes: 'Gasto recurrente demostrativo.',
+      recurrenceType: 'recurring',
+    },
+    {
+      key: 'oct-electricity',
+      categoryCode: 'utilities',
+      occurredOn: '2026-10-07',
+      description: 'Servicio de electricidad',
+      reference: 'DEMO-GTO-2026-10-LUZ',
+      amount: 1260,
+      notes: 'Consumo eléctrico del taller.',
+      recurrenceType: 'recurring',
+    },
+    {
+      key: 'oct-water',
+      categoryCode: 'utilities',
+      occurredOn: '2026-10-08',
+      description: 'Servicio de agua',
+      reference: 'DEMO-GTO-2026-10-AGUA',
+      amount: 295,
+      notes: 'Servicio mensual del taller.',
+      recurrenceType: 'recurring',
+    },
+    {
+      key: 'oct-internet',
+      categoryCode: 'utilities',
+      occurredOn: '2026-10-09',
+      description: 'Servicio de internet',
+      reference: 'DEMO-GTO-2026-10-INTERNET',
+      amount: 649,
+      notes: 'Servicio mensual del taller.',
+      recurrenceType: 'recurring',
+    },
+    {
+      key: 'oct-hydraulic-jacks',
+      categoryCode: 'tools',
+      occurredOn: '2026-10-06',
+      description: 'Mantenimiento de gatos hidráulicos',
+      reference: 'DEMO-GTO-2026-10-GATOS',
+      amount: 900,
+      notes: 'Cambio de aceite, sellos y revisión de seguridad.',
+      recurrenceType: 'one_time',
+    },
+    {
+      key: 'oct-compressor',
+      categoryCode: 'tools',
+      occurredOn: '2026-10-10',
+      description: 'Reparación de compresor del taller',
+      reference: 'DEMO-GTO-2026-10-COMPRESOR',
+      amount: 650,
+      notes: 'Servicio correctivo y cambio de conexiones.',
+      recurrenceType: 'one_time',
+    },
+    {
+      key: 'oct-safety',
+      categoryCode: 'other',
+      occurredOn: '2026-10-12',
+      description: 'Compra de equipo de seguridad',
+      reference: 'DEMO-GTO-2026-10-SEGURIDAD',
+      amount: 700,
+      notes: 'Guantes, lentes y mascarillas para el personal.',
+      recurrenceType: 'one_time',
+    },
+  ] satisfies DemoExpense[],
   expectedMonthlyResults: {
     '2026-08': {
       orderCount: 5,
@@ -663,6 +858,8 @@ export const PRUEBAS_DEMO_DATASET = {
       outstandingRevenue: 2600,
       directCost: 7250,
       grossProfit: 19350,
+      operatingExpenses: 12709,
+      netProfit: 6641,
     },
     '2026-09': {
       orderCount: 5,
@@ -673,6 +870,8 @@ export const PRUEBAS_DEMO_DATASET = {
       outstandingRevenue: 6900,
       directCost: 8830,
       grossProfit: 22070,
+      operatingExpenses: 12879,
+      netProfit: 9191,
     },
     '2026-10': {
       orderCount: 6,
@@ -683,6 +882,8 @@ export const PRUEBAS_DEMO_DATASET = {
       outstandingRevenue: 9600,
       directCost: 5170,
       grossProfit: 14980,
+      operatingExpenses: 15254,
+      netProfit: -274,
     },
   } satisfies Record<string, DemoMonthlyExpectation>,
 } as const;
