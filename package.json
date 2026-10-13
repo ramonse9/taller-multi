@@ -30,6 +30,8 @@
     "demo:pruebas:load": "npm run demo:pruebas:load --workspace=apps/taller-api --",
     "demo:pruebas:prod:preview": "npm run demo:pruebas:prod:preview --workspace=apps/taller-api",
     "demo:pruebas:prod:load": "npm run demo:pruebas:prod:load --workspace=apps/taller-api --",
+    "demo:pruebas:validate": "npm run demo:pruebas:validate --workspace=apps/taller-api",
+    "demo:pruebas:prod:validate": "npm run demo:pruebas:prod:validate --workspace=apps/taller-api",
     "config:verify:prod": "npm run config:verify:prod --workspace=apps/taller-api",
     "platform-admin:password": "npm run platform-admin:password --workspace=apps/taller-api",
     "platform-admin:password:local": "npm run platform-admin:password:local --workspace=apps/taller-api",

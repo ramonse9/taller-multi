@@ -31,6 +31,8 @@
     "demo:pruebas:load": "ts-node -r tsconfig-paths/register src/database/demo/load-pruebas-demo.ts --apply",
     "demo:pruebas:prod:preview": "node --env-file=.env.production.local dist/database/demo/load-pruebas-demo.js",
     "demo:pruebas:prod:load": "node --env-file=.env.production.local dist/database/demo/load-pruebas-demo.js --apply",
+    "demo:pruebas:validate": "ts-node -r tsconfig-paths/register src/database/demo/validate-pruebas-demo.ts",
+    "demo:pruebas:prod:validate": "node --env-file=.env.production.local dist/database/demo/validate-pruebas-demo.js",
     "config:verify:prod": "node dist/config/verify-production-environment.js",
     "platform-admin:password": "ts-node -r tsconfig-paths/register src/platform-users/change-platform-admin-password.ts --environment=local",
     "platform-admin:password:local": "ts-node -r tsconfig-paths/register src/platform-users/change-platform-admin-password.ts --environment=local",
