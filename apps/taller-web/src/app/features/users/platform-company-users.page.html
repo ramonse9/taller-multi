@@ -38,15 +38,15 @@
         <strong>&#64;{{ company()?.loginCode || 'compania' }}</strong>
       </div>
       <p>
-        Consulta sus accesos y crea usuarios con rol, plantilla y permisos
+        Consulta y administra sus accesos, roles, plantillas y permisos
         individuales sin ingresar a la cuenta de la compañía.
       </p>
     </div>
 
     @if (company() && !company()?.isActive) {
     <div class="inactive-banner" role="status">
-      La compañía está desactivada. Puedes consultar sus usuarios, pero debes
-      reactivarla antes de crear un acceso nuevo.
+      La compañía está desactivada. Puedes consultar o editar sus usuarios, pero
+      debes reactivarla antes de crear o reactivar un acceso.
     </div>
     }
 
@@ -101,7 +101,7 @@
 
     <div class="users-cards" [class.loading]="loading()">
       @for (user of data().items; track user.id) {
-      <article class="user-card">
+      <article class="user-card user-card-interactive">
         <div class="user-card-heading">
           <span class="avatar">{{ initials(user.fullName) }}</span>
           <div class="user-card-identity">
@@ -133,6 +133,24 @@
             <dd>{{ managementScope(user.role) }}</dd>
           </div>
         </dl>
+        <div class="user-card-actions platform-card-actions">
+          <button
+            type="button"
+            [disabled]="permissionsLoading()"
+            (click)="openEdit(user)"
+          >
+            Editar
+          </button>
+          <button
+            type="button"
+            [class.danger]="user.isActive"
+            [class.success]="!user.isActive"
+            [disabled]="!user.isActive && !company()?.isActive"
+            (click)="requestStatusChange(user)"
+          >
+            {{ user.isActive ? 'Desactivar' : 'Reactivar' }}
+          </button>
+        </div>
       </article>
       } @empty { @if (!loading()) {
       <div class="empty users-card-empty">
@@ -155,11 +173,18 @@
             <th>Rol</th>
             <th>Zona horaria</th>
             <th>Registro</th>
+            <th class="actions-heading">Acciones</th>
           </tr>
         </thead>
         <tbody>
           @for (user of data().items; track user.id) {
-          <tr>
+          <tr
+            class="interactive-row"
+            tabindex="0"
+            (click)="openEdit(user)"
+            (keydown.enter)="openEdit(user)"
+            (keydown.space)="$event.preventDefault(); openEdit(user)"
+          >
             <td>
               <div class="person">
                 <span class="avatar">{{ initials(user.fullName) }}</span>
@@ -186,10 +211,30 @@
             </td>
             <td><span class="timezone">{{ user.timezoneCode }}</span></td>
             <td>{{ formatShortDate(user.createdAt) }}</td>
+            <td>
+              <div class="actions platform-actions">
+                <button
+                  type="button"
+                  [disabled]="permissionsLoading()"
+                  (click)="$event.stopPropagation(); openEdit(user)"
+                >
+                  Editar
+                </button>
+                <button
+                  type="button"
+                  [class.danger]="user.isActive"
+                  [class.success]="!user.isActive"
+                  [disabled]="!user.isActive && !company()?.isActive"
+                  (click)="$event.stopPropagation(); requestStatusChange(user)"
+                >
+                  {{ user.isActive ? 'Desactivar' : 'Reactivar' }}
+                </button>
+              </div>
+            </td>
           </tr>
           } @empty { @if (!loading()) {
           <tr>
-            <td colspan="4">
+            <td colspan="5">
               <div class="empty">
                 <span>◎</span>
                 <h2>No hay usuarios aquí</h2>
@@ -236,8 +281,13 @@
   >
     <header>
       <div>
-        <p class="breadcrumb">NUEVO ACCESO / {{ company()?.name }}</p>
-        <h2 id="platform-user-editor-title">Nuevo usuario</h2>
+        <p class="breadcrumb">
+          {{ isEditing() ? 'EDITAR ACCESO' : 'NUEVO ACCESO' }} / {{
+          company()?.name }}
+        </p>
+        <h2 id="platform-user-editor-title">
+          {{ isEditing() ? 'Editar usuario' : 'Nuevo usuario' }}
+        </h2>
       </div>
       <button
         class="close"
@@ -248,7 +298,44 @@
         ×
       </button>
     </header>
+    @if (editorLoading()) {
+    <div class="editor-loading" role="status">
+      <div class="loader inline-loader" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </div>
+      <p>Cargando usuario y permisos…</p>
+    </div>
+    } @else {
     <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+      @if (editingProfile(); as profile) {
+      <section class="access-summary full" aria-label="Resumen del acceso">
+        <div>
+          <span>Estatus</span>
+          <strong
+            class="access-status"
+            [class.inactive]="!profile.user.isActive"
+          >
+            {{ profile.user.isActive ? 'Activo' : 'Desactivado' }}
+          </strong>
+        </div>
+        <div>
+          <span>Configuración</span>
+          <strong>
+            @if (targetRole() === 'company_admin') { Acceso completo automático
+            } @else if (permissionsCustomized()) { Permisos personalizados }
+            @else { Plantilla {{ templateLabel(selectedTemplate()) }} }
+          </strong>
+        </div>
+        <div>
+          <span>Permisos habilitados</span>
+          <strong>{{ selectedPermissions().length }}</strong>
+        </div>
+      </section>
+      } @if (error()) {
+      <div class="error-banner editor-error full" role="alert">
+        {{ error() }}
+      </div>
+      }
       <div class="field full">
         <label for="platform-user-name">Nombre completo <b>*</b></label>
         <input
@@ -334,6 +421,7 @@
           }
         </select>
       </div>
+      @if (!isEditing()) {
       <div class="field full">
         <label for="platform-user-password">Contraseña temporal <b>*</b></label>
         <input
@@ -351,6 +439,7 @@
           quedarán dentro de {{ company()?.name }}.
         </p>
       </div>
+      }
 
       <section
         class="permissions-panel full"
@@ -431,6 +520,20 @@
       </section>
 
       <footer>
+        @if (editingProfile(); as profile) {
+        <button
+          class="status-action"
+          [class.danger]="profile.user.isActive"
+          [class.success]="!profile.user.isActive"
+          type="button"
+          [disabled]="saving() || (!profile.user.isActive && !company()?.isActive)"
+          (click)="requestStatusChange(profile.user)"
+        >
+          {{ profile.user.isActive ? 'Desactivar usuario' : 'Reactivar usuario'
+          }}
+        </button>
+        }
+        <span class="footer-spacer"></span>
         <button class="ghost" type="button" (click)="closeEditor()">
           Cancelar
         </button>
@@ -439,10 +542,66 @@
           type="submit"
           [disabled]="saving() || permissionsLoading()"
         >
-          {{ saving() ? 'Guardando…' : 'Crear usuario' }}
+          {{ saving() ? 'Guardando…' : (isEditing() ? 'Guardar cambios' : 'Crear
+          usuario') }}
         </button>
       </footer>
     </form>
+    }
+  </section>
+</div>
+} @if (statusConfirmation(); as user) {
+<div
+  class="backdrop centered confirmation-layer"
+  (click)="closeStatusConfirmation()"
+  role="presentation"
+>
+  <section
+    class="status-dialog"
+    role="alertdialog"
+    aria-modal="true"
+    aria-labelledby="platform-status-dialog-title"
+    aria-describedby="platform-status-dialog-description"
+    (click)="$event.stopPropagation()"
+  >
+    <p class="breadcrumb">CONFIRMAR CAMBIO DE ESTATUS</p>
+    <h2 id="platform-status-dialog-title">
+      {{ user.isActive ? '¿Desactivar usuario?' : '¿Reactivar usuario?' }}
+    </h2>
+    <p id="platform-status-dialog-description">
+      @if (user.isActive) {
+      <strong>{{ user.loginName }}</strong> perderá el acceso y todas sus
+      sesiones abiertas serán revocadas. Sus datos y permisos se conservarán. }
+      @else { <strong>{{ user.loginName }}</strong> recuperará el acceso con el
+      rol y los permisos que tiene configurados. }
+    </p>
+    @if (user.isActive && user.role === 'company_admin') {
+    <div class="dialog-warning">
+      La compañía siempre debe conservar al menos un Administrador principal
+      activo.
+    </div>
+    }
+    <footer>
+      <button
+        class="ghost"
+        type="button"
+        [disabled]="changingStatus()"
+        (click)="closeStatusConfirmation()"
+      >
+        Cancelar
+      </button>
+      <button
+        class="status-confirm"
+        [class.danger]="user.isActive"
+        [class.success]="!user.isActive"
+        type="button"
+        [disabled]="changingStatus()"
+        (click)="confirmStatusChange()"
+      >
+        {{ changingStatus() ? 'Guardando…' : (user.isActive ? 'Sí, desactivar' :
+        'Sí, reactivar') }}
+      </button>
+    </footer>
   </section>
 </div>
 }

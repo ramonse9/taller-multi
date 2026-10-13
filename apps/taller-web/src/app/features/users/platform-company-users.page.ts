@@ -30,7 +30,10 @@ import {
   PermissionCatalogItem,
   PermissionTemplate,
   PermissionTemplateCode,
+  PlatformCompanyUserResponse,
   TenantRole,
+  TenantUser,
+  UpdatePlatformCompanyUserInput,
 } from "./user.models";
 import { UsersService } from "./users.service";
 
@@ -86,6 +89,8 @@ export class PlatformCompanyUsersPage implements OnInit {
   readonly loadingContext = signal(true);
   readonly permissionsLoading = signal(true);
   readonly saving = signal(false);
+  readonly editorLoading = signal(false);
+  readonly changingStatus = signal(false);
   readonly error = signal("");
   readonly notice = signal("");
   readonly company = signal<CompanyResponse | null>(null);
@@ -96,6 +101,8 @@ export class PlatformCompanyUsersPage implements OnInit {
   readonly selectedPermissions = signal<string[]>([]);
   readonly targetRole = signal<TenantRole>("user");
   readonly editorOpen = signal(false);
+  readonly editingProfile = signal<PlatformCompanyUserResponse | null>(null);
+  readonly statusConfirmation = signal<TenantUser | null>(null);
   readonly activeFilter = signal<boolean | null>(true);
   readonly data = signal<PaginatedUsers>({
     page: 1,
@@ -136,6 +143,9 @@ export class PlatformCompanyUsersPage implements OnInit {
       expected.join("|") !== [...this.selectedPermissions()].sort().join("|")
     );
   });
+  readonly isEditing = computed(
+    () => this.editorLoading() || this.editingProfile() !== null,
+  );
 
   readonly form = new FormGroup({
     fullName: new FormControl("", {
@@ -280,6 +290,9 @@ export class PlatformCompanyUsersPage implements OnInit {
 
   openCreate(): void {
     if (!this.company()?.isActive) return;
+    this.error.set("");
+    this.editingProfile.set(null);
+    this.setPasswordRequired(true);
     this.form.reset({
       fullName: "",
       username: "",
@@ -295,8 +308,34 @@ export class PlatformCompanyUsersPage implements OnInit {
     this.editorOpen.set(true);
   }
 
+  openEdit(user: TenantUser): void {
+    if (this.saving() || this.editorLoading() || this.permissionsLoading())
+      return;
+    this.editorOpen.set(true);
+    this.editorLoading.set(true);
+    this.error.set("");
+    this.users
+      .getForCompany(this.companyId, user.id)
+      .pipe(
+        finalize(() => this.editorLoading.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (profile) => this.populateEditor(profile),
+        error: (error: unknown) => {
+          this.editorOpen.set(false);
+          this.error.set(
+            apiErrorMessage(error, "No pudimos abrir el usuario."),
+          );
+        },
+      });
+  }
+
   closeEditor(): void {
-    if (!this.saving()) this.editorOpen.set(false);
+    if (!this.saving() && !this.editorLoading()) {
+      this.editorOpen.set(false);
+      this.editingProfile.set(null);
+    }
   }
 
   save(): void {
@@ -310,25 +349,38 @@ export class PlatformCompanyUsersPage implements OnInit {
       return;
     }
     const raw = this.form.getRawValue();
-    const input: CreatePlatformCompanyUserInput = {
+    const commonInput = {
       fullName: raw.fullName.trim(),
       username: raw.username.trim().toLowerCase(),
       email: raw.email.trim().toLowerCase() || null,
       phone: `${raw.phoneCountryCode.trim()}${raw.phone.replace(/\D/g, "")}`,
-      password: raw.password,
       timezoneCode: raw.timezoneCode,
       role: raw.role,
     };
+    const permissionInput: Pick<
+      UpdatePlatformCompanyUserInput,
+      "templateCode" | "permissionCodes"
+    > = {};
     if (role !== "company_admin") {
-      input.templateCode = this.selectedTemplate();
-      input.permissionCodes = this.normalizePermissions(
+      permissionInput.templateCode = this.selectedTemplate();
+      permissionInput.permissionCodes = this.normalizePermissions(
         this.selectedPermissions(),
       );
     }
     this.saving.set(true);
     this.error.set("");
-    this.users
-      .createForCompany(this.companyId, input)
+    const profile = this.editingProfile();
+    const request$ = profile
+      ? this.users.updateForCompany(this.companyId, profile.user.id, {
+          ...commonInput,
+          ...permissionInput,
+        })
+      : this.users.createForCompany(this.companyId, {
+          ...commonInput,
+          ...permissionInput,
+          password: raw.password,
+        } satisfies CreatePlatformCompanyUserInput);
+    request$
       .pipe(
         finalize(() => this.saving.set(false)),
         takeUntilDestroyed(this.destroyRef),
@@ -336,15 +388,69 @@ export class PlatformCompanyUsersPage implements OnInit {
       .subscribe({
         next: ({ user }) => {
           this.editorOpen.set(false);
+          this.editingProfile.set(null);
           this.showNotice(
-            `${user.loginName} fue creado. Deberá cambiar su contraseña al iniciar sesión.`,
+            profile
+              ? `Los datos y permisos de ${user.loginName} quedaron actualizados.`
+              : `${user.loginName} fue creado. Deberá cambiar su contraseña al iniciar sesión.`,
           );
-          this.load(1);
+          this.load(profile ? this.data().page : 1);
         },
         error: (error: unknown) =>
           this.error.set(
-            apiErrorMessage(error, "No pudimos crear el usuario."),
+            apiErrorMessage(
+              error,
+              profile
+                ? "No pudimos actualizar el usuario."
+                : "No pudimos crear el usuario.",
+            ),
           ),
+      });
+  }
+
+  requestStatusChange(user = this.editingProfile()?.user): void {
+    if (!user || this.saving() || this.changingStatus()) return;
+    this.error.set("");
+    this.statusConfirmation.set(user);
+  }
+
+  closeStatusConfirmation(): void {
+    if (!this.changingStatus()) this.statusConfirmation.set(null);
+  }
+
+  confirmStatusChange(): void {
+    const user = this.statusConfirmation();
+    if (!user || this.changingStatus()) return;
+    this.changingStatus.set(true);
+    this.error.set("");
+    const request$ = user.isActive
+      ? this.users.deactivateForCompany(this.companyId, user.id)
+      : this.users.activateForCompany(this.companyId, user.id);
+    request$
+      .pipe(
+        finalize(() => this.changingStatus.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: ({ user: updatedUser }) => {
+          const action = updatedUser.isActive ? "reactivado" : "desactivado";
+          this.statusConfirmation.set(null);
+          this.editorOpen.set(false);
+          this.editingProfile.set(null);
+          this.showNotice(`${updatedUser.loginName} fue ${action}.`);
+          this.load(this.data().page);
+        },
+        error: (error: unknown) => {
+          this.statusConfirmation.set(null);
+          this.error.set(
+            apiErrorMessage(
+              error,
+              user.isActive
+                ? "No pudimos desactivar el usuario."
+                : "No pudimos reactivar el usuario.",
+            ),
+          );
+        },
       });
   }
 
@@ -429,6 +535,14 @@ export class PlatformCompanyUsersPage implements OnInit {
     return role === "admin" ? "Administrador" : "Usuario";
   }
 
+  templateLabel(code: PermissionTemplateCode | null): string {
+    if (!code) return "Sin plantilla";
+    return (
+      this.permissionTemplates().find((template) => template.code === code)
+        ?.name ?? code
+    );
+  }
+
   managementScope(role: TenantRole): string {
     if (role === "company_admin")
       return "Administra Administradores y Usuarios";
@@ -444,6 +558,64 @@ export class PlatformCompanyUsersPage implements OnInit {
     if (this.targetRole() === "admin")
       normalized.push(...ADMIN_REQUIRED_PERMISSIONS);
     return [...new Set(normalized)].sort();
+  }
+
+  private populateEditor(profile: PlatformCompanyUserResponse): void {
+    const { user } = profile;
+    const phone = this.splitPhone(user.phone);
+    this.setPasswordRequired(false);
+    this.form.reset({
+      fullName: user.fullName,
+      username: user.username,
+      phoneCountryCode: phone.countryCode,
+      phone: phone.nationalNumber,
+      email: user.email ?? "",
+      role: user.role,
+      timezoneCode: user.timezoneCode,
+      password: "",
+    });
+    this.targetRole.set(user.role);
+    this.selectedTemplate.set(profile.templateCode);
+    this.selectedPermissions.set(
+      this.normalizePermissions(profile.permissionCodes),
+    );
+    this.editingProfile.set(profile);
+  }
+
+  private splitPhone(phone: string | null): {
+    countryCode: string;
+    nationalNumber: string;
+  } {
+    const digits = (phone ?? "").replace(/\D/g, "");
+    if (!digits) return { countryCode: "+52", nationalNumber: "" };
+    const nationalDigits = digits.slice(-10);
+    const countryDigits = digits.slice(0, -10) || "52";
+    return {
+      countryCode: `+${countryDigits}`,
+      nationalNumber: [
+        nationalDigits.slice(0, 3),
+        nationalDigits.slice(3, 6),
+        nationalDigits.slice(6, 8),
+        nationalDigits.slice(8, 10),
+      ]
+        .filter(Boolean)
+        .join(" "),
+    };
+  }
+
+  private setPasswordRequired(required: boolean): void {
+    const control = this.form.controls.password;
+    control.setValidators(
+      required
+        ? [
+            Validators.required,
+            Validators.minLength(6),
+            Validators.maxLength(10),
+            Validators.pattern(/^(?=.*[A-Za-z])(?=.*\d).+$/),
+          ]
+        : [],
+    );
+    control.updateValueAndValidity({ emitEvent: false });
   }
 
   private showNotice(message: string): void {

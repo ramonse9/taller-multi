@@ -83,6 +83,11 @@ export interface PlatformCompanyUserResponse {
   permissionCodes: string[];
 }
 
+export interface UpdatePlatformCompanyUserInput extends UpdateUserInput {
+  templateCode?: PermissionTemplateCode | null;
+  permissionCodes?: string[];
+}
+
 export interface UpdateUserInput {
   fullName?: string;
   username?: string;

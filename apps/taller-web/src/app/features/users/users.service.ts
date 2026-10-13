@@ -8,6 +8,7 @@ import {
   PaginatedUsers,
   PlatformCompanyUserResponse,
   TenantUser,
+  UpdatePlatformCompanyUserInput,
   UpdateUserInput,
 } from "./user.models";
 
@@ -63,6 +64,45 @@ export class UsersService {
     return this.http.post<PlatformCompanyUserResponse>(
       `${environment.apiUrl}/companies/${companyId}/users`,
       input,
+    );
+  }
+
+  getForCompany(
+    companyId: string,
+    userId: string,
+  ): Observable<PlatformCompanyUserResponse> {
+    return this.http.get<PlatformCompanyUserResponse>(
+      `${environment.apiUrl}/companies/${companyId}/users/${userId}`,
+    );
+  }
+
+  updateForCompany(
+    companyId: string,
+    userId: string,
+    input: UpdatePlatformCompanyUserInput,
+  ): Observable<PlatformCompanyUserResponse> {
+    return this.http.patch<PlatformCompanyUserResponse>(
+      `${environment.apiUrl}/companies/${companyId}/users/${userId}`,
+      input,
+    );
+  }
+
+  deactivateForCompany(
+    companyId: string,
+    userId: string,
+  ): Observable<PlatformCompanyUserResponse> {
+    return this.http.delete<PlatformCompanyUserResponse>(
+      `${environment.apiUrl}/companies/${companyId}/users/${userId}`,
+    );
+  }
+
+  activateForCompany(
+    companyId: string,
+    userId: string,
+  ): Observable<PlatformCompanyUserResponse> {
+    return this.http.patch<PlatformCompanyUserResponse>(
+      `${environment.apiUrl}/companies/${companyId}/users/${userId}/activate`,
+      {},
     );
   }
 
