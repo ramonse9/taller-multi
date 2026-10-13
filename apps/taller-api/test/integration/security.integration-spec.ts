@@ -44,6 +44,7 @@ import { PlatformCompanyUserEvents1700000037000 } from '../../src/database/migra
 import { CustomerFiscalProfile1700000038000 } from '../../src/database/migrations/public/1700000038000-customer-fiscal-profile';
 import { CfdiUseCatalog1700000039000 } from '../../src/database/migrations/public/1700000039000-cfdi-use-catalog';
 import { CustomerRfcValidation1700000040000 } from '../../src/database/migrations/public/1700000040000-customer-rfc-validation';
+import { PlatformCompanyUserLifecycle1700000041000 } from '../../src/database/migrations/public/1700000041000-platform-company-user-lifecycle';
 import { quoteIdentifier } from '../../src/database/schema-name';
 import { seedPublicCatalogs } from '../../src/database/seeds/public-catalogs.seed';
 import { changePlatformAdminPassword } from '../../src/platform-users/change-platform-admin-password';
@@ -713,6 +714,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         CustomerFiscalProfile1700000038000,
         CfdiUseCatalog1700000039000,
         CustomerRfcValidation1700000040000,
+        PlatformCompanyUserLifecycle1700000041000,
       ],
       migrationsTableName: 'public_schema_migrations',
       synchronize: false,
@@ -1850,6 +1852,156 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       'clients.create',
     ]);
 
+    const detail = await request<{
+      user: UserResponse;
+      templateCode: string | null;
+      isCustomized: boolean;
+      automatic: boolean;
+      permissionCodes: string[];
+    }>('GET', `/companies/${tenant.company.id}/users/${created.body.user.id}`, {
+      token: platformToken,
+    });
+    expect(detail.status).toBe(200);
+    expect(detail.body).toMatchObject({
+      user: { id: created.body.user.id, role: 'user', isActive: true },
+      templateCode: 'reception',
+      isCustomized: true,
+      automatic: false,
+    });
+
+    const updated = await request<typeof detail.body>(
+      'PATCH',
+      `/companies/${tenant.company.id}/users/${created.body.user.id}`,
+      {
+        token: platformToken,
+        body: {
+          fullName: 'Administración actualizada por plataforma',
+          role: 'admin',
+          templateCode: null,
+          permissionCodes: [
+            'dashboard.view',
+            'users.view',
+            'users.manage',
+            'permissions.manage',
+          ],
+        },
+      },
+    );
+    expect(updated.status).toBe(200);
+    expect(updated.body).toMatchObject({
+      user: {
+        fullName: 'Administración actualizada por plataforma',
+        role: 'admin',
+        isActive: true,
+      },
+      templateCode: null,
+      isCustomized: true,
+      automatic: false,
+      permissionCodes: [
+        'dashboard.view',
+        'permissions.manage',
+        'users.manage',
+        'users.view',
+      ],
+    });
+    expect(
+      (
+        await request<unknown>('GET', '/auth/me', {
+          token: temporaryLogin.body.accessToken,
+        })
+      ).status,
+    ).toBe(401);
+    expect(
+      (
+        await request<unknown>('POST', '/auth/refresh', {
+          cookie: cookiePair(temporaryLogin.setCookie!),
+        })
+      ).status,
+    ).toBe(401);
+
+    const updatedLogin = await login(created.body.user.loginName, 'Alta26a');
+    expect(updatedLogin.status).toBe(200);
+    expect(updatedLogin.body.user).toMatchObject({
+      role: 'admin',
+      permissions: [
+        'dashboard.view',
+        'users.view',
+        'users.manage',
+        'permissions.manage',
+      ],
+    });
+
+    const deactivated = await request<typeof detail.body>(
+      'DELETE',
+      `/companies/${tenant.company.id}/users/${created.body.user.id}`,
+      { token: platformToken },
+    );
+    expect(deactivated.status).toBe(200);
+    expect(deactivated.body.user.isActive).toBe(false);
+    expect(
+      (await request<unknown>('GET', '/auth/me', { token: updatedLogin.body.accessToken })).status,
+    ).toBe(401);
+    expect((await login(created.body.user.loginName, 'Alta26a')).status).toBe(401);
+
+    const reactivated = await request<typeof detail.body>(
+      'PATCH',
+      `/companies/${tenant.company.id}/users/${created.body.user.id}/activate`,
+      { token: platformToken },
+    );
+    expect(reactivated.status).toBe(200);
+    expect(reactivated.body).toMatchObject({
+      user: { isActive: true, role: 'admin' },
+      permissionCodes: [
+        'dashboard.view',
+        'permissions.manage',
+        'users.manage',
+        'users.view',
+      ],
+    });
+    expect((await login(created.body.user.loginName, 'Alta26a')).status).toBe(200);
+
+    const incompatibleEdit = await request<unknown>(
+      'PATCH',
+      `/companies/${tenant.company.id}/users/${created.body.user.id}`,
+      {
+        token: platformToken,
+        body: {
+          fullName: 'Este cambio debe revertirse',
+          role: 'user',
+          templateCode: null,
+          permissionCodes: ['users.manage'],
+        },
+      },
+    );
+    expect(incompatibleEdit.status).toBe(400);
+    const afterRollback = await request<typeof detail.body>(
+      'GET',
+      `/companies/${tenant.company.id}/users/${created.body.user.id}`,
+      { token: platformToken },
+    );
+    expect(afterRollback.body.user).toMatchObject({
+      fullName: 'Administración actualizada por plataforma',
+      role: 'admin',
+      isActive: true,
+    });
+
+    const tenantEditAttempt = await request<unknown>(
+      'PATCH',
+      `/companies/${tenant.company.id}/users/${created.body.user.id}`,
+      {
+        token: tenant.accessToken,
+        body: { fullName: 'Intento sin permiso' },
+      },
+    );
+    expect(tenantEditAttempt.status).toBe(403);
+
+    const lastCompanyAdmin = await request<unknown>(
+      'DELETE',
+      `/companies/${tenant.company.id}/users/${tenant.user.id}`,
+      { token: platformToken },
+    );
+    expect(lastCompanyAdmin.status).toBe(409);
+
     const audit = await control.query<
       Array<{
         company_id: string;
@@ -1857,17 +2009,25 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         actor_user_id: string;
         event_type: string;
         target_role: string;
+        previous_role: string | null;
+        previous_is_active: boolean | null;
+        current_is_active: boolean | null;
         template_code: string | null;
+        previous_permission_codes: string[];
         permission_codes: string[];
+        changes: Record<string, unknown>;
       }>
     >(
       `SELECT company_id, target_user_id, actor_user_id, event_type,
-              target_role, template_code, permission_codes
+              previous_role, target_role, previous_is_active, current_is_active,
+              previous_template_code, template_code,
+              previous_permission_codes, permission_codes, changes
        FROM public.platform_company_user_events
-       WHERE target_user_id = $1`,
+       WHERE target_user_id = $1
+       ORDER BY created_at, id`,
       [created.body.user.id],
     );
-    expect(audit).toHaveLength(1);
+    expect(audit).toHaveLength(4);
     expect(audit[0]).toMatchObject({
       company_id: tenant.company.id,
       target_user_id: created.body.user.id,
@@ -1877,6 +2037,49 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       permission_codes: ['clients.create', 'clients.view', 'dashboard.view'],
     });
     expect(audit[0]?.actor_user_id).toBeTruthy();
+    expect(audit[1]).toMatchObject({
+      event_type: 'user_updated',
+      previous_role: 'user',
+      target_role: 'admin',
+      previous_is_active: true,
+      current_is_active: true,
+      previous_permission_codes: ['clients.create', 'clients.view', 'dashboard.view'],
+      permission_codes: [
+        'dashboard.view',
+        'permissions.manage',
+        'users.manage',
+        'users.view',
+      ],
+    });
+    expect(audit[1]?.changes).toHaveProperty('permissionCodes');
+    expect(audit[2]).toMatchObject({
+      event_type: 'user_deactivated',
+      previous_is_active: true,
+      current_is_active: false,
+    });
+    expect(audit[3]).toMatchObject({
+      event_type: 'user_reactivated',
+      previous_is_active: false,
+      current_is_active: true,
+    });
+
+    const swagger = SwaggerModule.createDocument(app, new DocumentBuilder().build());
+    const userLifecyclePath = Object.entries(swagger.paths).find(([path]) =>
+      path.endsWith('/companies/{companyId}/users/{userId}'),
+    )?.[1];
+    const activatePath = Object.entries(swagger.paths).find(([path]) =>
+      path.endsWith('/companies/{companyId}/users/{userId}/activate'),
+    )?.[1];
+    expect(userLifecyclePath?.get).toBeDefined();
+    expect(userLifecyclePath?.patch).toBeDefined();
+    expect(userLifecyclePath?.delete).toBeDefined();
+    expect(activatePath?.patch).toBeDefined();
+    const updateSchema = JSON.stringify(
+      swagger.components?.schemas?.UpdatePlatformCompanyUserDto,
+    );
+    expect(updateSchema).toContain('templateCode');
+    expect(updateSchema).toContain('permissionCodes');
+    expect(updateSchema).toContain('isActive');
   });
 
   it('protege el alta de usuarios de plataforma y revierte permisos incompatibles', async () => {
@@ -2009,6 +2212,28 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(betaList.status).toBe(200);
     expect(alphaList.body.items.map(({ id }) => id)).toEqual([alphaUser.body.user.id]);
     expect(betaList.body.items.map(({ id }) => id)).toEqual([betaUser.body.user.id]);
+
+    expect(
+      (
+        await request<unknown>(
+          'GET',
+          `/companies/${beta.body.id}/users/${alphaUser.body.user.id}`,
+          { token: platformToken },
+        )
+      ).status,
+    ).toBe(404);
+    expect(
+      (
+        await request<unknown>(
+          'PATCH',
+          `/companies/${beta.body.id}/users/${alphaUser.body.user.id}`,
+          {
+            token: platformToken,
+            body: { fullName: 'No debe cruzar compañías' },
+          },
+        )
+      ).status,
+    ).toBe(404);
 
     const alphaLogin = await login(alphaUser.body.user.loginName, 'Alpha26a');
     const betaLogin = await login(betaUser.body.user.loginName, 'Beta26b');

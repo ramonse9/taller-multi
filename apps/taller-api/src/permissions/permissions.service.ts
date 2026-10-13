@@ -297,6 +297,162 @@ export class PermissionsService {
     };
   }
 
+  async profileForPlatform(
+    userId: string,
+    role: PlatformRole,
+  ): Promise<UserPermissionProfile> {
+    if (role === PlatformRole.CompanyAdmin) {
+      return {
+        userId,
+        role,
+        templateCode: null,
+        isCustomized: false,
+        automatic: true,
+        permissionCodes: await this.forUser(userId, role),
+      };
+    }
+    const rows = await this.dataSource.query<
+      Array<{ template_code: PermissionTemplateCode | null; is_customized: boolean }>
+    >(
+      `SELECT template_code, is_customized
+       FROM public.user_permission_profiles WHERE user_id = $1`,
+      [userId],
+    );
+    return {
+      userId,
+      role,
+      templateCode: rows[0]?.template_code ?? null,
+      isCustomized: rows[0]?.is_customized ?? false,
+      automatic: false,
+      permissionCodes: await this.forUser(userId, role),
+    };
+  }
+
+  async profileForPlatformWithRunner(
+    runner: QueryRunner,
+    userId: string,
+    role: PlatformRole,
+  ): Promise<UserPermissionProfile> {
+    if (role === PlatformRole.CompanyAdmin) {
+      const rows = (await runner.query(
+        'SELECT code FROM public.permissions ORDER BY sort_order',
+      )) as Array<{ code: PermissionCode }>;
+      return {
+        userId,
+        role,
+        templateCode: null,
+        isCustomized: false,
+        automatic: true,
+        permissionCodes: rows.map(({ code }) => code),
+      };
+    }
+    return this.profileWithRunner(runner, userId, role);
+  }
+
+  async updateForPlatform(
+    runner: QueryRunner,
+    userId: string,
+    previousRole: PlatformRole,
+    nextRole: PlatformRole,
+    actorId: string,
+    input: PlatformPermissionAssignmentInput,
+  ): Promise<UserPermissionProfile> {
+    const profileChanged =
+      input.templateCode !== undefined || input.permissionCodes !== undefined;
+
+    if (nextRole === PlatformRole.CompanyAdmin) {
+      if (profileChanged) {
+        throw new BadRequestException(
+          'El Administrador principal recibe todos los permisos automáticamente',
+        );
+      }
+      await runner.query('DELETE FROM public.user_permissions WHERE user_id = $1', [userId]);
+      await runner.query('DELETE FROM public.user_permission_profiles WHERE user_id = $1', [
+        userId,
+      ]);
+      const rows = (await runner.query(
+        'SELECT code FROM public.permissions ORDER BY sort_order',
+      )) as Array<{ code: PermissionCode }>;
+      return {
+        userId,
+        role: nextRole,
+        templateCode: null,
+        isCustomized: false,
+        automatic: true,
+        permissionCodes: rows.map(({ code }) => code),
+      };
+    }
+
+    if (!profileChanged) {
+      await this.syncRolePermissions(runner, userId, previousRole, nextRole, actorId);
+      const profile = await this.profileWithRunner(runner, userId, nextRole);
+      if (previousRole !== nextRole && profile.templateCode) {
+        const templatePermissions = await this.templatePermissions(runner, profile.templateCode);
+        profile.isCustomized =
+          [...profile.permissionCodes].sort().join('|') !==
+          [...templatePermissions].sort().join('|');
+        await runner.query(
+          `UPDATE public.user_permission_profiles
+           SET is_customized = $2, updated_by_user_id = $3, updated_at = now()
+           WHERE user_id = $1`,
+          [userId, profile.isCustomized, actorId],
+        );
+      }
+      return profile;
+    }
+
+    const currentRows = (await runner.query(
+      `SELECT template_code
+       FROM public.user_permission_profiles WHERE user_id = $1`,
+      [userId],
+    )) as Array<{ template_code: PermissionTemplateCode | null }>;
+    const currentPermissions = await this.forUserWithRunner(runner, userId);
+    const templateCode =
+      input.templateCode === undefined
+        ? (currentRows[0]?.template_code ?? null)
+        : input.templateCode;
+    const templatePermissions = templateCode
+      ? await this.templatePermissions(runner, templateCode)
+      : [];
+    const requested = [
+      ...(input.permissionCodes ??
+        (input.templateCode !== undefined && templateCode !== null
+          ? templatePermissions
+          : currentPermissions)),
+    ].sort();
+    this.assertRoleCompatible(nextRole, requested);
+    const customized =
+      templateCode === null || requested.join('|') !== [...templatePermissions].sort().join('|');
+
+    await runner.query('DELETE FROM public.user_permissions WHERE user_id = $1', [userId]);
+    if (requested.length > 0) {
+      await runner.query(
+        `INSERT INTO public.user_permissions(user_id, permission_code, granted_by_user_id)
+         SELECT $1, code, $3 FROM unnest($2::varchar[]) AS code`,
+        [userId, requested, actorId],
+      );
+    }
+    await runner.query(
+      `INSERT INTO public.user_permission_profiles(
+         user_id, template_code, is_customized, updated_by_user_id
+       ) VALUES ($1, $2, $3, $4)
+       ON CONFLICT(user_id) DO UPDATE SET
+         template_code = EXCLUDED.template_code,
+         is_customized = EXCLUDED.is_customized,
+         updated_by_user_id = EXCLUDED.updated_by_user_id,
+         updated_at = now()`,
+      [userId, templateCode, customized, actorId],
+    );
+    return {
+      userId,
+      role: nextRole,
+      templateCode,
+      isCustomized: customized,
+      automatic: false,
+      permissionCodes: requested,
+    };
+  }
+
   async syncRolePermissions(
     runner: QueryRunner,
     userId: string,
@@ -385,6 +541,26 @@ export class PermissionsService {
       [userId],
     )) as Array<{ permission_code: PermissionCode }>;
     return rows.map(({ permission_code }) => permission_code);
+  }
+
+  private async profileWithRunner(
+    runner: QueryRunner,
+    userId: string,
+    role: PlatformRole,
+  ): Promise<UserPermissionProfile> {
+    const rows = (await runner.query(
+      `SELECT template_code, is_customized
+       FROM public.user_permission_profiles WHERE user_id = $1`,
+      [userId],
+    )) as Array<{ template_code: PermissionTemplateCode | null; is_customized: boolean }>;
+    return {
+      userId,
+      role,
+      templateCode: rows[0]?.template_code ?? null,
+      isCustomized: rows[0]?.is_customized ?? false,
+      automatic: false,
+      permissionCodes: (await this.forUserWithRunner(runner, userId)).sort(),
+    };
   }
 
   private async templatePermissions(

@@ -42,6 +42,7 @@ import { PlatformCompanyUserEvents1700000037000 } from './migrations/public/1700
 import { CustomerFiscalProfile1700000038000 } from './migrations/public/1700000038000-customer-fiscal-profile';
 import { CfdiUseCatalog1700000039000 } from './migrations/public/1700000039000-cfdi-use-catalog';
 import { CustomerRfcValidation1700000040000 } from './migrations/public/1700000040000-customer-rfc-validation';
+import { PlatformCompanyUserLifecycle1700000041000 } from './migrations/public/1700000041000-platform-company-user-lifecycle';
 
 export default new DataSource({
   type: 'postgres',
@@ -90,6 +91,7 @@ export default new DataSource({
     CustomerFiscalProfile1700000038000,
     CfdiUseCatalog1700000039000,
     CustomerRfcValidation1700000040000,
+    PlatformCompanyUserLifecycle1700000041000,
   ],
   migrationsTableName: 'public_schema_migrations',
   synchronize: false,

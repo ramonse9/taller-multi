@@ -155,6 +155,20 @@ export class UpdateUserDto {
   isActive?: boolean;
 }
 
+export class UpdatePlatformCompanyUserDto extends UpdateUserDto {
+  @ApiPropertyOptional({ enum: PERMISSION_TEMPLATE_CODES, nullable: true })
+  @IsOptional()
+  @IsIn(PERMISSION_TEMPLATE_CODES)
+  templateCode?: PermissionTemplateCode | null;
+
+  @ApiPropertyOptional({ enum: PERMISSION_CODES, isArray: true })
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
+  @IsIn(PERMISSION_CODES, { each: true })
+  permissionCodes?: PermissionCode[];
+}
+
 export class ChangePasswordDto {
   @ApiProperty({ minLength: 6, maxLength: 128, writeOnly: true })
   @IsString()

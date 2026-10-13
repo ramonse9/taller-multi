@@ -17,6 +17,7 @@ import {
   PaginatedUsersResponseDto,
   PlatformCompanyUserResponseDto,
   ResetPasswordDto,
+  UpdatePlatformCompanyUserDto,
   UpdateUserDto,
   UserQueryDto,
   UserResponseDto,
@@ -26,6 +27,7 @@ import { tenantLoginName } from '../database/login-name';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { PasswordResetService } from './password-reset.service';
+import { UserPermissionProfile } from '../permissions/permission.types';
 
 interface UserRow {
   id: string;
@@ -47,6 +49,8 @@ interface UserRow {
 interface PasswordRow extends UserRow {
   password_hash: string;
 }
+
+type PlatformUserEventType = 'user_updated' | 'user_deactivated' | 'user_reactivated';
 
 @Injectable()
 export class UsersService {
@@ -70,6 +74,182 @@ export class UsersService {
     this.assertPlatformAdmin(actor);
     await this.assertCompanyExists(companyId);
     return this.listByCompany(companyId, query);
+  }
+
+  async getOneForPlatform(
+    actor: AuthenticatedUser,
+    companyId: string,
+    userId: string,
+  ): Promise<PlatformCompanyUserResponseDto> {
+    this.assertPlatformAdmin(actor);
+    if (!this.permissions) throw new Error('PermissionsService no disponible');
+    await this.assertCompanyExists(companyId);
+    const target = await this.findUserForPlatform(companyId, userId);
+    const profile = await this.permissions.profileForPlatform(target.id, target.role);
+    return this.toPlatformResponse(target, profile);
+  }
+
+  async updateForPlatform(
+    actor: AuthenticatedUser,
+    companyId: string,
+    userId: string,
+    input: UpdatePlatformCompanyUserDto,
+  ): Promise<PlatformCompanyUserResponseDto> {
+    this.assertPlatformAdmin(actor);
+    if (!this.permissions) throw new Error('PermissionsService no disponible');
+    if (!this.subscriptions) throw new Error('SubscriptionsService no disponible');
+    const runner = this.dataSource.createQueryRunner();
+    await runner.connect();
+    await runner.startTransaction('SERIALIZABLE');
+    try {
+      const companies = (await runner.query(
+        'SELECT id FROM public.companies WHERE id = $1 FOR SHARE',
+        [companyId],
+      )) as Array<{ id: string }>;
+      if (!companies[0]) throw new NotFoundException('Compañía no encontrada');
+
+      const target = await this.lockUser(runner, companyId, userId);
+      const previousProfile = await this.permissions.profileForPlatformWithRunner(
+        runner,
+        target.id,
+        target.role,
+      );
+      const nextActive = input.isActive ?? target.is_active;
+      const profileRequested =
+        input.templateCode !== undefined || input.permissionCodes !== undefined;
+      const userFieldsRequested = [
+        input.fullName,
+        input.email,
+        input.username,
+        input.phone,
+        input.role,
+        input.timezoneCode,
+        input.isActive,
+      ].some((value) => value !== undefined);
+      if (!userFieldsRequested && !profileRequested) {
+        throw new BadRequestException('No hay cambios para aplicar');
+      }
+      if (input.timezoneCode !== undefined) {
+        await this.validateTimezone(runner, input.timezoneCode);
+      }
+      if (!target.is_active && nextActive) {
+        await this.subscriptions.assertCanCreateUser(companyId);
+      }
+      await this.ensureAdminRemains(runner, companyId, target, input.role, input.isActive);
+
+      const values: unknown[] = [];
+      const assignments: string[] = [];
+      const add = (column: string, value: unknown): void => {
+        values.push(value);
+        assignments.push(`${column} = $${values.length}`);
+      };
+      if (input.fullName !== undefined) add('full_name', input.fullName);
+      if (input.email !== undefined) add('email', input.email);
+      if (input.username !== undefined) add('username', input.username);
+      if (input.phone !== undefined) {
+        add('phone', input.phone);
+        assignments.push('phone_verified_at = NULL');
+      }
+      if (input.role !== undefined) add('role', input.role);
+      if (input.timezoneCode !== undefined) add('timezone_code', input.timezoneCode);
+      if (input.isActive !== undefined) add('is_active', input.isActive);
+
+      let updated = target;
+      if (assignments.length > 0) {
+        values.push(userId, companyId);
+        const result = (await runner.query(
+          `UPDATE public.users
+           SET ${assignments.join(', ')}, updated_at = NOW()
+           WHERE id = $${values.length - 1} AND company_id = $${values.length}
+           RETURNING id, email, username, phone, phone_verified_at, full_name, role, company_id, timezone_code,
+                     (SELECT login_code FROM public.companies WHERE id = company_id) AS login_code,
+                     is_active, must_change_password, created_at, updated_at`,
+          values,
+        )) as [UserRow[], number];
+        updated = result[0][0]!;
+      }
+
+      const profile =
+        input.role !== undefined || profileRequested
+          ? await this.permissions.updateForPlatform(
+              runner,
+              updated.id,
+              target.role,
+              updated.role,
+              actor.id,
+              {
+                templateCode: input.templateCode,
+                permissionCodes: input.permissionCodes,
+              },
+            )
+          : previousProfile;
+      const changes = this.platformUserChanges(target, updated, previousProfile, profile);
+      if (Object.keys(changes).length === 0) {
+        throw new BadRequestException('No hay cambios para aplicar');
+      }
+
+      const securityChanged =
+        target.role !== updated.role ||
+        target.is_active !== updated.is_active ||
+        previousProfile.templateCode !== profile.templateCode ||
+        this.permissionSignature(previousProfile.permissionCodes) !==
+          this.permissionSignature(profile.permissionCodes);
+      if (securityChanged) await this.revokeUserSessions(runner, updated.id);
+
+      const eventType: PlatformUserEventType =
+        target.is_active && !updated.is_active
+          ? 'user_deactivated'
+          : !target.is_active && updated.is_active
+            ? 'user_reactivated'
+            : 'user_updated';
+      await runner.query(
+        `INSERT INTO public.platform_company_user_events(
+           company_id, target_user_id, actor_user_id, event_type,
+           previous_role, target_role, previous_is_active, current_is_active,
+           previous_template_code, template_code,
+           previous_permission_codes, permission_codes, changes
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+        [
+          companyId,
+          updated.id,
+          actor.id,
+          eventType,
+          target.role,
+          updated.role,
+          target.is_active,
+          updated.is_active,
+          previousProfile.templateCode,
+          profile.templateCode,
+          previousProfile.permissionCodes,
+          profile.permissionCodes,
+          JSON.stringify(changes),
+        ],
+      );
+      await runner.commitTransaction();
+      return this.toPlatformResponse(updated, profile);
+    } catch (error) {
+      if (runner.isTransactionActive) await runner.rollbackTransaction();
+      this.rethrowConflict(error);
+      throw error;
+    } finally {
+      await runner.release();
+    }
+  }
+
+  deactivateForPlatform(
+    actor: AuthenticatedUser,
+    companyId: string,
+    userId: string,
+  ): Promise<PlatformCompanyUserResponseDto> {
+    return this.updateForPlatform(actor, companyId, userId, { isActive: false });
+  }
+
+  activateForPlatform(
+    actor: AuthenticatedUser,
+    companyId: string,
+    userId: string,
+  ): Promise<PlatformCompanyUserResponseDto> {
+    return this.updateForPlatform(actor, companyId, userId, { isActive: true });
   }
 
   async createForPlatform(
@@ -131,8 +311,8 @@ export class UsersService {
       await runner.query(
         `INSERT INTO public.platform_company_user_events(
            company_id, target_user_id, actor_user_id, event_type,
-           target_role, template_code, permission_codes
-         ) VALUES ($1, $2, $3, 'user_created', $4, $5, $6)`,
+           target_role, current_is_active, template_code, permission_codes, changes
+         ) VALUES ($1, $2, $3, 'user_created', $4, true, $5, $6, $7)`,
         [
           companyId,
           created.id,
@@ -140,6 +320,13 @@ export class UsersService {
           created.role,
           profile.templateCode,
           profile.permissionCodes,
+          JSON.stringify({
+            created: true,
+            role: { before: null, after: created.role },
+            isActive: { before: null, after: true },
+            templateCode: { before: null, after: profile.templateCode },
+            permissionCodes: { before: [], after: profile.permissionCodes },
+          }),
         ],
       );
       await runner.commitTransaction();
@@ -400,6 +587,81 @@ export class UsersService {
   async resetPassword(user: AuthenticatedUser, id: string, input: ResetPasswordDto): Promise<void> {
     if (!this.passwordResets) throw new Error('PasswordResetService no disponible');
     await this.passwordResets.resetForTenant(user, id, input.password);
+  }
+
+  private async findUserForPlatform(companyId: string, userId: string): Promise<UserRow> {
+    const rows = await this.dataSource.query<UserRow[]>(
+      `SELECT id, email, username, phone, phone_verified_at, full_name, role, company_id, timezone_code,
+              (SELECT login_code FROM public.companies WHERE id = company_id) AS login_code,
+              is_active, must_change_password, created_at, updated_at
+       FROM public.users WHERE id = $1 AND company_id = $2`,
+      [userId, companyId],
+    );
+    if (!rows[0]) throw new NotFoundException('Usuario no encontrado');
+    return rows[0];
+  }
+
+  private toPlatformResponse(
+    user: UserRow,
+    profile: UserPermissionProfile,
+  ): PlatformCompanyUserResponseDto {
+    return {
+      user: this.toResponse(user),
+      templateCode: profile.templateCode,
+      isCustomized: profile.isCustomized,
+      automatic: profile.automatic,
+      permissionCodes: profile.permissionCodes,
+    };
+  }
+
+  private platformUserChanges(
+    previous: UserRow,
+    current: UserRow,
+    previousProfile: UserPermissionProfile,
+    currentProfile: UserPermissionProfile,
+  ): Record<string, { before: unknown; after: unknown }> {
+    const changes: Record<string, { before: unknown; after: unknown }> = {};
+    const add = (field: string, before: unknown, after: unknown): void => {
+      if (before !== after) changes[field] = { before, after };
+    };
+    add('fullName', previous.full_name, current.full_name);
+    add('username', previous.username, current.username);
+    add('email', previous.email, current.email);
+    add('phone', previous.phone, current.phone);
+    add('timezoneCode', previous.timezone_code, current.timezone_code);
+    add('role', previous.role, current.role);
+    add('isActive', previous.is_active, current.is_active);
+    add('templateCode', previousProfile.templateCode, currentProfile.templateCode);
+    const previousPermissions = this.permissionSignature(previousProfile.permissionCodes);
+    const currentPermissions = this.permissionSignature(currentProfile.permissionCodes);
+    if (previousPermissions !== currentPermissions) {
+      changes.permissionCodes = {
+        before: [...previousProfile.permissionCodes].sort(),
+        after: [...currentProfile.permissionCodes].sort(),
+      };
+    }
+    return changes;
+  }
+
+  private permissionSignature(permissionCodes: string[]): string {
+    return [...permissionCodes].sort().join('|');
+  }
+
+  private async revokeUserSessions(runner: QueryRunner, userId: string): Promise<void> {
+    await runner.query(
+      `UPDATE public.auth_refresh_tokens
+       SET revoked_at = COALESCE(revoked_at, NOW())
+       WHERE session_id IN (
+         SELECT id FROM public.auth_sessions WHERE user_id = $1
+       )`,
+      [userId],
+    );
+    await runner.query(
+      `UPDATE public.auth_sessions
+       SET revoked_at = COALESCE(revoked_at, NOW())
+       WHERE user_id = $1`,
+      [userId],
+    );
   }
 
   private companyIdForManager(user: AuthenticatedUser): string {

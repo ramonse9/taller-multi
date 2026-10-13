@@ -1,9 +1,11 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -25,6 +27,7 @@ import {
   CreatePlatformCompanyUserDto,
   PaginatedUsersResponseDto,
   PlatformCompanyUserResponseDto,
+  UpdatePlatformCompanyUserDto,
   UserQueryDto,
 } from './dto/user.dto';
 import { PlatformRole } from './entities/platform-user.entity';
@@ -50,6 +53,18 @@ export class PlatformCompanyUsersController {
     return this.users.listForPlatform(actor, companyId, query);
   }
 
+  @Get(':userId')
+  @ApiOperation({ summary: 'Consultar un usuario y sus permisos como administrador de plataforma' })
+  @ApiOkResponse({ type: PlatformCompanyUserResponseDto })
+  @ApiNotFoundResponse({ description: 'Compañía o usuario no encontrado' })
+  getOne(
+    @CurrentUser() actor: AuthenticatedUser,
+    @Param('companyId', new ParseUUIDPipe({ version: '4' })) companyId: string,
+    @Param('userId', new ParseUUIDPipe({ version: '4' })) userId: string,
+  ): Promise<PlatformCompanyUserResponseDto> {
+    return this.users.getOneForPlatform(actor, companyId, userId);
+  }
+
   @Post()
   @ApiOperation({
     summary: 'Crear un usuario tenant con rol y permisos como administrador de plataforma',
@@ -64,5 +79,49 @@ export class PlatformCompanyUsersController {
     @Body() input: CreatePlatformCompanyUserDto,
   ): Promise<PlatformCompanyUserResponseDto> {
     return this.users.createForPlatform(actor, companyId, input);
+  }
+
+  @Patch(':userId')
+  @ApiOperation({
+    summary: 'Editar datos, rol, estatus y permisos de un usuario como administrador de plataforma',
+  })
+  @ApiOkResponse({ type: PlatformCompanyUserResponseDto })
+  @ApiForbiddenResponse({ description: 'Compañía desactivada o suscripción no disponible' })
+  @ApiNotFoundResponse({ description: 'Compañía, usuario, plan o plantilla no encontrados' })
+  @ApiConflictResponse({ description: 'Último administrador, límite o identidad duplicada' })
+  update(
+    @CurrentUser() actor: AuthenticatedUser,
+    @Param('companyId', new ParseUUIDPipe({ version: '4' })) companyId: string,
+    @Param('userId', new ParseUUIDPipe({ version: '4' })) userId: string,
+    @Body() input: UpdatePlatformCompanyUserDto,
+  ): Promise<PlatformCompanyUserResponseDto> {
+    return this.users.updateForPlatform(actor, companyId, userId, input);
+  }
+
+  @Delete(':userId')
+  @ApiOperation({ summary: 'Desactivar un usuario como administrador de plataforma' })
+  @ApiOkResponse({ type: PlatformCompanyUserResponseDto })
+  @ApiNotFoundResponse({ description: 'Compañía o usuario no encontrado' })
+  @ApiConflictResponse({ description: 'La compañía debe conservar un administrador activo' })
+  deactivate(
+    @CurrentUser() actor: AuthenticatedUser,
+    @Param('companyId', new ParseUUIDPipe({ version: '4' })) companyId: string,
+    @Param('userId', new ParseUUIDPipe({ version: '4' })) userId: string,
+  ): Promise<PlatformCompanyUserResponseDto> {
+    return this.users.deactivateForPlatform(actor, companyId, userId);
+  }
+
+  @Patch(':userId/activate')
+  @ApiOperation({ summary: 'Reactivar un usuario como administrador de plataforma' })
+  @ApiOkResponse({ type: PlatformCompanyUserResponseDto })
+  @ApiForbiddenResponse({ description: 'Compañía desactivada o suscripción no disponible' })
+  @ApiNotFoundResponse({ description: 'Compañía o usuario no encontrado' })
+  @ApiConflictResponse({ description: 'Límite de usuarios activos alcanzado' })
+  activate(
+    @CurrentUser() actor: AuthenticatedUser,
+    @Param('companyId', new ParseUUIDPipe({ version: '4' })) companyId: string,
+    @Param('userId', new ParseUUIDPipe({ version: '4' })) userId: string,
+  ): Promise<PlatformCompanyUserResponseDto> {
+    return this.users.activateForPlatform(actor, companyId, userId);
   }
 }
