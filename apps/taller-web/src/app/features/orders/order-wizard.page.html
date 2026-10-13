@@ -632,7 +632,7 @@
                   class="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-[8rem_6rem_8rem_minmax(6rem,1fr)_2rem] xl:items-end"
                 >
                   <div>
-                    @if (canUseProfitability() && !item.value.productServiceId)
+                    @if (canCaptureOrderCosts() && !item.value.productServiceId)
                     {
                     <label class="field-label" [for]="'item-cost-' + i"
                       >Costo unitario

@@ -2336,6 +2336,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
           'vehicles.create',
           'orders.view',
           'orders.create',
+          'orders.edit',
         ],
       },
     });
@@ -2400,11 +2401,45 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
             description: 'Servicio que debe conservar su autor',
             quantity: 1,
             unitPrice: 850,
+            unitCost: 125,
           },
         ],
       },
     });
     expect(order.status).toBe(201);
+    expect(order.body).toMatchObject({
+      totalCost: null,
+      grossProfit: null,
+      items: [
+        expect.objectContaining({
+          productServiceId: null,
+          unitCost: '125.00',
+          costAmount: '125.00',
+          costLayers: [],
+        }),
+      ],
+    });
+
+    const paidByOrderEditor = await request<OrderResponse>(
+      'PATCH',
+      `/orders/${order.body.id}/payment-status`,
+      {
+        token: operator.body.accessToken,
+        body: { isPaid: true },
+      },
+    );
+    expect(paidByOrderEditor.status).toBe(200);
+    expect(paidByOrderEditor.body.isPaid).toBe(true);
+    const restoredToPendingByOrderEditor = await request<OrderResponse>(
+      'PATCH',
+      `/orders/${order.body.id}/payment-status`,
+      {
+        token: operator.body.accessToken,
+        body: { isPaid: false },
+      },
+    );
+    expect(restoredToPendingByOrderEditor.status).toBe(200);
+    expect(restoredToPendingByOrderEditor.body.isPaid).toBe(false);
 
     const promoted = await request<{
       user: UserResponse;
@@ -5966,6 +6001,59 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         })
       ).status,
     ).toBe(403);
+    expect(
+      (
+        await request<unknown>('POST', '/catalogs/vehicle-models', {
+          token: ordinarySession.body.accessToken,
+          body: { brandId: brand.body.id, name: 'Modelo sin permiso' },
+        })
+      ).status,
+    ).toBe(403);
+
+    const grantedCatalogManagement = await request<UserPermissionProfileResponse>(
+      'PUT',
+      `/permissions/users/${ordinary.body.id}`,
+      {
+        token: beta.accessToken,
+        body: {
+          templateCode: null,
+          permissionCodes: ['vehicle_catalog.view', 'vehicle_catalog.manage'],
+        },
+      },
+    );
+    expect(grantedCatalogManagement.status).toBe(200);
+    expect(grantedCatalogManagement.body.permissionCodes).toEqual([
+      'vehicle_catalog.view',
+      'vehicle_catalog.manage',
+    ]);
+
+    const delegatedBrand = await request<VehicleBrandResponse>(
+      'POST',
+      '/catalogs/vehicle-brands',
+      {
+        token: ordinarySession.body.accessToken,
+        body: { name: 'Marca creada con permiso configurable' },
+      },
+    );
+    expect(delegatedBrand.status).toBe(201);
+    expect(delegatedBrand.body.createdByUserId).toBe(ordinary.body.id);
+
+    const delegatedModel = await request<VehicleModelResponse>(
+      'POST',
+      '/catalogs/vehicle-models',
+      {
+        token: ordinarySession.body.accessToken,
+        body: {
+          brandId: delegatedBrand.body.id,
+          name: 'Modelo creado con permiso configurable',
+        },
+      },
+    );
+    expect(delegatedModel.status).toBe(201);
+    expect(delegatedModel.body).toMatchObject({
+      brandId: delegatedBrand.body.id,
+      createdByUserId: ordinary.body.id,
+    });
 
     const disabledModel = await request<VehicleModelResponse>(
       'DELETE',

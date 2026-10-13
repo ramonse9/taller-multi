@@ -18,10 +18,9 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import { JwtAuthGuard, Roles, RolesGuard } from '../auth/roles';
+import { JwtAuthGuard } from '../auth/roles';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../common/types/authenticated-user';
-import { PlatformRole } from '../platform-users/entities/platform-user.entity';
 import {
   CreateVehicleBrandDto,
   CreateVehicleModelDto,
@@ -38,11 +37,9 @@ import { VehicleCatalogService } from './vehicle-catalog.service';
 import { RequiresSubscription, SubscriptionGuard } from '../subscriptions/subscription.guard';
 import { PermissionGuard, RequiresPermissions } from '../permissions/permission.guard';
 
-const CATALOG_ADMIN_ROLES = [PlatformRole.PlatformAdmin, PlatformRole.CompanyAdmin];
-
 @ApiTags('vehicle-catalogs')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard, SubscriptionGuard, PermissionGuard)
+@UseGuards(JwtAuthGuard, SubscriptionGuard, PermissionGuard)
 @RequiresSubscription()
 @Controller('catalogs')
 export class VehicleCatalogController {
@@ -67,7 +64,6 @@ export class VehicleCatalogController {
   }
 
   @Post('vehicle-brands')
-  @Roles(...CATALOG_ADMIN_ROLES)
   @RequiresPermissions('vehicle_catalog.manage')
   @ApiOperation({ summary: 'Crear una marca global' })
   @ApiCreatedResponse({ type: VehicleBrandResponseDto })
@@ -80,7 +76,6 @@ export class VehicleCatalogController {
   }
 
   @Patch('vehicle-brands/:id')
-  @Roles(...CATALOG_ADMIN_ROLES)
   @RequiresPermissions('vehicle_catalog.manage')
   @ApiOperation({ summary: 'Editar o reactivar una marca' })
   @ApiOkResponse({ type: VehicleBrandResponseDto })
@@ -93,7 +88,6 @@ export class VehicleCatalogController {
   }
 
   @Delete('vehicle-brands/:id')
-  @Roles(...CATALOG_ADMIN_ROLES)
   @RequiresPermissions('vehicle_catalog.manage')
   @ApiOperation({ summary: 'Desactivar una marca sin eliminarla' })
   @ApiOkResponse({ type: VehicleBrandResponseDto })
@@ -123,7 +117,6 @@ export class VehicleCatalogController {
   }
 
   @Post('vehicle-models')
-  @Roles(...CATALOG_ADMIN_ROLES)
   @RequiresPermissions('vehicle_catalog.manage')
   @ApiOperation({ summary: 'Crear un modelo dentro de una marca' })
   @ApiCreatedResponse({ type: VehicleModelResponseDto })
@@ -136,7 +129,6 @@ export class VehicleCatalogController {
   }
 
   @Patch('vehicle-models/:id')
-  @Roles(...CATALOG_ADMIN_ROLES)
   @RequiresPermissions('vehicle_catalog.manage')
   @ApiOperation({ summary: 'Editar o reactivar un modelo' })
   @ApiOkResponse({ type: VehicleModelResponseDto })
@@ -149,7 +141,6 @@ export class VehicleCatalogController {
   }
 
   @Delete('vehicle-models/:id')
-  @Roles(...CATALOG_ADMIN_ROLES)
   @RequiresPermissions('vehicle_catalog.manage')
   @ApiOperation({ summary: 'Desactivar un modelo sin eliminarlo' })
   @ApiOkResponse({ type: VehicleModelResponseDto })

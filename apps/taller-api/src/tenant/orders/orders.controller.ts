@@ -89,9 +89,6 @@ export class OrdersController {
     @CurrentUser() user: AuthenticatedUser,
     @Body() input: CreateOrderDto,
   ): Promise<OrderResponseDto> {
-    if (input.items.some((item) => item.unitCost !== undefined && item.unitCost !== null)) {
-      this.permissions.assert(user, 'catalog.view_costs');
-    }
     return this.secureOrder(user, this.orders.create(user, input));
   }
 
@@ -105,7 +102,7 @@ export class OrdersController {
     @Body() input: UpdateOrderDto,
   ): Promise<OrderResponseDto> {
     if (input.items?.some((item) => item.unitCost !== undefined && item.unitCost !== null)) {
-      this.permissions.assert(user, 'catalog.view_costs');
+      this.permissions.assert(user, 'orders.create');
     }
     return this.secureOrder(user, this.orders.update(user, id, input));
   }
@@ -125,14 +122,20 @@ export class OrdersController {
   }
 
   @Patch(':id/payment-status')
-  @RequiresPermissions('orders.manage_payment')
-  @ApiOperation({ summary: 'Marcar una orden como pagada o pendiente' })
+  @ApiOperation({
+    summary: 'Marcar una orden como pagada o pendiente',
+    description:
+      'Disponible para usuarios con permiso para editar órdenes o administrar su estado de cobro.',
+  })
   @ApiOkResponse({ type: OrderResponseDto })
   changePaymentStatus(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() input: ChangeOrderPaymentStatusDto,
   ): Promise<OrderResponseDto> {
+    if (!this.permissions.has(user, 'orders.edit')) {
+      this.permissions.assert(user, 'orders.manage_payment');
+    }
     return this.secureOrder(user, this.orders.changePaymentStatus(user, id, input));
   }
 
@@ -153,17 +156,24 @@ export class OrdersController {
     response: Promise<OrderResponseDto>,
   ): Promise<OrderResponseDto> {
     const order = await response;
-    if (!this.permissions.has(user, 'catalog.view_costs')) this.redactOrderCosts(order);
+    if (!this.permissions.has(user, 'catalog.view_costs')) {
+      this.redactOrderCosts(order, this.permissions.has(user, 'orders.create'));
+    }
     return order;
   }
 
-  private redactOrderCosts(order: OrderSummaryResponseDto): void {
+  private redactOrderCosts(
+    order: OrderSummaryResponseDto,
+    preserveManualOrderCosts = false,
+  ): void {
     order.totalCost = null;
     order.grossProfit = null;
     if ('items' in order) {
       for (const item of (order as OrderResponseDto).items) {
-        item.unitCost = null;
-        item.costAmount = null;
+        if (!preserveManualOrderCosts || item.productServiceId !== null) {
+          item.unitCost = null;
+          item.costAmount = null;
+        }
         item.costLayers = [];
       }
     }

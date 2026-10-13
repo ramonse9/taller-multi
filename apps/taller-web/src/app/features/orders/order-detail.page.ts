@@ -78,6 +78,11 @@ export class OrderDetailPage implements OnInit {
       !order.isPaid
     );
   });
+  readonly canManagePayment = computed(
+    () =>
+      this.auth.hasPermission("orders.edit") ||
+      this.auth.hasPermission("orders.manage_payment"),
+  );
 
   ngOnInit(): void {
     this.load();

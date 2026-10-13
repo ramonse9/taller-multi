@@ -101,6 +101,9 @@ export class OrderWizardPage implements OnInit {
       this.auth.hasFeature("item_catalog") &&
       this.auth.hasPermission("catalog.view"),
   );
+  readonly canCaptureOrderCosts = computed(() =>
+    this.auth.hasPermission("orders.create"),
+  );
   readonly canUseProfitability = computed(
     () =>
       this.auth.hasFeature("profitability") &&
@@ -688,22 +691,29 @@ export class OrderWizardPage implements OnInit {
       externalFolio: raw.externalFolio.trim().replace(/\s+/g, " ") || null,
       customerId: raw.customerId,
       vehicleId: raw.vehicleId,
-      items: raw.items.map((item) => ({
-        itemId: item["itemId"] || undefined,
-        productServiceId: item["productServiceId"] || null,
-        kind: item["kind"],
-        description: String(item["description"]).trim(),
-        affectsOrderTotal: Boolean(item["affectsOrderTotal"]),
-        quantity: Number(item["quantity"]),
-        unitPrice:
-          item["unitPrice"] === null || item["unitPrice"] === undefined
-            ? null
-            : Number(item["unitPrice"]),
-        unitCost:
-          item["unitCost"] === null || item["unitCost"] === undefined
-            ? null
-            : Number(item["unitCost"]),
-      })),
+      items: raw.items.map((item) => {
+        const input = {
+          itemId: item["itemId"] || undefined,
+          productServiceId: item["productServiceId"] || null,
+          kind: item["kind"],
+          description: String(item["description"]).trim(),
+          affectsOrderTotal: Boolean(item["affectsOrderTotal"]),
+          quantity: Number(item["quantity"]),
+          unitPrice:
+            item["unitPrice"] === null || item["unitPrice"] === undefined
+              ? null
+              : Number(item["unitPrice"]),
+        };
+        return !item["productServiceId"] && this.canCaptureOrderCosts()
+          ? {
+              ...input,
+              unitCost:
+                item["unitCost"] === null || item["unitCost"] === undefined
+                  ? null
+                  : Number(item["unitCost"]),
+            }
+          : input;
+      }),
     };
     this.saving.set(true);
     this.error.set("");

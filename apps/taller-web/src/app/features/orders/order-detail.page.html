@@ -314,7 +314,7 @@
               >{{ current.isPaid ? 'PAGADA' : 'PENDIENTE' }}</span
             >
           </div>
-          @if (auth.hasPermission('orders.manage_payment')) {
+          @if (canManagePayment()) {
           <button
             class="mt-4 w-full border px-3 py-2 font-semibold transition disabled:cursor-not-allowed disabled:opacity-50"
             [class.border-[#e2b95d]]="current.isPaid"
