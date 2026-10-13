@@ -2119,19 +2119,25 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     );
     expect(rolledBack[0]?.total).toBe('0');
 
+    const allowedUsers: UserResponse[] = [];
     for (const index of [1, 2]) {
-      const allowed = await request<unknown>('POST', `/companies/${tenant.company.id}/users`, {
-        token: platformToken,
-        body: {
-          fullName: `Usuario dentro del límite ${index}`,
-          username: `usuario_limite_${index}`,
-          phone: `+52667111551${index}`,
-          password: 'Alta26a',
-          role: 'user',
-          templateCode: 'mechanic',
+      const allowed = await request<{ user: UserResponse }>(
+        'POST',
+        `/companies/${tenant.company.id}/users`,
+        {
+          token: platformToken,
+          body: {
+            fullName: `Usuario dentro del límite ${index}`,
+            username: `usuario_limite_${index}`,
+            phone: `+52667111551${index}`,
+            password: 'Alta26a',
+            role: 'user',
+            templateCode: 'mechanic',
+          },
         },
-      });
+      );
       expect(allowed.status).toBe(201);
+      allowedUsers.push(allowed.body.user);
     }
     const overLimit = await request<unknown>('POST', `/companies/${tenant.company.id}/users`, {
       token: platformToken,
@@ -2144,6 +2150,63 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       },
     });
     expect(overLimit.status).toBe(409);
+
+    const deactivated = await request<{ user: UserResponse }>(
+      'DELETE',
+      `/companies/${tenant.company.id}/users/${allowedUsers[0]!.id}`,
+      { token: platformToken },
+    );
+    expect(deactivated.status).toBe(200);
+    expect(deactivated.body.user.isActive).toBe(false);
+
+    const replacement = await request<{ user: UserResponse }>(
+      'POST',
+      `/companies/${tenant.company.id}/users`,
+      {
+        token: platformToken,
+        body: {
+          fullName: 'Usuario que ocupa el lugar disponible',
+          username: 'usuario_reemplazo_limite',
+          phone: '+526671115518',
+          password: 'Alta26a',
+          role: 'user',
+          templateCode: 'mechanic',
+        },
+      },
+    );
+    expect(replacement.status).toBe(201);
+
+    const blockedReactivation = await request<unknown>(
+      'PATCH',
+      `/companies/${tenant.company.id}/users/${allowedUsers[0]!.id}/activate`,
+      { token: platformToken },
+    );
+    expect(blockedReactivation.status).toBe(409);
+
+    expect(
+      (
+        await request<unknown>(
+          'DELETE',
+          `/companies/${tenant.company.id}/users/${replacement.body.user.id}`,
+          { token: platformToken },
+        )
+      ).status,
+    ).toBe(200);
+    const reactivated = await request<{ user: UserResponse }>(
+      'PATCH',
+      `/companies/${tenant.company.id}/users/${allowedUsers[0]!.id}/activate`,
+      { token: platformToken },
+    );
+    expect(reactivated.status).toBe(200);
+    expect(reactivated.body.user.isActive).toBe(true);
+
+    const activeUsers = await control.query<Array<{ total: string }>>(
+      `SELECT COUNT(*)::text AS total
+       FROM public.users
+       WHERE company_id = $1 AND is_active = TRUE`,
+      [tenant.company.id],
+    );
+    expect(activeUsers[0]?.total).toBe('3');
   });
 
   it('aísla el alta y el listado de usuarios administrados por plataforma entre compañías', async () => {
@@ -2246,6 +2309,222 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         })
       ).status,
     ).toBe(404);
+  });
+
+  it('conserva el historial operativo al cambiar permisos, rol y estatus del usuario', async () => {
+    const tenant = await provisionAndLogin(
+      'Platform User Operational History',
+      'platform.history.admin@test.local',
+    );
+    const created = await request<{
+      user: UserResponse;
+      permissionCodes: string[];
+    }>('POST', `/companies/${tenant.company.id}/users`, {
+      token: platformToken,
+      body: {
+        fullName: 'Operador con historial',
+        username: 'operador_historial',
+        phone: '+526671115524',
+        password: 'History7',
+        timezoneCode: 'America/Mazatlan',
+        role: 'user',
+        templateCode: null,
+        permissionCodes: [
+          'clients.view',
+          'clients.create',
+          'vehicles.view',
+          'vehicles.create',
+          'orders.view',
+          'orders.create',
+        ],
+      },
+    });
+    expect(created.status).toBe(201);
+
+    const brand = await request<VehicleBrandResponse>('POST', '/catalogs/vehicle-brands', {
+      token: tenant.accessToken,
+      body: { name: 'Historial Operativo Marca' },
+    });
+    const model = await request<VehicleModelResponse>('POST', '/catalogs/vehicle-models', {
+      token: tenant.accessToken,
+      body: { brandId: brand.body.id, name: 'Historial Operativo Modelo' },
+    });
+    expect(brand.status).toBe(201);
+    expect(model.status).toBe(201);
+
+    const temporary = await login(created.body.user.loginName, 'History7');
+    expect(temporary.status).toBe(200);
+    expect(
+      (
+        await request<unknown>('PATCH', '/users/me/password', {
+          token: temporary.body.accessToken,
+          body: { currentPassword: 'History7', newPassword: 'History8' },
+        })
+      ).status,
+    ).toBe(204);
+    const operator = await login(created.body.user.loginName, 'History8');
+    expect(operator.status).toBe(200);
+    const operatorCookie = cookiePair(operator.setCookie!);
+
+    const customer = await request<ClientResponse>('POST', '/clients', {
+      token: operator.body.accessToken,
+      body: { type: 'person', displayName: 'Cliente con autor histórico' },
+    });
+    expect(customer.status).toBe(201);
+    expect(customer.body.createdByUserId).toBe(created.body.user.id);
+
+    const vehicle = await request<VehicleResponse>(
+      'POST',
+      `/clients/${customer.body.id}/vehicles`,
+      {
+        token: operator.body.accessToken,
+        body: {
+          brandId: brand.body.id,
+          modelId: model.body.id,
+          year: 2024,
+          color: 'Gris',
+          licensePlate: 'HIS-2026',
+        },
+      },
+    );
+    expect(vehicle.status).toBe(201);
+
+    const order = await request<OrderResponse>('POST', '/orders', {
+      token: operator.body.accessToken,
+      body: {
+        customerId: customer.body.id,
+        vehicleId: vehicle.body.id,
+        items: [
+          {
+            kind: 'service',
+            description: 'Servicio que debe conservar su autor',
+            quantity: 1,
+            unitPrice: 850,
+          },
+        ],
+      },
+    });
+    expect(order.status).toBe(201);
+
+    const promoted = await request<{
+      user: UserResponse;
+      templateCode: string | null;
+      isCustomized: boolean;
+      permissionCodes: string[];
+    }>('PATCH', `/companies/${tenant.company.id}/users/${created.body.user.id}`, {
+      token: platformToken,
+      body: {
+        role: 'admin',
+        templateCode: null,
+        permissionCodes: [
+          'dashboard.view',
+          'clients.view',
+          'vehicles.view',
+          'orders.view',
+          'users.view',
+          'users.manage',
+          'permissions.manage',
+        ],
+      },
+    });
+    expect(promoted.status).toBe(200);
+    expect(promoted.body).toMatchObject({
+      user: { role: 'admin', isActive: true },
+      templateCode: null,
+      isCustomized: true,
+    });
+    expect(promoted.body.permissionCodes).toEqual([
+      'clients.view',
+      'dashboard.view',
+      'orders.view',
+      'permissions.manage',
+      'users.manage',
+      'users.view',
+      'vehicles.view',
+    ]);
+    expect(
+      (await request<unknown>('GET', '/auth/me', { token: operator.body.accessToken })).status,
+    ).toBe(401);
+    expect(
+      (await request<unknown>('POST', '/auth/refresh', { cookie: operatorCookie })).status,
+    ).toBe(401);
+
+    const deactivated = await request<{ user: UserResponse }>(
+      'DELETE',
+      `/companies/${tenant.company.id}/users/${created.body.user.id}`,
+      { token: platformToken },
+    );
+    expect(deactivated.status).toBe(200);
+    expect(deactivated.body.user.isActive).toBe(false);
+    expect((await login(created.body.user.loginName, 'History8')).status).toBe(401);
+
+    const schema = quoteIdentifier(tenant.company.schemaName);
+    const operationalRows = await control.query<
+      Array<{
+        customer_id: string;
+        vehicle_id: string;
+        order_id: string;
+        customer_created_by: string;
+        vehicle_created_by: string;
+        order_created_by: string;
+        status_changed_by: string;
+      }>
+    >(
+      `SELECT customer.id AS customer_id, vehicle.id AS vehicle_id, service_order.id AS order_id,
+              customer.created_by_user_id AS customer_created_by,
+              vehicle.created_by_user_id AS vehicle_created_by,
+              service_order.created_by_user_id AS order_created_by,
+              history.changed_by_user_id AS status_changed_by
+       FROM ${schema}.customers customer
+       JOIN ${schema}.vehicles vehicle ON vehicle.customer_id = customer.id
+       JOIN ${schema}.orders service_order ON service_order.vehicle_id = vehicle.id
+       JOIN ${schema}.order_status_history history ON history.order_id = service_order.id
+       WHERE customer.id = $1 AND vehicle.id = $2 AND service_order.id = $3
+         AND history.previous_status IS NULL`,
+      [customer.body.id, vehicle.body.id, order.body.id],
+    );
+    expect(operationalRows).toEqual([
+      {
+        customer_id: customer.body.id,
+        vehicle_id: vehicle.body.id,
+        order_id: order.body.id,
+        customer_created_by: created.body.user.id,
+        vehicle_created_by: created.body.user.id,
+        order_created_by: created.body.user.id,
+        status_changed_by: created.body.user.id,
+      },
+    ]);
+
+    const preservedOrder = await request<OrderResponse>('GET', `/orders/${order.body.id}`, {
+      token: tenant.accessToken,
+    });
+    expect(preservedOrder.status).toBe(200);
+    expect(preservedOrder.body).toMatchObject({
+      id: order.body.id,
+      customer: { id: customer.body.id },
+      vehicle: { id: vehicle.body.id },
+      status: 'in_progress',
+    });
+
+    const reactivated = await request<{ user: UserResponse; permissionCodes: string[] }>(
+      'PATCH',
+      `/companies/${tenant.company.id}/users/${created.body.user.id}/activate`,
+      { token: platformToken },
+    );
+    expect(reactivated.status).toBe(200);
+    expect(reactivated.body.user).toMatchObject({ role: 'admin', isActive: true });
+    expect(reactivated.body.permissionCodes).toEqual(promoted.body.permissionCodes);
+
+    const restored = await login(created.body.user.loginName, 'History8');
+    expect(restored.status).toBe(200);
+    expect(restored.body.user.role).toBe('admin');
+    expect(
+      (
+        await request<OrderResponse>('GET', `/orders/${order.body.id}`, {
+          token: restored.body.accessToken,
+        })
+      ).status,
+    ).toBe(200);
   });
 
   it('obliga a cambiar la contraseña temporal creada por plataforma y revoca esa sesión', async () => {
