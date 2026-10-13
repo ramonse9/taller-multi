@@ -45,6 +45,7 @@ import { CustomerFiscalProfile1700000038000 } from '../../src/database/migration
 import { CfdiUseCatalog1700000039000 } from '../../src/database/migrations/public/1700000039000-cfdi-use-catalog';
 import { CustomerRfcValidation1700000040000 } from '../../src/database/migrations/public/1700000040000-customer-rfc-validation';
 import { PlatformCompanyUserLifecycle1700000041000 } from '../../src/database/migrations/public/1700000041000-platform-company-user-lifecycle';
+import { SimulatedInvoicingSettings1700000042000 } from '../../src/database/migrations/public/1700000042000-simulated-invoicing-settings';
 import { quoteIdentifier } from '../../src/database/schema-name';
 import { seedPublicCatalogs } from '../../src/database/seeds/public-catalogs.seed';
 import { changePlatformAdminPassword } from '../../src/platform-users/change-platform-admin-password';
@@ -165,6 +166,32 @@ interface HttpResult<T> {
   status: number;
   body: T;
   setCookie: string | null;
+}
+
+interface InvoiceSettingsResponse {
+  mode: 'disabled' | 'simulation';
+  issuerType: 'person' | 'company' | null;
+  fiscalName: string | null;
+  taxId: string | null;
+  fiscalRegimeCode: string | null;
+  fiscalPostalCode: string | null;
+  defaultSeries: string;
+  nextInternalFolio: number;
+  pricesIncludeTax: boolean | null;
+  currencyCode: 'MXN';
+  isActive: boolean;
+  readiness: {
+    isIssuerProfileComplete: boolean;
+    missingFields: Array<{ code: string; field: string; message: string }>;
+    validationIssues: Array<{ code: string; field: string; message: string }>;
+  };
+}
+
+interface PlatformInvoiceModeResponse {
+  companyId: string;
+  mode: 'disabled' | 'simulation';
+  isActive: boolean;
+  isIssuerProfileComplete: boolean;
 }
 
 interface BinaryHttpResult {
@@ -715,6 +742,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         CfdiUseCatalog1700000039000,
         CustomerRfcValidation1700000040000,
         PlatformCompanyUserLifecycle1700000041000,
+        SimulatedInvoicingSettings1700000042000,
       ],
       migrationsTableName: 'public_schema_migrations',
       synchronize: false,
@@ -838,6 +866,165 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(createOrderSchema).toContain('externalFolio');
     expect(createOrderSchema).toContain('maxLength');
     expect(orderSchema).toContain('sistema externo');
+  });
+
+  it('aísla la configuración simulada, exige plan Facturación y audita sus cambios', async () => {
+    const invoicing = await provisionAndLogin(
+      'Facturación Simulada Alpha',
+      'invoice.alpha@test.local',
+      'invoicing',
+    );
+    const basic = await provisionAndLogin(
+      'Facturación Simulada Basic',
+      'invoice.basic@test.local',
+      'basic',
+    );
+
+    expect(
+      (await request<unknown>('GET', '/invoices/settings', { token: basic.accessToken })).status,
+    ).toBe(403);
+    expect(
+      (
+        await request<unknown>(
+          'PATCH',
+          `/companies/${basic.company.id}/invoicing-mode`,
+          { token: platformToken, body: { mode: 'simulation' } },
+        )
+      ).status,
+    ).toBe(403);
+
+    const initial = await request<InvoiceSettingsResponse>('GET', '/invoices/settings', {
+      token: invoicing.accessToken,
+    });
+    expect(initial.status).toBe(200);
+    expect(initial.body).toMatchObject({
+      mode: 'disabled',
+      issuerType: 'person',
+      currencyCode: 'MXN',
+      isActive: false,
+      readiness: { isIssuerProfileComplete: false },
+    });
+
+    const enabled = await request<PlatformInvoiceModeResponse>(
+      'PATCH',
+      `/companies/${invoicing.company.id}/invoicing-mode`,
+      { token: platformToken, body: { mode: 'simulation' } },
+    );
+    expect(enabled.status).toBe(200);
+    expect(enabled.body).toMatchObject({
+      companyId: invoicing.company.id,
+      mode: 'simulation',
+      isIssuerProfileComplete: false,
+    });
+
+    const updated = await request<InvoiceSettingsResponse>('PATCH', '/invoices/settings', {
+      token: invoicing.accessToken,
+      body: {
+        fiscalName: 'Persona Física de Demostración',
+        taxId: 'LOPA900101AB1',
+        fiscalRegimeCode: '612',
+        fiscalPostalCode: '80000',
+        defaultSeries: 'SIM',
+        nextInternalFolio: 100,
+        pricesIncludeTax: true,
+        isActive: true,
+      },
+    });
+    expect(updated.status).toBe(200);
+    expect(updated.body).toMatchObject({
+      mode: 'simulation',
+      fiscalName: 'PERSONA FÍSICA DE DEMOSTRACIÓN',
+      taxId: 'LOPA900101AB1',
+      fiscalRegimeCode: '612',
+      fiscalPostalCode: '80000',
+      defaultSeries: 'SIM',
+      nextInternalFolio: 100,
+      pricesIncludeTax: true,
+      currencyCode: 'MXN',
+      isActive: true,
+      readiness: {
+        isIssuerProfileComplete: true,
+        missingFields: [],
+        validationIssues: [],
+      },
+    });
+
+    const readOnlyAdmin = await request<{ user: UserResponse }>(
+      'POST',
+      `/companies/${invoicing.company.id}/users`,
+      {
+        token: platformToken,
+        body: {
+          fullName: 'Administrador fiscal de consulta',
+          username: 'admin_fiscal_consulta',
+          phone: '+526671119901',
+          password: USER_PASSWORD,
+          timezoneCode: 'America/Mazatlan',
+          role: 'admin',
+          templateCode: null,
+          permissionCodes: ['invoices.view'],
+        },
+      },
+    );
+    expect(readOnlyAdmin.status).toBe(201);
+    const temporaryAdmin = await login(readOnlyAdmin.body.user.loginName, USER_PASSWORD);
+    expect(temporaryAdmin.status).toBe(200);
+    expect(
+      (
+        await request<unknown>('PATCH', '/users/me/password', {
+          token: temporaryAdmin.body.accessToken,
+          body: { currentPassword: USER_PASSWORD, newPassword: PERMANENT_PASSWORD },
+        })
+      ).status,
+    ).toBe(204);
+    const activeAdmin = await login(readOnlyAdmin.body.user.loginName, PERMANENT_PASSWORD);
+    expect(
+      (await request<unknown>('GET', '/invoices/settings', { token: activeAdmin.body.accessToken }))
+        .status,
+    ).toBe(200);
+    expect(
+      (
+        await request<unknown>('PATCH', '/invoices/settings', {
+          token: activeAdmin.body.accessToken,
+          body: { defaultSeries: 'NO' },
+        })
+      ).status,
+    ).toBe(403);
+
+    const schemas = await control.query<Array<{ id: string; schema_name: string }>>(
+      'SELECT id::text, schema_name FROM public.companies WHERE id = ANY($1::uuid[])',
+      [[invoicing.company.id, basic.company.id]],
+    );
+    const byId = new Map(schemas.map((row) => [row.id, row.schema_name]));
+    const invoicingSchema = quoteIdentifier(byId.get(invoicing.company.id)!);
+    const basicSchema = quoteIdentifier(byId.get(basic.company.id)!);
+    const invoicingRows = await control.query<Array<{ tax_id: string | null }>>(
+      `SELECT tax_id FROM ${invoicingSchema}.invoice_settings WHERE id = 1`,
+    );
+    const basicRows = await control.query<Array<{ tax_id: string | null }>>(
+      `SELECT tax_id FROM ${basicSchema}.invoice_settings WHERE id = 1`,
+    );
+    const auditRows = await control.query<Array<{ event_type: string }>>(
+      `SELECT event_type FROM ${invoicingSchema}.invoice_settings_events ORDER BY created_at, id`,
+    );
+    expect(invoicingRows[0]?.tax_id).toBe('LOPA900101AB1');
+    expect(basicRows[0]?.tax_id).toBeNull();
+    expect(auditRows.map(({ event_type }) => event_type)).toEqual([
+      'mode_changed',
+      'profile_updated',
+    ]);
+
+    const swagger = SwaggerModule.createDocument(app, new DocumentBuilder().build());
+    expect(swagger.paths['/api/invoices/settings']).toBeDefined();
+    expect(swagger.paths['/api/companies/{companyId}/invoicing-mode']).toBeDefined();
+    const settingsSchema = JSON.stringify(swagger.components?.schemas?.InvoiceSettingsResponseDto);
+    const readinessSchema = JSON.stringify(
+      swagger.components?.schemas?.IssuerReadinessResponseDto,
+    );
+    expect(settingsSchema).toContain('IssuerReadinessResponseDto');
+    expect(readinessSchema).toContain('isIssuerProfileComplete');
+    expect(settingsSchema).not.toContain('certificate');
+    expect(settingsSchema).not.toContain('privateKey');
   });
 
   it('revierte compañía, schema y versión si falla el aprovisionamiento', async () => {
@@ -2957,12 +3144,14 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       { token: tenant.accessToken },
     );
     expect(catalog.status).toBe(200);
-    expect(catalog.body).toHaveLength(40);
+    expect(catalog.body).toHaveLength(46);
     expect(catalog.body).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ code: 'orders.create', module: 'orders', action: 'create' }),
         expect.objectContaining({ code: 'profitability.view' }),
         expect.objectContaining({ code: 'permissions.manage' }),
+        expect.objectContaining({ code: 'invoices.view', module: 'invoices', action: 'view' }),
+        expect.objectContaining({ code: 'invoices.configure' }),
       ]),
     );
 
@@ -3934,10 +4123,10 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     ).toBe(400);
 
     const versions = await control.query<Array<{ version: number }>>(
-      'SELECT version FROM public.tenant_schema_versions WHERE company_id = $1 AND version = 26',
+      'SELECT version FROM public.tenant_schema_versions WHERE company_id = $1 AND version = 27',
       [tenant.company.id],
     );
-    expect(versions).toEqual([{ version: 26 }]);
+    expect(versions).toEqual([{ version: 27 }]);
 
     const isolated = await provisionAndLogin(
       'Expense Isolated Integration',
@@ -7244,8 +7433,12 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     });
   }
 
-  async function provisionAndLogin(name: string, email: string): Promise<ProvisionedTenant> {
-    const company = await createCompany(name, email);
+  async function provisionAndLogin(
+    name: string,
+    email: string,
+    planCode?: 'basic' | 'control' | 'invoicing',
+  ): Promise<ProvisionedTenant> {
+    const company = await createCompany(name, email, planCode);
     expect(company.status).toBe(201);
     const authenticated = await login(company.body.admin.loginName, TENANT_PASSWORD);
     expect(authenticated.status).toBe(200);

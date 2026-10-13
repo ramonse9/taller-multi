@@ -22,6 +22,11 @@ import { ProfitabilityService } from './profitability/profitability.service';
 import { ProfitabilityWorkbookService } from './profitability/profitability-workbook.service';
 import { DashboardController } from './dashboard/dashboard.controller';
 import { DashboardService } from './dashboard/dashboard.service';
+import {
+  InvoiceSettingsController,
+  PlatformInvoiceModeController,
+} from './invoicing/invoice-settings.controller';
+import { InvoiceSettingsService } from './invoicing/invoice-settings.service';
 
 @Global()
 @Module({
@@ -38,6 +43,8 @@ import { DashboardService } from './dashboard/dashboard.service';
     ExpensesController,
     ProfitabilityController,
     DashboardController,
+    InvoiceSettingsController,
+    PlatformInvoiceModeController,
   ],
   providers: [
     TenantSessionService,
@@ -52,6 +59,7 @@ import { DashboardService } from './dashboard/dashboard.service';
     ProfitabilityService,
     ProfitabilityWorkbookService,
     DashboardService,
+    InvoiceSettingsService,
   ],
   exports: [TenantSessionService],
 })

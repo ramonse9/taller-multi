@@ -39,6 +39,12 @@ export const PERMISSION_CODES = [
   'users.view',
   'users.manage',
   'permissions.manage',
+  'invoices.view',
+  'invoices.create',
+  'invoices.edit',
+  'invoices.simulate_issue',
+  'invoices.cancel_simulation',
+  'invoices.configure',
 ] as const;
 
 export type PermissionCode = (typeof PERMISSION_CODES)[number];

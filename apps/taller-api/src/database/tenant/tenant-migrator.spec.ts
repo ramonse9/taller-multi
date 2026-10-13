@@ -75,4 +75,16 @@ describe('TenantMigrator', () => {
     expect(expenses).toContain("status varchar(20) NOT NULL DEFAULT 'confirmed'");
     expect(statements.join('\n')).toContain('CREATE TABLE "tenant_test".expense_change_history');
   });
+
+  it('creates isolated simulated-invoicing settings without fiscal secrets', () => {
+    const statements = new TenantMigrator().baseStatements('"tenant_test"').join('\n');
+
+    expect(statements).toContain('CREATE TABLE "tenant_test".invoice_settings');
+    expect(statements).toContain('CREATE TABLE "tenant_test".invoice_settings_events');
+    expect(statements).toContain("mode IN ('disabled', 'simulation')");
+    expect(statements).toContain("currency_code = 'MXN'");
+    expect(statements).not.toContain('private_key');
+    expect(statements).not.toContain('certificate');
+    expect(statements).not.toContain('pac_password');
+  });
 });

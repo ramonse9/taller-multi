@@ -8,8 +8,8 @@ export interface TenantMigration {
   up(queryRunner: QueryRunner, schemaName: string): Promise<void>;
 }
 
-export const TENANT_BASE_VERSION = 26;
-export const TENANT_BASE_NAME = 'tenant-base-v26';
+export const TENANT_BASE_VERSION = 27;
+export const TENANT_BASE_NAME = 'tenant-base-v27';
 
 /**
  * Dynamic tenant migrations deliberately use qualified identifiers everywhere.
@@ -332,6 +332,36 @@ export class TenantMigrator {
       )`,
       `CREATE INDEX expense_change_history_expense_date_idx
        ON ${s}.expense_change_history(expense_id, changed_at, id)`,
+      `CREATE TABLE ${s}.invoice_settings (
+        id smallint PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+        mode varchar(20) NOT NULL DEFAULT 'disabled'
+          CHECK (mode IN ('disabled', 'simulation')),
+        fiscal_name varchar(180), tax_id varchar(13),
+        fiscal_regime_code varchar(3) REFERENCES public.sat_fiscal_regimes(code),
+        fiscal_postal_code varchar(5),
+        default_series varchar(25) NOT NULL DEFAULT 'A',
+        next_internal_folio bigint NOT NULL DEFAULT 1 CHECK (next_internal_folio > 0),
+        prices_include_tax boolean,
+        currency_code varchar(3) NOT NULL DEFAULT 'MXN' CHECK (currency_code = 'MXN'),
+        is_active boolean NOT NULL DEFAULT false,
+        updated_by_user_id uuid REFERENCES public.users(id) ON DELETE SET NULL,
+        created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
+        CHECK (tax_id IS NULL OR tax_id ~ '^[A-ZÑ&]{3,4}[0-9]{2}(0[1-9]|1[0-2])(0[1-9]|[12][0-9]|3[01])[A-Z0-9]{2}[0-9A]$'),
+        CHECK (tax_id IS NULL OR tax_id NOT IN ('XAXX010101000', 'XEXX010101000')),
+        CHECK (fiscal_postal_code IS NULL OR fiscal_postal_code ~ '^[0-9]{5}$'),
+        CHECK (fiscal_regime_code IS NULL OR fiscal_regime_code ~ '^[0-9]{3}$'),
+        CHECK (default_series ~ '^[A-Z0-9_-]{1,25}$')
+      )`,
+      `INSERT INTO ${s}.invoice_settings(id) VALUES (1)`,
+      `CREATE TABLE ${s}.invoice_settings_events (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        event_type varchar(30) NOT NULL CHECK (event_type IN ('profile_updated','mode_changed')),
+        changed_fields varchar(50)[] NOT NULL,
+        previous_values jsonb NOT NULL, new_values jsonb NOT NULL,
+        actor_user_id uuid NOT NULL REFERENCES public.users(id) ON DELETE RESTRICT,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        CHECK (cardinality(changed_fields) > 0)
+      )`,
       `CREATE TABLE ${s}.employees (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(), employee_number bigint GENERATED ALWAYS AS IDENTITY UNIQUE,
         full_name varchar(180) NOT NULL, email citext, phone varchar(30), hired_on date NOT NULL,
