@@ -98,7 +98,7 @@ export class CompaniesPage implements OnInit {
     }),
     withholdsIsr: new FormControl(false, { nonNullable: true }),
     withholdsIva: new FormControl(false, { nonNullable: true }),
-    planCode: new FormControl<SubscriptionPlanCode>("basic", {
+    planCode: new FormControl<SubscriptionPlanCode>("essential", {
       nonNullable: true,
       validators: [Validators.required],
     }),
@@ -386,7 +386,7 @@ export class CompaniesPage implements OnInit {
       personTypeCode: this.personTypes()[0]?.code ?? "",
       withholdsIsr: false,
       withholdsIva: false,
-      planCode: "basic",
+      planCode: "essential",
       admin: {
         fullName: "",
         username: "",

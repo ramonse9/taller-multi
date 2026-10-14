@@ -1,12 +1,17 @@
-export type SubscriptionPlanCode = "basic" | "control" | "invoicing";
+export type SubscriptionPlanCode = "essential" | "control" | "invoicing";
 export type SubscriptionStatus =
   "active" | "past_due" | "suspended" | "canceled";
 export type SubscriptionFeature =
+  | "dashboard"
   | "customer_history"
   | "vehicle_history"
+  | "vehicle_catalog"
   | "service_orders"
   | "free_order_items"
+  | "user_management"
   | "item_catalog"
+  | "suppliers"
+  | "purchases"
   | "inventory"
   | "expenses"
   | "profitability"

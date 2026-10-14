@@ -140,7 +140,7 @@ async function companyContext(
   for (const feature of ['service_orders', 'free_order_items', 'expenses', 'profitability']) {
     if (!subscription.features.includes(feature)) {
       throw new Error(
-        `El plan ${subscription.plan_code} no incluye ${feature}; utiliza Control o Facturación`,
+        `El plan ${subscription.plan_code} no incluye la capacidad ${feature}`,
       );
     }
   }

@@ -19,7 +19,7 @@ export interface DashboardLowStock {
 export interface DashboardSummary {
   period: { month: string; startsOn: string; endsOn: string };
   access: {
-    planCode: "basic" | "control" | "invoicing";
+    planCode: "essential" | "control" | "invoicing";
     planName: string;
     includesFinancials: boolean;
     includesLowStock: boolean;

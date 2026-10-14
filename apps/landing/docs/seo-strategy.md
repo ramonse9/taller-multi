@@ -116,7 +116,7 @@ La investigación de palabras clave es **cualitativa**. La aparición de una con
 
 ### 4.5 Administración y seguridad
 
-- Planes Básico y Control con capacidades diferenciadas.
+- Planes Esencial y Control con capacidades diferenciadas.
 - Roles Administrador principal, Administrador y Usuario.
 - Permisos configurables por módulo y acción.
 - Plantillas de permisos para diferentes funciones del taller.
@@ -158,7 +158,7 @@ La investigación de palabras clave es **cualitativa**. La aparición de una con
 - “Ya llevo mis folios en Excel”.
 - “No quiero aprender un sistema complicado”.
 
-**Respuesta del producto:** puede comenzar con el plan Básico, conceptos libres, creación rápida dentro de la orden y folio externo. No necesita inventario para obtener historial operativo.
+**Respuesta del producto:** puede comenzar con el plan Esencial, conceptos libres, creación rápida dentro de la orden y folio externo. No necesita inventario para obtener historial operativo.
 
 ### 5.2 Taller con compras, almacén o mayor volumen
 
@@ -485,7 +485,7 @@ Explicar de forma breve:
 
 Por ahora deben mostrarse sin precios hasta que la estrategia comercial esté definida:
 
-- **Básico:** clientes, vehículos, órdenes, historial y conceptos libres.
+- **Esencial:** clientes, vehículos, órdenes, historial y conceptos libres.
 - **Control:** todo lo anterior más catálogo, inventario, compras, proveedores, gastos y utilidad.
 - **Facturación:** no presentarlo como disponible. Puede omitirse o mostrarse únicamente como “Próximamente”, sin características fiscales prometidas.
 
@@ -625,7 +625,7 @@ Estos pendientes no bloquean la construcción de la base visual, pero sí deben 
 - El H1 expresa un resultado, no una lista de módulos.
 - La página explica cómo funciona una orden con servicios e insumos.
 - La utilidad se comunica sin ocultar el papel de los costos faltantes.
-- Básico y Control se distinguen sin inventar precios.
+- Esencial y Control se distinguen sin inventar precios.
 - Facturación no se presenta como disponible.
 - No existen estadísticas, clientes o testimonios inventados.
 - Todas las CTA principales abren el WhatsApp correcto.

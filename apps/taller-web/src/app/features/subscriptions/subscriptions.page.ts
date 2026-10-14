@@ -120,11 +120,16 @@ export class SubscriptionsPage implements OnInit {
 
   featureName(feature: SubscriptionFeature): string {
     const names: Record<SubscriptionFeature, string> = {
+      dashboard: "Tablero",
       customer_history: "Clientes",
       vehicle_history: "Vehículos",
+      vehicle_catalog: "Marcas y modelos",
       service_orders: "Órdenes",
       free_order_items: "Conceptos libres",
+      user_management: "Usuarios y permisos",
       item_catalog: "Catálogo",
+      suppliers: "Proveedores",
+      purchases: "Compras",
       inventory: "Inventario",
       expenses: "Gastos",
       profitability: "Utilidad",

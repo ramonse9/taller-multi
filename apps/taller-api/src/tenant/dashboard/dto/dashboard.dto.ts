@@ -8,7 +8,7 @@ export class DashboardPeriodResponseDto {
 }
 
 export class DashboardAccessResponseDto {
-  @ApiProperty({ enum: ['basic', 'control', 'invoicing'] })
+  @ApiProperty({ enum: ['essential', 'control', 'invoicing'] })
   planCode!: SubscriptionPlanCode;
   @ApiProperty() planName!: string;
   @ApiProperty() includesFinancials!: boolean;

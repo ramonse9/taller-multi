@@ -47,10 +47,10 @@ export class CreateCompanyDto {
   @IsBoolean()
   withholdsIva = false;
 
-  @ApiPropertyOptional({ enum: SUBSCRIPTION_PLAN_CODES, default: 'basic' })
+  @ApiPropertyOptional({ enum: SUBSCRIPTION_PLAN_CODES, default: 'essential' })
   @IsOptional()
   @IsIn(SUBSCRIPTION_PLAN_CODES)
-  planCode?: SubscriptionPlanCode = 'basic';
+  planCode?: SubscriptionPlanCode = 'essential';
 
   @ApiProperty({ type: CreateTenantAdminDto })
   @ValidateNested()

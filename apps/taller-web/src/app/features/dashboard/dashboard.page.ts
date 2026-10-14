@@ -61,7 +61,7 @@ export class DashboardPage implements OnInit {
   );
   readonly canCreatePurchase = computed(
     () =>
-      this.auth.hasFeature("inventory") &&
+      this.auth.hasFeature("purchases") &&
       this.auth.hasPermission("purchases.create") &&
       this.auth.hasPermission("catalog.view") &&
       this.auth.hasPermission("catalog.view_costs") &&

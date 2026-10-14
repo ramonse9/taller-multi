@@ -48,7 +48,7 @@ El `platform_admin` puede cambiar solamente `mode` mediante el endpoint de plata
 
 El `company_admin` puede modificar el perfil fiscal del emisor y su estatus operativo. Un `admin` puede consultarlo si tiene `invoices.view`, pero no modificarlo aunque alguien le asigne `invoices.configure`: el límite de rol se valida en la API.
 
-Los planes Básico y Control no pueden consultar ni operar el módulo. Un cambio de plan no elimina la configuración guardada; solamente deja la capacidad inaccesible mientras el plan no incluya `invoicing`.
+Los planes Esencial y Control no pueden consultar ni operar el módulo. Un cambio de plan no elimina la configuración guardada; solamente deja la capacidad inaccesible mientras el plan no incluya `invoicing`.
 
 ## Permisos
 

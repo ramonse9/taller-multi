@@ -112,6 +112,6 @@ describe('CompaniesService', () => {
       sql.includes('INSERT INTO public.company_subscriptions'),
     );
     expect(subscriptionInsert?.[0]).toContain("VALUES ($1, $2, 'active')");
-    expect(subscriptionInsert?.[1]).toEqual([companyId, 'basic']);
+    expect(subscriptionInsert?.[1]).toEqual([companyId, 'essential']);
   });
 });

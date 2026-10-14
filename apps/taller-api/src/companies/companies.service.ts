@@ -126,7 +126,7 @@ export class CompaniesService {
         input.companyTypeCode,
         input.personTypeCode,
         input.admin.timezoneCode,
-        input.planCode ?? 'basic',
+        input.planCode ?? 'essential',
       );
       const sequenceRows = (await runner.query(
         "SELECT nextval('public.tenant_schema_number_seq')::text AS number",
@@ -160,7 +160,7 @@ export class CompaniesService {
         withholdsIva: input.withholdsIva,
       });
       const saved = await runner.manager.save(company);
-      const planCode = input.planCode ?? 'basic';
+      const planCode = input.planCode ?? 'essential';
       await runner.query(
         `INSERT INTO public.company_subscriptions(
            company_id, plan_code, status

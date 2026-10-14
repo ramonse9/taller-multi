@@ -229,7 +229,7 @@
           <option [value]="category.id">{{ category.name }}</option>
           }
         </select>
-        @if (auth.hasPermission('suppliers.view')) {
+        @if (auth.hasFeature('suppliers') && auth.hasPermission('suppliers.view')) {
         <select
           class="field-control"
           [formControl]="supplierId"
@@ -433,7 +433,7 @@
         form.controls.categoryId.invalid) {
         <small class="field-error">Selecciona una categoría.</small> }
       </div>
-      @if (auth.hasPermission('suppliers.view')) {
+      @if (auth.hasFeature('suppliers') && auth.hasPermission('suppliers.view')) {
       <div>
         <label class="field-label" for="expense-supplier">Proveedor</label
         ><select

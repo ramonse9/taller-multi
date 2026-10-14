@@ -36,7 +36,7 @@ import { PlatformRole } from './entities/platform-user.entity';
 import { UsersService } from './users.service';
 import {
   AllowInactiveSubscription,
-  RequiresSubscription,
+  RequiresFeature,
   SubscriptionGuard,
 } from '../subscriptions/subscription.guard';
 import { PermissionGuard, RequiresPermissions } from '../permissions/permission.guard';
@@ -44,7 +44,7 @@ import { PermissionGuard, RequiresPermissions } from '../permissions/permission.
 @ApiTags('users')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, SubscriptionGuard, PermissionGuard)
-@RequiresSubscription()
+@RequiresFeature('user_management')
 @Controller('users')
 export class UsersController {
   constructor(private readonly users: UsersService) {}

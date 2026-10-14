@@ -3,7 +3,7 @@ import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swa
 import { JwtAuthGuard } from '../../auth/roles';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../../common/types/authenticated-user';
-import { RequiresSubscription, SubscriptionGuard } from '../../subscriptions/subscription.guard';
+import { RequiresFeature, SubscriptionGuard } from '../../subscriptions/subscription.guard';
 import { PermissionGuard, RequiresPermissions } from '../../permissions/permission.guard';
 import { DashboardService } from './dashboard.service';
 import { DashboardActivityResponseDto, DashboardSummaryResponseDto } from './dto/dashboard.dto';
@@ -11,7 +11,7 @@ import { DashboardActivityResponseDto, DashboardSummaryResponseDto } from './dto
 @ApiTags('dashboard')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, SubscriptionGuard, PermissionGuard)
-@RequiresSubscription()
+@RequiresFeature('dashboard')
 @Controller('dashboard')
 export class DashboardController {
   constructor(private readonly dashboard: DashboardService) {}

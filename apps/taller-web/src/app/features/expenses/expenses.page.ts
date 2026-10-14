@@ -461,7 +461,9 @@ export class ExpensesPage implements OnInit {
       expenses: this.expensesService.list({ page: 1, limit: 20 }),
       summary: this.expensesService.monthlySummary(this.summaryMonth.value),
       categories: this.expensesService.categories(),
-      suppliers: this.auth.hasPermission("suppliers.view")
+      suppliers:
+        this.auth.hasFeature("suppliers") &&
+        this.auth.hasPermission("suppliers.view")
         ? this.suppliersService.list({ page: 1, limit: 100, isActive: true })
         : of({ items: [] as Supplier[] }),
     })

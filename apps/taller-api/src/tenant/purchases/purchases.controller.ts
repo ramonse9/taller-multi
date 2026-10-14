@@ -43,7 +43,7 @@ import { PurchasesService } from './purchases.service';
 @ApiTags('purchases')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, SubscriptionGuard, PermissionGuard)
-@RequiresFeature('inventory')
+@RequiresFeature('purchases')
 @Controller('purchases')
 export class PurchasesController {
   constructor(

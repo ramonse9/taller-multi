@@ -46,6 +46,8 @@ import { CfdiUseCatalog1700000039000 } from '../../src/database/migrations/publi
 import { CustomerRfcValidation1700000040000 } from '../../src/database/migrations/public/1700000040000-customer-rfc-validation';
 import { PlatformCompanyUserLifecycle1700000041000 } from '../../src/database/migrations/public/1700000041000-platform-company-user-lifecycle';
 import { SimulatedInvoicingSettings1700000042000 } from '../../src/database/migrations/public/1700000042000-simulated-invoicing-settings';
+import { RenameBasicPlanToEssential1700000043000 } from '../../src/database/migrations/public/1700000043000-rename-basic-plan-to-essential';
+import { DefinitiveSubscriptionPlanMatrix1700000044000 } from '../../src/database/migrations/public/1700000044000-definitive-subscription-plan-matrix';
 import { quoteIdentifier } from '../../src/database/schema-name';
 import { seedPublicCatalogs } from '../../src/database/seeds/public-catalogs.seed';
 import { changePlatformAdminPassword } from '../../src/platform-users/change-platform-admin-password';
@@ -69,7 +71,7 @@ interface LoginResponse {
     mustChangePassword: boolean;
     permissions: string[];
     subscription: {
-      planCode: 'basic' | 'control' | 'invoicing';
+      planCode: 'essential' | 'control' | 'invoicing';
       status: 'active' | 'past_due' | 'suspended' | 'canceled';
       usable: boolean;
     } | null;
@@ -523,7 +525,7 @@ interface MonthlyProfitabilityReportResponse {
 interface DashboardSummaryResponse {
   period: { month: string; startsOn: string; endsOn: string };
   access: {
-    planCode: 'basic' | 'control' | 'invoicing';
+    planCode: 'essential' | 'control' | 'invoicing';
     planName: string;
     includesFinancials: boolean;
     includesLowStock: boolean;
@@ -743,6 +745,8 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         CustomerRfcValidation1700000040000,
         PlatformCompanyUserLifecycle1700000041000,
         SimulatedInvoicingSettings1700000042000,
+        RenameBasicPlanToEssential1700000043000,
+        DefinitiveSubscriptionPlanMatrix1700000044000,
       ],
       migrationsTableName: 'public_schema_migrations',
       synchronize: false,
@@ -874,20 +878,20 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       'invoice.alpha@test.local',
       'invoicing',
     );
-    const basic = await provisionAndLogin(
-      'Facturación Simulada Basic',
-      'invoice.basic@test.local',
-      'basic',
+    const essential = await provisionAndLogin(
+      'Facturación Simulada Esencial',
+      'invoice.essential@test.local',
+      'essential',
     );
 
     expect(
-      (await request<unknown>('GET', '/invoices/settings', { token: basic.accessToken })).status,
+      (await request<unknown>('GET', '/invoices/settings', { token: essential.accessToken })).status,
     ).toBe(403);
     expect(
       (
         await request<unknown>(
           'PATCH',
-          `/companies/${basic.company.id}/invoicing-mode`,
+          `/companies/${essential.company.id}/invoicing-mode`,
           { token: platformToken, body: { mode: 'simulation' } },
         )
       ).status,
@@ -993,22 +997,22 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
 
     const schemas = await control.query<Array<{ id: string; schema_name: string }>>(
       'SELECT id::text, schema_name FROM public.companies WHERE id = ANY($1::uuid[])',
-      [[invoicing.company.id, basic.company.id]],
+      [[invoicing.company.id, essential.company.id]],
     );
     const byId = new Map(schemas.map((row) => [row.id, row.schema_name]));
     const invoicingSchema = quoteIdentifier(byId.get(invoicing.company.id)!);
-    const basicSchema = quoteIdentifier(byId.get(basic.company.id)!);
+    const essentialSchema = quoteIdentifier(byId.get(essential.company.id)!);
     const invoicingRows = await control.query<Array<{ tax_id: string | null }>>(
       `SELECT tax_id FROM ${invoicingSchema}.invoice_settings WHERE id = 1`,
     );
-    const basicRows = await control.query<Array<{ tax_id: string | null }>>(
-      `SELECT tax_id FROM ${basicSchema}.invoice_settings WHERE id = 1`,
+    const essentialRows = await control.query<Array<{ tax_id: string | null }>>(
+      `SELECT tax_id FROM ${essentialSchema}.invoice_settings WHERE id = 1`,
     );
     const auditRows = await control.query<Array<{ event_type: string }>>(
       `SELECT event_type FROM ${invoicingSchema}.invoice_settings_events ORDER BY created_at, id`,
     );
     expect(invoicingRows[0]?.tax_id).toBe('LOPA900101AB1');
-    expect(basicRows[0]?.tax_id).toBeNull();
+    expect(essentialRows[0]?.tax_id).toBeNull();
     expect(auditRows.map(({ event_type }) => event_type)).toEqual([
       'mode_changed',
       'profile_updated',
@@ -1771,7 +1775,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       | Record<
           string,
           {
-            properties?: Record<string, { enum?: string[] }>;
+            properties?: Record<string, { enum?: string[]; items?: { enum?: string[] } }>;
           }
         >
       | undefined;
@@ -1785,6 +1789,15 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(schemas?.ChangeSubscriptionDto?.properties).not.toHaveProperty('trialEndsAt');
     expect(schemas?.ChangeSubscriptionDto?.properties).not.toHaveProperty('currentPeriodEndsAt');
     expect(schemas?.ChangeSubscriptionDto?.properties?.status?.enum).not.toContain('trialing');
+    expect(schemas?.SubscriptionResponseDto?.properties?.features?.items?.enum).toEqual(
+      expect.arrayContaining([
+        'dashboard',
+        'vehicle_catalog',
+        'user_management',
+        'suppliers',
+        'purchases',
+      ]),
+    );
     const platformCompanyUsersPath = Object.entries(swagger.paths).find(([path]) =>
       path.endsWith('/companies/{companyId}/users'),
     )?.[1];
@@ -1807,13 +1820,43 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     }>('GET', '/subscriptions/current', { token: tenant.accessToken });
     expect(initial.status).toBe(200);
     expect(initial.body).toMatchObject({
-      planCode: 'basic',
+      planCode: 'essential',
       status: 'active',
       limits: { max_users: 3 },
     });
     expect(initial.body).not.toHaveProperty('trialStartsAt');
     expect(initial.body).not.toHaveProperty('trialEndsAt');
-    expect(initial.body.features).not.toContain('inventory');
+    expect(initial.body.features).toEqual(
+      expect.arrayContaining([
+        'dashboard',
+        'customer_history',
+        'vehicle_history',
+        'vehicle_catalog',
+        'service_orders',
+        'free_order_items',
+        'expenses',
+        'profitability',
+        'user_management',
+      ]),
+    );
+    for (const unavailable of ['item_catalog', 'suppliers', 'purchases', 'inventory', 'invoicing']) {
+      expect(initial.body.features).not.toContain(unavailable);
+    }
+    expect(
+      (await request<unknown>('GET', '/expenses/categories', { token: tenant.accessToken })).status,
+    ).toBe(200);
+    expect(
+      (
+        await request<unknown>(
+          'GET',
+          '/profitability?occurredFrom=2026-10-01&occurredTo=2026-10-31',
+          { token: tenant.accessToken },
+        )
+      ).status,
+    ).toBe(200);
+    for (const path of ['/catalogs/concepts', '/suppliers', '/purchases', '/inventory/products']) {
+      expect((await request<unknown>('GET', path, { token: tenant.accessToken })).status).toBe(403);
+    }
 
     const subscriptionColumns = await control.query<Array<{ column_name: string }>>(
       `SELECT column_name
@@ -1851,6 +1894,17 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     });
     expect(overLimit.status).toBe(409);
 
+    const permissionsBeforePlanChanges = await control.query<
+      Array<{ user_id: string; permission_code: string }>
+    >(
+      `SELECT permission_profile.user_id::text, permission_profile.permission_code
+       FROM public.user_permissions permission_profile
+       JOIN public.users user_account ON user_account.id = permission_profile.user_id
+       WHERE user_account.company_id = $1
+       ORDER BY permission_profile.user_id, permission_profile.permission_code`,
+      [tenant.company.id],
+    );
+
     const client = await request<ClientResponse>('POST', '/clients', {
       token: tenant.accessToken,
       body: { type: 'person', displayName: 'Cliente conservado por suscripción' },
@@ -1867,7 +1921,16 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     });
     expect(upgraded.status).toBe(200);
     expect(upgraded.body.planCode).toBe('control');
-    expect(upgraded.body.features).toEqual(expect.arrayContaining(['inventory', 'expenses']));
+    expect(upgraded.body.features).toEqual(
+      expect.arrayContaining([
+        'item_catalog',
+        'suppliers',
+        'purchases',
+        'inventory',
+        'expenses',
+        'profitability',
+      ]),
+    );
 
     const activeSession = await login(tenant.company.admin.loginName, PERMANENT_PASSWORD);
     expect(activeSession.status).toBe(200);
@@ -1878,7 +1941,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       `/subscriptions/companies/${tenant.company.id}`,
       {
         token: platformToken,
-        body: { planCode: 'basic', status: 'suspended', reason: 'Prueba de suspensión' },
+        body: { planCode: 'essential', status: 'suspended', reason: 'Prueba de suspensión' },
       },
     );
     expect(suspended.status).toBe(200);
@@ -1901,7 +1964,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       `/subscriptions/companies/${tenant.company.id}`,
       {
         token: platformToken,
-        body: { planCode: 'basic', status: 'active', reason: 'Reactivación' },
+        body: { planCode: 'essential', status: 'active', reason: 'Reactivación' },
       },
     );
     expect(reactivated.status).toBe(200);
@@ -1921,10 +1984,21 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     const restored = await listClients(restoredSession.body.accessToken);
     expect(restored.status).toBe(200);
     expect(restored.body.items.map(({ id }) => id)).toContain(client.body.id);
+    const permissionsAfterPlanChanges = await control.query<
+      Array<{ user_id: string; permission_code: string }>
+    >(
+      `SELECT permission_profile.user_id::text, permission_profile.permission_code
+       FROM public.user_permissions permission_profile
+       JOIN public.users user_account ON user_account.id = permission_profile.user_id
+       WHERE user_account.company_id = $1
+       ORDER BY permission_profile.user_id, permission_profile.permission_code`,
+      [tenant.company.id],
+    );
+    expect(permissionsAfterPlanChanges).toEqual(permissionsBeforePlanChanges);
   });
 
   it.each([
-    ['basic', 'Básico'],
+    ['essential', 'Esencial'],
     ['control', 'Control'],
     ['invoicing', 'Facturación'],
   ] as const)('crea una compañía activa con el plan %s', async (planCode, planName) => {
@@ -1966,7 +2040,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
 
     await request<unknown>('PATCH', `/subscriptions/companies/${tenant.company.id}`, {
       token: platformToken,
-      body: { planCode: 'basic', status: 'active', reason: 'Activación manual' },
+      body: { planCode: 'essential', status: 'active', reason: 'Activación manual' },
     });
     expect((await login(tenant.company.admin.loginName, PERMANENT_PASSWORD)).status).toBe(200);
   });
@@ -3243,7 +3317,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     });
     await request<unknown>('PATCH', `/subscriptions/companies/${tenant.company.id}`, {
       token: platformToken,
-      body: { planCode: 'basic', status: 'active', reason: 'Regreso al plan original' },
+      body: { planCode: 'essential', status: 'active', reason: 'Regreso al plan original' },
     });
     const preserved = await request<UserPermissionProfileResponse>(
       'GET',
@@ -3628,7 +3702,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
 
     await request<unknown>('PATCH', `/subscriptions/companies/${tenant.company.id}`, {
       token: platformToken,
-      body: { planCode: 'basic', status: 'active', reason: 'Validar intersección con plan' },
+      body: { planCode: 'essential', status: 'active', reason: 'Validar intersección con plan' },
     });
     expect(
       (
@@ -4055,11 +4129,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
           token: tenant.accessToken,
         })
       ).status,
-    ).toBe(403);
-    await request<unknown>('PATCH', `/subscriptions/companies/${tenant.company.id}`, {
-      token: platformToken,
-      body: { planCode: 'control', status: 'active', reason: 'Gastos de integración' },
-    });
+    ).toBe(200);
 
     const categories = await request<ExpenseCategoryResponse[]>('GET', '/expenses/categories', {
       token: tenant.accessToken,
@@ -4325,10 +4395,6 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       'Expense Isolated Integration',
       'expense.isolated@test.local',
     );
-    await request<unknown>('PATCH', `/subscriptions/companies/${isolated.company.id}`, {
-      token: platformToken,
-      body: { planCode: 'control', status: 'active', reason: 'Aislamiento de gastos' },
-    });
     expect(
       (
         await request<unknown>('GET', `/expenses/${currentMonthExpense.body.id}`, {
@@ -4361,21 +4427,21 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
           },
         )
       ).status,
-    ).toBe(403);
+    ).toBe(200);
     expect(
       (
         await request<unknown>('GET', '/profitability/analytics?months=6', {
           token: tenant.accessToken,
         })
       ).status,
-    ).toBe(403);
+    ).toBe(200);
     expect(
       (
         await request<unknown>('GET', '/profitability/monthly-report?year=2026&month=10', {
           token: tenant.accessToken,
         })
       ).status,
-    ).toBe(403);
+    ).toBe(200);
     await request<unknown>('PATCH', `/subscriptions/companies/${tenant.company.id}`, {
       token: platformToken,
       body: { planCode: 'control', status: 'active', reason: 'Utilidad de integración' },
@@ -5300,7 +5366,11 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(invoicingAnalytics.body.series).toHaveLength(12);
     await request<unknown>('PATCH', `/subscriptions/companies/${tenant.company.id}`, {
       token: platformToken,
-      body: { planCode: 'basic', status: 'active', reason: 'Validar restricción del plan Básico' },
+      body: {
+        planCode: 'essential',
+        status: 'active',
+        reason: 'Validar utilidad conservada en el plan Esencial',
+      },
     });
     expect(
       (
@@ -5308,17 +5378,17 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
           token: tenant.accessToken,
         })
       ).status,
-    ).toBe(403);
+    ).toBe(200);
     expect(
       (
         await request<unknown>('GET', '/profitability/monthly-report?year=2026&month=10', {
           token: tenant.accessToken,
         })
       ).status,
-    ).toBe(403);
+    ).toBe(200);
   });
 
-  it('resume la operación y limita finanzas e inventario según el plan', async () => {
+  it('resume la operación e incluye finanzas desde Esencial e inventario desde Control', async () => {
     const tenant = await provisionAndLogin('Dashboard Integration', 'dashboard.admin@test.local');
     const customer = await request<ClientResponse>('POST', '/clients', {
       token: tenant.accessToken,
@@ -5366,41 +5436,50 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     });
     const inProgressOrder = await createOrder('Servicio en proceso', 100, 20);
 
-    const basic = await request<DashboardSummaryResponse>('GET', '/dashboard/summary', {
+    const essential = await request<DashboardSummaryResponse>('GET', '/dashboard/summary', {
       token: tenant.accessToken,
     });
-    expect(basic.status).toBe(200);
-    expect(basic.body.period.month).toMatch(/^\d{4}-\d{2}$/);
-    expect(basic.body.access).toEqual({
-      planCode: 'basic',
-      planName: 'Básico',
-      includesFinancials: false,
+    expect(essential.status).toBe(200);
+    expect(essential.body.period.month).toMatch(/^\d{4}-\d{2}$/);
+    expect(essential.body.access).toEqual({
+      planCode: 'essential',
+      planName: 'Esencial',
+      includesFinancials: true,
       includesLowStock: false,
     });
-    expect(basic.body.orders).toEqual({
+    expect(essential.body.orders).toEqual({
       inProgressCount: 1,
       unpaidCount: 2,
       completedUnpaidCount: 1,
       completedPaidCount: 1,
     });
-    expect(basic.body.revenue).toEqual({
+    expect(essential.body.revenue).toEqual({
       generated: '500.00',
       collected: '300.00',
       outstanding: '200.00',
       receivable: '300.00',
     });
-    expect(basic.body.financials).toBeNull();
-    expect(basic.body.lowStock).toBeNull();
-    const basicActivity = await request<DashboardActivityResponse>('GET', '/dashboard/activity', {
+    expect(essential.body.financials).toEqual({
+      directCost: '150.00',
+      grossProfit: '350.00',
+      operatingExpenses: '0.00',
+      operatingProfit: '350.00',
+      incompleteOrderCount: 0,
+      missingPriceOrderCount: 0,
+      missingCostOrderCount: 0,
+      isComplete: true,
+    });
+    expect(essential.body.lowStock).toBeNull();
+    const essentialActivity = await request<DashboardActivityResponse>('GET', '/dashboard/activity', {
       token: tenant.accessToken,
     });
-    expect(basicActivity.status).toBe(200);
-    expect(basicActivity.body.recentOrders).toHaveLength(3);
-    expect(basicActivity.body.oldestInProgress).toEqual([
+    expect(essentialActivity.status).toBe(200);
+    expect(essentialActivity.body.recentOrders).toHaveLength(3);
+    expect(essentialActivity.body.oldestInProgress).toEqual([
       expect.objectContaining({ id: inProgressOrder.body.id, daysOpen: 0 }),
     ]);
-    expect(basicActivity.body.pendingCollection).toHaveLength(2);
-    expect(basicActivity.body.pendingCollection).toEqual(
+    expect(essentialActivity.body.pendingCollection).toHaveLength(2);
+    expect(essentialActivity.body.pendingCollection).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           id: unpaidOrder.body.id,
@@ -5415,10 +5494,10 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         }),
       ]),
     );
-    expect(basicActivity.body.recentPurchases).toBeNull();
-    expect(basicActivity.body.recentExpenses).toBeNull();
-    expect(basicActivity.body.recentInventoryMovements).toBeNull();
-    expect(basicActivity.body.lowStock).toBeNull();
+    expect(essentialActivity.body.recentPurchases).toBeNull();
+    expect(essentialActivity.body.recentExpenses).toEqual([]);
+    expect(essentialActivity.body.recentInventoryMovements).toBeNull();
+    expect(essentialActivity.body.lowStock).toBeNull();
 
     await request<unknown>('PATCH', `/subscriptions/companies/${tenant.company.id}`, {
       token: platformToken,
@@ -5447,7 +5526,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       token: tenant.accessToken,
       body: {
         categoryId: categories.body.find(({ code }) => code === 'utilities')!.id,
-        occurredOn: basic.body.period.startsOn,
+        occurredOn: essential.body.period.startsOn,
         description: 'Gasto para resumen del tablero',
         amount: 120,
       },
@@ -7602,7 +7681,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
   async function createCompany(
     name: string,
     adminEmail: string,
-    planCode?: 'basic' | 'control' | 'invoicing',
+    planCode?: 'essential' | 'control' | 'invoicing',
   ): Promise<HttpResult<CompanyResponse>> {
     return request<CompanyResponse>('POST', '/companies', {
       token: platformToken,
@@ -7629,7 +7708,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
   async function provisionAndLogin(
     name: string,
     email: string,
-    planCode?: 'basic' | 'control' | 'invoicing',
+    planCode?: 'essential' | 'control' | 'invoicing',
   ): Promise<ProvisionedTenant> {
     const company = await createCompany(name, email, planCode);
     expect(company.status).toBe(201);

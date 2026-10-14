@@ -164,7 +164,7 @@ export class DashboardService {
     const includesOrders = this.permissions.has(user, 'orders.view');
     const includesCollections = this.permissions.hasAny(user, ORDER_PAYMENT_PERMISSIONS);
     const includesPurchases =
-      subscription.features.includes('inventory') &&
+      subscription.features.includes('purchases') &&
       this.permissions.has(user, 'purchases.view') &&
       this.permissions.has(user, 'catalog.view_costs');
     const includesInventory =

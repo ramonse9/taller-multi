@@ -34,13 +34,13 @@ import {
   VehicleModelResponseDto,
 } from './dto/vehicle-catalog.dto';
 import { VehicleCatalogService } from './vehicle-catalog.service';
-import { RequiresSubscription, SubscriptionGuard } from '../subscriptions/subscription.guard';
+import { RequiresFeature, SubscriptionGuard } from '../subscriptions/subscription.guard';
 import { PermissionGuard, RequiresPermissions } from '../permissions/permission.guard';
 
 @ApiTags('vehicle-catalogs')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, SubscriptionGuard, PermissionGuard)
-@RequiresSubscription()
+@RequiresFeature('vehicle_catalog')
 @Controller('catalogs')
 export class VehicleCatalogController {
   constructor(private readonly catalog: VehicleCatalogService) {}

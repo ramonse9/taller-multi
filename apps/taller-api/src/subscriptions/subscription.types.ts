@@ -1,15 +1,20 @@
-export const SUBSCRIPTION_PLAN_CODES = ['basic', 'control', 'invoicing'] as const;
+export const SUBSCRIPTION_PLAN_CODES = ['essential', 'control', 'invoicing'] as const;
 export type SubscriptionPlanCode = (typeof SUBSCRIPTION_PLAN_CODES)[number];
 
 export const SUBSCRIPTION_STATUSES = ['active', 'past_due', 'suspended', 'canceled'] as const;
 export type SubscriptionStatus = (typeof SUBSCRIPTION_STATUSES)[number];
 
 export const SUBSCRIPTION_FEATURES = [
+  'dashboard',
   'customer_history',
   'vehicle_history',
+  'vehicle_catalog',
   'service_orders',
   'free_order_items',
+  'user_management',
   'item_catalog',
+  'suppliers',
+  'purchases',
   'inventory',
   'expenses',
   'profitability',

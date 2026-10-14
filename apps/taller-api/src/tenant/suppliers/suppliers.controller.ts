@@ -34,7 +34,7 @@ import { SuppliersService } from './suppliers.service';
 @ApiTags('suppliers')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, SubscriptionGuard, PermissionGuard)
-@RequiresFeature('item_catalog')
+@RequiresFeature('suppliers')
 @Controller('suppliers')
 export class SuppliersController {
   constructor(private readonly suppliers: SuppliersService) {}

@@ -29,6 +29,7 @@ export const routes: Routes = [
         canActivate: [roleGuard, featureGuard, permissionGuard],
         data: {
           roles: ["company_admin", "admin", "user"],
+          feature: "dashboard",
           permission: "dashboard.view",
         },
         loadComponent: () =>
@@ -170,7 +171,7 @@ export const routes: Routes = [
         canActivate: [roleGuard, featureGuard, permissionGuard],
         data: {
           roles: ["company_admin", "admin", "user"],
-          feature: "inventory",
+          feature: "purchases",
           permission: [
             "purchases.create",
             "catalog.view",
@@ -188,7 +189,7 @@ export const routes: Routes = [
         canActivate: [roleGuard, featureGuard, permissionGuard],
         data: {
           roles: ["company_admin", "admin", "user"],
-          feature: "inventory",
+          feature: "purchases",
           permission: [
             "purchases.view",
             "purchases.edit",
@@ -207,7 +208,7 @@ export const routes: Routes = [
         canActivate: [roleGuard, featureGuard, permissionGuard],
         data: {
           roles: ["company_admin", "admin", "user"],
-          feature: "inventory",
+          feature: "purchases",
           permission: ["purchases.view", "catalog.view_costs"],
         },
         loadComponent: () =>
@@ -220,7 +221,7 @@ export const routes: Routes = [
         canActivate: [roleGuard, featureGuard, permissionGuard],
         data: {
           roles: ["company_admin", "admin", "user"],
-          feature: "inventory",
+          feature: "purchases",
           permission: ["purchases.view", "catalog.view_costs"],
         },
         loadComponent: () =>
@@ -233,7 +234,7 @@ export const routes: Routes = [
         canActivate: [roleGuard, featureGuard, permissionGuard],
         data: {
           roles: ["company_admin", "admin", "user"],
-          feature: "item_catalog",
+          feature: "suppliers",
           permission: "suppliers.view",
         },
         loadComponent: () =>
@@ -272,6 +273,7 @@ export const routes: Routes = [
         canActivate: [roleGuard, featureGuard, permissionGuard],
         data: {
           roles: ["platform_admin", "company_admin", "admin", "user"],
+          feature: "vehicle_catalog",
           permission: "vehicle_catalog.view",
         },
         loadComponent: () =>
@@ -300,7 +302,11 @@ export const routes: Routes = [
       {
         path: "users",
         canActivate: [roleGuard, featureGuard, permissionGuard],
-        data: { roles: ["company_admin", "admin"], permission: "users.view" },
+        data: {
+          roles: ["company_admin", "admin"],
+          feature: "user_management",
+          permission: "users.view",
+        },
         loadComponent: () =>
           import("./features/users/users.page").then((m) => m.UsersPage),
       },

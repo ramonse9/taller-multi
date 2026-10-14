@@ -44,6 +44,8 @@ import { CfdiUseCatalog1700000039000 } from './migrations/public/1700000039000-c
 import { CustomerRfcValidation1700000040000 } from './migrations/public/1700000040000-customer-rfc-validation';
 import { PlatformCompanyUserLifecycle1700000041000 } from './migrations/public/1700000041000-platform-company-user-lifecycle';
 import { SimulatedInvoicingSettings1700000042000 } from './migrations/public/1700000042000-simulated-invoicing-settings';
+import { RenameBasicPlanToEssential1700000043000 } from './migrations/public/1700000043000-rename-basic-plan-to-essential';
+import { DefinitiveSubscriptionPlanMatrix1700000044000 } from './migrations/public/1700000044000-definitive-subscription-plan-matrix';
 
 export default new DataSource({
   type: 'postgres',
@@ -94,6 +96,8 @@ export default new DataSource({
     CustomerRfcValidation1700000040000,
     PlatformCompanyUserLifecycle1700000041000,
     SimulatedInvoicingSettings1700000042000,
+    RenameBasicPlanToEssential1700000043000,
+    DefinitiveSubscriptionPlanMatrix1700000044000,
   ],
   migrationsTableName: 'public_schema_migrations',
   synchronize: false,

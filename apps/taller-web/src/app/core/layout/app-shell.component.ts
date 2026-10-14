@@ -20,7 +20,12 @@ interface TenantNavigationItem {
 }
 
 const TENANT_NAVIGATION: TenantNavigationItem[] = [
-  { label: "Tablero", link: "/dashboard", permission: "dashboard.view" },
+  {
+    label: "Tablero",
+    link: "/dashboard",
+    permission: "dashboard.view",
+    feature: "dashboard",
+  },
   {
     label: "Órdenes",
     link: "/orders",
@@ -49,13 +54,13 @@ const TENANT_NAVIGATION: TenantNavigationItem[] = [
     label: "Compras",
     link: "/purchases",
     permissions: ["purchases.view", "catalog.view_costs"],
-    feature: "inventory",
+    feature: "purchases",
   },
   {
     label: "Proveedores",
     link: "/suppliers",
     permission: "suppliers.view",
-    feature: "item_catalog",
+    feature: "suppliers",
   },
   {
     label: "Gastos",
@@ -73,11 +78,13 @@ const TENANT_NAVIGATION: TenantNavigationItem[] = [
     label: "Marcas y modelos",
     link: "/vehicle-catalog",
     permission: "vehicle_catalog.view",
+    feature: "vehicle_catalog",
   },
   {
     label: "Usuarios",
     link: "/users",
     permission: "users.view",
+    feature: "user_management",
     roles: ["company_admin", "admin"],
   },
   { label: "Seguridad", link: "/account" },

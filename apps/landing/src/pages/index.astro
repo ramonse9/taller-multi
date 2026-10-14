@@ -23,7 +23,7 @@ const workflow = [
   ["Utilidad", "Relaciona ingresos, costos directos y gastos del periodo."],
 ];
 
-const basicFeatures = [
+const essentialFeatures = [
   "Clientes y empresas", "Vehículos e historial", "Órdenes con folio automático",
   "Folio externo opcional", "Servicios y conceptos libres", "Estatus y seguimiento interno",
   "Control de pagada o pendiente",
@@ -42,7 +42,7 @@ const moduleGroups = [
 ];
 
 const faqs = [
-  ["¿Tengo que crear un catálogo antes de registrar una orden?", "No. En el plan Básico puedes capturar servicios y conceptos libremente dentro de la orden. El catálogo y el inventario se incorporan con el plan Control cuando el taller los necesita."],
+  ["¿Tengo que crear un catálogo antes de registrar una orden?", "No. En el plan Esencial puedes capturar servicios y conceptos libremente dentro de la orden. El catálogo y el inventario se incorporan con el plan Control cuando el taller los necesita."],
   ["¿Puedo conservar el folio que ya manejo en Excel?", "Sí. Cada orden recibe un folio del sistema y también puede guardar un folio externo opcional para facilitar la comparación durante la transición."],
   ["¿Cómo se relacionan clientes, vehículos y órdenes?", "Cada cliente conserva su lista de vehículos y cada orden queda asociada al cliente o empresa y al vehículo atendido. Así puedes consultar su historial posteriormente."],
   ["¿Puedo separar un servicio cobrado de los insumos que utiliza?", "Sí. La orden distingue los conceptos que forman el total cobrado de los insumos que solamente aportan costo. También puedes cobrar un producto por separado cuando corresponda."],
@@ -93,14 +93,14 @@ const faqs = [
       </div>
     </section>
 
-    <section class="section" id="operacion" aria-labelledby="basico-title">
+    <section class="section" id="operacion" aria-labelledby="esencial-title">
       <div class="container story-grid">
         <div class="story-copy">
-          <p class="eyebrow">PLAN BÁSICO · OPERACIÓN</p>
-          <h2 id="basico-title">Empieza por el historial que sí necesitas</h2>
+          <p class="eyebrow">PLAN ESENCIAL · OPERACIÓN</p>
+          <h2 id="esencial-title">Empieza por el historial que sí necesitas</h2>
           <p class="story-copy__lead">Registra el trabajo sin preparar primero un catálogo. Puedes crear al cliente y al vehículo dentro del flujo, capturar servicios libremente y conservar cada orden.</p>
-          <ul class="feature-list">{basicFeatures.map((feature) => <li>{feature}</li>)}</ul>
-          <WhatsAppLink placement="basic_plan" variant="secondary">Quiero ver el flujo Básico</WhatsAppLink>
+          <ul class="feature-list">{essentialFeatures.map((feature) => <li>{feature}</li>)}</ul>
+          <WhatsAppLink placement="essential_plan" variant="secondary">Quiero ver el flujo Esencial</WhatsAppLink>
         </div>
         <div class="order-illustration" aria-label="Ejemplo ilustrativo de una orden de servicio">
           <div class="illustration-label">VISTA ILUSTRATIVA · SIN DATOS REALES</div>
@@ -179,7 +179,7 @@ const faqs = [
       <div class="container">
         <SectionIntro eyebrow="CRECE POR ETAPAS" title="Empieza con lo necesario. Agrega control cuando tenga sentido." titleId="planes-title" description="Los planes habilitan capacidades distintas sin eliminar la información capturada al cambiar de nivel." />
         <div class="plans-grid">
-          <article class="plan-card"><p class="plan-card__label">BÁSICO</p><h3>Historial y órdenes</h3><p>Para talleres que primero quieren organizar clientes, vehículos, servicios y cobros.</p><ul>{basicFeatures.map((feature) => <li>{feature}</li>)}</ul><WhatsAppLink placement="plan_basic" variant="secondary">Consultar plan Básico</WhatsAppLink></article>
+          <article class="plan-card"><p class="plan-card__label">ESENCIAL</p><h3>Historial y órdenes</h3><p>Para talleres que primero quieren organizar clientes, vehículos, servicios y cobros.</p><ul>{essentialFeatures.map((feature) => <li>{feature}</li>)}</ul><WhatsAppLink placement="plan_essential" variant="secondary">Consultar plan Esencial</WhatsAppLink></article>
           <article class="plan-card plan-card--featured"><p class="plan-card__label">CONTROL</p><h3>Inventario y utilidad</h3><p>Para talleres que también necesitan compras, costos reales, gastos y análisis del resultado.</p><ul>{controlFeatures.map((feature) => <li>{feature}</li>)}</ul><WhatsAppLink placement="plan_control">Consultar plan Control</WhatsAppLink></article>
         </div>
         <div class="future-note"><span>ETAPA FUTURA</span><p><strong>Facturación electrónica.</strong> Está contemplada para una fase posterior y no forma parte de las capacidades actuales.</p></div>
