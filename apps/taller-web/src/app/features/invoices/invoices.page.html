@@ -1,0 +1,294 @@
+<main
+  class="min-h-screen bg-[#fbfaf7] text-[#17251e] dark:bg-[#111d2e] dark:text-[#edf4fb]"
+>
+  <header
+    class="border-b border-[#d5dce3] px-[clamp(1.25rem,5vw,5rem)] py-8 dark:border-[#38516d]"
+  >
+    <div class="flex flex-wrap items-end justify-between gap-5">
+      <div>
+        <p class="eyebrow">PAQUETE FACTURACIÓN</p>
+        <h1
+          class="m-0 font-[var(--display)] text-[clamp(2.5rem,8vw,4.5rem)] font-semibold leading-[.9] tracking-[-.05em]"
+        >
+          Facturación
+        </h1>
+      </div>
+      <button class="theme-toggle" type="button" (click)="theme.toggle()">
+        {{ theme.isDark() ? '☀' : '◐' }}
+      </button>
+    </div>
+  </header>
+  <section class="space-y-6 px-[clamp(1.25rem,5vw,5rem)] pb-16 pt-8">
+    <div
+      class="border-l-4 border-[#d38a2e] bg-[#fff0cf] p-4 text-[#6d4a13] dark:border-[#e6ad5d] dark:bg-[#42351f] dark:text-[#ffe0a8]"
+      role="note"
+    >
+      <strong class="block text-lg">Simulación sin validez fiscal</strong>
+      <p class="mt-1 text-sm">
+        Este módulo no genera CFDI, XML, UUID fiscal, sello SAT ni timbrado. Su
+        propósito es demostrar y validar el flujo antes de integrar un PAC.
+      </p>
+    </div>
+    @if (notice()) {
+    <div
+      class="bg-[#cfe9da] px-4 py-3 text-sm text-[#245b3b] dark:bg-[#294e42] dark:text-[#c9f0df]"
+      role="status"
+    >
+      ✓ {{ notice() }}
+    </div>
+    } @if (error()) {
+    <div
+      class="bg-[#ffdcd2] px-4 py-3 text-sm text-[#8e3214] dark:bg-[#633d3d] dark:text-[#ffd9d4]"
+      role="alert"
+    >
+      {{ error() }}
+    </div>
+    } @if (loading()) {
+    <div class="relative min-h-72">
+      <div class="loader-tw" aria-label="Cargando">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+    } @if (!loading() && settings(); as currentSettings) { @if (orderId &&
+    auth.hasPermission('invoices.create')) {
+    <section class="form-card-tw overflow-hidden">
+      <header class="form-card-header">
+        <span class="section-number">01</span>
+        <div>
+          <h2 class="section-title">Preparar simulación</h2>
+          <p class="section-copy">
+            Orden #{{ orderId.slice(0, 8) }} · los conceptos cobrables se
+            copiarán automáticamente.
+          </p>
+        </div>
+      </header>
+      <form
+        class="grid gap-4 p-5 md:grid-cols-3"
+        [formGroup]="createForm"
+        (ngSubmit)="createDraft()"
+      >
+        <div>
+          <label class="field-label" for="invoice-use">Uso CFDI <b>*</b></label
+          ><select
+            class="field-control"
+            id="invoice-use"
+            formControlName="cfdiUseCode"
+          >
+            @for (item of supported(catalogs()?.cfdiUses || []); track
+            item.code) {
+            <option [value]="item.code">
+              {{ item.code }} · {{ item.description }}
+            </option>
+            }
+          </select>
+        </div>
+        <div>
+          <label class="field-label" for="invoice-method"
+            >Método de pago <b>*</b></label
+          ><select
+            class="field-control"
+            id="invoice-method"
+            formControlName="paymentMethodCode"
+          >
+            @for (item of supported(catalogs()?.paymentMethods || []); track
+            item.code) {
+            <option [value]="item.code">
+              {{ item.code }} · {{ item.description }}
+            </option>
+            }
+          </select>
+        </div>
+        <div>
+          <label class="field-label" for="invoice-form"
+            >Forma de pago <b>*</b></label
+          ><select
+            class="field-control"
+            id="invoice-form"
+            formControlName="paymentFormCode"
+          >
+            @for (item of supported(catalogs()?.paymentForms || []); track
+            item.code) {
+            <option [value]="item.code">
+              {{ item.code }} · {{ item.description }}
+            </option>
+            }
+          </select>
+        </div>
+        <div class="md:col-span-3 flex flex-wrap justify-end gap-3">
+          <a
+            class="small-action-tw no-underline"
+            [routerLink]="['/orders', orderId]"
+            >Volver a la orden</a
+          ><button class="primary" type="submit" [disabled]="saving()">
+            {{ saving() ? 'Creando…' : 'Crear borrador' }}
+          </button>
+        </div>
+      </form>
+    </section>
+    } @if (auth.user()?.role === 'company_admin' &&
+    auth.hasPermission('invoices.configure')) {
+    <details class="form-card-tw overflow-hidden">
+      <summary class="form-card-header cursor-pointer">
+        <span class="section-number">{{ orderId ? '02' : '01' }}</span>
+        <div>
+          <h2 class="section-title">Configuración del emisor</h2>
+          <p class="section-copy">
+            {{ currentSettings.readiness.isIssuerProfileComplete ? 'Perfil
+            fiscal completo' : 'Perfil fiscal pendiente' }} · modo {{
+            currentSettings.mode === 'simulation' ? 'simulación' :
+            'deshabilitado' }}
+          </p>
+        </div>
+      </summary>
+      <form
+        class="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-3"
+        [formGroup]="settingsForm"
+        (ngSubmit)="saveSettings()"
+      >
+        <div>
+          <label class="field-label" for="issuer-name"
+            >Nombre o razón social fiscal</label
+          ><input
+            class="field-control"
+            id="issuer-name"
+            formControlName="fiscalName"
+          />
+        </div>
+        <div>
+          <label class="field-label" for="issuer-rfc">RFC</label
+          ><input
+            class="field-control uppercase"
+            id="issuer-rfc"
+            formControlName="taxId"
+          />
+        </div>
+        <div>
+          <label class="field-label" for="issuer-regime">Régimen fiscal</label
+          ><input
+            class="field-control"
+            id="issuer-regime"
+            formControlName="fiscalRegimeCode"
+            placeholder="601"
+          />
+        </div>
+        <div>
+          <label class="field-label" for="issuer-postal"
+            >Código postal de expedición</label
+          ><input
+            class="field-control"
+            id="issuer-postal"
+            inputmode="numeric"
+            maxlength="5"
+            formControlName="fiscalPostalCode"
+          />
+        </div>
+        <div>
+          <label class="field-label" for="issuer-series">Serie interna</label
+          ><input
+            class="field-control uppercase"
+            id="issuer-series"
+            formControlName="defaultSeries"
+          />
+        </div>
+        <label
+          class="flex items-center gap-3 border border-[#d5dce3] p-3 dark:border-[#38516d]"
+          ><input type="checkbox" formControlName="pricesIncludeTax" /> Los
+          precios de las órdenes incluyen impuestos</label
+        >
+        <label
+          class="flex items-center gap-3 border border-[#d5dce3] p-3 dark:border-[#38516d]"
+          ><input type="checkbox" formControlName="isActive" /> Configuración
+          activa</label
+        >
+        <div class="md:col-span-2 xl:col-span-3 flex justify-end">
+          <button class="primary" type="submit" [disabled]="saving()">
+            Guardar configuración
+          </button>
+        </div>
+      </form>
+    </details>
+    }
+
+    <section class="form-card-tw overflow-hidden">
+      <header class="form-card-header flex-wrap justify-between">
+        <div class="flex items-center gap-3">
+          <span class="section-number">{{ orderId ? '03' : '02' }}</span>
+          <div>
+            <h2 class="section-title">Simulaciones</h2>
+            <p class="section-copy">
+              {{ invoices().totalItems }} documentos internos
+            </p>
+          </div>
+        </div>
+        <select class="field-control max-w-56" [formControl]="status">
+          <option value="">Todos los estatus</option>
+          <option value="draft">Borradores</option>
+          <option value="issued">Emitidas</option>
+          <option value="cancelled">Canceladas</option>
+        </select>
+      </header>
+      <div
+        class="grid gap-3 bg-[#e2e7ec] p-3 sm:grid-cols-2 xl:grid-cols-3 dark:bg-[#20344b]"
+      >
+        @for (invoice of invoices().items; track invoice.id) {
+        <a
+          class="block bg-white p-4 text-inherit no-underline transition hover:-translate-y-0.5 dark:bg-[#19283b]"
+          [routerLink]="['/invoices', invoice.id]"
+        >
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <span class="detail-label">{{ invoice.documentLabel }}</span
+              ><strong class="mt-1 block text-lg"
+                >{{ invoice.series && invoice.folio ? invoice.series + '-' +
+                invoice.folio : 'Borrador' }}</strong
+              >
+            </div>
+            <span
+              class="px-2 py-1 text-xs font-bold"
+              [class.bg-[#ffe3ab]]="invoice.status === 'draft'"
+              [class.bg-[#cfe3fb]]="invoice.status === 'issued'"
+              [class.bg-[#ffd1cc]]="invoice.status === 'cancelled'"
+              >{{ statusName(invoice.status) }}</span
+            >
+          </div>
+          <p class="mt-3 text-sm">
+            Orden #{{ invoice.orderFolio }} · {{ invoice.receiverFiscalName }}
+          </p>
+          <strong class="mt-2 block text-xl">{{ money(invoice.total) }}</strong
+          ><small class="text-[#63717d] dark:text-[#afbed0]"
+            >{{ formatShortDate(invoice.createdAt) }}</small
+          >
+        </a>
+        } @empty {
+        <p
+          class="col-span-full bg-white p-10 text-center text-sm text-[#63717d] dark:bg-[#19283b] dark:text-[#afbed0]"
+        >
+          Todavía no hay simulaciones.
+        </p>
+        }
+      </div>
+      <footer class="pagination-tw">
+        <span
+          >Página {{ invoices().page }} de {{ invoices().totalPages || 1
+          }}</span
+        >
+        <div>
+          <button
+            type="button"
+            [disabled]="invoices().page <= 1"
+            (click)="loadList(invoices().page - 1)"
+          >
+            ←</button
+          ><button
+            type="button"
+            [disabled]="!invoices().hasNextPage"
+            (click)="loadList(invoices().page + 1)"
+          >
+            →
+          </button>
+        </div>
+      </footer>
+    </section>
+    }
+  </section>
+</main>

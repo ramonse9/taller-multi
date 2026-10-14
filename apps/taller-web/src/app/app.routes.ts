@@ -256,6 +256,32 @@ export const routes: Routes = [
           ),
       },
       {
+        path: "invoices/:id",
+        canActivate: [roleGuard, featureGuard, permissionGuard],
+        data: {
+          roles: ["company_admin", "admin", "user"],
+          feature: "invoicing",
+          permission: "invoices.view",
+        },
+        loadComponent: () =>
+          import("./features/invoices/invoice-detail.page").then(
+            (m) => m.InvoiceDetailPage,
+          ),
+      },
+      {
+        path: "invoices",
+        canActivate: [roleGuard, featureGuard, permissionGuard],
+        data: {
+          roles: ["company_admin", "admin", "user"],
+          feature: "invoicing",
+          permission: "invoices.view",
+        },
+        loadComponent: () =>
+          import("./features/invoices/invoices.page").then(
+            (m) => m.InvoicesPage,
+          ),
+      },
+      {
         path: "profitability",
         canActivate: [roleGuard, featureGuard, permissionGuard],
         data: {

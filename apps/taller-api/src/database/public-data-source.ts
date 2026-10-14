@@ -46,6 +46,7 @@ import { PlatformCompanyUserLifecycle1700000041000 } from './migrations/public/1
 import { SimulatedInvoicingSettings1700000042000 } from './migrations/public/1700000042000-simulated-invoicing-settings';
 import { RenameBasicPlanToEssential1700000043000 } from './migrations/public/1700000043000-rename-basic-plan-to-essential';
 import { DefinitiveSubscriptionPlanMatrix1700000044000 } from './migrations/public/1700000044000-definitive-subscription-plan-matrix';
+import { SimulatedInvoiceDocuments1700000045000 } from './migrations/public/1700000045000-simulated-invoice-documents';
 
 export default new DataSource({
   type: 'postgres',
@@ -98,6 +99,7 @@ export default new DataSource({
     SimulatedInvoicingSettings1700000042000,
     RenameBasicPlanToEssential1700000043000,
     DefinitiveSubscriptionPlanMatrix1700000044000,
+    SimulatedInvoiceDocuments1700000045000,
   ],
   migrationsTableName: 'public_schema_migrations',
   synchronize: false,

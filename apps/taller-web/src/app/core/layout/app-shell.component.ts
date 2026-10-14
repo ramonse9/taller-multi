@@ -79,6 +79,12 @@ const TENANT_NAVIGATION: TenantNavigationItem[] = [
     feature: "profitability",
   },
   {
+    label: "Facturación",
+    link: "/invoices",
+    permission: "invoices.view",
+    feature: "invoicing",
+  },
+  {
     label: "Marcas y modelos",
     link: "/vehicle-catalog",
     permission: "vehicle_catalog.view",

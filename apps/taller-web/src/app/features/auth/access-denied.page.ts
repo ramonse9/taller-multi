@@ -71,6 +71,8 @@ const PERMISSION_LABELS: Record<string, string> = {
   "purchases.create": "registrar compras",
   "expenses.view": "consultar gastos",
   "profitability.view": "consultar utilidad",
+  "invoices.view": "consultar facturación simulada",
+  "invoices.create": "crear simulaciones fiscales",
   "vehicle_catalog.view": "consultar marcas y modelos",
   "users.view": "consultar usuarios",
 };

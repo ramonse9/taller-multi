@@ -27,6 +27,8 @@ import {
   PlatformInvoiceModeController,
 } from './invoicing/invoice-settings.controller';
 import { InvoiceSettingsService } from './invoicing/invoice-settings.service';
+import { SimulatedInvoicesController } from './invoicing/simulated-invoices.controller';
+import { SimulatedInvoicesService } from './invoicing/simulated-invoices.service';
 
 @Global()
 @Module({
@@ -45,6 +47,7 @@ import { InvoiceSettingsService } from './invoicing/invoice-settings.service';
     DashboardController,
     InvoiceSettingsController,
     PlatformInvoiceModeController,
+    SimulatedInvoicesController,
   ],
   providers: [
     TenantSessionService,
@@ -60,6 +63,7 @@ import { InvoiceSettingsService } from './invoicing/invoice-settings.service';
     ProfitabilityWorkbookService,
     DashboardService,
     InvoiceSettingsService,
+    SimulatedInvoicesService,
   ],
   exports: [TenantSessionService],
 })

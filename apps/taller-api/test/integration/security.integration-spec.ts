@@ -48,6 +48,7 @@ import { PlatformCompanyUserLifecycle1700000041000 } from '../../src/database/mi
 import { SimulatedInvoicingSettings1700000042000 } from '../../src/database/migrations/public/1700000042000-simulated-invoicing-settings';
 import { RenameBasicPlanToEssential1700000043000 } from '../../src/database/migrations/public/1700000043000-rename-basic-plan-to-essential';
 import { DefinitiveSubscriptionPlanMatrix1700000044000 } from '../../src/database/migrations/public/1700000044000-definitive-subscription-plan-matrix';
+import { SimulatedInvoiceDocuments1700000045000 } from '../../src/database/migrations/public/1700000045000-simulated-invoice-documents';
 import { quoteIdentifier } from '../../src/database/schema-name';
 import { seedPublicCatalogs } from '../../src/database/seeds/public-catalogs.seed';
 import { changePlatformAdminPassword } from '../../src/platform-users/change-platform-admin-password';
@@ -194,6 +195,33 @@ interface PlatformInvoiceModeResponse {
   mode: 'disabled' | 'simulation';
   isActive: boolean;
   isIssuerProfileComplete: boolean;
+}
+
+interface SimulatedInvoiceResponse {
+  id: string;
+  orderId: string;
+  orderFolio: string;
+  status: 'draft' | 'issued' | 'cancelled';
+  series: string | null;
+  folio: number | null;
+  documentLabel: string;
+  cfdiUseCode: string;
+  paymentFormCode: string;
+  paymentMethodCode: string;
+  subtotal: string;
+  transferredTax: string;
+  total: string;
+  items: Array<{
+    orderItemId: string | null;
+    taxObjectCode: string;
+    taxCode: string | null;
+    factorTypeCode: string | null;
+    taxRate: string | null;
+    baseAmount: string;
+    taxAmount: string;
+    total: string;
+  }>;
+  events: Array<{ eventType: string }>;
 }
 
 interface BinaryHttpResult {
@@ -747,6 +775,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         SimulatedInvoicingSettings1700000042000,
         RenameBasicPlanToEssential1700000043000,
         DefinitiveSubscriptionPlanMatrix1700000044000,
+        SimulatedInvoiceDocuments1700000045000,
       ],
       migrationsTableName: 'public_schema_migrations',
       synchronize: false,
@@ -885,15 +914,15 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     );
 
     expect(
-      (await request<unknown>('GET', '/invoices/settings', { token: essential.accessToken })).status,
+      (await request<unknown>('GET', '/invoices/settings', { token: essential.accessToken }))
+        .status,
     ).toBe(403);
     expect(
       (
-        await request<unknown>(
-          'PATCH',
-          `/companies/${essential.company.id}/invoicing-mode`,
-          { token: platformToken, body: { mode: 'simulation' } },
-        )
+        await request<unknown>('PATCH', `/companies/${essential.company.id}/invoicing-mode`, {
+          token: platformToken,
+          body: { mode: 'simulation' },
+        })
       ).status,
     ).toBe(403);
 
@@ -1022,13 +1051,256 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(swagger.paths['/api/invoices/settings']).toBeDefined();
     expect(swagger.paths['/api/companies/{companyId}/invoicing-mode']).toBeDefined();
     const settingsSchema = JSON.stringify(swagger.components?.schemas?.InvoiceSettingsResponseDto);
-    const readinessSchema = JSON.stringify(
-      swagger.components?.schemas?.IssuerReadinessResponseDto,
-    );
+    const readinessSchema = JSON.stringify(swagger.components?.schemas?.IssuerReadinessResponseDto);
     expect(settingsSchema).toContain('IssuerReadinessResponseDto');
     expect(readinessSchema).toContain('isIssuerProfileComplete');
     expect(settingsSchema).not.toContain('certificate');
     expect(settingsSchema).not.toContain('privateKey');
+  });
+
+  it('crea, recalcula, emite y cancela una simulación desde una orden terminada', async () => {
+    const tenant = await provisionAndLogin(
+      'Documentos Simulados Integration',
+      'invoice.documents@test.local',
+      'invoicing',
+    );
+    const controlPlan = await provisionAndLogin(
+      'Control Sin Facturación Integration',
+      'invoice.control@test.local',
+      'control',
+    );
+
+    expect(
+      (await request<unknown>('GET', '/invoices/catalogs', { token: controlPlan.accessToken }))
+        .status,
+    ).toBe(403);
+
+    expect(
+      (
+        await request<PlatformInvoiceModeResponse>(
+          'PATCH',
+          `/companies/${tenant.company.id}/invoicing-mode`,
+          { token: platformToken, body: { mode: 'simulation' } },
+        )
+      ).status,
+    ).toBe(200);
+    expect(
+      (
+        await request<InvoiceSettingsResponse>('PATCH', '/invoices/settings', {
+          token: tenant.accessToken,
+          body: {
+            fiscalName: 'Taller Emisor de Simulación',
+            taxId: 'LOPA900101AB1',
+            fiscalRegimeCode: '612',
+            fiscalPostalCode: '80000',
+            defaultSeries: 'SIM',
+            nextInternalFolio: 25,
+            pricesIncludeTax: true,
+            isActive: true,
+          },
+        })
+      ).status,
+    ).toBe(200);
+
+    const customer = await request<ClientResponse>('POST', '/clients', {
+      token: tenant.accessToken,
+      body: {
+        type: 'person',
+        displayName: 'Receptor de Simulación',
+        taxId: 'GODE561231GR8',
+        fiscalName: 'Receptor de Simulación',
+        fiscalPostalCode: '80000',
+        fiscalRegimeCode: '612',
+        preferredCfdiUseCode: 'G03',
+      },
+    });
+    expect(customer.status).toBe(201);
+    expect(customer.body.fiscalReadiness.isReadyToInvoice).toBe(true);
+
+    const brand = await request<VehicleBrandResponse>('POST', '/catalogs/vehicle-brands', {
+      token: tenant.accessToken,
+      body: { name: 'Marca Simulación Integration' },
+    });
+    const model = await request<VehicleModelResponse>('POST', '/catalogs/vehicle-models', {
+      token: tenant.accessToken,
+      body: { brandId: brand.body.id, name: 'Modelo Simulación Integration' },
+    });
+    const vehicle = await request<VehicleResponse>(
+      'POST',
+      `/clients/${customer.body.id}/vehicles`,
+      {
+        token: tenant.accessToken,
+        body: {
+          brandId: brand.body.id,
+          modelId: model.body.id,
+          year: 2026,
+          color: 'Azul',
+        },
+      },
+    );
+    const order = await request<OrderResponse>('POST', '/orders', {
+      token: tenant.accessToken,
+      body: {
+        customerId: customer.body.id,
+        vehicleId: vehicle.body.id,
+        items: [
+          {
+            kind: 'service',
+            description: 'Servicio demostrativo con IVA incluido',
+            quantity: 1,
+            unitPrice: 1160,
+          },
+        ],
+      },
+    });
+    expect(order.status).toBe(201);
+
+    const inProgress = await request<unknown>('POST', '/invoices', {
+      token: tenant.accessToken,
+      body: {
+        orderId: order.body.id,
+        cfdiUseCode: 'G03',
+        paymentFormCode: '03',
+        paymentMethodCode: 'PUE',
+      },
+    });
+    expect(inProgress.status).toBe(422);
+
+    const completed = await request<OrderResponse>('POST', `/orders/${order.body.id}/status`, {
+      token: tenant.accessToken,
+      body: { status: 'completed' },
+    });
+    expect(completed.status).toBe(200);
+
+    const created = await request<SimulatedInvoiceResponse>('POST', '/invoices', {
+      token: tenant.accessToken,
+      body: {
+        orderId: order.body.id,
+        cfdiUseCode: 'G03',
+        paymentFormCode: '03',
+        paymentMethodCode: 'PUE',
+      },
+    });
+    expect(created.status).toBe(201);
+    expect(created.body).toMatchObject({
+      orderId: order.body.id,
+      status: 'draft',
+      series: null,
+      folio: null,
+      documentLabel: 'Simulación sin validez fiscal',
+      subtotal: '1000.00',
+      transferredTax: '160.00',
+      total: '1160.00',
+      items: [
+        expect.objectContaining({
+          taxObjectCode: '02',
+          taxCode: '002',
+          factorTypeCode: 'Tasa',
+          taxRate: '0.160000',
+          baseAmount: '1000.00',
+          taxAmount: '160.00',
+          total: '1160.00',
+        }),
+      ],
+    });
+    expect(created.body).not.toHaveProperty('uuid');
+    expect(created.body).not.toHaveProperty('satSeal');
+    expect(created.body).not.toHaveProperty('xml');
+
+    expect(
+      (
+        await request<unknown>('POST', '/invoices', {
+          token: tenant.accessToken,
+          body: {
+            orderId: order.body.id,
+            cfdiUseCode: 'G03',
+            paymentFormCode: '03',
+            paymentMethodCode: 'PUE',
+          },
+        })
+      ).status,
+    ).toBe(409);
+
+    const edited = await request<SimulatedInvoiceResponse>(
+      'PATCH',
+      `/invoices/${created.body.id}`,
+      {
+        token: tenant.accessToken,
+        body: { paymentMethodCode: 'PPD', paymentFormCode: '99' },
+      },
+    );
+    expect(edited.status).toBe(200);
+    expect(edited.body).toMatchObject({ paymentMethodCode: 'PPD', paymentFormCode: '99' });
+
+    const issued = await request<SimulatedInvoiceResponse>(
+      'POST',
+      `/invoices/${created.body.id}/issue-simulation`,
+      { token: tenant.accessToken },
+    );
+    expect(issued.status).toBe(200);
+    expect(issued.body).toMatchObject({
+      status: 'issued',
+      series: 'SIM',
+      folio: 25,
+      documentLabel: 'Simulación sin validez fiscal',
+    });
+    expect(issued.body.events.map(({ eventType }) => eventType)).toEqual([
+      'created',
+      'updated',
+      'issued',
+    ]);
+    expect(
+      (
+        await request<unknown>('PATCH', `/invoices/${created.body.id}`, {
+          token: tenant.accessToken,
+          body: { cfdiUseCode: 'G03' },
+        })
+      ).status,
+    ).toBe(400);
+
+    const cancelled = await request<SimulatedInvoiceResponse>(
+      'POST',
+      `/invoices/${created.body.id}/cancel-simulation`,
+      { token: tenant.accessToken },
+    );
+    expect(cancelled.status).toBe(200);
+    expect(cancelled.body.status).toBe('cancelled');
+    expect(cancelled.body.events.map(({ eventType }) => eventType)).toEqual([
+      'created',
+      'updated',
+      'issued',
+      'cancelled',
+    ]);
+    expect(
+      (
+        await request<unknown>('POST', `/invoices/${created.body.id}/cancel-simulation`, {
+          token: tenant.accessToken,
+        })
+      ).status,
+    ).toBe(400);
+
+    const schema = quoteIdentifier(tenant.company.schemaName);
+    const stored = await control.query<
+      Array<{ fiscal_uuid: string | null; sat_seal: string | null; xml: string | null }>
+    >(
+      `SELECT
+         to_jsonb(invoice)->>'fiscal_uuid' AS fiscal_uuid,
+         to_jsonb(invoice)->>'sat_seal' AS sat_seal,
+         to_jsonb(invoice)->>'xml' AS xml
+       FROM ${schema}.simulated_invoices invoice WHERE id=$1`,
+      [created.body.id],
+    );
+    expect(stored[0]).toEqual({ fiscal_uuid: null, sat_seal: null, xml: null });
+
+    const swagger = SwaggerModule.createDocument(app, new DocumentBuilder().build());
+    expect(swagger.paths['/api/invoices']).toBeDefined();
+    expect(swagger.paths['/api/invoices/catalogs']).toBeDefined();
+    expect(swagger.paths['/api/invoices/{id}/issue-simulation']).toBeDefined();
+    expect(swagger.paths['/api/invoices/{id}/cancel-simulation']).toBeDefined();
+    const documentSchema = JSON.stringify(swagger.components?.schemas?.SimulatedInvoiceResponseDto);
+    expect(documentSchema).toContain('Simulación sin validez fiscal');
+    expect(documentSchema).not.toContain('fiscalUuid');
+    expect(documentSchema).not.toContain('satSeal');
   });
 
   it('revierte compañía, schema y versión si falla el aprovisionamiento', async () => {
@@ -1304,7 +1576,9 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       expect.objectContaining({ code: 'CFDI_USE_REQUIRED', field: 'preferredCfdiUseCode' }),
     ]);
 
-    await control.query("UPDATE public.sat_fiscal_regimes SET is_active = false WHERE code = '612'");
+    await control.query(
+      "UPDATE public.sat_fiscal_regimes SET is_active = false WHERE code = '612'",
+    );
     try {
       const inactiveRegime = await request<ClientResponse>('GET', `/clients/${created.body.id}`, {
         token: alpha.accessToken,
@@ -1336,7 +1610,9 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         expect.objectContaining({ code: 'FISCAL_REGIME_INACTIVE' }),
       );
     } finally {
-      await control.query("UPDATE public.sat_fiscal_regimes SET is_active = true WHERE code = '612'");
+      await control.query(
+        "UPDATE public.sat_fiscal_regimes SET is_active = true WHERE code = '612'",
+      );
     }
 
     await request<ClientResponse>('PATCH', `/clients/${created.body.id}`, {
@@ -1429,9 +1705,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     const cfdiUseSchema = JSON.stringify(swagger.components?.schemas?.CfdiUseResponseDto);
     expect(cfdiUseSchema).toContain('description');
     expect(cfdiUseSchema).toContain('validFrom');
-    const readinessSchema = JSON.stringify(
-      swagger.components?.schemas?.FiscalReadinessResponseDto,
-    );
+    const readinessSchema = JSON.stringify(swagger.components?.schemas?.FiscalReadinessResponseDto);
     expect(readinessSchema).toContain('isFiscalProfileComplete');
     expect(readinessSchema).toContain('isReadyToInvoice');
     expect(readinessSchema).toContain('missingFields');
@@ -1839,7 +2113,13 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         'user_management',
       ]),
     );
-    for (const unavailable of ['item_catalog', 'suppliers', 'purchases', 'inventory', 'invoicing']) {
+    for (const unavailable of [
+      'item_catalog',
+      'suppliers',
+      'purchases',
+      'inventory',
+      'invoicing',
+    ]) {
       expect(initial.body.features).not.toContain(unavailable);
     }
     expect(
@@ -1918,19 +2198,15 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       token: tenant.accessToken,
       body: { brandId: brand.body.id, name: 'Modelo conservado por suscripción' },
     });
-    const vehicle = await request<VehicleResponse>(
-      'POST',
-      `/clients/${client.body.id}/vehicles`,
-      {
-        token: tenant.accessToken,
-        body: {
-          brandId: brand.body.id,
-          modelId: model.body.id,
-          year: 2026,
-          color: 'Azul',
-        },
+    const vehicle = await request<VehicleResponse>('POST', `/clients/${client.body.id}/vehicles`, {
+      token: tenant.accessToken,
+      body: {
+        brandId: brand.body.id,
+        modelId: model.body.id,
+        year: 2026,
+        color: 'Azul',
       },
-    );
+    });
     expect(vehicle.status).toBe(201);
 
     const upgraded = await request<{
@@ -1994,11 +2270,9 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(
       (await request<unknown>('GET', '/catalogs/concepts', { token: tenant.accessToken })).status,
     ).toBe(403);
-    const historicalOrder = await request<OrderResponse>(
-      'GET',
-      `/orders/${catalogOrder.body.id}`,
-      { token: tenant.accessToken },
-    );
+    const historicalOrder = await request<OrderResponse>('GET', `/orders/${catalogOrder.body.id}`, {
+      token: tenant.accessToken,
+    });
     expect(historicalOrder.status).toBe(200);
     expect(historicalOrder.body.items[0]).toMatchObject({
       productServiceId: catalogService.body.id,
@@ -2247,11 +2521,10 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       status: 'confirmed',
       supplier: { commercialName: 'Proveedor general', isDefault: true },
     });
-    const paid = await request<OrderResponse>(
-      'PATCH',
-      `/orders/${order.body.id}/payment-status`,
-      { token: tenant.accessToken, body: { isPaid: true } },
-    );
+    const paid = await request<OrderResponse>('PATCH', `/orders/${order.body.id}/payment-status`, {
+      token: tenant.accessToken,
+      body: { isPaid: true },
+    });
     expect(paid.body.isPaid).toBe(true);
 
     const dashboard = await request<DashboardSummaryResponse>('GET', '/dashboard/summary', {
@@ -2444,12 +2717,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
           fullName: 'Administración actualizada por plataforma',
           role: 'admin',
           templateCode: null,
-          permissionCodes: [
-            'dashboard.view',
-            'users.view',
-            'users.manage',
-            'permissions.manage',
-          ],
+          permissionCodes: ['dashboard.view', 'users.view', 'users.manage', 'permissions.manage'],
         },
       },
     );
@@ -2463,12 +2731,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       templateCode: null,
       isCustomized: true,
       automatic: false,
-      permissionCodes: [
-        'dashboard.view',
-        'permissions.manage',
-        'users.manage',
-        'users.view',
-      ],
+      permissionCodes: ['dashboard.view', 'permissions.manage', 'users.manage', 'users.view'],
     });
     expect(
       (
@@ -2489,12 +2752,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(updatedLogin.status).toBe(200);
     expect(updatedLogin.body.user).toMatchObject({
       role: 'admin',
-      permissions: [
-        'dashboard.view',
-        'users.view',
-        'users.manage',
-        'permissions.manage',
-      ],
+      permissions: ['dashboard.view', 'users.view', 'users.manage', 'permissions.manage'],
     });
 
     const deactivated = await request<typeof detail.body>(
@@ -2517,12 +2775,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(reactivated.status).toBe(200);
     expect(reactivated.body).toMatchObject({
       user: { isActive: true, role: 'admin' },
-      permissionCodes: [
-        'dashboard.view',
-        'permissions.manage',
-        'users.manage',
-        'users.view',
-      ],
+      permissionCodes: ['dashboard.view', 'permissions.manage', 'users.manage', 'users.view'],
     });
     expect((await login(created.body.user.loginName, 'Alta26a')).status).toBe(200);
 
@@ -2610,12 +2863,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       previous_is_active: true,
       current_is_active: true,
       previous_permission_codes: ['clients.create', 'clients.view', 'dashboard.view'],
-      permission_codes: [
-        'dashboard.view',
-        'permissions.manage',
-        'users.manage',
-        'users.view',
-      ],
+      permission_codes: ['dashboard.view', 'permissions.manage', 'users.manage', 'users.view'],
     });
     expect(audit[1]?.changes).toHaveProperty('permissionCodes');
     expect(audit[2]).toMatchObject({
@@ -2640,9 +2888,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(userLifecyclePath?.patch).toBeDefined();
     expect(userLifecyclePath?.delete).toBeDefined();
     expect(activatePath?.patch).toBeDefined();
-    const updateSchema = JSON.stringify(
-      swagger.components?.schemas?.UpdatePlatformCompanyUserDto,
-    );
+    const updateSchema = JSON.stringify(swagger.components?.schemas?.UpdatePlatformCompanyUserDto);
     expect(updateSchema).toContain('templateCode');
     expect(updateSchema).toContain('permissionCodes');
     expect(updateSchema).toContain('isActive');
@@ -4048,11 +4294,9 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     });
     expect(
       (
-        await request<unknown>(
-          'GET',
-          `/inventory/products/${inventoryConcept.body.id}/lots`,
-          { token: operatorLogin.body.accessToken },
-        )
+        await request<unknown>('GET', `/inventory/products/${inventoryConcept.body.id}/lots`, {
+          token: operatorLogin.body.accessToken,
+        })
       ).status,
     ).toBe(403);
 
@@ -4748,10 +4992,10 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     ).toBe(400);
 
     const versions = await control.query<Array<{ version: number }>>(
-      'SELECT version FROM public.tenant_schema_versions WHERE company_id = $1 AND version = 27',
+      'SELECT version FROM public.tenant_schema_versions WHERE company_id = $1 AND version = 28',
       [tenant.company.id],
     );
-    expect(versions).toEqual([{ version: 27 }]);
+    expect(versions).toEqual([{ version: 28 }]);
 
     const isolated = await provisionAndLogin(
       'Expense Isolated Integration',
@@ -5832,9 +6076,13 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       isComplete: true,
     });
     expect(essential.body.lowStock).toBeNull();
-    const essentialActivity = await request<DashboardActivityResponse>('GET', '/dashboard/activity', {
-      token: tenant.accessToken,
-    });
+    const essentialActivity = await request<DashboardActivityResponse>(
+      'GET',
+      '/dashboard/activity',
+      {
+        token: tenant.accessToken,
+      },
+    );
     expect(essentialActivity.status).toBe(200);
     expect(essentialActivity.body.recentOrders).toHaveLength(3);
     expect(essentialActivity.body.oldestInProgress).toEqual([
@@ -6850,28 +7098,20 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       'vehicle_catalog.manage',
     ]);
 
-    const delegatedBrand = await request<VehicleBrandResponse>(
-      'POST',
-      '/catalogs/vehicle-brands',
-      {
-        token: ordinarySession.body.accessToken,
-        body: { name: 'Marca creada con permiso configurable' },
-      },
-    );
+    const delegatedBrand = await request<VehicleBrandResponse>('POST', '/catalogs/vehicle-brands', {
+      token: ordinarySession.body.accessToken,
+      body: { name: 'Marca creada con permiso configurable' },
+    });
     expect(delegatedBrand.status).toBe(201);
     expect(delegatedBrand.body.createdByUserId).toBe(ordinary.body.id);
 
-    const delegatedModel = await request<VehicleModelResponse>(
-      'POST',
-      '/catalogs/vehicle-models',
-      {
-        token: ordinarySession.body.accessToken,
-        body: {
-          brandId: delegatedBrand.body.id,
-          name: 'Modelo creado con permiso configurable',
-        },
+    const delegatedModel = await request<VehicleModelResponse>('POST', '/catalogs/vehicle-models', {
+      token: ordinarySession.body.accessToken,
+      body: {
+        brandId: delegatedBrand.body.id,
+        name: 'Modelo creado con permiso configurable',
       },
-    );
+    });
     expect(delegatedModel.status).toBe(201);
     expect(delegatedModel.body).toMatchObject({
       brandId: delegatedBrand.body.id,
