@@ -203,3 +203,18 @@ Actualización del 13 de octubre de 2026:
 - Las únicas condiciones directas de rol conservadas dentro de módulos tenant corresponden a la configuración fiscal sensible del emisor. La administración de usuarios y permisos conserva su jerarquía fuera de los módulos operativos.
 
 Esta normalización no requiere una migración de base de datos.
+
+## Normalización aplicada en el frontend
+
+Actualización del 13 de octubre de 2026:
+
+- La navegación tenant utiliza una sola definición para `company_admin`, `admin` y `user`, filtrada por plan y permisos. Ya no existen dos menús operativos que puedan desviarse entre roles.
+- **Marcas y modelos** aparece para cualquier usuario tenant con `vehicle_catalog.view`; sus acciones de escritura continúan protegidas por `vehicle_catalog.manage`.
+- **Usuarios** conserva la restricción de jerarquía para `company_admin` y `admin`.
+- El detalle del cliente requiere solamente `clients.view`. La consulta y edición de vehículos se muestran y se cargan mediante sus permisos correspondientes.
+- La captura de costo manual usa `orders.create` al crear y `orders.edit` al editar. La consulta de costos de catálogo y FIFO conserva `catalog.view_costs`.
+- Las acciones rápidas del tablero se calculan mediante las mismas dependencias de plan y permisos que sus rutas.
+- Los errores `403` por permisos se presentan como una explicación accionable y no como el mensaje genérico **Permisos insuficientes**.
+- Las condiciones visuales restantes basadas en rol corresponden a plataforma, descripción de la cuenta o administración jerárquica de usuarios.
+
+Esta normalización tampoco requiere una migración de base de datos.

@@ -102,7 +102,7 @@ export class OrderWizardPage implements OnInit {
       this.auth.hasPermission("catalog.view"),
   );
   readonly canCaptureOrderCosts = computed(() =>
-    this.auth.hasPermission("orders.create"),
+    this.auth.hasPermission(this.editing ? "orders.edit" : "orders.create"),
   );
   readonly canUseProfitability = computed(
     () =>

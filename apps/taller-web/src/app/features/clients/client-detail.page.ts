@@ -15,7 +15,7 @@ import {
   Validators,
 } from "@angular/forms";
 import { ActivatedRoute, RouterLink } from "@angular/router";
-import { finalize, forkJoin } from "rxjs";
+import { finalize, forkJoin, of } from "rxjs";
 import { AuthService } from "../../core/auth/auth.service";
 import { apiErrorMessage } from "../../core/http/api-error";
 import { formatShortDate } from "../../core/dates/date-format";
@@ -75,8 +75,23 @@ export class ClientDetailPage implements OnInit {
   readonly editing = signal<Vehicle | null>(null);
   readonly history = signal<VehicleHistory | null>(null);
   readonly maxYear = new Date().getFullYear() + 1;
-  readonly canManageCatalog = computed(() =>
-    this.auth.hasPermission("vehicle_catalog.manage"),
+  readonly canManageCatalog = computed(
+    () =>
+      this.auth.hasPermission("vehicle_catalog.manage") &&
+      this.auth.hasPermission("vehicle_catalog.view"),
+  );
+  readonly canViewVehicles = computed(() =>
+    this.auth.hasPermission("vehicles.view"),
+  );
+  readonly canCreateVehicle = computed(
+    () =>
+      this.auth.hasPermission("vehicles.create") &&
+      this.auth.hasPermission("vehicle_catalog.view"),
+  );
+  readonly canEditVehicle = computed(
+    () =>
+      this.auth.hasPermission("vehicles.edit") &&
+      this.auth.hasPermission("vehicle_catalog.view"),
   );
 
   readonly brandSearch = new FormControl("", { nonNullable: true });
@@ -139,15 +154,30 @@ export class ClientDetailPage implements OnInit {
   loadPage(): void {
     this.loading.set(true);
     this.error.set("");
+    const canViewVehicles = this.canViewVehicles();
+    const canViewVehicleCatalog = this.auth.hasPermission(
+      "vehicle_catalog.view",
+    );
     forkJoin({
       client: this.clients.getOne(this.clientId),
-      vehicles: this.vehiclesService.list(this.clientId),
-      brands: this.catalog.listBrands({
-        page: 1,
-        limit: 100,
-        search: "",
-        isActive: true,
-      }),
+      vehicles: canViewVehicles
+        ? this.vehiclesService.list(this.clientId)
+        : of([] as Vehicle[]),
+      brands: canViewVehicleCatalog
+        ? this.catalog.listBrands({
+            page: 1,
+            limit: 100,
+            search: "",
+            isActive: true,
+          })
+        : of({
+            page: 1,
+            limit: 100,
+            totalItems: 0,
+            totalPages: 0,
+            hasNextPage: false,
+            items: [],
+          } as PaginatedCatalog<VehicleBrand>),
     })
       .pipe(
         finalize(() => this.loading.set(false)),
@@ -161,10 +191,7 @@ export class ClientDetailPage implements OnInit {
         },
         error: (error: unknown) =>
           this.error.set(
-            apiErrorMessage(
-              error,
-              "No pudimos cargar el cliente y sus vehículos.",
-            ),
+            apiErrorMessage(error, "No pudimos cargar el detalle del cliente."),
           ),
       });
   }
@@ -409,6 +436,7 @@ export class ClientDetailPage implements OnInit {
   }
 
   private loadVehicles(): void {
+    if (!this.canViewVehicles()) return;
     this.vehiclesService
       .list(this.clientId)
       .pipe(takeUntilDestroyed(this.destroyRef))

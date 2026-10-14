@@ -84,6 +84,15 @@ export class OrderDetailPage implements OnInit {
       this.auth.hasPermission("orders.manage_payment"),
   );
 
+  canViewItemCost(item: OrderItem): boolean {
+    return (
+      this.auth.hasPermission("catalog.view_costs") ||
+      (item.productServiceId === null &&
+        (this.auth.hasPermission("orders.create") ||
+          this.auth.hasPermission("orders.edit")))
+    );
+  }
+
   ngOnInit(): void {
     this.load();
   }

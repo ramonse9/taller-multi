@@ -287,8 +287,8 @@
             } @else if (brandSearch.value && !vehicleForm.controls.brandId.value
             && !canManageCatalog()) {
             <span class="field-hint"
-              >La marca no existe. Solicita su creación a un
-              administrador.</span
+              >La marca no existe. Solicita su creación a un una persona con
+              permiso para administrar marcas y modelos.</span
             >
             } @if (vehicleForm.controls.brandId.touched &&
             vehicleForm.controls.brandId.invalid) {
@@ -328,8 +328,8 @@
             } @else if (modelSearch.value && !vehicleForm.controls.modelId.value
             && !canManageCatalog()) {
             <span class="field-hint"
-              >El modelo no existe. Solicita su creación a un
-              administrador.</span
+              >El modelo no existe. Solicita su creación a un una persona con
+              permiso para administrar marcas y modelos.</span
             >
             } @if (vehicleForm.controls.modelId.touched &&
             vehicleForm.controls.modelId.invalid) {

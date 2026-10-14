@@ -45,6 +45,41 @@ export class DashboardPage implements OnInit {
   readonly analyticsError = signal("");
   readonly loading = signal(true);
   readonly error = signal("");
+  readonly canCreateOrder = computed(
+    () =>
+      this.auth.hasFeature("service_orders") &&
+      this.auth.hasPermission("orders.create") &&
+      this.auth.hasPermission("clients.view") &&
+      this.auth.hasPermission("vehicles.view") &&
+      this.auth.hasPermission("vehicle_catalog.view"),
+  );
+  readonly canCreateClient = computed(
+    () =>
+      this.auth.hasFeature("customer_history") &&
+      this.auth.hasPermission("clients.view") &&
+      this.auth.hasPermission("clients.create"),
+  );
+  readonly canCreatePurchase = computed(
+    () =>
+      this.auth.hasFeature("inventory") &&
+      this.auth.hasPermission("purchases.create") &&
+      this.auth.hasPermission("catalog.view") &&
+      this.auth.hasPermission("catalog.view_costs") &&
+      this.auth.hasPermission("suppliers.view"),
+  );
+  readonly canCreateExpense = computed(
+    () =>
+      this.auth.hasFeature("expenses") &&
+      this.auth.hasPermission("expenses.view") &&
+      this.auth.hasPermission("expenses.create"),
+  );
+  readonly hasQuickActions = computed(
+    () =>
+      this.canCreateOrder() ||
+      this.canCreateClient() ||
+      this.canCreatePurchase() ||
+      this.canCreateExpense(),
+  );
   readonly empty = computed(() => {
     const summary = this.summary();
     const activity = this.activity();

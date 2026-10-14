@@ -60,7 +60,7 @@ export const routes: Routes = [
         data: {
           roles: ["company_admin", "admin", "user"],
           feature: "customer_history",
-          permission: ["clients.view", "vehicles.view", "vehicle_catalog.view"],
+          permission: "clients.view",
         },
         loadComponent: () =>
           import("./features/clients/client-detail.page").then(

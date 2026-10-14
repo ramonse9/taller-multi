@@ -33,10 +33,10 @@
         (click)="openClientEditor()"
         aria-label="Editar cliente"
       >
-        <span aria-hidden="true">✎</span><span class="ml-1 max-sm:hidden">Editar cliente</span>
+        <span aria-hidden="true">✎</span
+        ><span class="ml-1 max-sm:hidden">Editar cliente</span>
       </button>
-      }
-      @if (auth.hasPermission('orders.view')) {
+      } @if (auth.hasPermission('orders.view')) {
       <a
         class="secondary-tw no-underline max-sm:hidden"
         routerLink="/orders"
@@ -53,7 +53,8 @@
       >
         {{ theme.isDark() ? '☀' : '◐' }}
       </button>
-      @if (auth.hasPermission('vehicles.create')) { <button
+      @if (canCreateVehicle()) {
+      <button
         class="primary max-sm:px-3"
         type="button"
         [disabled]="!client()?.isActive"
@@ -61,7 +62,8 @@
       >
         <span class="mr-1 text-xl">＋</span
         ><span class="max-[480px]:hidden">Nuevo </span>vehículo
-      </button> }
+      </button>
+      }
     </div>
   </header>
 
@@ -133,34 +135,36 @@
         : 'border-[#d8b76b] bg-[#fff8e5] dark:border-[#7c6937] dark:bg-[#3c3526]'"
       aria-labelledby="fiscal-readiness-title"
     >
-      <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div
+        class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
+      >
         <div class="min-w-0">
           <p class="eyebrow">PREPARACIÓN PARA FACTURACIÓN</p>
           <h2
             class="m-0 font-[var(--display)] text-2xl font-semibold"
             id="fiscal-readiness-title"
           >
-            {{ currentClient.fiscalReadiness.isReadyToInvoice
-              ? 'Cliente listo para facturar'
-              : currentClient.fiscalReadiness.isFiscalProfileComplete
-                ? 'Perfil fiscal completo'
-                : 'Datos fiscales pendientes' }}
+            {{ currentClient.fiscalReadiness.isReadyToInvoice ? 'Cliente listo
+            para facturar' :
+            currentClient.fiscalReadiness.isFiscalProfileComplete ? 'Perfil
+            fiscal completo' : 'Datos fiscales pendientes' }}
           </h2>
           @if (currentClient.fiscalReadiness.isReadyToInvoice) {
           <p class="mb-0 mt-2 text-sm text-[#526675] dark:text-[#c2d0df]">
-            El Uso CFDI guardado funcionará solamente como valor inicial y podrá cambiarse
-            en cada factura futura sin modificar al cliente.
+            El Uso CFDI guardado funcionará solamente como valor inicial y podrá
+            cambiarse en cada factura futura sin modificar al cliente.
           </p>
           } @else {
           <p class="mb-0 mt-2 text-sm text-[#526675] dark:text-[#c2d0df]">
-            Esto no impide registrar vehículos ni órdenes. Completa la información cuando
-            necesites facturar.
+            Esto no impide registrar vehículos ni órdenes. Completa la
+            información cuando necesites facturar.
           </p>
           <ul class="mb-0 mt-3 grid gap-1 pl-5 text-sm">
-            @for (item of currentClient.fiscalReadiness.missingFields; track item.code) {
+            @for (item of currentClient.fiscalReadiness.missingFields; track
+            item.code) {
             <li>{{ item.message }}</li>
-            }
-            @for (item of currentClient.fiscalReadiness.validationIssues; track item.code) {
+            } @for (item of currentClient.fiscalReadiness.validationIssues;
+            track item.code) {
             <li>{{ item.message }}</li>
             }
           </ul>
@@ -172,15 +176,13 @@
           type="button"
           (click)="openClientEditor()"
         >
-          {{ currentClient.fiscalReadiness.isReadyToInvoice
-            ? 'Revisar datos fiscales'
-            : 'Completar datos fiscales' }}
+          {{ currentClient.fiscalReadiness.isReadyToInvoice ? 'Revisar datos
+          fiscales' : 'Completar datos fiscales' }}
         </button>
         }
       </div>
     </section>
-    }
-
+    } @if (canViewVehicles()) {
     <div class="mb-5 flex items-end justify-between gap-5">
       <div>
         <p class="eyebrow">GARAGE DEL CLIENTE</p>
@@ -256,13 +258,14 @@
           class="flex items-center justify-between gap-3 border-t border-[#e2e7ec] px-5 py-3 dark:border-[#38516d]"
         >
           <div class="flex items-center gap-3">
-            @if (auth.hasPermission('orders.view')) { <a
+            @if (auth.hasPermission('orders.view')) {
+            <a
               class="text-xs font-bold text-[#b94718] underline underline-offset-4 dark:text-[#ff9a6f]"
               routerLink="/orders"
               [queryParams]="{ customerId: clientId, vehicleId: vehicle.id }"
               >Órdenes</a
-            > }
-            @if (vehicle.numeroSerie) {
+            >
+            } @if (vehicle.numeroSerie) {
             <button
               class="bg-transparent p-0 text-xs font-bold text-[#b94718] underline underline-offset-4 dark:text-[#ff9a6f]"
               type="button"
@@ -272,13 +275,15 @@
             </button>
             }
           </div>
-          @if (auth.hasPermission('vehicles.edit')) { <button
+          @if (canEditVehicle()) {
+          <button
             class="bg-transparent p-0 text-xs font-bold text-[#b94718] underline underline-offset-4 dark:text-[#ff9a6f]"
             type="button"
             (click)="openEdit(vehicle)"
           >
             Editar
-          </button> }
+          </button>
+          }
         </footer>
       </article>
       } @empty { @if (!loading()) {
@@ -293,14 +298,16 @@
           <p class="mb-5 mt-1 text-sm text-[#63717d] dark:text-[#afbed0]">
             Registra el primero para comenzar su historial de servicio.
           </p>
-          @if (auth.hasPermission('vehicles.create')) { <button
+          @if (canCreateVehicle()) {
+          <button
             class="secondary-tw"
             type="button"
             [disabled]="!client()?.isActive"
             (click)="openCreate()"
           >
             Registrar vehículo
-          </button> }
+          </button>
+          }
         </div>
       </div>
       } } @if (loading()) {
@@ -309,6 +316,7 @@
       </div>
       }
     </div>
+    }
   </section>
 </main>
 
@@ -318,9 +326,7 @@
   (closed)="closeClientEditor()"
   (saved)="clientSaved($event)"
 />
-}
-
-@if (editorOpen()) {
+} @if (editorOpen()) {
 <div
   class="fixed inset-0 z-30 flex justify-end bg-[#0d1913]/65 backdrop-blur-[3px]"
   (click)="closeEditor()"
@@ -395,7 +401,8 @@
         } @else if (brandSearch.value && !form.controls.brandId.value &&
         !canManageCatalog()) {
         <span class="field-hint"
-          >La marca no existe. Solicita su creación a un administrador.</span
+          >La marca no existe. Solicita su creación a una persona con permiso
+          para administrar marcas y modelos.</span
         >
         } @if (form.controls.brandId.touched && form.controls.brandId.invalid) {
         <small class="field-error">Selecciona o crea una marca.</small> }
@@ -434,7 +441,8 @@
         } @else if (modelSearch.value && !form.controls.modelId.value &&
         !canManageCatalog()) {
         <span class="field-hint"
-          >El modelo no existe. Solicita su creación a un administrador.</span
+          >El modelo no existe. Solicita su creación a una persona con permiso
+          para administrar marcas y modelos.</span
         >
         } @if (form.controls.modelId.touched && form.controls.modelId.invalid) {
         <small class="field-error">Selecciona o crea un modelo.</small> }

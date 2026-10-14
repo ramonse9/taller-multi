@@ -233,8 +233,7 @@
                     >{{ item.affectsOrderTotal ? 'Cobrable' : 'Insumo' }}</span
                   >
                 </div>
-                @if (auth.hasPermission('catalog.view_costs') && item.costAmount
-                !== null) {
+                @if (canViewItemCost(item) && item.costAmount !== null) {
                 <small class="text-[#63717d] dark:text-[#afbed0]"
                   >{{ itemCostLabel(current, item) }}: {{ money(item.unitCost)
                   }} × {{ quantity(item.quantity) }} =

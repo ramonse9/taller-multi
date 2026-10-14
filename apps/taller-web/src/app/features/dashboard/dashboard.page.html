@@ -25,9 +25,7 @@
       <button class="theme-toggle" type="button" (click)="theme.toggle()">
         {{ theme.isDark() ? '☀' : '◐' }}
       </button>
-      @if (auth.hasPermission('orders.create') &&
-      auth.hasPermission('clients.view') && auth.hasPermission('vehicles.view')
-      && auth.hasPermission('vehicle_catalog.view')) {
+      @if (canCreateOrder()) {
       <a class="primary no-underline max-sm:px-3" routerLink="/orders/new"
         >＋ Nueva orden</a
       >
@@ -141,6 +139,7 @@
       </article>
     </div>
 
+    @if (hasQuickActions()) {
     <section
       class="mt-3 grid grid-cols-1 gap-2 border border-[#d5dce3] bg-white p-3 sm:flex sm:flex-wrap sm:items-center dark:border-[#38516d] dark:bg-[#19283b]"
       aria-label="Acciones rápidas"
@@ -149,36 +148,26 @@
         class="detail-label px-1 py-1 !text-[0.7rem] sm:mr-auto sm:px-2 sm:py-0"
         >ACCIONES RÁPIDAS</span
       >
-      @if (auth.hasFeature('service_orders') &&
-      auth.hasPermission('orders.create') && auth.hasPermission('clients.view')
-      && auth.hasPermission('vehicles.view') &&
-      auth.hasPermission('vehicle_catalog.view')) {
+      @if (canCreateOrder()) {
       <a
         class="primary w-full text-center no-underline sm:w-auto"
         routerLink="/orders/new"
         >＋ Nueva orden</a
       >
-      } @if (auth.hasFeature('customer_history') &&
-      auth.hasPermission('clients.view') &&
-      auth.hasPermission('clients.create')) {
+      } @if (canCreateClient()) {
       <a
         class="primary w-full text-center no-underline sm:w-auto"
         routerLink="/clients"
         [queryParams]="{new: true}"
         >＋ Nuevo cliente</a
       >
-      } @if (auth.hasFeature('inventory') &&
-      auth.hasPermission('purchases.create') &&
-      auth.hasPermission('catalog.view') &&
-      auth.hasPermission('catalog.view_costs') &&
-      auth.hasPermission('suppliers.view')) {
+      } @if (canCreatePurchase()) {
       <a
         class="primary w-full text-center no-underline sm:w-auto"
         routerLink="/purchases/new"
         >＋ Nueva compra</a
       >
-      } @if (auth.hasFeature('expenses') && auth.hasPermission('expenses.view')
-      && auth.hasPermission('expenses.create')) {
+      } @if (canCreateExpense()) {
       <a
         class="primary w-full text-center no-underline sm:w-auto"
         routerLink="/expenses"
@@ -187,8 +176,7 @@
       >
       }
     </section>
-
-    @if (data.financials; as financials) {
+    } @if (data.financials; as financials) {
     <div class="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
       <article
         class="border border-[#d5dce3] bg-white p-5 dark:border-[#38516d] dark:bg-[#19283b]"
@@ -692,9 +680,7 @@
         Todavía no hay actividad. Cuando registres órdenes, compras o gastos,
         aquí aparecerán los pendientes y resultados importantes.
       </p>
-      @if (auth.hasPermission('orders.create') &&
-      auth.hasPermission('clients.view') && auth.hasPermission('vehicles.view')
-      && auth.hasPermission('vehicle_catalog.view')) {
+      @if (canCreateOrder()) {
       <a class="primary mt-6 inline-block no-underline" routerLink="/orders/new"
         >Registrar la primera orden</a
       >
