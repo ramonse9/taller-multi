@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject } from "@angular/core";
-import { RouterLink } from "@angular/router";
+import { ActivatedRoute, RouterLink } from "@angular/router";
 import { AuthService } from "../../core/auth/auth.service";
 
 @Component({
@@ -8,10 +8,10 @@ import { AuthService } from "../../core/auth/auth.service";
   template: `
     <main class="min-h-full bg-[#fbfaf7] px-[clamp(1.5rem,6vw,6rem)] py-16 text-[#17251e] dark:bg-[#111d2e] dark:text-[#edf4fb]">
       <section class="mx-auto max-w-2xl border border-[#d5dce3] bg-white p-8 shadow-sm dark:border-[#38516d] dark:bg-[#19283b] sm:p-12">
-        <p class="eyebrow">SUSCRIPCIÓN</p>
-        <h1 class="mt-2 font-[var(--display)] text-4xl font-semibold tracking-[-0.04em]">Acceso temporalmente restringido</h1>
+        <p class="eyebrow">PLAN Y SUSCRIPCIÓN</p>
+        <h1 class="mt-2 font-[var(--display)] text-4xl font-semibold tracking-[-0.04em]">{{ title() }}</h1>
         <p class="mt-5 leading-7 text-[#63717d] dark:text-[#afbed0]">
-          El plan de tu compañía está vencido, suspendido o no incluye esta capacidad. Tus clientes, vehículos y órdenes permanecen guardados.
+          {{ explanation() }} Tus datos permanecen guardados y volverán a estar disponibles si la capacidad se habilita nuevamente.
         </p>
         @if (auth.user()?.subscription; as subscription) {
           <dl class="mt-7 grid gap-3 border-y border-[#e2e7ec] py-5 text-sm dark:border-[#38516d] sm:grid-cols-2">
@@ -31,4 +31,32 @@ import { AuthService } from "../../core/auth/auth.service";
 })
 export class SubscriptionRequiredPage {
   readonly auth = inject(AuthService);
+  private readonly route = inject(ActivatedRoute);
+
+  title(): string {
+    return this.missingFeature()
+      ? "Esta función no está incluida en tu plan"
+      : "Acceso temporalmente restringido";
+  }
+
+  explanation(): string {
+    const feature = this.missingFeature();
+    if (feature) {
+      return `Tu plan actual no incluye ${FEATURE_LABELS[feature] ?? "esta función"}.`;
+    }
+    return "La suscripción de tu compañía no está activa.";
+  }
+
+  private missingFeature(): string | null {
+    if (!this.auth.user()?.subscription?.usable) return null;
+    return this.route.snapshot.queryParamMap.get("feature");
+  }
 }
+
+const FEATURE_LABELS: Record<string, string> = {
+  item_catalog: "el catálogo de productos y servicios",
+  suppliers: "la administración de proveedores",
+  purchases: "el registro de compras",
+  inventory: "el control de inventario",
+  invoicing: "la facturación",
+};

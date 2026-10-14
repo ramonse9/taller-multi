@@ -9,6 +9,7 @@ import {
 } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import {
+  AbstractControl,
   FormArray,
   FormControl,
   FormGroup,
@@ -606,16 +607,7 @@ export class OrderWizardPage implements OnInit {
       (item) => !item.get("affectsOrderTotal")?.value,
     );
     if (!inputs.length) return 0;
-    const costs = inputs.map((item) => {
-      const quantity = item.get("quantity")?.value;
-      const unitCost = item.get("unitCost")?.value;
-      return quantity === null ||
-        quantity === undefined ||
-        unitCost === null ||
-        unitCost === undefined
-        ? null
-        : Number(quantity) * Number(unitCost);
-    });
+    const costs = inputs.map((item) => this.estimatedItemCost(item));
     return costs.some((cost) => cost === null)
       ? null
       : costs.reduce<number>((sum, cost) => sum + (cost ?? 0), 0);
@@ -623,19 +615,25 @@ export class OrderWizardPage implements OnInit {
 
   grossProfit(): number | null {
     const subtotal = this.total();
-    const costs = this.items.controls.map((item) => {
-      const quantity = item.get("quantity")?.value;
-      const unitCost = item.get("unitCost")?.value;
-      return quantity === null ||
-        quantity === undefined ||
-        unitCost === null ||
-        unitCost === undefined
-        ? null
-        : Number(quantity) * Number(unitCost);
-    });
+    const costs = this.items.controls.map((item) =>
+      this.estimatedItemCost(item),
+    );
     return subtotal === null || costs.some((cost) => cost === null)
       ? null
       : subtotal - costs.reduce<number>((sum, cost) => sum + (cost ?? 0), 0);
+  }
+
+  private estimatedItemCost(item: AbstractControl): number | null {
+    const quantity = item.get("quantity")?.value;
+    if (quantity === null || quantity === undefined) return null;
+    const unitCost = item.get("unitCost")?.value;
+    if (unitCost !== null && unitCost !== undefined) {
+      return Number(quantity) * Number(unitCost);
+    }
+    const isFreeProduct =
+      item.get("kind")?.value === "product" &&
+      !item.get("productServiceId")?.value;
+    return isFreeProduct ? null : 0;
   }
 
   money(value: number | string | null): string {

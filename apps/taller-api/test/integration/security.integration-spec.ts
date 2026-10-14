@@ -1910,6 +1910,28 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       body: { type: 'person', displayName: 'Cliente conservado por suscripción' },
     });
     expect(client.status).toBe(201);
+    const brand = await request<VehicleBrandResponse>('POST', '/catalogs/vehicle-brands', {
+      token: tenant.accessToken,
+      body: { name: 'Marca conservada por suscripción' },
+    });
+    const model = await request<VehicleModelResponse>('POST', '/catalogs/vehicle-models', {
+      token: tenant.accessToken,
+      body: { brandId: brand.body.id, name: 'Modelo conservado por suscripción' },
+    });
+    const vehicle = await request<VehicleResponse>(
+      'POST',
+      `/clients/${client.body.id}/vehicles`,
+      {
+        token: tenant.accessToken,
+        body: {
+          brandId: brand.body.id,
+          modelId: model.body.id,
+          year: 2026,
+          color: 'Azul',
+        },
+      },
+    );
+    expect(vehicle.status).toBe(201);
 
     const upgraded = await request<{
       planCode: string;
@@ -1931,6 +1953,99 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         'profitability',
       ]),
     );
+
+    const units = await request<MeasurementUnitResponse[]>('GET', '/catalogs/units', {
+      token: tenant.accessToken,
+    });
+    const serviceUnit = units.body.find(({ name }) => name === 'Servicio')!;
+    const catalogService = await request<ConceptResponse>('POST', '/catalogs/concepts', {
+      token: tenant.accessToken,
+      body: {
+        kind: 'service',
+        name: 'Servicio histórico conservado',
+        unitId: serviceUnit.id,
+        cost: 100,
+        price: 500,
+        tracksInventory: false,
+      },
+    });
+    expect(catalogService.status).toBe(201);
+    const catalogOrder = await request<OrderResponse>('POST', '/orders', {
+      token: tenant.accessToken,
+      body: {
+        customerId: client.body.id,
+        vehicleId: vehicle.body.id,
+        items: [{ productServiceId: catalogService.body.id, quantity: 1 }],
+      },
+    });
+    expect(catalogOrder.status).toBe(201);
+
+    const downgraded = await request<{ planCode: string; features: string[] }>(
+      'PATCH',
+      `/subscriptions/companies/${tenant.company.id}`,
+      {
+        token: platformToken,
+        body: { planCode: 'essential', status: 'active', reason: 'Validar descenso seguro' },
+      },
+    );
+    expect(downgraded.status).toBe(200);
+    expect(downgraded.body.planCode).toBe('essential');
+    expect(downgraded.body.features).not.toContain('item_catalog');
+    expect(
+      (await request<unknown>('GET', '/catalogs/concepts', { token: tenant.accessToken })).status,
+    ).toBe(403);
+    const historicalOrder = await request<OrderResponse>(
+      'GET',
+      `/orders/${catalogOrder.body.id}`,
+      { token: tenant.accessToken },
+    );
+    expect(historicalOrder.status).toBe(200);
+    expect(historicalOrder.body.items[0]).toMatchObject({
+      productServiceId: catalogService.body.id,
+      description: 'Servicio histórico conservado',
+      unitPrice: '500.00',
+      unitCost: '100.00',
+    });
+    const editedHistoricalOrder = await request<OrderResponse>(
+      'PATCH',
+      `/orders/${catalogOrder.body.id}`,
+      {
+        token: tenant.accessToken,
+        body: {
+          items: [
+            {
+              itemId: catalogOrder.body.items[0]!.id,
+              productServiceId: catalogService.body.id,
+              quantity: 1,
+              unitPrice: 550,
+            },
+          ],
+        },
+      },
+    );
+    expect(editedHistoricalOrder.status).toBe(200);
+    expect(editedHistoricalOrder.body.items[0]).toMatchObject({
+      description: 'Servicio histórico conservado',
+      unitPrice: '550.00',
+      unitCost: '100.00',
+    });
+
+    const restoredControl = await request<{ planCode: string }>(
+      'PATCH',
+      `/subscriptions/companies/${tenant.company.id}`,
+      {
+        token: platformToken,
+        body: { planCode: 'control', status: 'active', reason: 'Validar restauración' },
+      },
+    );
+    expect(restoredControl.status).toBe(200);
+    const restoredCatalog = await request<{ totalItems: number; items: ConceptResponse[] }>(
+      'GET',
+      '/catalogs/concepts?search=Servicio%20hist%C3%B3rico%20conservado',
+      { token: tenant.accessToken },
+    );
+    expect(restoredCatalog.status).toBe(200);
+    expect(restoredCatalog.body.items.map(({ id }) => id)).toContain(catalogService.body.id);
 
     const activeSession = await login(tenant.company.admin.loginName, PERMANENT_PASSWORD);
     expect(activeSession.status).toBe(200);
@@ -2024,6 +2139,196 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       status: 'active',
       usable: true,
     });
+  });
+
+  it('opera Esencial de punta a punta sin catálogo, proveedor visible ni inventario', async () => {
+    const tenant = await provisionAndLogin(
+      'Essential Full Flow Integration',
+      'essential.flow@test.local',
+    );
+    const customer = await request<ClientResponse>('POST', '/clients', {
+      token: tenant.accessToken,
+      body: { type: 'person', displayName: 'Cliente Esencial Integral' },
+    });
+    const brand = await request<VehicleBrandResponse>('POST', '/catalogs/vehicle-brands', {
+      token: tenant.accessToken,
+      body: { name: 'Marca Esencial Integral' },
+    });
+    const model = await request<VehicleModelResponse>('POST', '/catalogs/vehicle-models', {
+      token: tenant.accessToken,
+      body: { brandId: brand.body.id, name: 'Modelo Esencial Integral' },
+    });
+    const vehicle = await request<VehicleResponse>(
+      'POST',
+      `/clients/${customer.body.id}/vehicles`,
+      {
+        token: tenant.accessToken,
+        body: {
+          brandId: brand.body.id,
+          modelId: model.body.id,
+          year: 2025,
+          color: 'Gris',
+        },
+      },
+    );
+    const order = await request<OrderResponse>('POST', '/orders', {
+      token: tenant.accessToken,
+      body: {
+        customerId: customer.body.id,
+        vehicleId: vehicle.body.id,
+        items: [
+          {
+            kind: 'service',
+            description: 'Afinación mayor',
+            quantity: 1,
+            unitPrice: 2100,
+          },
+          {
+            kind: 'product',
+            description: 'Aceite y filtros incluidos',
+            quantity: 1,
+            unitCost: 500,
+          },
+          {
+            kind: 'product',
+            description: 'Aditivo cobrado por separado',
+            quantity: 1,
+            unitPrice: 300,
+            unitCost: 100,
+            affectsOrderTotal: true,
+          },
+        ],
+      },
+    });
+    expect(order.status).toBe(201);
+    expect(order.body).toMatchObject({
+      total: '2400.00',
+      totalCost: '600.00',
+      grossProfit: '1800.00',
+      hasUnknownCosts: false,
+      isFinanciallyComplete: true,
+    });
+    expect(order.body.items.every(({ productServiceId }) => productServiceId === null)).toBe(true);
+
+    const completed = await request<OrderResponse>('POST', `/orders/${order.body.id}/status`, {
+      token: tenant.accessToken,
+      body: { status: 'completed' },
+    });
+    expect(completed.body).toMatchObject({
+      status: 'completed',
+      inventoryAppliedAt: null,
+      grossProfit: '1800.00',
+    });
+    const schema = quoteIdentifier(tenant.company.schemaName);
+    await control.query(
+      `UPDATE ${schema}.orders SET closed_at = '2026-10-10 18:00:00+00' WHERE id = $1`,
+      [order.body.id],
+    );
+    const movements = await control.query<Array<{ total: string }>>(
+      `SELECT count(*)::text AS total FROM ${schema}.inventory_movements WHERE order_id = $1`,
+      [order.body.id],
+    );
+    expect(movements[0]?.total).toBe('0');
+
+    const categories = await request<ExpenseCategoryResponse[]>('GET', '/expenses/categories', {
+      token: tenant.accessToken,
+    });
+    const expense = await request<ExpenseResponse>('POST', '/expenses', {
+      token: tenant.accessToken,
+      body: {
+        categoryId: categories.body.find(({ code }) => code === 'utilities')!.id,
+        occurredOn: '2026-10-10',
+        description: 'Electricidad del taller',
+        amount: 300,
+      },
+    });
+    expect(expense.status).toBe(201);
+    expect(expense.body).toMatchObject({
+      status: 'confirmed',
+      supplier: { commercialName: 'Proveedor general', isDefault: true },
+    });
+    const paid = await request<OrderResponse>(
+      'PATCH',
+      `/orders/${order.body.id}/payment-status`,
+      { token: tenant.accessToken, body: { isPaid: true } },
+    );
+    expect(paid.body.isPaid).toBe(true);
+
+    const dashboard = await request<DashboardSummaryResponse>('GET', '/dashboard/summary', {
+      token: tenant.accessToken,
+    });
+    expect(dashboard.status).toBe(200);
+    expect(dashboard.body).toMatchObject({
+      access: {
+        planCode: 'essential',
+        includesFinancials: true,
+        includesLowStock: false,
+      },
+      revenue: {
+        generated: '2400.00',
+        collected: '2400.00',
+        outstanding: '0.00',
+      },
+      financials: {
+        directCost: '600.00',
+        grossProfit: '1800.00',
+        operatingExpenses: '300.00',
+        operatingProfit: '1500.00',
+        isComplete: true,
+      },
+      lowStock: null,
+    });
+    const activity = await request<DashboardActivityResponse>('GET', '/dashboard/activity', {
+      token: tenant.accessToken,
+    });
+    expect(activity.status).toBe(200);
+    expect(activity.body).toMatchObject({
+      recentPurchases: null,
+      recentInventoryMovements: null,
+      lowStock: null,
+    });
+    expect(activity.body.recentExpenses?.map(({ id }) => id)).toContain(expense.body.id);
+
+    const report = await request<ProfitabilityReportResponse>(
+      'GET',
+      '/profitability?occurredFrom=2026-10-01&occurredTo=2026-10-31',
+      { token: tenant.accessToken },
+    );
+    expect(report.status).toBe(200);
+    expect(report.body.totals).toMatchObject({
+      income: '2400.00',
+      directCost: '600.00',
+      grossProfit: '1800.00',
+      operatingExpenses: '300.00',
+      netProfit: '1500.00',
+      isComplete: true,
+    });
+    const monthly = await request<MonthlyProfitabilityReportResponse>(
+      'GET',
+      '/profitability/monthly-report?year=2026&month=10',
+      { token: tenant.accessToken },
+    );
+    expect(monthly.status).toBe(200);
+    expect(monthly.body.summary).toMatchObject({
+      completedOrderCount: 1,
+      generatedIncome: '2400.00',
+      directCost: '600.00',
+      operatingExpenses: '300.00',
+      netProfit: '1500.00',
+      isComplete: true,
+    });
+    expect(
+      (
+        await requestBinary(
+          '/profitability/monthly-report.xlsx?year=2026&month=10',
+          tenant.accessToken,
+        )
+      ).status,
+    ).toBe(200);
+
+    for (const path of ['/catalogs/concepts', '/suppliers', '/purchases', '/inventory/products']) {
+      expect((await request<unknown>('GET', path, { token: tenant.accessToken })).status).toBe(403);
+    }
   });
 
   it('mantiene la activación manual aun cuando exista una vigencia histórica vencida', async () => {

@@ -61,7 +61,9 @@ export const featureGuard: CanActivateFn = (route) => {
   if (user?.role === "platform_admin") return true;
   const feature = route.data["feature"] as SubscriptionFeature | undefined;
   if (user?.subscription?.usable && (!feature || auth.hasFeature(feature))) return true;
-  return router.createUrlTree(["/subscription-required"]);
+  return router.createUrlTree(["/subscription-required"], {
+    queryParams: feature ? { feature } : undefined,
+  });
 };
 
 export const permissionGuard: CanActivateFn = (route) => {

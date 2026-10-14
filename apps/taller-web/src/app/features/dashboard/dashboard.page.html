@@ -236,7 +236,7 @@
         >
         <small class="text-[#b8c7be]">Utilidad bruta menos gastos →</small>
       </a>
-      @if (auth.hasPermission('inventory.view')) {
+      @if (auth.hasFeature('inventory') && auth.hasPermission('inventory.view')) {
       <a
         class="border p-5 text-inherit no-underline"
         [class.border-[#e0b4a9]]="(data.lowStock?.totalProducts ?? 0) > 0"

@@ -7,7 +7,10 @@ import {
 import { RouterLink, RouterLinkActive, RouterOutlet } from "@angular/router";
 import { AuthService } from "../auth/auth.service";
 import { UserRole } from "../auth/auth.models";
-import { SubscriptionFeature } from "../subscriptions/subscription.models";
+import {
+  SubscriptionFeature,
+  SubscriptionPlanCode,
+} from "../subscriptions/subscription.models";
 import { ThemeService } from "../theme/theme.service";
 
 interface TenantNavigationItem {
@@ -17,6 +20,7 @@ interface TenantNavigationItem {
   permissions?: string[];
   feature?: SubscriptionFeature;
   roles?: UserRole[];
+  hiddenForPlans?: SubscriptionPlanCode[];
 }
 
 const TENANT_NAVIGATION: TenantNavigationItem[] = [
@@ -79,6 +83,7 @@ const TENANT_NAVIGATION: TenantNavigationItem[] = [
     link: "/vehicle-catalog",
     permission: "vehicle_catalog.view",
     feature: "vehicle_catalog",
+    hiddenForPlans: ["essential"],
   },
   {
     label: "Usuarios",
@@ -106,6 +111,10 @@ export class AppShellComponent {
     if (!user || user.role === "platform_admin") return [];
     return TENANT_NAVIGATION.filter((item) => {
       if (item.roles && !item.roles.includes(user.role)) return false;
+      const planCode = user.subscription?.planCode;
+      if (planCode && item.hiddenForPlans?.includes(planCode)) {
+        return false;
+      }
       if (item.feature && !this.auth.hasFeature(item.feature)) return false;
       if (item.permission && !this.auth.hasPermission(item.permission)) {
         return false;
