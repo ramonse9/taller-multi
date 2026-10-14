@@ -218,3 +218,22 @@ Actualización del 13 de octubre de 2026:
 - Las condiciones visuales restantes basadas en rol corresponden a plataforma, descripción de la cuenta o administración jerárquica de usuarios.
 
 Esta normalización tampoco requiere una migración de base de datos.
+
+## Compatibilidad y validación integral
+
+Actualización del 13 de octubre de 2026:
+
+- La base local se auditó en modo de solo lectura: no existen usuarios tenant `admin` o `user` sin perfil de permisos, perfiles no personalizados distintos de su plantilla ni asignaciones incompatibles con el rol.
+- Los permisos personalizados existentes se conservaron sin modificaciones. Los Administradores principales continúan recibiendo el catálogo completo de forma automática y no necesitan filas en `user_permissions`.
+- La base local tiene 40 permisos operativos aplicados. Los seis permisos adicionales de facturación simulada pertenecen a la migración ya existente `SimulatedInvoicingSettings1700000042000`, que todavía está pendiente en ese entorno. Esta normalización no agrega permisos ni modifica plantillas, por lo que no se creó otra migración.
+- La integración crea un `admin` y un `user` con una matriz idéntica y comprueba el mismo resultado al crear clientes, marcas, modelos, vehículos y órdenes; editar órdenes y costos manuales; cambiar el estado de pago; agregar seguimiento; y consultar el tablero.
+- La misma prueba accede directamente a endpoints no concedidos y exige `403`: desactivar clientes requiere `clients.deactivate`, y cancelar órdenes requiere `orders.cancel` además del permiso general para cambiar estatus.
+- Las pruebas existentes continúan cubriendo permisos parciales, intersección con el plan, costos ocultos, escalamiento, aislamiento entre compañías, conservación de permisos personalizados después de cambiar el plan y preservación del historial operativo al cambiar rol, permisos o estatus del usuario.
+- Las rutas operativas del frontend usan plan y permiso. El acceso directo a una URL restringida se redirige a **Acceso insuficiente**, mientras la API vuelve a proteger la operación de manera independiente.
+
+Resultados de validación:
+
+- API: compilación y lint correctos.
+- Frontend: compilación de producción correcta.
+- Pruebas unitarias: 36 suites, 124 pruebas aprobadas.
+- Pruebas de integración con PostgreSQL real: 4 suites, 49 pruebas aprobadas.

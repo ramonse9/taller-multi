@@ -3254,6 +3254,199 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(preserved.body.permissionCodes).toEqual(reception.permissionCodes);
   });
 
+  it('ofrece el mismo comportamiento operativo a admin y user con permisos idénticos', async () => {
+    const tenant = await provisionAndLogin(
+      'Role Permission Parity Integration',
+      'role.parity@test.local',
+    );
+    const sharedPermissions = [
+      'dashboard.view',
+      'clients.view',
+      'clients.create',
+      'clients.edit',
+      'vehicles.view',
+      'vehicles.create',
+      'vehicles.edit',
+      'orders.view',
+      'orders.create',
+      'orders.edit',
+      'orders.change_status',
+      'orders.add_notes',
+      'vehicle_catalog.view',
+      'vehicle_catalog.manage',
+    ];
+
+    const prepareOperator = async (role: 'admin' | 'user', suffix: string) => {
+      const created = await request<UserResponse>('POST', '/users', {
+        token: tenant.accessToken,
+        body: {
+          fullName: `Paridad ${role}`,
+          username: `paridad_${suffix}`,
+          phone: role === 'admin' ? '+526671110041' : '+526671110042',
+          password: USER_PASSWORD,
+          timezoneCode: 'America/Mazatlan',
+          role,
+        },
+      });
+      expect(created.status).toBe(201);
+
+      const assigned = await request<UserPermissionProfileResponse>(
+        'PUT',
+        `/permissions/users/${created.body.id}`,
+        {
+          token: tenant.accessToken,
+          body: { templateCode: null, permissionCodes: sharedPermissions },
+        },
+      );
+      expect(assigned.status).toBe(200);
+      expect(assigned.body).toMatchObject({ role, isCustomized: true });
+      expect([...assigned.body.permissionCodes].sort()).toEqual([...sharedPermissions].sort());
+
+      const temporary = await login(created.body.loginName, USER_PASSWORD);
+      expect(temporary.status).toBe(200);
+      expect(
+        (
+          await request<unknown>('PATCH', '/users/me/password', {
+            token: temporary.body.accessToken,
+            body: { currentPassword: USER_PASSWORD, newPassword: PERMANENT_PASSWORD },
+          })
+        ).status,
+      ).toBe(204);
+      const authenticated = await login(created.body.loginName, PERMANENT_PASSWORD);
+      expect(authenticated.status).toBe(200);
+      expect(authenticated.body.user.role).toBe(role);
+      expect([...authenticated.body.user.permissions].sort()).toEqual(
+        [...sharedPermissions].sort(),
+      );
+      return authenticated.body.accessToken;
+    };
+
+    const sessions = [
+      { role: 'admin' as const, suffix: 'admin', token: '' },
+      { role: 'user' as const, suffix: 'user', token: '' },
+    ];
+    for (const session of sessions) {
+      session.token = await prepareOperator(session.role, session.suffix);
+    }
+
+    for (const session of sessions) {
+      const client = await request<ClientResponse>('POST', '/clients', {
+        token: session.token,
+        body: {
+          type: 'person',
+          displayName: `Cliente paridad ${session.suffix}`,
+        },
+      });
+      expect(client.status).toBe(201);
+
+      const brand = await request<VehicleBrandResponse>('POST', '/catalogs/vehicle-brands', {
+        token: session.token,
+        body: { name: `Marca paridad ${session.suffix}` },
+      });
+      expect(brand.status).toBe(201);
+      const model = await request<VehicleModelResponse>('POST', '/catalogs/vehicle-models', {
+        token: session.token,
+        body: { brandId: brand.body.id, name: `Modelo paridad ${session.suffix}` },
+      });
+      expect(model.status).toBe(201);
+
+      const vehicle = await request<VehicleResponse>(
+        'POST',
+        `/clients/${client.body.id}/vehicles`,
+        {
+          token: session.token,
+          body: {
+            brandId: brand.body.id,
+            modelId: model.body.id,
+            year: 2026,
+            color: 'Azul',
+          },
+        },
+      );
+      expect(vehicle.status).toBe(201);
+
+      const order = await request<OrderResponse>('POST', '/orders', {
+        token: session.token,
+        body: {
+          customerId: client.body.id,
+          vehicleId: vehicle.body.id,
+          items: [
+            {
+              kind: 'service',
+              description: `Servicio paridad ${session.suffix}`,
+              quantity: 1,
+              unitCost: 100,
+              unitPrice: 500,
+            },
+          ],
+        },
+      });
+      expect(order.status).toBe(201);
+      expect(order.body.items[0]).toMatchObject({ unitCost: '100.00', unitPrice: '500.00' });
+
+      const edited = await request<OrderResponse>('PATCH', `/orders/${order.body.id}`, {
+        token: session.token,
+        body: {
+          externalFolio: `PARIDAD-${session.suffix.toUpperCase()}`,
+          items: [
+            {
+              kind: 'service',
+              description: `Servicio editado ${session.suffix}`,
+              quantity: 1,
+              unitCost: 125,
+              unitPrice: 600,
+            },
+          ],
+        },
+      });
+      expect(edited.status).toBe(200);
+      expect(edited.body.items[0]).toMatchObject({ unitCost: '125.00', unitPrice: '600.00' });
+
+      expect(
+        (
+          await request<OrderResponse>('PATCH', `/orders/${order.body.id}/payment-status`, {
+            token: session.token,
+            body: { isPaid: true },
+          })
+        ).status,
+      ).toBe(200);
+      expect(
+        (
+          await request<unknown>('POST', `/orders/${order.body.id}/notes`, {
+            token: session.token,
+            body: { body: 'Seguimiento con los mismos permisos operativos.' },
+          })
+        ).status,
+      ).toBe(201);
+      expect(
+        (
+          await request<unknown>('GET', '/dashboard/summary', {
+            token: session.token,
+          })
+        ).status,
+      ).toBe(200);
+
+      // Acceder directamente a la URL no evita el permiso específico de desactivación.
+      expect(
+        (
+          await request<unknown>('PATCH', `/clients/${client.body.id}`, {
+            token: session.token,
+            body: { isActive: false },
+          })
+        ).status,
+      ).toBe(403);
+      // Cambiar estatus está permitido, pero cancelar requiere el permiso sensible adicional.
+      expect(
+        (
+          await request<unknown>('POST', `/orders/${order.body.id}/status`, {
+            token: session.token,
+            body: { status: 'cancelled' },
+          })
+        ).status,
+      ).toBe(403);
+    }
+  });
+
   it('combina plan, rol y permiso sin permitir escalamiento ni acceso entre compañías', async () => {
     const tenant = await provisionAndLogin('Permission Security Integration', 'secure@test.local');
     await request<unknown>('PATCH', `/subscriptions/companies/${tenant.company.id}`, {
