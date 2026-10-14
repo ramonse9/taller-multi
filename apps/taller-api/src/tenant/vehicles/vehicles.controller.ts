@@ -14,7 +14,11 @@ import { JwtAuthGuard } from '../../auth/roles';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../../common/types/authenticated-user';
 import { RequiresFeature, SubscriptionGuard } from '../../subscriptions/subscription.guard';
-import { PermissionGuard, RequiresPermissions } from '../../permissions/permission.guard';
+import {
+  PermissionGuard,
+  RequiresAnyPermission,
+  RequiresPermissions,
+} from '../../permissions/permission.guard';
 import { PermissionsService } from '../../permissions/permissions.service';
 import {
   CreateVehicleDto,
@@ -69,6 +73,7 @@ export class VehiclesController {
   }
 
   @Patch(':id')
+  @RequiresAnyPermission('vehicles.edit', 'vehicles.deactivate')
   @ApiOkResponse({ type: VehicleResponseDto })
   update(
     @CurrentUser() user: AuthenticatedUser,

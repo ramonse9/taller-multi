@@ -22,7 +22,11 @@ import { JwtAuthGuard } from '../../auth/roles';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../../common/types/authenticated-user';
 import { RequiresFeature, SubscriptionGuard } from '../../subscriptions/subscription.guard';
-import { PermissionGuard, RequiresPermissions } from '../../permissions/permission.guard';
+import {
+  PermissionGuard,
+  RequiresAnyPermission,
+  RequiresPermissions,
+} from '../../permissions/permission.guard';
 import { PermissionsService } from '../../permissions/permissions.service';
 import {
   ChangePurchaseStatusDto,
@@ -101,6 +105,7 @@ export class PurchasesController {
   }
 
   @Post(':id/status')
+  @RequiresAnyPermission('purchases.confirm', 'purchases.cancel')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Confirmar o cancelar una compra' })
   @ApiOkResponse({ type: PurchaseResponseDto })

@@ -23,8 +23,16 @@ import { JwtAuthGuard } from '../../auth/roles';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../../common/types/authenticated-user';
 import { RequiresFeature, SubscriptionGuard } from '../../subscriptions/subscription.guard';
-import { PermissionGuard, RequiresPermissions } from '../../permissions/permission.guard';
+import {
+  PermissionGuard,
+  RequiresAnyPermission,
+  RequiresPermissions,
+} from '../../permissions/permission.guard';
 import { PermissionsService } from '../../permissions/permissions.service';
+import {
+  ORDER_MANUAL_COST_PERMISSIONS,
+  ORDER_PAYMENT_PERMISSIONS,
+} from '../../permissions/permission-policies';
 import {
   ChangeOrderStatusDto,
   ChangeOrderPaymentStatusDto,
@@ -101,9 +109,6 @@ export class OrdersController {
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() input: UpdateOrderDto,
   ): Promise<OrderResponseDto> {
-    if (input.items?.some((item) => item.unitCost !== undefined && item.unitCost !== null)) {
-      this.permissions.assert(user, 'orders.create');
-    }
     return this.secureOrder(user, this.orders.update(user, id, input));
   }
 
@@ -122,6 +127,7 @@ export class OrdersController {
   }
 
   @Patch(':id/payment-status')
+  @RequiresAnyPermission(...ORDER_PAYMENT_PERMISSIONS)
   @ApiOperation({
     summary: 'Marcar una orden como pagada o pendiente',
     description:
@@ -133,9 +139,7 @@ export class OrdersController {
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() input: ChangeOrderPaymentStatusDto,
   ): Promise<OrderResponseDto> {
-    if (!this.permissions.has(user, 'orders.edit')) {
-      this.permissions.assert(user, 'orders.manage_payment');
-    }
+    this.permissions.assertAny(user, ORDER_PAYMENT_PERMISSIONS);
     return this.secureOrder(user, this.orders.changePaymentStatus(user, id, input));
   }
 
@@ -157,15 +161,12 @@ export class OrdersController {
   ): Promise<OrderResponseDto> {
     const order = await response;
     if (!this.permissions.has(user, 'catalog.view_costs')) {
-      this.redactOrderCosts(order, this.permissions.has(user, 'orders.create'));
+      this.redactOrderCosts(order, this.permissions.hasAny(user, ORDER_MANUAL_COST_PERMISSIONS));
     }
     return order;
   }
 
-  private redactOrderCosts(
-    order: OrderSummaryResponseDto,
-    preserveManualOrderCosts = false,
-  ): void {
+  private redactOrderCosts(order: OrderSummaryResponseDto, preserveManualOrderCosts = false): void {
     order.totalCost = null;
     order.grossProfit = null;
     if ('items' in order) {

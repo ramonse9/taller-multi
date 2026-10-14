@@ -190,3 +190,16 @@ Los permisos amplios señalados pueden dividirse cuando exista una necesidad com
 ## Impacto de este bloque
 
 Esta auditoría solamente documenta la política y los hallazgos. No cambia permisos, usuarios, migraciones ni datos. Las correcciones deben implementarse en bloques posteriores con pruebas de API y frontend.
+
+## Normalización aplicada en la API
+
+Actualización del 13 de octubre de 2026:
+
+- Las operaciones que admiten permisos alternativos declaran esa condición en `PermissionGuard` y validan después la acción exacta: edición o desactivación de clientes y vehículos, movimientos o ajustes de inventario, confirmación o cancelación de compras y gastos, y edición o cobro de órdenes.
+- `orders.edit` permite capturar y consultar costos manuales durante la edición sin exigir también `orders.create`.
+- Los costos de catálogo, FIFO, lotes y totales de utilidad continúan protegidos por `catalog.view_costs` o `profitability.view`, según corresponda.
+- El tablero reconoce `orders.edit` y `orders.manage_payment` como capacidades equivalentes para cobros, de acuerdo con la regla vigente del producto.
+- No se agregaron permisos nuevos ni se dividieron los permisos amplios actuales. La división no es necesaria para corregir la paridad y se pospone hasta que exista una responsabilidad operativa concreta que deba separarse.
+- Las únicas condiciones directas de rol conservadas dentro de módulos tenant corresponden a la configuración fiscal sensible del emisor. La administración de usuarios y permisos conserva su jerarquía fuera de los módulos operativos.
+
+Esta normalización no requiere una migración de base de datos.

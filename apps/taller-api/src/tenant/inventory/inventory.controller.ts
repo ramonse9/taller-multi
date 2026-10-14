@@ -19,7 +19,11 @@ import { JwtAuthGuard } from '../../auth/roles';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../../common/types/authenticated-user';
 import { RequiresFeature, SubscriptionGuard } from '../../subscriptions/subscription.guard';
-import { PermissionGuard, RequiresPermissions } from '../../permissions/permission.guard';
+import {
+  PermissionGuard,
+  RequiresAnyPermission,
+  RequiresPermissions,
+} from '../../permissions/permission.guard';
 import { PermissionsService } from '../../permissions/permissions.service';
 import {
   CreateInventoryMovementDto,
@@ -104,6 +108,7 @@ export class InventoryController {
   }
 
   @Post('movements')
+  @RequiresAnyPermission('inventory.move', 'inventory.adjust')
   @ApiOperation({ summary: 'Registrar una entrada, salida o ajuste de inventario' })
   @ApiCreatedResponse({ type: InventoryMovementResponseDto })
   createMovement(

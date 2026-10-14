@@ -20,7 +20,11 @@ import { JwtAuthGuard } from '../../auth/roles';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../../common/types/authenticated-user';
 import { RequiresFeature, SubscriptionGuard } from '../../subscriptions/subscription.guard';
-import { PermissionGuard, RequiresPermissions } from '../../permissions/permission.guard';
+import {
+  PermissionGuard,
+  RequiresAnyPermission,
+  RequiresPermissions,
+} from '../../permissions/permission.guard';
 import { PermissionsService } from '../../permissions/permissions.service';
 import { ClientsService } from './clients.service';
 import {
@@ -110,6 +114,7 @@ export class ClientsController {
   }
 
   @Patch(':id')
+  @RequiresAnyPermission('clients.edit', 'clients.deactivate')
   @ApiOkResponse({ type: ClientResponseDto })
   @ApiBadRequestResponse({
     description:

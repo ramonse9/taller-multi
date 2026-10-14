@@ -66,9 +66,21 @@ export class PermissionsService {
     );
   }
 
+  hasAny(user: AuthenticatedUser, permissions: readonly PermissionCode[]): boolean {
+    return permissions.some((permission) => this.has(user, permission));
+  }
+
   assert(user: AuthenticatedUser, permission: PermissionCode): void {
     if (!this.has(user, permission)) {
       throw new ForbiddenException(`Permiso requerido: ${permission}`);
+    }
+  }
+
+  assertAny(user: AuthenticatedUser, permissions: readonly PermissionCode[]): void {
+    if (!this.hasAny(user, permissions)) {
+      throw new ForbiddenException(
+        `Se requiere al menos uno de estos permisos: ${permissions.join(', ')}`,
+      );
     }
   }
 
@@ -297,10 +309,7 @@ export class PermissionsService {
     };
   }
 
-  async profileForPlatform(
-    userId: string,
-    role: PlatformRole,
-  ): Promise<UserPermissionProfile> {
+  async profileForPlatform(userId: string, role: PlatformRole): Promise<UserPermissionProfile> {
     if (role === PlatformRole.CompanyAdmin) {
       return {
         userId,
@@ -357,8 +366,7 @@ export class PermissionsService {
     actorId: string,
     input: PlatformPermissionAssignmentInput,
   ): Promise<UserPermissionProfile> {
-    const profileChanged =
-      input.templateCode !== undefined || input.permissionCodes !== undefined;
+    const profileChanged = input.templateCode !== undefined || input.permissionCodes !== undefined;
 
     if (nextRole === PlatformRole.CompanyAdmin) {
       if (profileChanged) {

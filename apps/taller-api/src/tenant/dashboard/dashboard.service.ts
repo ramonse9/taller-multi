@@ -3,6 +3,7 @@ import { QueryRunner } from 'typeorm';
 import { AuthenticatedUser } from '../../common/types/authenticated-user';
 import { quoteIdentifier } from '../../database/schema-name';
 import { PermissionsService } from '../../permissions/permissions.service';
+import { ORDER_PAYMENT_PERMISSIONS } from '../../permissions/permission-policies';
 import { TenantSessionService } from '../tenant-session.service';
 import { unknownOrderItemCostSql } from '../orders/order-cost-rules';
 import {
@@ -121,7 +122,7 @@ export class DashboardService {
     const includesLowStock =
       subscription.features.includes('inventory') && this.permissions.has(user, 'inventory.view');
     const includesRevenue =
-      this.permissions.has(user, 'orders.manage_payment') || includesFinancials;
+      this.permissions.hasAny(user, ORDER_PAYMENT_PERMISSIONS) || includesFinancials;
     return this.tenant.run(user, async (runner, schemaName) => {
       const schema = quoteIdentifier(schemaName);
       const operations = await this.operations(runner, schema);
@@ -161,7 +162,7 @@ export class DashboardService {
     const subscription = user.subscription;
     if (!subscription) throw new ForbiddenException('Se requiere una suscripción de compañía');
     const includesOrders = this.permissions.has(user, 'orders.view');
-    const includesCollections = this.permissions.has(user, 'orders.manage_payment');
+    const includesCollections = this.permissions.hasAny(user, ORDER_PAYMENT_PERMISSIONS);
     const includesPurchases =
       subscription.features.includes('inventory') &&
       this.permissions.has(user, 'purchases.view') &&
