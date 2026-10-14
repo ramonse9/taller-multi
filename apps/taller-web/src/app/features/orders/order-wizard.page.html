@@ -495,6 +495,14 @@
                 (concept.tracksInventory) { · Existencia {{ concept.stock }}
                 }</small
               >
+              @if (concept.tracksInventory &&
+              auth.hasPermission('catalog.view_costs')) {
+              <small class="mt-1 block text-[#45627a] dark:text-[#b9dcf5]"
+                >Último costo {{ concept.lastCost === null ? '—' :
+                money(concept.lastCost) }} · Promedio {{ concept.averageCost ===
+                null ? '—' : money(concept.averageCost) }}</small
+              >
+              }
             </span>
             <span class="shrink-0 text-right">
               <strong class="block">{{ money(concept.price) }}</strong>

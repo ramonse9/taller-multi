@@ -20,8 +20,7 @@
         {{ theme.isDark() ? '☀' : '◐' }}
       </button>
       @if ((auth.hasPermission('inventory.move') ||
-      auth.hasPermission('inventory.adjust')) &&
-      auth.hasPermission('catalog.view_costs')) {
+      auth.hasPermission('inventory.adjust'))) {
       <button
         class="primary"
         type="button"
@@ -189,8 +188,7 @@
             </div>
           </div>
           @if ((auth.hasPermission('inventory.move') ||
-          auth.hasPermission('inventory.adjust')) &&
-          auth.hasPermission('catalog.view_costs')) {
+          auth.hasPermission('inventory.adjust'))) {
           <button
             class="small-action-tw max-sm:w-full"
             type="button"
@@ -220,7 +218,7 @@
           >
             Selecciona un producto para consultar su historial.
           </div>
-          } @else { @if (auth.hasPermission('catalog.view_costs')) {
+          } @else {
           <div class="divide-y divide-[#e2e7ec] dark:divide-[#38516d]">
             @for (movement of movements().items; track movement.id) {
             <article
@@ -244,7 +242,9 @@
                 <strong class="block break-words">{{ movement.reason }}</strong
                 ><small class="break-words text-[#63717d] dark:text-[#afbed0]"
                   >{{ movement.createdByName }} · {{ movement.previousStock }} →
-                  {{ movement.resultingStock }}@if (movement.unitCost !== null)
+                  {{ movement.resultingStock }}@if
+                  (auth.hasPermission('catalog.view_costs') &&
+                  movement.unitCost !== null)
                   { · {{ money(movement.unitCost) }} }</small
                 >
               </div>
@@ -263,14 +263,7 @@
             </p>
             } }
           </div>
-          } @else {
-          <p
-            class="p-12 text-center text-sm text-[#63717d] dark:text-[#afbed0]"
-          >
-            Puedes consultar existencias, pero no tienes permiso para ver costos
-            ni movimientos valorizados.
-          </p>
-          } } @if (loadingMovements()) {
+          } @if (loadingMovements()) {
           <div class="loader-tw" aria-label="Cargando">
             <span></span><span></span><span></span>
           </div>
@@ -459,8 +452,11 @@
           formControlName="type"
           (change)="movementFormTypeChanged()"
         >
-          @if (auth.hasPermission('inventory.move')) {
+          @if (auth.hasPermission('inventory.move') &&
+          auth.hasPermission('catalog.view_costs')) {
           <option value="entry">Entrada</option>
+          }
+          @if (auth.hasPermission('inventory.move')) {
           <option value="exit">Salida</option>
           } @if (auth.hasPermission('inventory.adjust')) {
           <option value="adjustment">Ajuste</option>
@@ -491,6 +487,11 @@
           >La unidad {{ product.unitName }} solo permite cantidades
           enteras.</small
         >} @else if (movementForm.controls.quantity.touched &&
+        movementForm.controls.quantity.hasError('costPermission')) {<small
+          class="field-error"
+          >Para aumentar existencias también necesitas permiso para capturar
+          costos.</small
+        >} @else if (movementForm.controls.quantity.touched &&
         movementForm.controls.quantity.hasError('decimalPlaces')) {<small
           class="field-error"
           >Usa como máximo tres decimales.</small
@@ -502,6 +503,7 @@
       @if (movementForm.controls.type.value === 'entry' ||
       (movementForm.controls.type.value === 'adjustment' &&
       (movementForm.controls.quantity.value || 0) > 0)) {
+      @if (auth.hasPermission('catalog.view_costs')) {
       <div>
         <label class="field-label" for="movement-cost"
           >Costo unitario <b>*</b></label
@@ -519,6 +521,12 @@
           >Captura el costo unitario de esta entrada.</small
         >}
       </div>
+      } @else {
+      <p class="field-error" role="alert">
+        No puedes aumentar existencias porque no tienes permiso para capturar
+        costos.
+      </p>
+      }
       }
       <div>
         <label class="field-label" for="movement-reason">Motivo <b>*</b></label

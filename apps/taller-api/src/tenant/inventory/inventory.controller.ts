@@ -97,14 +97,25 @@ export class InventoryController {
   }
 
   @Get('movements')
-  @RequiresPermissions('inventory.view', 'catalog.view_costs')
-  @ApiOperation({ summary: 'Consultar el historial de movimientos de inventario' })
+  @RequiresPermissions('inventory.view')
+  @ApiOperation({
+    summary: 'Consultar el historial de movimientos de inventario',
+    description:
+      'El costo unitario se omite cuando el usuario no cuenta con catalog.view_costs.',
+  })
   @ApiOkResponse({ type: PaginatedInventoryMovementsResponseDto })
   listMovements(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: InventoryMovementQueryDto,
   ): Promise<PaginatedInventoryMovementsResponseDto> {
-    return this.inventory.listMovements(user, query);
+    return this.inventory.listMovements(user, query).then((result) => {
+      if (!this.permissions.has(user, 'catalog.view_costs')) {
+        result.items.forEach((movement) => {
+          movement.unitCost = null;
+        });
+      }
+      return result;
+    });
   }
 
   @Post('movements')

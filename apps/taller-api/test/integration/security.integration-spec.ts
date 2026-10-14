@@ -3999,6 +3999,63 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(redacted.status).toBe(200);
     expect(redacted.body).toMatchObject({ cost: null, lastCost: null, averageCost: null });
 
+    const inventoryConcept = await request<ConceptResponse>('POST', '/catalogs/concepts', {
+      token: tenant.accessToken,
+      body: {
+        kind: 'product',
+        sku: 'SEC-INV-001',
+        name: 'Producto con historial protegido',
+        unitId: units.body.find(({ name }) => name === 'Pieza')!.id,
+        cost: 90,
+        price: 150,
+        tracksInventory: true,
+        minimumStock: 2,
+      },
+    });
+    await request<InventoryMovementResponse>('POST', '/inventory/movements', {
+      token: tenant.accessToken,
+      body: {
+        productId: inventoryConcept.body.id,
+        type: 'entry',
+        quantity: 4,
+        unitCost: 90,
+        reason: 'Entrada con costo protegido',
+      },
+    });
+    const redactedInventory = await request<InventoryProductResponse>(
+      'GET',
+      `/inventory/products/${inventoryConcept.body.id}`,
+      { token: operatorLogin.body.accessToken },
+    );
+    expect(redactedInventory.status).toBe(200);
+    expect(redactedInventory.body).toMatchObject({
+      stock: '4.000',
+      lastCost: null,
+      averageCost: null,
+    });
+    const redactedMovements = await request<{
+      totalItems: number;
+      items: InventoryMovementResponse[];
+    }>('GET', `/inventory/movements?productId=${inventoryConcept.body.id}`, {
+      token: operatorLogin.body.accessToken,
+    });
+    expect(redactedMovements.status).toBe(200);
+    expect(redactedMovements.body.items[0]).toMatchObject({
+      productId: inventoryConcept.body.id,
+      quantity: '4.000',
+      unitCost: null,
+      reason: 'Entrada con costo protegido',
+    });
+    expect(
+      (
+        await request<unknown>(
+          'GET',
+          `/inventory/products/${inventoryConcept.body.id}/lots`,
+          { token: operatorLogin.body.accessToken },
+        )
+      ).status,
+    ).toBe(403);
+
     const dashboard = await request<{ financials: unknown }>('GET', '/dashboard/summary', {
       token: operatorLogin.body.accessToken,
     });

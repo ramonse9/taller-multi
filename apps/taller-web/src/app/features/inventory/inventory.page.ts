@@ -198,10 +198,6 @@ export class InventoryPage implements OnInit {
   }
 
   loadMovements(page = this.movements().page): void {
-    if (!this.auth.hasPermission("catalog.view_costs")) {
-      this.movements.set(emptyMovements());
-      return;
-    }
     const product = this.selectedProduct();
     if (!product) {
       this.movements.set(emptyMovements());
@@ -234,12 +230,13 @@ export class InventoryPage implements OnInit {
   ): void {
     if (
       !product ||
-      !this.auth.hasPermission("catalog.view_costs") ||
       (!this.auth.hasPermission("inventory.move") &&
         !this.auth.hasPermission("inventory.adjust"))
     ) return;
     const initialType: InventoryMovementType = this.auth.hasPermission("inventory.move")
-      ? "entry"
+      ? this.auth.hasPermission("catalog.view_costs")
+        ? "entry"
+        : "exit"
       : "adjustment";
     this.selectedProduct.set(product);
     this.movementForm.reset({
@@ -299,6 +296,11 @@ export class InventoryPage implements OnInit {
     }
     const increasesStock =
       raw.type === "entry" || (raw.type === "adjustment" && raw.quantity > 0);
+    if (increasesStock && !this.auth.hasPermission("catalog.view_costs")) {
+      this.movementForm.controls.quantity.setErrors({ costPermission: true });
+      this.movementForm.controls.quantity.markAsTouched();
+      return;
+    }
     if (increasesStock && raw.unitCost === null) {
       this.movementForm.controls.unitCost.setErrors({ required: true });
       this.movementForm.controls.unitCost.markAsTouched();
@@ -373,11 +375,13 @@ export class InventoryPage implements OnInit {
       type === "entry" || (type === "adjustment" && (quantity ?? 0) > 0);
     const control = this.movementForm.controls.unitCost;
     control.setValidators(
-      increasesStock
+      increasesStock && this.auth.hasPermission("catalog.view_costs")
         ? [Validators.required, Validators.min(0)]
         : [Validators.min(0)],
     );
-    if (!increasesStock) control.setValue(null);
+    if (!increasesStock || !this.auth.hasPermission("catalog.view_costs")) {
+      control.setValue(null);
+    }
     control.updateValueAndValidity();
   }
 
