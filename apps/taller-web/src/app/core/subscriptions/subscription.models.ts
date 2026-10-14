@@ -39,6 +39,7 @@ export interface SubscriptionSummary {
   status: SubscriptionStatus;
   usable: boolean;
   features: SubscriptionFeature[];
+  readOnlyFeatures: SubscriptionFeature[];
   limits: SubscriptionLimits;
 }
 

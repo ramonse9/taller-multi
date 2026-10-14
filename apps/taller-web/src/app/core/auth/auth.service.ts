@@ -15,11 +15,7 @@ import {
 } from "rxjs";
 import { environment } from "../../../environments/environment";
 import { SubscriptionFeature } from "../subscriptions/subscription.models";
-import {
-  LoginResponse,
-  RefreshResponse,
-  SessionUser,
-} from "./auth.models";
+import { LoginResponse, RefreshResponse, SessionUser } from "./auth.models";
 
 const LEGACY_TOKEN_KEY = "taller_access_token";
 const AUTH_CHANNEL_NAME = "taller-auth-session";
@@ -51,11 +47,18 @@ export class AuthService {
   constructor() {
     sessionStorage.removeItem(LEGACY_TOKEN_KEY);
     localStorage.removeItem(LEGACY_TOKEN_KEY);
-    this.channel?.addEventListener("message", (event: MessageEvent<unknown>) => {
-      if (!this.isAuthChannelMessage(event.data) || event.data.source === this.tabId) return;
-      this.clearLocalSession();
-      void this.router.navigateByUrl("/login");
-    });
+    this.channel?.addEventListener(
+      "message",
+      (event: MessageEvent<unknown>) => {
+        if (
+          !this.isAuthChannelMessage(event.data) ||
+          event.data.source === this.tabId
+        )
+          return;
+        this.clearLocalSession();
+        void this.router.navigateByUrl("/login");
+      },
+    );
   }
 
   homeUrl(user: SessionUser | null = this.userState()): string {
@@ -76,6 +79,16 @@ export class AuthService {
       user?.role === "platform_admin" ||
       (!!user?.subscription?.usable &&
         user.subscription.features.includes(feature))
+    );
+  }
+
+  hasFeatureReadAccess(feature: SubscriptionFeature): boolean {
+    const user = this.userState();
+    return (
+      user?.role === "platform_admin" ||
+      (!!user?.subscription?.usable &&
+        (user.subscription.features.includes(feature) ||
+          (user.subscription.readOnlyFeatures ?? []).includes(feature)))
     );
   }
 
@@ -111,7 +124,8 @@ export class AuthService {
       ),
     ).pipe(
       tap(({ accessToken, user }) => {
-        if (epoch !== this.sessionEpoch) throw new Error("La sesión cambió durante el acceso");
+        if (epoch !== this.sessionEpoch)
+          throw new Error("La sesión cambió durante el acceso");
         this.accessToken = accessToken;
         this.userState.set(user);
         this.broadcast("session-started");
@@ -136,7 +150,8 @@ export class AuthService {
       ),
     ).pipe(
       map(({ accessToken }) => {
-        if (epoch !== this.sessionEpoch) throw new Error("La sesión ya finalizó");
+        if (epoch !== this.sessionEpoch)
+          throw new Error("La sesión ya finalizó");
         this.accessToken = accessToken;
         return accessToken;
       }),
@@ -220,11 +235,15 @@ export class AuthService {
   }
 
   private broadcast(type: AuthChannelMessage["type"]): void {
-    this.channel?.postMessage({ type, source: this.tabId } satisfies AuthChannelMessage);
+    this.channel?.postMessage({
+      type,
+      source: this.tabId,
+    } satisfies AuthChannelMessage);
   }
 
   private withAuthLock<T>(operation: () => Promise<T>): Promise<T> {
-    if (typeof navigator === "undefined" || !navigator.locks) return operation();
+    if (typeof navigator === "undefined" || !navigator.locks)
+      return operation();
     return navigator.locks
       .request(AUTH_LOCK_NAME, { mode: "exclusive" }, operation)
       .then((result) => result);

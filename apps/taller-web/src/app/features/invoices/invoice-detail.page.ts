@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   DestroyRef,
   OnInit,
   inject,
@@ -42,6 +43,11 @@ export class InvoiceDetailPage implements OnInit {
   readonly auth = inject(AuthService);
   readonly theme = inject(ThemeService);
   readonly formatShortDate = formatShortDate;
+  readonly readOnly = computed(
+    () =>
+      !this.auth.hasFeature("invoicing") &&
+      this.auth.hasFeatureReadAccess("invoicing"),
+  );
   readonly invoiceId = this.route.snapshot.paramMap.get("id") ?? "";
   readonly invoice = signal<SimulatedInvoice | null>(null);
   readonly catalogs = signal<InvoiceCatalogs | null>(null);
@@ -102,7 +108,13 @@ export class InvoiceDetailPage implements OnInit {
 
   save(): void {
     const current = this.invoice();
-    if (!current || current.status !== "draft" || this.saving()) return;
+    if (
+      this.readOnly() ||
+      !current ||
+      current.status !== "draft" ||
+      this.saving()
+    )
+      return;
     const raw = this.form.getRawValue();
     this.saving.set(true);
     this.error.set("");
@@ -135,7 +147,7 @@ export class InvoiceDetailPage implements OnInit {
   executeConfirmedAction(): void {
     const current = this.invoice();
     const action = this.confirmAction();
-    if (!current || !action || this.saving()) return;
+    if (this.readOnly() || !current || !action || this.saving()) return;
     this.saving.set(true);
     this.error.set("");
     const operation =

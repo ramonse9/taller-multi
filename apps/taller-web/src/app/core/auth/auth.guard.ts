@@ -60,7 +60,15 @@ export const featureGuard: CanActivateFn = (route) => {
   const user = auth.user();
   if (user?.role === "platform_admin") return true;
   const feature = route.data["feature"] as SubscriptionFeature | undefined;
-  if (user?.subscription?.usable && (!feature || auth.hasFeature(feature))) return true;
+  const allowReadOnly = route.data["allowReadOnlyFeature"] === true;
+  if (
+    user?.subscription?.usable &&
+    (!feature ||
+      (allowReadOnly
+        ? auth.hasFeatureReadAccess(feature)
+        : auth.hasFeature(feature)))
+  )
+    return true;
   return router.createUrlTree(["/subscription-required"], {
     queryParams: feature ? { feature } : undefined,
   });
@@ -70,8 +78,10 @@ export const permissionGuard: CanActivateFn = (route) => {
   const auth = inject(AuthService);
   const router = inject(Router);
   const configured = route.data["permission"] as string | string[] | undefined;
-  const required = typeof configured === "string" ? [configured] : configured ?? [];
-  if (required.every((permission) => auth.hasPermission(permission))) return true;
+  const required =
+    typeof configured === "string" ? [configured] : (configured ?? []);
+  if (required.every((permission) => auth.hasPermission(permission)))
+    return true;
   return router.createUrlTree(["/access-denied"], {
     queryParams: { permission: required.join(",") },
   });

@@ -112,6 +112,13 @@
           <p class="mt-1 text-xs text-[#63717d] dark:text-[#afbed0]">
             Actual: {{ company.planName }} · {{ statusName(company.status) }}
           </p>
+          @if (company.readOnlyFeatures.includes('invoicing')) {
+          <p
+            class="mt-2 text-xs font-semibold text-[#315f91] dark:text-[#9bc7ef]"
+          >
+            Facturación histórica disponible en modo de solo lectura.
+          </p>
+          }
         </div>
         <label class="grid gap-1.5 text-xs font-bold uppercase tracking-wider"
           >Plan<select
@@ -144,7 +151,13 @@
         >
           {{ company.saving ? 'Guardando…' : 'Guardar cambios' }}
         </button>
-        @if (company.message) {
+        @if (transitionNote(company)) {
+        <p
+          class="border-l-4 border-[#4c78a8] bg-[#edf5ff] px-3 py-2 text-sm text-[#315f91] dark:border-[#78a9dd] dark:bg-[#263e5a] dark:text-[#dcecff] md:col-span-2 xl:col-span-4"
+        >
+          {{ transitionNote(company) }}
+        </p>
+        } @if (company.message) {
         <p
           class="text-sm font-semibold text-[#2d7550] md:col-span-2 xl:col-span-4"
           role="status"

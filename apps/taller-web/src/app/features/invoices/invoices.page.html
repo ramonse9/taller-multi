@@ -49,7 +49,19 @@
         <span></span><span></span><span></span>
       </div>
     </div>
-    } @if (!loading() && settings(); as currentSettings) { @if (orderId &&
+    } @if (!loading()) { @if (readOnly()) {
+    <div
+      class="border-l-4 border-[#4c78a8] bg-[#dcecff] p-4 text-[#234f7c] dark:border-[#78a9dd] dark:bg-[#263e5a] dark:text-[#dcecff]"
+      role="status"
+    >
+      <strong class="block text-lg">Consulta histórica</strong>
+      <p class="mt-1 text-sm">
+        La compañía ahora tiene el plan Control. Las simulaciones existentes se
+        conservan para consulta, pero no pueden crearse, editarse, emitirse ni
+        cancelarse.
+      </p>
+    </div>
+    } @if (!readOnly() && settings(); as currentSettings) { @if (orderId &&
     auth.hasPermission('invoices.create')) {
     <section class="form-card-tw overflow-hidden">
       <header class="form-card-header">
@@ -207,7 +219,7 @@
         </div>
       </form>
     </details>
-    }
+    } }
 
     <section class="form-card-tw overflow-hidden">
       <header class="form-card-header flex-wrap justify-between">

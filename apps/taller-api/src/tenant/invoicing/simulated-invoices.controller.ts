@@ -22,7 +22,12 @@ import { JwtAuthGuard } from '../../auth/roles';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../../common/types/authenticated-user';
 import { PermissionGuard, RequiresPermissions } from '../../permissions/permission.guard';
-import { RequiresFeature, SubscriptionGuard } from '../../subscriptions/subscription.guard';
+import {
+  RequiresFeature,
+  RequiresFeatureReadAccess,
+  RequiresSubscription,
+  SubscriptionGuard,
+} from '../../subscriptions/subscription.guard';
 import {
   CreateSimulatedInvoiceDto,
   PaginatedSimulatedInvoicesResponseDto,
@@ -36,12 +41,13 @@ import { SimulatedInvoicesService } from './simulated-invoices.service';
 @ApiTags('invoices')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, SubscriptionGuard, PermissionGuard)
-@RequiresFeature('invoicing')
+@RequiresSubscription()
 @Controller('invoices')
 export class SimulatedInvoicesController {
   constructor(private readonly invoices: SimulatedInvoicesService) {}
 
   @Get('catalogs')
+  @RequiresFeatureReadAccess('invoicing')
   @RequiresPermissions('invoices.view')
   @ApiOperation({ summary: 'Consultar catálogos fiscales usados por el simulador' })
   @ApiOkResponse({ type: SimulatedInvoiceCatalogsResponseDto })
@@ -50,6 +56,7 @@ export class SimulatedInvoicesController {
   }
 
   @Get()
+  @RequiresFeatureReadAccess('invoicing')
   @RequiresPermissions('invoices.view')
   @ApiOperation({
     summary: 'Listar simulaciones sin validez fiscal',
@@ -64,6 +71,7 @@ export class SimulatedInvoicesController {
   }
 
   @Get(':id')
+  @RequiresFeatureReadAccess('invoicing')
   @RequiresPermissions('invoices.view')
   @ApiOperation({ summary: 'Consultar la representación de una simulación sin validez fiscal' })
   @ApiOkResponse({ type: SimulatedInvoiceResponseDto })
@@ -75,6 +83,7 @@ export class SimulatedInvoicesController {
   }
 
   @Post()
+  @RequiresFeature('invoicing')
   @RequiresPermissions('invoices.create')
   @ApiOperation({
     summary: 'Crear un borrador de simulación desde una orden terminada',
@@ -89,6 +98,7 @@ export class SimulatedInvoicesController {
   }
 
   @Patch(':id')
+  @RequiresFeature('invoicing')
   @RequiresPermissions('invoices.edit')
   @ApiOperation({ summary: 'Editar un borrador de simulación' })
   @ApiOkResponse({ type: SimulatedInvoiceResponseDto })
@@ -101,6 +111,7 @@ export class SimulatedInvoicesController {
   }
 
   @Post(':id/issue-simulation')
+  @RequiresFeature('invoicing')
   @HttpCode(HttpStatus.OK)
   @RequiresPermissions('invoices.simulate_issue')
   @ApiOperation({
@@ -116,6 +127,7 @@ export class SimulatedInvoicesController {
   }
 
   @Post(':id/cancel-simulation')
+  @RequiresFeature('invoicing')
   @HttpCode(HttpStatus.OK)
   @RequiresPermissions('invoices.cancel_simulation')
   @ApiOperation({

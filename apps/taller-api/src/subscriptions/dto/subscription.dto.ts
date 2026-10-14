@@ -29,6 +29,13 @@ export class SubscriptionResponseDto {
   @ApiProperty() usable!: boolean;
   @ApiProperty({ enum: SUBSCRIPTION_FEATURES, isArray: true })
   features!: SubscriptionFeature[];
+  @ApiProperty({
+    enum: SUBSCRIPTION_FEATURES,
+    isArray: true,
+    description:
+      'Capacidades disponibles únicamente para consulta histórica después de reducir el plan',
+  })
+  readOnlyFeatures!: SubscriptionFeature[];
   @ApiProperty({ example: { max_users: 3, max_branches: 1, max_monthly_invoices: 0 } })
   limits!: Record<string, number | null>;
 }

@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   DestroyRef,
   OnInit,
   inject,
@@ -14,7 +15,7 @@ import {
   Validators,
 } from "@angular/forms";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
-import { finalize, forkJoin } from "rxjs";
+import { finalize, forkJoin, of } from "rxjs";
 import { AuthService } from "../../core/auth/auth.service";
 import { formatShortDate } from "../../core/dates/date-format";
 import { apiErrorMessage } from "../../core/http/api-error";
@@ -51,6 +52,11 @@ export class InvoicesPage implements OnInit {
   readonly auth = inject(AuthService);
   readonly theme = inject(ThemeService);
   readonly formatShortDate = formatShortDate;
+  readonly readOnly = computed(
+    () =>
+      !this.auth.hasFeature("invoicing") &&
+      this.auth.hasFeatureReadAccess("invoicing"),
+  );
 
   readonly orderId = this.route.snapshot.queryParamMap.get("orderId") ?? "";
   readonly loading = signal(true);
@@ -118,7 +124,9 @@ export class InvoicesPage implements OnInit {
         }
       });
     forkJoin({
-      settings: this.invoicesService.settings(),
+      settings: this.auth.hasFeature("invoicing")
+        ? this.invoicesService.settings()
+        : of(null),
       catalogs: this.invoicesService.catalogs(),
       invoices: this.invoicesService.list(),
     })
@@ -131,7 +139,7 @@ export class InvoicesPage implements OnInit {
           this.settings.set(settings);
           this.catalogs.set(catalogs);
           this.invoices.set(invoices);
-          this.populateSettings(settings);
+          if (settings) this.populateSettings(settings);
         },
         error: (error: unknown) =>
           this.error.set(
@@ -154,7 +162,12 @@ export class InvoicesPage implements OnInit {
   }
 
   createDraft(): void {
-    if (!this.orderId || this.createForm.invalid || this.saving()) {
+    if (
+      this.readOnly() ||
+      !this.orderId ||
+      this.createForm.invalid ||
+      this.saving()
+    ) {
       this.createForm.markAllAsTouched();
       return;
     }
@@ -180,7 +193,7 @@ export class InvoicesPage implements OnInit {
   }
 
   saveSettings(): void {
-    if (this.settingsForm.invalid || this.saving()) {
+    if (this.readOnly() || this.settingsForm.invalid || this.saving()) {
       this.settingsForm.markAllAsTouched();
       return;
     }

@@ -12,13 +12,15 @@ import { SubscriptionFeature } from './subscription.types';
 import { SubscriptionsService } from './subscriptions.service';
 
 export const SUBSCRIPTION_FEATURE_KEY = 'subscriptionFeature';
+export const SUBSCRIPTION_READ_FEATURE_KEY = 'subscriptionReadFeature';
 export const REQUIRES_SUBSCRIPTION_KEY = 'requiresSubscription';
 export const ALLOW_INACTIVE_SUBSCRIPTION_KEY = 'allowInactiveSubscription';
 export const RequiresFeature = (feature: SubscriptionFeature) =>
   SetMetadata(SUBSCRIPTION_FEATURE_KEY, feature);
+export const RequiresFeatureReadAccess = (feature: SubscriptionFeature) =>
+  SetMetadata(SUBSCRIPTION_READ_FEATURE_KEY, feature);
 export const RequiresSubscription = () => SetMetadata(REQUIRES_SUBSCRIPTION_KEY, true);
-export const AllowInactiveSubscription = () =>
-  SetMetadata(ALLOW_INACTIVE_SUBSCRIPTION_KEY, true);
+export const AllowInactiveSubscription = () => SetMetadata(ALLOW_INACTIVE_SUBSCRIPTION_KEY, true);
 
 @Injectable()
 export class SubscriptionGuard implements CanActivate {
@@ -40,7 +42,11 @@ export class SubscriptionGuard implements CanActivate {
       ALLOW_INACTIVE_SUBSCRIPTION_KEY,
       [context.getHandler(), context.getClass()],
     );
-    if (allowInactive || (!feature && !required)) return true;
+    const readFeature = this.reflector.getAllAndOverride<SubscriptionFeature>(
+      SUBSCRIPTION_READ_FEATURE_KEY,
+      [context.getHandler(), context.getClass()],
+    );
+    if (allowInactive || (!feature && !readFeature && !required)) return true;
     const request = context.switchToHttp().getRequest<{ user?: AuthenticatedUser }>();
     const user = request.user;
     if (!user) throw new ForbiddenException('Sesión requerida');
@@ -48,6 +54,7 @@ export class SubscriptionGuard implements CanActivate {
     if (!user.companyId) throw new ForbiddenException('Compañía requerida');
     const subscription = await this.subscriptions.getByCompanyId(user.companyId);
     if (feature) this.subscriptions.assertFeature(subscription, feature);
+    else if (readFeature) this.subscriptions.assertFeatureReadAccess(subscription, readFeature);
     else this.subscriptions.assertUsable(subscription);
     return true;
   }

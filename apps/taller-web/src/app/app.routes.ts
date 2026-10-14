@@ -261,6 +261,7 @@ export const routes: Routes = [
         data: {
           roles: ["company_admin", "admin", "user"],
           feature: "invoicing",
+          allowReadOnlyFeature: true,
           permission: "invoices.view",
         },
         loadComponent: () =>
@@ -274,6 +275,7 @@ export const routes: Routes = [
         data: {
           roles: ["company_admin", "admin", "user"],
           feature: "invoicing",
+          allowReadOnlyFeature: true,
           permission: "invoices.view",
         },
         loadComponent: () =>

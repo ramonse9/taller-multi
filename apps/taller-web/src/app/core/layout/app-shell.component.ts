@@ -21,6 +21,7 @@ interface TenantNavigationItem {
   feature?: SubscriptionFeature;
   roles?: UserRole[];
   hiddenForPlans?: SubscriptionPlanCode[];
+  allowReadOnlyFeature?: boolean;
 }
 
 const TENANT_NAVIGATION: TenantNavigationItem[] = [
@@ -83,6 +84,7 @@ const TENANT_NAVIGATION: TenantNavigationItem[] = [
     link: "/invoices",
     permission: "invoices.view",
     feature: "invoicing",
+    allowReadOnlyFeature: true,
   },
   {
     label: "Marcas y modelos",
@@ -121,7 +123,13 @@ export class AppShellComponent {
       if (planCode && item.hiddenForPlans?.includes(planCode)) {
         return false;
       }
-      if (item.feature && !this.auth.hasFeature(item.feature)) return false;
+      if (
+        item.feature &&
+        !(item.allowReadOnlyFeature
+          ? this.auth.hasFeatureReadAccess(item.feature)
+          : this.auth.hasFeature(item.feature))
+      )
+        return false;
       if (item.permission && !this.auth.hasPermission(item.permission)) {
         return false;
       }

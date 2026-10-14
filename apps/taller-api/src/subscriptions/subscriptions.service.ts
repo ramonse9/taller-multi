@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { DataSource, QueryRunner } from 'typeorm';
 import { AuthenticatedUser } from '../common/types/authenticated-user';
+import { quoteIdentifier } from '../database/schema-name';
 import { PlatformRole } from '../platform-users/entities/platform-user.entity';
 import {
   ChangeSubscriptionDto,
@@ -28,6 +29,12 @@ interface SubscriptionRow {
   plan_code: SubscriptionPlanCode;
   plan_name: string;
   status: SubscriptionStatus;
+}
+
+interface LockedSubscription {
+  plan_code: SubscriptionPlanCode;
+  status: SubscriptionStatus;
+  schema_name: string;
 }
 
 interface PlanRow {
@@ -95,6 +102,8 @@ export class SubscriptionsService {
         [input.planCode],
       )) as Array<{ code: string }>;
       if (!plans[0]) throw new NotFoundException('Plan no encontrado');
+
+      await this.enableSimulationForUpgrade(runner, current, input, actor.id);
 
       await runner.query(
         `UPDATE public.company_subscriptions
@@ -196,6 +205,18 @@ export class SubscriptionsService {
     }
   }
 
+  assertFeatureReadAccess(subscription: SubscriptionSummary, feature: SubscriptionFeature): void {
+    this.assertUsable(subscription);
+    if (
+      !subscription.features.includes(feature) &&
+      !subscription.readOnlyFeatures.includes(feature)
+    ) {
+      throw new ForbiddenException(
+        `La capacidad ${feature} no está disponible para consulta en el plan ${subscription.planName}`,
+      );
+    }
+  }
+
   private subscriptionSelect(withCompany = false): string {
     return `SELECT subscription.company_id, subscription.plan_code, plan.name AS plan_name,
              subscription.status
@@ -221,9 +242,10 @@ export class SubscriptionsService {
   }
 
   private async hydrateSubscription(row: SubscriptionRow): Promise<SubscriptionSummary> {
-    const [features, limits] = await Promise.all([
+    const [features, limits, readOnlyFeatures] = await Promise.all([
       this.features(row.plan_code),
       this.limits(row.plan_code),
+      this.readOnlyFeatures(row.company_id, row.plan_code),
     ]);
     return {
       companyId: row.company_id,
@@ -232,6 +254,7 @@ export class SubscriptionsService {
       status: row.status,
       usable: this.isUsable(row),
       features,
+      readOnlyFeatures,
       limits,
     };
   }
@@ -267,14 +290,29 @@ export class SubscriptionsService {
     return row.status === 'active';
   }
 
+  private async readOnlyFeatures(
+    companyId: string,
+    currentPlan: SubscriptionPlanCode,
+  ): Promise<SubscriptionFeature[]> {
+    if (currentPlan !== 'control') return [];
+    const rows = await this.dataSource.query<Array<{ enabled: boolean }>>(
+      `SELECT EXISTS(
+         SELECT 1 FROM public.company_subscription_history
+         WHERE company_id = $1 AND new_plan_code = 'invoicing'
+       ) AS enabled`,
+      [companyId],
+    );
+    return rows[0]?.enabled ? ['invoicing'] : [];
+  }
+
   private async lockSubscription(
     runner: QueryRunner,
     companyId: string,
-  ): Promise<{ plan_code: SubscriptionPlanCode; status: SubscriptionStatus }> {
+  ): Promise<LockedSubscription> {
     const companies = (await runner.query(
-      'SELECT id FROM public.companies WHERE id = $1 FOR UPDATE',
+      'SELECT id, schema_name FROM public.companies WHERE id = $1 FOR UPDATE',
       [companyId],
-    )) as Array<{ id: string }>;
+    )) as Array<{ id: string; schema_name: string }>;
     if (!companies[0]) throw new NotFoundException('Compañía no encontrada');
     const rows = (await runner.query(
       `SELECT plan_code, status FROM public.company_subscriptions
@@ -282,6 +320,42 @@ export class SubscriptionsService {
       [companyId],
     )) as Array<{ plan_code: SubscriptionPlanCode; status: SubscriptionStatus }>;
     if (!rows[0]) throw new NotFoundException('Suscripción no encontrada');
-    return rows[0];
+    return { ...rows[0], schema_name: companies[0].schema_name };
+  }
+
+  private async enableSimulationForUpgrade(
+    runner: QueryRunner,
+    current: LockedSubscription,
+    input: ChangeSubscriptionDto,
+    actorId: string,
+  ): Promise<void> {
+    const activatesInvoicing =
+      input.planCode === 'invoicing' &&
+      input.status === 'active' &&
+      (current.plan_code !== 'invoicing' || current.status !== 'active');
+    if (!activatesInvoicing) return;
+
+    const schema = quoteIdentifier(current.schema_name);
+    const settings = (await runner.query(
+      `SELECT mode FROM ${schema}.invoice_settings WHERE id = 1 FOR UPDATE`,
+    )) as Array<{ mode: 'disabled' | 'simulation' }>;
+    if (!settings[0]) {
+      throw new ConflictException(
+        'La compañía requiere actualizar su schema antes de habilitar Facturación',
+      );
+    }
+    if (settings[0].mode === 'simulation') return;
+    await runner.query(
+      `UPDATE ${schema}.invoice_settings
+       SET mode = 'simulation', updated_by_user_id = $1, updated_at = now()
+       WHERE id = 1`,
+      [actorId],
+    );
+    await runner.query(
+      `INSERT INTO ${schema}.invoice_settings_events(
+         event_type, changed_fields, previous_values, new_values, actor_user_id
+       ) VALUES ('mode_changed', ARRAY['mode']::varchar[], $1, $2, $3)`,
+      [{ mode: 'disabled' }, { mode: 'simulation' }, actorId],
+    );
   }
 }

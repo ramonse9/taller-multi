@@ -151,6 +151,23 @@ export class SubscriptionsPage implements OnInit {
     }[status];
   }
 
+  transitionNote(company: SubscriptionEditor): string {
+    if (company.draftPlanCode === company.planCode) return "";
+    if (
+      company.planCode === "invoicing" &&
+      company.draftPlanCode === "control"
+    ) {
+      return "Las simulaciones se conservarán para consulta histórica, sin permitir cambios.";
+    }
+    if (company.draftPlanCode === "essential") {
+      return "Los datos de catálogo, compras e inventario se conservarán, pero sus módulos quedarán ocultos y bloqueados.";
+    }
+    if (company.draftPlanCode === "invoicing") {
+      return "Se habilitará la simulación fiscal; seguirá siendo necesario completar emisor y receptor.";
+    }
+    return "Las capacidades de Control quedarán disponibles inmediatamente.";
+  }
+
   private editor(company: CompanySubscription): SubscriptionEditor {
     return {
       ...company,

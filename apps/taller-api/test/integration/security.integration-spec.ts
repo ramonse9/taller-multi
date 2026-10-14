@@ -75,6 +75,7 @@ interface LoginResponse {
       planCode: 'essential' | 'control' | 'invoicing';
       status: 'active' | 'past_due' | 'suspended' | 'canceled';
       usable: boolean;
+      readOnlyFeatures: string[];
     } | null;
   };
 }
@@ -195,6 +196,16 @@ interface PlatformInvoiceModeResponse {
   mode: 'disabled' | 'simulation';
   isActive: boolean;
   isIssuerProfileComplete: boolean;
+}
+
+interface SubscriptionSummaryResponse {
+  companyId: string;
+  planCode: 'essential' | 'control' | 'invoicing';
+  planName: string;
+  status: string;
+  usable: boolean;
+  features: string[];
+  readOnlyFeatures: string[];
 }
 
 interface SimulatedInvoiceResponse {
@@ -1075,6 +1086,47 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         .status,
     ).toBe(403);
 
+    const controlUpgrade = await request<{
+      planCode: string;
+      features: string[];
+      readOnlyFeatures: string[];
+    }>('PATCH', `/subscriptions/companies/${controlPlan.company.id}`, {
+      token: platformToken,
+      body: {
+        planCode: 'invoicing',
+        status: 'active',
+        reason: 'Validar habilitación inmediata de Facturación',
+      },
+    });
+    expect(controlUpgrade.status).toBe(200);
+    expect(controlUpgrade.body).toMatchObject({
+      planCode: 'invoicing',
+      readOnlyFeatures: [],
+    });
+    expect(controlUpgrade.body.features).toContain('invoicing');
+    const incompleteSettings = await request<InvoiceSettingsResponse>('GET', '/invoices/settings', {
+      token: controlPlan.accessToken,
+    });
+    expect(incompleteSettings.status).toBe(200);
+    expect(incompleteSettings.body).toMatchObject({
+      mode: 'simulation',
+      isActive: false,
+      readiness: { isIssuerProfileComplete: false },
+    });
+    expect(
+      (
+        await request<unknown>('POST', '/invoices', {
+          token: controlPlan.accessToken,
+          body: {
+            orderId: '00000000-0000-4000-8000-000000000001',
+            cfdiUseCode: 'G03',
+            paymentFormCode: '03',
+            paymentMethodCode: 'PUE',
+          },
+        })
+      ).status,
+    ).toBe(422);
+
     expect(
       (
         await request<PlatformInvoiceModeResponse>(
@@ -1291,6 +1343,126 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       [created.body.id],
     );
     expect(stored[0]).toEqual({ fiscal_uuid: null, sat_seal: null, xml: null });
+
+    const downgraded = await request<{
+      planCode: string;
+      features: string[];
+      readOnlyFeatures: string[];
+    }>('PATCH', `/subscriptions/companies/${tenant.company.id}`, {
+      token: platformToken,
+      body: {
+        planCode: 'control',
+        status: 'active',
+        reason: 'Conservar simulaciones como historial de solo lectura',
+      },
+    });
+    expect(downgraded.status).toBe(200);
+    expect(downgraded.body.planCode).toBe('control');
+    expect(downgraded.body.features).not.toContain('invoicing');
+    expect(downgraded.body.readOnlyFeatures).toEqual(['invoicing']);
+
+    const currentAfterDowngrade = await request<SubscriptionSummaryResponse>(
+      'GET',
+      '/subscriptions/current',
+      { token: tenant.accessToken },
+    );
+    expect(currentAfterDowngrade.status).toBe(200);
+    expect(currentAfterDowngrade.body).toMatchObject({
+      planCode: 'control',
+      readOnlyFeatures: ['invoicing'],
+    });
+    expect((await request<unknown>('GET', '/invoices', { token: tenant.accessToken })).status).toBe(
+      200,
+    );
+    expect(
+      (
+        await request<SimulatedInvoiceResponse>('GET', `/invoices/${created.body.id}`, {
+          token: tenant.accessToken,
+        })
+      ).body.status,
+    ).toBe('cancelled');
+    expect(
+      (await request<unknown>('GET', '/invoices/settings', { token: tenant.accessToken })).status,
+    ).toBe(403);
+    expect(
+      (
+        await request<unknown>('PATCH', `/invoices/${created.body.id}`, {
+          token: tenant.accessToken,
+          body: { cfdiUseCode: 'G03' },
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await request<unknown>('POST', `/invoices/${created.body.id}/issue-simulation`, {
+          token: tenant.accessToken,
+        })
+      ).status,
+    ).toBe(403);
+
+    const essential = await request<{
+      planCode: string;
+      readOnlyFeatures: string[];
+    }>('PATCH', `/subscriptions/companies/${tenant.company.id}`, {
+      token: platformToken,
+      body: {
+        planCode: 'essential',
+        status: 'active',
+        reason: 'Ocultar módulos avanzados sin eliminar información',
+      },
+    });
+    expect(essential.body).toMatchObject({ planCode: 'essential', readOnlyFeatures: [] });
+    expect((await request<unknown>('GET', '/invoices', { token: tenant.accessToken })).status).toBe(
+      403,
+    );
+    expect(
+      (await request<unknown>('GET', '/catalogs/concepts', { token: tenant.accessToken })).status,
+    ).toBe(403);
+
+    const restored = await request<{
+      planCode: string;
+      readOnlyFeatures: string[];
+    }>('PATCH', `/subscriptions/companies/${tenant.company.id}`, {
+      token: platformToken,
+      body: {
+        planCode: 'invoicing',
+        status: 'active',
+        reason: 'Restaurar Facturación sin perder datos',
+      },
+    });
+    expect(restored.body).toMatchObject({ planCode: 'invoicing', readOnlyFeatures: [] });
+    expect(
+      (
+        await request<InvoiceSettingsResponse>('GET', '/invoices/settings', {
+          token: tenant.accessToken,
+        })
+      ).body.mode,
+    ).toBe('simulation');
+
+    const planHistory = await control.query<
+      Array<{ previous_plan_code: string | null; new_plan_code: string; reason: string | null }>
+    >(
+      `SELECT previous_plan_code, new_plan_code, reason
+       FROM public.company_subscription_history
+       WHERE company_id=$1 ORDER BY changed_at,id`,
+      [tenant.company.id],
+    );
+    expect(planHistory).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          previous_plan_code: 'invoicing',
+          new_plan_code: 'control',
+        }),
+        expect.objectContaining({
+          previous_plan_code: 'control',
+          new_plan_code: 'essential',
+        }),
+        expect.objectContaining({
+          previous_plan_code: 'essential',
+          new_plan_code: 'invoicing',
+        }),
+      ]),
+    );
 
     const swagger = SwaggerModule.createDocument(app, new DocumentBuilder().build());
     expect(swagger.paths['/api/invoices']).toBeDefined();

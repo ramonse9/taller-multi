@@ -32,5 +32,6 @@ export interface SubscriptionSummary {
   status: SubscriptionStatus;
   usable: boolean;
   features: SubscriptionFeature[];
+  readOnlyFeatures: SubscriptionFeature[];
   limits: Record<SubscriptionLimit, number | null>;
 }

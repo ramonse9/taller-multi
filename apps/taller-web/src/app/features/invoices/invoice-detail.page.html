@@ -53,7 +53,18 @@
         <span></span><span></span><span></span>
       </div>
     </div>
-    } @if (!loading() && invoice(); as current) {
+    } @if (!loading() && invoice(); as current) { @if (readOnly()) {
+    <div
+      class="border-l-4 border-[#4c78a8] bg-[#dcecff] p-4 text-[#234f7c] dark:border-[#78a9dd] dark:bg-[#263e5a] dark:text-[#dcecff]"
+      role="status"
+    >
+      <strong class="block">Documento histórico de solo lectura</strong>
+      <p class="mt-1 text-sm">
+        La compañía ya no tiene contratado el paquete Facturación. El documento
+        y su historial permanecen disponibles sin permitir cambios.
+      </p>
+    </div>
+    }
     <section class="form-card-tw overflow-hidden">
       <header class="form-card-header flex-wrap justify-between">
         <div>
@@ -63,14 +74,14 @@
           </p>
         </div>
         <div class="flex flex-wrap gap-2">
-          @if (current.status === 'draft' &&
+          @if (!readOnly() && current.status === 'draft' &&
           auth.hasPermission('invoices.simulate_issue')) {<button
             class="primary"
             type="button"
             (click)="confirmAction.set('issue')"
           >
             Emitir simulación</button
-          >} @if (current.status === 'issued' &&
+          >} @if (!readOnly() && current.status === 'issued' &&
           auth.hasPermission('invoices.cancel_simulation')) {<button
             class="small-action-tw"
             type="button"
@@ -171,7 +182,8 @@
       </footer>
     </section>
 
-    @if (current.status === 'draft' && auth.hasPermission('invoices.edit')) {
+    @if (!readOnly() && current.status === 'draft' &&
+    auth.hasPermission('invoices.edit')) {
     <form
       class="form-card-tw overflow-hidden"
       [formGroup]="form"

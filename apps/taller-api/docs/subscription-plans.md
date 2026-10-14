@@ -19,22 +19,22 @@ reducción oculta y bloquea el módulo, pero no borra permisos ni información.
 
 ## Matriz funcional
 
-| Funcionalidad | Capacidad técnica | Esencial | Control | Facturación |
-| --- | --- | :---: | :---: | :---: |
-| Tablero operativo | `dashboard` | Sí | Sí | Sí |
-| Clientes y empresas | `customer_history` | Sí | Sí | Sí |
-| Vehículos | `vehicle_history` | Sí | Sí | Sí |
-| Marcas y modelos | `vehicle_catalog` | Sí | Sí | Sí |
-| Órdenes de servicio | `service_orders` | Sí | Sí | Sí |
-| Conceptos libres | `free_order_items` | Sí | Sí | Sí |
-| Gastos | `expenses` | Sí | Sí | Sí |
-| Utilidad, gráficas y Excel | `profitability` | Sí | Sí | Sí |
-| Usuarios, roles y permisos | `user_management` | Sí | Sí | Sí |
-| Productos, servicios y unidades | `item_catalog` | No | Sí | Sí |
-| Proveedores | `suppliers` | No | Sí | Sí |
-| Compras | `purchases` | No | Sí | Sí |
-| Inventario, lotes y FIFO | `inventory` | No | Sí | Sí |
-| Preparación y simulación fiscal | `invoicing` | No | No | Sí |
+| Funcionalidad                   | Capacidad técnica  | Esencial | Control | Facturación |
+| ------------------------------- | ------------------ | :------: | :-----: | :---------: |
+| Tablero operativo               | `dashboard`        |    Sí    |   Sí    |     Sí      |
+| Clientes y empresas             | `customer_history` |    Sí    |   Sí    |     Sí      |
+| Vehículos                       | `vehicle_history`  |    Sí    |   Sí    |     Sí      |
+| Marcas y modelos                | `vehicle_catalog`  |    Sí    |   Sí    |     Sí      |
+| Órdenes de servicio             | `service_orders`   |    Sí    |   Sí    |     Sí      |
+| Conceptos libres                | `free_order_items` |    Sí    |   Sí    |     Sí      |
+| Gastos                          | `expenses`         |    Sí    |   Sí    |     Sí      |
+| Utilidad, gráficas y Excel      | `profitability`    |    Sí    |   Sí    |     Sí      |
+| Usuarios, roles y permisos      | `user_management`  |    Sí    |   Sí    |     Sí      |
+| Productos, servicios y unidades | `item_catalog`     |    No    |   Sí    |     Sí      |
+| Proveedores                     | `suppliers`        |    No    |   Sí    |     Sí      |
+| Compras                         | `purchases`        |    No    |   Sí    |     Sí      |
+| Inventario, lotes y FIFO        | `inventory`        |    No    |   Sí    |     Sí      |
+| Preparación y simulación fiscal | `invoicing`        |    No    |   No    |     Sí      |
 
 ## Esencial
 
@@ -60,11 +60,11 @@ de pago, por lo que el producto no debe anunciarse como facturación electrónic
 
 ## Límites actuales
 
-| Límite | Esencial | Control | Facturación |
-| --- | ---: | ---: | ---: |
-| Usuarios activos | 3 | 10 | 25 |
-| Sucursales configuradas | 1 | 3 | 5 |
-| Facturas mensuales | 0 | 0 | 100 |
+| Límite                  | Esencial | Control | Facturación |
+| ----------------------- | -------: | ------: | ----------: |
+| Usuarios activos        |        3 |      10 |          25 |
+| Sucursales configuradas |        1 |       3 |           5 |
+| Facturas mensuales      |        0 |       0 |         100 |
 
 Los valores se conservan por compatibilidad hasta tomar una decisión comercial. El sistema todavía
 no cuenta con un módulo de sucursales ni timbrado real, por lo que esos límites no deben anunciarse
@@ -76,20 +76,31 @@ como funcionalidades disponibles.
   todavía no está oculta para Esencial y Control; deberá ajustarse al implementar por completo la
   experiencia del paquete Facturación. La configuración del emisor sí está protegida por
   `invoicing`.
-- Facturación cuenta por ahora con configuración del emisor y modo simulación, pero no existen aún
-  borradores, cálculo fiscal completo, representaciones, PAC ni timbrado.
+- Facturación cuenta con configuración del emisor, borradores desde órdenes, cálculo fiscal
+  simulado, representación visual e historial. Continúan pendientes PAC, CSD, XML fiscal,
+  timbrado y cancelación ante el SAT.
 - `max_branches` y `max_monthly_invoices` están almacenados por compatibilidad, pero no tienen un
   módulo operativo completo que pueda aplicar esos límites.
-- Los datos de proveedores, compras e inventario se conservan al reducir el plan. Su consulta
-  histórica de solo lectura todavía requiere una definición específica de producto; actualmente el
-  módulo queda bloqueado por completo fuera de Control y Facturación.
+- Los datos de proveedores, compras e inventario se conservan al reducir el plan, pero sus módulos
+  quedan bloqueados fuera de Control y Facturación. La excepción explícita es Facturación →
+  Control: las simulaciones existentes permanecen consultables en modo de solo lectura.
 
 ## Cambios de plan
 
-- Subir de plan habilita las capacidades nuevas inmediatamente.
+- Esencial → Control habilita catálogo, proveedores, compras e inventario inmediatamente.
+- Control → Facturación habilita el modo simulación. La creación o emisión continúa bloqueada hasta
+  completar la configuración del emisor, activar su perfil y utilizar un receptor fiscal válido.
+- Facturación → Control conserva documentos e historial y expone únicamente su consulta. Crear,
+  editar, emitir, cancelar o modificar la configuración fiscal queda bloqueado en la API y el
+  frontend.
+- Control → Esencial conserva catálogos, proveedores, compras, existencias, lotes y movimientos,
+  pero oculta sus pantallas y bloquea todas sus operaciones.
 - Bajar de plan no elimina clientes, órdenes, catálogos, compras, inventario ni datos fiscales.
 - La API rechaza operaciones de módulos fuera del plan aunque se invoque directamente la URL.
 - Las copias históricas de conceptos en órdenes permanecen consultables.
 - Cada cambio conserva su registro en `company_subscription_history`.
+- El plan se consulta desde PostgreSQL en cada petición autenticada; no queda congelado dentro del
+  access token. Por ello, un cambio activo se aplica inmediatamente sin cerrar sesiones. Suspender o
+  cancelar continúa revocando todas las sesiones de la compañía.
 - Las compañías existentes permanecen en su plan actual hasta que el administrador de plataforma
   realice un cambio explícito.
