@@ -98,77 +98,183 @@
     <div class="grid gap-4">
       @for (company of companies(); track company.companyId) {
       <article
-        class="grid gap-5 border border-[#d5dce3] bg-white p-5 dark:border-[#38516d] dark:bg-[#19283b] md:grid-cols-2 xl:grid-cols-[minmax(14rem,1.4fr)_minmax(10rem,.8fr)_minmax(11rem,.9fr)_auto] xl:items-end"
+        class="border border-[#d5dce3] bg-white p-5 dark:border-[#38516d] dark:bg-[#19283b] sm:p-6"
       >
-        <div>
-          <p
-            class="text-xs font-bold uppercase tracking-[0.14em] text-[#e86a33]"
+        <header
+          class="flex flex-col gap-4 border-b border-[#e2e7ec] pb-5 dark:border-[#38516d] sm:flex-row sm:items-start sm:justify-between"
+        >
+          <div>
+            <p
+              class="text-xs font-bold uppercase tracking-[0.14em] text-[#e86a33]"
+            >
+              &#64;{{ company.companyLoginCode }}
+            </p>
+            <h3 class="mt-1 font-[var(--display)] text-2xl font-semibold">
+              {{ company.companyName }}
+            </h3>
+          </div>
+          <div class="flex flex-wrap gap-2 sm:justify-end">
+            <span
+              class="rounded-full bg-[#dceaf8] px-3 py-1 text-xs font-extrabold uppercase tracking-wider text-[#254f79] dark:bg-[#315474] dark:text-[#eef7ff]"
+            >
+              Plan actual: {{ company.planName }}
+            </span>
+            <span
+              class="rounded-full px-3 py-1 text-xs font-extrabold uppercase tracking-wider"
+              [class.bg-[#d9eddf]]="company.status === 'active'"
+              [class.text-[#275e3c]]="company.status === 'active'"
+              [class.dark:bg-[#315b47]]="company.status === 'active'"
+              [class.dark:text-[#dcf6e5]]="company.status === 'active'"
+              [class.bg-[#ffe1d8]]="company.status !== 'active'"
+              [class.text-[#8f371b]]="company.status !== 'active'"
+              [class.dark:bg-[#68413d]]="company.status !== 'active'"
+              [class.dark:text-[#ffe4dc]]="company.status !== 'active'"
+            >
+              Estatus: {{ statusName(company.status) }}
+            </span>
+          </div>
+        </header>
+
+        <div class="mt-5 grid gap-5 xl:grid-cols-[1.35fr_.85fr]">
+          <section aria-label="Capacidades y límites actuales">
+            <p class="text-xs font-extrabold uppercase tracking-[0.14em]">
+              Capacidades incluidas actualmente
+            </p>
+            <div class="mt-3 flex flex-wrap gap-2">
+              @for (feature of company.features; track feature) {
+              <span
+                class="rounded-full bg-[#e8f0f7] px-2.5 py-1 text-xs font-semibold text-[#31513f] dark:bg-[#2b425c] dark:text-[#e2edf7]"
+              >
+                {{ featureName(feature) }}
+              </span>
+              }
+            </div>
+
+            @if (company.readOnlyFeatures.length) {
+            <div
+              class="mt-4 border-l-4 border-[#4c78a8] bg-[#edf5ff] px-3 py-2 text-sm text-[#315f91] dark:border-[#78a9dd] dark:bg-[#263e5a] dark:text-[#dcecff]"
+            >
+              Consulta histórica: @for (feature of company.readOnlyFeatures;
+              track feature; let last = $last) { {{ featureName(feature) }}{{
+              last ? '' : ', ' }} }
+            </div>
+            }
+
+            <p class="mt-5 text-xs font-extrabold uppercase tracking-[0.14em]">
+              Límites actuales
+            </p>
+            <div class="mt-3 grid gap-2 sm:grid-cols-3">
+              <div
+                class="border border-[#dce3e9] bg-[#f6f8fa] p-3 dark:border-[#38516d] dark:bg-[#14243a]"
+              >
+                <span
+                  class="block text-[0.68rem] font-bold uppercase tracking-wider text-[#63717d] dark:text-[#afbed0]"
+                  >Usuarios</span
+                >
+                <strong class="mt-1 block text-sm"
+                  >{{ limit(company.limits.max_users, 'usuarios') }}</strong
+                >
+              </div>
+              <div
+                class="border border-[#dce3e9] bg-[#f6f8fa] p-3 dark:border-[#38516d] dark:bg-[#14243a]"
+              >
+                <span
+                  class="block text-[0.68rem] font-bold uppercase tracking-wider text-[#63717d] dark:text-[#afbed0]"
+                  >Sucursales</span
+                >
+                <strong class="mt-1 block text-sm"
+                  >{{ limit(company.limits.max_branches, 'sucursales')
+                  }}</strong
+                >
+              </div>
+              <div
+                class="border border-[#dce3e9] bg-[#f6f8fa] p-3 dark:border-[#38516d] dark:bg-[#14243a]"
+              >
+                <span
+                  class="block text-[0.68rem] font-bold uppercase tracking-wider text-[#63717d] dark:text-[#afbed0]"
+                  >Facturas mensuales</span
+                >
+                <strong class="mt-1 block text-sm"
+                  >{{ limit(company.limits.max_monthly_invoices, 'facturas/mes')
+                  }}</strong
+                >
+              </div>
+            </div>
+          </section>
+
+          <section
+            class="grid content-start gap-4 border border-[#dce3e9] bg-[#f9fafb] p-4 dark:border-[#38516d] dark:bg-[#14243a] sm:grid-cols-2 xl:grid-cols-1"
+            aria-label="Cambiar suscripción"
           >
-            &#64;{{ company.companyLoginCode }}
+            <label
+              class="grid gap-1.5 text-xs font-bold uppercase tracking-wider"
+              >Nuevo plan<select
+                class="field-control normal-case"
+                [value]="company.draftPlanCode"
+                (change)="setPlan(company.companyId, $any($event.target).value)"
+              >
+                @for (plan of plans(); track plan.code) {
+                <option [value]="plan.code">{{ plan.name }}</option>
+                }
+              </select></label
+            >
+            <label
+              class="grid gap-1.5 text-xs font-bold uppercase tracking-wider"
+              >Nuevo estatus<select
+                class="field-control normal-case"
+                [value]="company.draftStatus"
+                (change)="setStatus(company.companyId, $any($event.target).value)"
+              >
+                <option value="active">Activa</option>
+                <option value="past_due">Pago pendiente</option>
+                <option value="suspended">Suspendida</option>
+                <option value="canceled">Cancelada</option>
+              </select></label
+            >
+            <button
+              type="button"
+              class="w-full bg-[#e86a33] px-5 py-3 font-bold text-white transition hover:bg-[#c95527] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e86a33] disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-2 xl:col-span-1"
+              [disabled]="company.saving || !hasChanges(company)"
+              (click)="save(company)"
+            >
+              {{ company.saving ? 'Guardando…' : 'Guardar cambios' }}
+            </button>
+          </section>
+        </div>
+
+        @if (transitionNote(company)) {
+        <section
+          class="mt-5 border-l-4 border-[#4c78a8] bg-[#edf5ff] px-4 py-3 text-sm text-[#315f91] dark:border-[#78a9dd] dark:bg-[#263e5a] dark:text-[#dcecff]"
+          aria-live="polite"
+        >
+          <strong class="block">Resultado del cambio</strong>
+          <p class="mt-1">{{ transitionNote(company) }}</p>
+          @if (selectedPlan(company); as selection) {
+          <p class="mt-2 text-xs font-bold uppercase tracking-wider">
+            Capacidades del plan {{ selection.name }}
           </p>
-          <h3 class="mt-1 font-[var(--display)] text-xl font-semibold">
-            {{ company.companyName }}
-          </h3>
-          <p class="mt-1 text-xs text-[#63717d] dark:text-[#afbed0]">
-            Actual: {{ company.planName }} · {{ statusName(company.status) }}
-          </p>
-          @if (company.readOnlyFeatures.includes('invoicing')) {
-          <p
-            class="mt-2 text-xs font-semibold text-[#315f91] dark:text-[#9bc7ef]"
-          >
-            Facturación histórica disponible en modo de solo lectura.
+          <div class="mt-2 flex flex-wrap gap-2">
+            @for (feature of selection.features; track feature) {
+            <span
+              class="rounded-full bg-white/70 px-2.5 py-1 text-xs font-semibold text-[#315f91] dark:bg-[#162b43] dark:text-[#dcecff]"
+              >{{ featureName(feature) }}</span
+            >
+            }
+          </div>
+          <p class="mt-3 text-xs">
+            <strong>Límites al guardar:</strong>
+            {{ limit(selection.limits.max_users, 'usuarios') }} · {{
+            limit(selection.limits.max_branches, 'sucursales') }} · {{
+            limit(selection.limits.max_monthly_invoices, 'facturas/mes') }}
           </p>
           }
-        </div>
-        <label class="grid gap-1.5 text-xs font-bold uppercase tracking-wider"
-          >Plan<select
-            class="field-control normal-case"
-            [value]="company.draftPlanCode"
-            (change)="setPlan(company.companyId, $any($event.target).value)"
-          >
-            @for (plan of plans(); track plan.code) {
-            <option [value]="plan.code">{{ plan.name }}</option>
-            }
-          </select></label
-        >
-        <label class="grid gap-1.5 text-xs font-bold uppercase tracking-wider"
-          >Estatus<select
-            class="field-control normal-case"
-            [value]="company.draftStatus"
-            (change)="setStatus(company.companyId, $any($event.target).value)"
-          >
-            <option value="active">Activa</option>
-            <option value="past_due">Pago pendiente</option>
-            <option value="suspended">Suspendida</option>
-            <option value="canceled">Cancelada</option>
-          </select></label
-        >
-        <button
-          type="button"
-          class="w-full bg-[#e86a33] px-5 py-3 font-bold text-white transition hover:bg-[#c95527] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e86a33] disabled:opacity-50 xl:w-auto"
-          [disabled]="company.saving"
-          (click)="save(company)"
-        >
-          {{ company.saving ? 'Guardando…' : 'Guardar cambios' }}
-        </button>
-        @if (transitionNote(company)) {
-        <p
-          class="border-l-4 border-[#4c78a8] bg-[#edf5ff] px-3 py-2 text-sm text-[#315f91] dark:border-[#78a9dd] dark:bg-[#263e5a] dark:text-[#dcecff] md:col-span-2 xl:col-span-4"
-        >
-          {{ transitionNote(company) }}
-        </p>
+        </section>
         } @if (company.message) {
-        <p
-          class="text-sm font-semibold text-[#2d7550] md:col-span-2 xl:col-span-4"
-          role="status"
-        >
+        <p class="mt-4 text-sm font-semibold text-[#2d7550]" role="status">
           {{ company.message }}
         </p>
         } @if (company.error) {
-        <p
-          class="text-sm font-semibold text-[#a83e19] md:col-span-2 xl:col-span-4"
-          role="alert"
-        >
+        <p class="mt-4 text-sm font-semibold text-[#a83e19]" role="alert">
           {{ company.error }}
         </p>
         }
@@ -184,3 +290,104 @@
   </section>
   }
 </main>
+
+@if (downgradeConfirmation(); as confirmation) {
+<div
+  class="fixed inset-0 z-50 grid place-items-center bg-[#0d1726]/70 p-4 backdrop-blur-[2px]"
+  role="presentation"
+  (click)="closeDowngradeConfirmation()"
+>
+  <section
+    class="max-h-[calc(100dvh-2rem)] w-full max-w-xl overflow-y-auto border border-[#d5dce3] bg-[#fbfaf7] p-5 shadow-2xl dark:border-[#48627d] dark:bg-[#19283b] sm:p-7"
+    role="alertdialog"
+    aria-modal="true"
+    aria-labelledby="downgrade-title"
+    aria-describedby="downgrade-description"
+    (click)="$event.stopPropagation()"
+  >
+    <div
+      class="mb-5 grid size-12 place-items-center rounded-full bg-[#ffe1d8] text-2xl font-black text-[#9a3d20] dark:bg-[#68413d] dark:text-[#ffe4dc]"
+      aria-hidden="true"
+    >
+      !
+    </div>
+    <p
+      class="text-xs font-extrabold uppercase tracking-[0.14em] text-[#a84424] dark:text-[#ffc5b3]"
+    >
+      Confirmar reducción de plan
+    </p>
+    <h2
+      id="downgrade-title"
+      class="mt-2 font-[var(--display)] text-3xl font-semibold"
+    >
+      {{ confirmation.currentPlanName }} → {{ confirmation.targetPlanName }}
+    </h2>
+    <p
+      id="downgrade-description"
+      class="mt-3 text-sm leading-6 text-[#596875] dark:text-[#bdcad8]"
+    >
+      La compañía <strong>{{ confirmation.companyName }}</strong> conservará
+      toda su información y sus permisos personalizados. El nuevo plan limitará
+      las operaciones disponibles.
+    </p>
+
+    @if (confirmation.unavailableFeatures.length) {
+    <div
+      class="mt-5 border border-[#e1b6a9] bg-[#fff1ec] p-4 dark:border-[#764c47] dark:bg-[#372d35]"
+    >
+      <h3 class="text-sm font-extrabold">
+        Módulos que dejarán de estar disponibles
+      </h3>
+      <div class="mt-3 flex flex-wrap gap-2">
+        @for (feature of confirmation.unavailableFeatures; track feature) {
+        <span
+          class="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-[#8f371b] dark:bg-[#5b3b3b] dark:text-[#ffe4dc]"
+          >{{ featureName(feature) }}</span
+        >
+        }
+      </div>
+    </div>
+    } @if (confirmation.readOnlyFeatures.length) {
+    <div
+      class="mt-4 border border-[#aac8e4] bg-[#edf5ff] p-4 text-[#315f91] dark:border-[#50779b] dark:bg-[#263e5a] dark:text-[#dcecff]"
+    >
+      <h3 class="text-sm font-extrabold">
+        Disponible solamente para consulta histórica
+      </h3>
+      <div class="mt-3 flex flex-wrap gap-2">
+        @for (feature of confirmation.readOnlyFeatures; track feature) {
+        <span
+          class="rounded-full bg-white/75 px-2.5 py-1 text-xs font-semibold dark:bg-[#162b43]"
+          >{{ featureName(feature) }}</span
+        >
+        }
+      </div>
+    </div>
+    }
+
+    <p class="mt-5 text-sm text-[#596875] dark:text-[#bdcad8]">
+      No se eliminarán catálogos, compras, inventario, documentos ni historial.
+      Tampoco se modificarán los permisos asignados a los usuarios.
+    </p>
+
+    <footer class="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+      <button
+        type="button"
+        class="border border-[#b9c4ce] bg-white px-5 py-3 font-bold dark:border-[#57708b] dark:bg-[#20344b]"
+        [disabled]="downgradeSaving()"
+        (click)="closeDowngradeConfirmation()"
+      >
+        Conservar plan actual
+      </button>
+      <button
+        type="button"
+        class="bg-[#a84424] px-5 py-3 font-bold text-white transition hover:bg-[#873319] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#a84424] disabled:opacity-50"
+        [disabled]="downgradeSaving()"
+        (click)="confirmDowngrade()"
+      >
+        {{ downgradeSaving() ? 'Guardando…' : 'Sí, cambiar de plan' }}
+      </button>
+    </footer>
+  </section>
+</div>
+}

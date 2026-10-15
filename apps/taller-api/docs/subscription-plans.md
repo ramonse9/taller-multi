@@ -104,3 +104,14 @@ como funcionalidades disponibles.
   cancelar continúa revocando todas las sesiones de la compañía.
 - Las compañías existentes permanecen en su plan actual hasta que el administrador de plataforma
   realice un cambio explícito.
+
+## Administración desde plataforma
+
+La pantalla de suscripciones muestra por compañía el plan y estatus vigentes, sus capacidades y
+los límites configurados. Al seleccionar otro plan presenta las capacidades y límites resultantes
+antes de guardar.
+
+Las reducciones de plan requieren una confirmación adicional. La confirmación separa los módulos
+que quedarán bloqueados de aquellos que continuarán disponibles únicamente para consulta histórica
+y recuerda que los datos y permisos personalizados se conservan. Esta administración no guarda
+precios, promociones ni condiciones comerciales y no contiene periodos de prueba.

@@ -26,6 +26,15 @@ interface SubscriptionEditor extends CompanySubscription {
   error: string;
 }
 
+interface DowngradeConfirmation {
+  companyId: string;
+  companyName: string;
+  currentPlanName: string;
+  targetPlanName: string;
+  unavailableFeatures: SubscriptionFeature[];
+  readOnlyFeatures: SubscriptionFeature[];
+}
+
 @Component({
   selector: "app-subscriptions-page",
   templateUrl: "./subscriptions.page.html",
@@ -39,6 +48,7 @@ export class SubscriptionsPage implements OnInit {
   readonly loadError = signal("");
   readonly plans = signal<SubscriptionPlan[]>([]);
   readonly companies = signal<SubscriptionEditor[]>([]);
+  readonly downgradeConfirmation = signal<DowngradeConfirmation | null>(null);
 
   ngOnInit(): void {
     this.load();
@@ -85,6 +95,94 @@ export class SubscriptionsPage implements OnInit {
 
   save(company: SubscriptionEditor): void {
     if (company.saving) return;
+    if (!this.hasChanges(company)) {
+      this.updateEditor(company.companyId, {
+        message: "No hay cambios pendientes.",
+        error: "",
+      });
+      return;
+    }
+    if (this.isDowngrade(company)) {
+      const target = this.plan(company.draftPlanCode);
+      if (!target) return;
+      this.downgradeConfirmation.set({
+        companyId: company.companyId,
+        companyName: company.companyName,
+        currentPlanName: company.planName,
+        targetPlanName: target.name,
+        unavailableFeatures: this.unavailableFeatures(company),
+        readOnlyFeatures: this.readOnlyAfterChange(company),
+      });
+      return;
+    }
+    this.persist(company);
+  }
+
+  confirmDowngrade(): void {
+    const confirmation = this.downgradeConfirmation();
+    if (!confirmation) return;
+    const company = this.companies().find(
+      ({ companyId }) => companyId === confirmation.companyId,
+    );
+    if (!company || company.saving) return;
+    this.downgradeConfirmation.set(null);
+    this.persist(company);
+  }
+
+  closeDowngradeConfirmation(): void {
+    if (this.downgradeSaving()) return;
+    this.downgradeConfirmation.set(null);
+  }
+
+  downgradeSaving(): boolean {
+    const confirmation = this.downgradeConfirmation();
+    return Boolean(
+      confirmation &&
+      this.companies().find(
+        ({ companyId }) => companyId === confirmation.companyId,
+      )?.saving,
+    );
+  }
+
+  hasChanges(company: SubscriptionEditor): boolean {
+    return (
+      company.draftPlanCode !== company.planCode ||
+      company.draftStatus !== company.status
+    );
+  }
+
+  selectedPlan(company: SubscriptionEditor): SubscriptionPlan | undefined {
+    return this.plan(company.draftPlanCode);
+  }
+
+  unavailableFeatures(company: SubscriptionEditor): SubscriptionFeature[] {
+    const targetFeatures = new Set(
+      this.selectedPlan(company)?.features ?? company.features,
+    );
+    const targetReadOnlyFeatures = this.readOnlyAfterChange(company);
+    return [
+      ...new Set([...company.features, ...company.readOnlyFeatures]),
+    ].filter(
+      (feature) =>
+        !targetFeatures.has(feature) &&
+        !targetReadOnlyFeatures.includes(feature),
+    );
+  }
+
+  readOnlyAfterChange(company: SubscriptionEditor): SubscriptionFeature[] {
+    return company.planCode === "invoicing" &&
+      company.draftPlanCode === "control"
+      ? ["invoicing"]
+      : [];
+  }
+
+  isDowngrade(company: SubscriptionEditor): boolean {
+    const current = this.plan(company.planCode);
+    const target = this.selectedPlan(company);
+    return Boolean(current && target && target.sortOrder < current.sortOrder);
+  }
+
+  private persist(company: SubscriptionEditor): void {
     this.updateEditor(company.companyId, {
       saving: true,
       message: "",
@@ -166,6 +264,10 @@ export class SubscriptionsPage implements OnInit {
       return "Se habilitará la simulación fiscal; seguirá siendo necesario completar emisor y receptor.";
     }
     return "Las capacidades de Control quedarán disponibles inmediatamente.";
+  }
+
+  private plan(code: SubscriptionPlanCode): SubscriptionPlan | undefined {
+    return this.plans().find((plan) => plan.code === code);
   }
 
   private editor(company: CompanySubscription): SubscriptionEditor {
