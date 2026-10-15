@@ -79,7 +79,10 @@ El `platform_admin` puede cambiar solamente `mode` mediante el endpoint de plata
 
 El `company_admin` puede modificar el perfil fiscal del emisor y su estatus operativo. Un `admin` puede consultarlo si tiene `invoices.view`, pero no modificarlo aunque alguien le asigne `invoices.configure`: el límite de rol se valida en la API.
 
-Los planes Esencial y Control no pueden consultar ni operar el módulo. Un cambio de plan no elimina la configuración guardada; solamente deja la capacidad inaccesible mientras el plan no incluya `invoicing`.
+Esencial no puede consultar ni operar el módulo. Control tampoco puede crear o modificar
+simulaciones ni consultar la configuración fiscal. Como excepción, una compañía que baja de
+Facturación a Control conserva acceso de solo lectura al listado y detalle de sus simulaciones
+históricas. Un cambio de plan no elimina la configuración ni los documentos guardados.
 
 ## Permisos
 
@@ -98,15 +101,23 @@ El `company_admin` recibe todos los permisos de manera automática por la polít
 - `PATCH /api/invoices/settings`: actualiza el perfil; requiere plan Facturación, rol `company_admin` e `invoices.configure`.
 - `GET /api/companies/:companyId/invoicing-mode`: consulta operativa para `platform_admin`.
 - `PATCH /api/companies/:companyId/invoicing-mode`: habilita o deshabilita simulación para `platform_admin`.
-- `GET /api/invoices/catalogs`: catálogos utilizados por el simulador.
-- `GET /api/invoices`: listado paginado de simulaciones.
-- `GET /api/invoices/:id`: representación e historial.
+- `GET /api/invoices/catalogs`: catálogos utilizados por el simulador; admite acceso histórico de
+  solo lectura después de bajar a Control.
+- `GET /api/invoices`: listado paginado de simulaciones; admite acceso histórico de solo lectura
+  después de bajar a Control.
+- `GET /api/invoices/:id`: representación e historial; admite acceso histórico de solo lectura
+  después de bajar a Control.
 - `POST /api/invoices`: crea un borrador desde una orden terminada.
 - `PATCH /api/invoices/:id`: edita encabezado e impuestos de un borrador.
 - `POST /api/invoices/:id/issue-simulation`: asigna serie y folio interno.
 - `POST /api/invoices/:id/cancel-simulation`: cancela únicamente el documento interno.
 
-La respuesta tenant incluye `isIssuerProfileComplete`, `missingFields` y `validationIssues`. Los códigos son estables para que el frontend pueda presentar mensajes específicos sin interpretar texto libre. Todos los endpoints de documentos exigen plan `invoicing`, modo `simulation`, configuración activa y el permiso específico de la operación.
+La respuesta tenant incluye `isIssuerProfileComplete`, `missingFields` y `validationIssues`. Los
+códigos son estables para que el frontend pueda presentar mensajes específicos sin interpretar
+texto libre. Crear, editar, emitir o cancelar exige plan `invoicing`, modo `simulation`,
+configuración activa y el permiso específico de la operación. La consulta histórica posterior a
+una reducción de plan conserva el requisito de `invoices.view` y nunca habilita operaciones de
+escritura.
 
 ## Preparación para una integración fiscal futura
 
