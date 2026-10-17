@@ -60,21 +60,7 @@ export class PasswordResetService {
     companyId: string,
     password: string,
   ): Promise<void> {
-    if (actor.role !== PlatformRole.PlatformAdmin || actor.companyId !== null) {
-      throw new ForbiddenException('Se requiere administrador de plataforma');
-    }
-
-    const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
-    const runner = this.dataSource.createQueryRunner();
-    await runner.connect();
-    await runner.startTransaction('SERIALIZABLE');
-    try {
-      const companies = (await runner.query(
-        'SELECT id FROM public.companies WHERE id = $1 FOR SHARE',
-        [companyId],
-      )) as Array<{ id: string }>;
-      if (!companies[0]) throw new NotFoundException('Compañía no encontrada');
-
+    await this.resetForPlatform(actor, companyId, password, async (runner) => {
       const targets = (await runner.query(
         `SELECT id, company_id, role, is_active
          FROM public.users
@@ -88,7 +74,41 @@ export class PasswordResetService {
       if (!target) {
         throw new NotFoundException('La compañía no tiene un Administrador principal activo');
       }
+      return target;
+    });
+  }
 
+  async resetCompanyUserForPlatform(
+    actor: AuthenticatedUser,
+    companyId: string,
+    targetUserId: string,
+    password: string,
+  ): Promise<void> {
+    await this.resetForPlatform(actor, companyId, password, (runner) =>
+      this.lockTenantTarget(runner, companyId, targetUserId),
+    );
+  }
+
+  private async resetForPlatform(
+    actor: AuthenticatedUser,
+    companyId: string,
+    password: string,
+    resolveTarget: (runner: QueryRunner) => Promise<PasswordResetTargetRow>,
+  ): Promise<void> {
+    this.assertPlatformActor(actor);
+    const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
+    const runner = this.dataSource.createQueryRunner();
+    await runner.connect();
+    await runner.startTransaction('SERIALIZABLE');
+    try {
+      const companies = (await runner.query(
+        'SELECT id FROM public.companies WHERE id = $1 FOR SHARE',
+        [companyId],
+      )) as Array<{ id: string }>;
+      if (!companies[0]) throw new NotFoundException('Compañía no encontrada');
+
+      const target = await resolveTarget(runner);
+      this.assertPlatformTarget(target);
       await this.applyReset(runner, actor, target, passwordHash, 'platform_admin');
       await runner.commitTransaction();
     } catch (error) {
@@ -96,6 +116,20 @@ export class PasswordResetService {
       throw error;
     } finally {
       await runner.release();
+    }
+  }
+
+  private assertPlatformActor(actor: AuthenticatedUser): void {
+    if (actor.role !== PlatformRole.PlatformAdmin || actor.companyId !== null) {
+      throw new ForbiddenException('Se requiere administrador de plataforma');
+    }
+  }
+
+  private assertPlatformTarget(target: PasswordResetTargetRow): void {
+    if (![PlatformRole.CompanyAdmin, PlatformRole.Admin, PlatformRole.User].includes(target.role)) {
+      throw new ForbiddenException(
+        'El administrador de plataforma sólo puede restablecer usuarios tenant',
+      );
     }
   }
 

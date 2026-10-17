@@ -3628,6 +3628,243 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     ).toBe(200);
   });
 
+  it('permite a plataforma restablecer cualquier usuario tenant con aislamiento y auditoría', async () => {
+    const tenant = await provisionAndLogin(
+      'Platform Password Reset',
+      'platform.password.reset@test.local',
+    );
+    const otherCompany = await createCompany(
+      'Platform Password Reset Isolated',
+      'platform.password.isolated@test.local',
+    );
+    expect(otherCompany.status).toBe(201);
+
+    const manager = await request<{ user: UserResponse; permissionCodes: string[] }>(
+      'POST',
+      `/companies/${tenant.company.id}/users`,
+      {
+        token: platformToken,
+        body: {
+          fullName: 'Administrador restablecido por plataforma',
+          username: 'admin_platform_reset',
+          phone: '+526671115530',
+          password: 'Admin41a',
+          role: 'admin',
+          permissionCodes: ['dashboard.view', 'users.view', 'users.manage', 'permissions.manage'],
+        },
+      },
+    );
+    const operator = await request<{ user: UserResponse; permissionCodes: string[] }>(
+      'POST',
+      `/companies/${tenant.company.id}/users`,
+      {
+        token: platformToken,
+        body: {
+          fullName: 'Usuario restablecido por plataforma',
+          username: 'user_platform_reset',
+          phone: '+526671115531',
+          password: 'User41a',
+          role: 'user',
+          permissionCodes: ['clients.view', 'dashboard.view'],
+        },
+      },
+    );
+    expect(manager.status).toBe(201);
+    expect(operator.status).toBe(201);
+
+    const managerTemporary = await login(manager.body.user.loginName, 'Admin41a');
+    const operatorTemporary = await login(operator.body.user.loginName, 'User41a');
+    await request<unknown>('PATCH', '/users/me/password', {
+      token: managerTemporary.body.accessToken,
+      body: { currentPassword: 'Admin41a', newPassword: 'Admin42b' },
+    });
+    await request<unknown>('PATCH', '/users/me/password', {
+      token: operatorTemporary.body.accessToken,
+      body: { currentPassword: 'User41a', newPassword: 'User42b' },
+    });
+    const primarySession = await login(tenant.company.admin.loginName, PERMANENT_PASSWORD);
+    const managerSession = await login(manager.body.user.loginName, 'Admin42b');
+    const operatorSession = await login(operator.body.user.loginName, 'User42b');
+    expect(primarySession.status).toBe(200);
+    expect(managerSession.status).toBe(200);
+    expect(operatorSession.status).toBe(200);
+
+    const targetIds = [tenant.company.admin.id, manager.body.user.id, operator.body.user.id];
+    const before = await control.query<
+      Array<{ id: string; role: string; is_active: boolean; permission_codes: string[] }>
+    >(
+      `SELECT user_account.id::text, user_account.role, user_account.is_active,
+              COALESCE(array_agg(permission.permission_code ORDER BY permission.permission_code)
+                FILTER (WHERE permission.permission_code IS NOT NULL), ARRAY[]::varchar[])
+                AS permission_codes
+       FROM public.users user_account
+       LEFT JOIN public.user_permissions permission ON permission.user_id = user_account.id
+       WHERE user_account.id = ANY($1::uuid[])
+       GROUP BY user_account.id
+       ORDER BY user_account.id`,
+      [targetIds],
+    );
+    const crossCompany = await request<unknown>(
+      'PATCH',
+      `/companies/${otherCompany.body.id}/users/${operator.body.user.id}/password`,
+      { token: platformToken, body: { password: 'Blocked2' } },
+    );
+    expect(crossCompany.status).toBe(404);
+    expect(
+      (
+        await request<unknown>(
+          'PATCH',
+          `/companies/${tenant.company.id}/users/${operator.body.user.id}/password`,
+          { token: tenant.accessToken, body: { password: 'Blocked3' } },
+        )
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await request<unknown>(
+          'PATCH',
+          `/companies/${tenant.company.id}/users/${operator.body.user.id}/password`,
+          { token: platformToken, body: { password: 'abcde' } },
+        )
+      ).status,
+    ).toBe(400);
+
+    await control.query(
+      `UPDATE public.users
+       SET failed_login_attempts = 5, locked_until = NOW() + interval '15 minutes'
+       WHERE id = ANY($1::uuid[])`,
+      [targetIds],
+    );
+
+    for (const [targetId, password] of [
+      [tenant.company.admin.id, 'Primary4'],
+      [manager.body.user.id, 'Admin43c'],
+      [operator.body.user.id, 'User43c'],
+    ] as const) {
+      const reset = await request<unknown>(
+        'PATCH',
+        `/companies/${tenant.company.id}/users/${targetId}/password`,
+        { token: platformToken, body: { password } },
+      );
+      expect(reset.status).toBe(204);
+    }
+
+    for (const session of [primarySession, managerSession, operatorSession]) {
+      expect(
+        (await request<unknown>('GET', '/auth/me', { token: session.body.accessToken })).status,
+      ).toBe(401);
+      expect(
+        (
+          await request<unknown>('POST', '/auth/refresh', {
+            cookie: cookiePair(session.setCookie!),
+          })
+        ).status,
+      ).toBe(401);
+    }
+
+    const after = await control.query<
+      Array<{
+        id: string;
+        role: string;
+        is_active: boolean;
+        permission_codes: string[];
+        failed_login_attempts: number;
+        locked_until: Date | null;
+        must_change_password: boolean;
+        active_sessions: number;
+      }>
+    >(
+      `SELECT user_account.id::text, user_account.role, user_account.is_active,
+              user_account.failed_login_attempts, user_account.locked_until,
+              user_account.must_change_password,
+              COALESCE(array_agg(DISTINCT permission.permission_code ORDER BY permission.permission_code)
+                FILTER (WHERE permission.permission_code IS NOT NULL), ARRAY[]::varchar[])
+                AS permission_codes,
+              count(DISTINCT session.id) FILTER (WHERE session.revoked_at IS NULL)::int
+                AS active_sessions
+       FROM public.users user_account
+       LEFT JOIN public.user_permissions permission ON permission.user_id = user_account.id
+       LEFT JOIN public.auth_sessions session ON session.user_id = user_account.id
+       WHERE user_account.id = ANY($1::uuid[])
+       GROUP BY user_account.id
+       ORDER BY user_account.id`,
+      [targetIds],
+    );
+    expect(
+      after.map(
+        ({ failed_login_attempts, locked_until, must_change_password, active_sessions }) => ({
+          failed_login_attempts,
+          locked_until,
+          must_change_password,
+          active_sessions,
+        }),
+      ),
+    ).toEqual(
+      targetIds.map(() => ({
+        failed_login_attempts: 0,
+        locked_until: null,
+        must_change_password: true,
+        active_sessions: 0,
+      })),
+    );
+    expect(
+      after.map(({ id, role, is_active, permission_codes }) => ({
+        id,
+        role,
+        is_active,
+        permission_codes,
+      })),
+    ).toEqual(before);
+
+    for (const [loginName, password, role] of [
+      [tenant.company.admin.loginName, 'Primary4', 'company_admin'],
+      [manager.body.user.loginName, 'Admin43c', 'admin'],
+      [operator.body.user.loginName, 'User43c', 'user'],
+    ] as const) {
+      const loginAfterReset = await login(loginName, password);
+      expect(loginAfterReset.status).toBe(200);
+      expect(loginAfterReset.body.user).toMatchObject({ role, mustChangePassword: true });
+    }
+
+    const audit = await control.query<
+      Array<{ target_user_id: string; reset_by_role: string; target_role: string; source: string }>
+    >(
+      `SELECT target_user_id::text, reset_by_role, target_role, source
+       FROM public.password_reset_events
+       WHERE company_id = $1 AND target_user_id = ANY($2::uuid[])
+       ORDER BY target_user_id`,
+      [tenant.company.id, targetIds],
+    );
+    expect(audit).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          target_user_id: tenant.company.admin.id,
+          target_role: 'company_admin',
+          reset_by_role: 'platform_admin',
+          source: 'platform_admin',
+        }),
+        expect.objectContaining({
+          target_user_id: manager.body.user.id,
+          target_role: 'admin',
+          reset_by_role: 'platform_admin',
+          source: 'platform_admin',
+        }),
+        expect.objectContaining({
+          target_user_id: operator.body.user.id,
+          target_role: 'user',
+          reset_by_role: 'platform_admin',
+          source: 'platform_admin',
+        }),
+      ]),
+    );
+
+    const swagger = SwaggerModule.createDocument(app, new DocumentBuilder().build());
+    const passwordPath = Object.entries(swagger.paths).find(([path]) =>
+      path.endsWith('/companies/{companyId}/users/{userId}/password'),
+    )?.[1];
+    expect(passwordPath?.patch?.responses).toHaveProperty('204');
+  });
+
   it('aplica la jerarquía company_admin → admin → user al administrar cuentas', async () => {
     const tenant = await provisionAndLogin('Role Hierarchy Integration', 'roles.admin@test.local');
     await request<unknown>('PATCH', `/subscriptions/companies/${tenant.company.id}`, {

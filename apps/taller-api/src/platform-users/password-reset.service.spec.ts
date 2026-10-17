@@ -1,4 +1,4 @@
-import { ForbiddenException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import * as argon2 from 'argon2';
 import { DataSource, QueryRunner } from 'typeorm';
 import { AuthenticatedUser } from '../common/types/authenticated-user';
@@ -74,9 +74,7 @@ describe('PasswordResetService', () => {
       query.mock.calls.some(([sql]) => String(sql).includes('UPDATE public.auth_sessions')),
     ).toBe(true);
     expect(
-      query.mock.calls.some(([sql]) =>
-        String(sql).includes('UPDATE public.auth_refresh_tokens'),
-      ),
+      query.mock.calls.some(([sql]) => String(sql).includes('UPDATE public.auth_refresh_tokens')),
     ).toBe(true);
     const auditCall = query.mock.calls.find(([sql]) =>
       String(sql).includes('INSERT INTO public.password_reset_events'),
@@ -153,5 +151,85 @@ describe('PasswordResetService', () => {
       'platform_admin',
     ]);
     expect(commitTransaction).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([PlatformRole.CompanyAdmin, PlatformRole.Admin, PlatformRole.User])(
+    'permite a plataforma restablecer un %s específico sin cambiar rol ni estatus',
+    async (role) => {
+      const platform: AuthenticatedUser = {
+        ...actor,
+        id: '3c0f89f2-a402-4cf3-9e72-e50ebc32afc7',
+        role: PlatformRole.PlatformAdmin,
+        companyId: null,
+        companyName: null,
+        companySchema: null,
+        companyLoginCode: null,
+      };
+      const targetId = '49ff085a-da97-4cb9-af28-c6f771c48e1d';
+      const query = jest
+        .fn<Promise<unknown>, [string, unknown[]?]>()
+        .mockResolvedValueOnce([{ id: companyId }])
+        .mockResolvedValueOnce([{ id: targetId, company_id: companyId, role, is_active: false }]);
+      const { runner, commitTransaction } = runnerWith(query);
+      const service = new PasswordResetService({
+        createQueryRunner: jest.fn().mockReturnValue(runner),
+      } as unknown as DataSource);
+
+      await service.resetCompanyUserForPlatform(platform, companyId, targetId, 'Temporal3');
+
+      const updateCall = query.mock.calls.find(([sql]) =>
+        String(sql).includes('UPDATE public.users'),
+      );
+      expect(updateCall?.[0]).toContain('failed_login_attempts = 0');
+      expect(updateCall?.[0]).toContain('locked_until = NULL');
+      expect(updateCall?.[0]).toContain('must_change_password = TRUE');
+      expect(updateCall?.[0]).not.toContain('role =');
+      expect(updateCall?.[0]).not.toContain('is_active =');
+      expect(await argon2.verify(updateCall?.[1]?.[0] as string, 'Temporal3')).toBe(true);
+      const auditCall = query.mock.calls.find(([sql]) =>
+        String(sql).includes('INSERT INTO public.password_reset_events'),
+      );
+      expect(auditCall?.[1]).toEqual([
+        companyId,
+        targetId,
+        platform.id,
+        PlatformRole.PlatformAdmin,
+        role,
+        'platform_admin',
+      ]);
+      expect(commitTransaction).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it('impide que plataforma restablezca un usuario fuera de la compañía indicada', async () => {
+    const platform: AuthenticatedUser = {
+      ...actor,
+      role: PlatformRole.PlatformAdmin,
+      companyId: null,
+      companyName: null,
+      companySchema: null,
+      companyLoginCode: null,
+    };
+    const query = jest
+      .fn<Promise<unknown>, [string, unknown[]?]>()
+      .mockResolvedValueOnce([{ id: companyId }])
+      .mockResolvedValueOnce([]);
+    const { runner, rollbackTransaction } = runnerWith(query);
+    const service = new PasswordResetService({
+      createQueryRunner: jest.fn().mockReturnValue(runner),
+    } as unknown as DataSource);
+
+    await expect(
+      service.resetCompanyUserForPlatform(
+        platform,
+        companyId,
+        '49ff085a-da97-4cb9-af28-c6f771c48e1d',
+        'Temporal4',
+      ),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(rollbackTransaction).toHaveBeenCalledTimes(1);
+    expect(query.mock.calls.some(([sql]) => String(sql).includes('UPDATE public.users'))).toBe(
+      false,
+    );
   });
 });

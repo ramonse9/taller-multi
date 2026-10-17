@@ -3,6 +3,8 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -15,6 +17,7 @@ import {
   ApiConflictResponse,
   ApiCreatedResponse,
   ApiForbiddenResponse,
+  ApiNoContentResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -27,11 +30,13 @@ import {
   CreatePlatformCompanyUserDto,
   PaginatedUsersResponseDto,
   PlatformCompanyUserResponseDto,
+  ResetPasswordDto,
   UpdatePlatformCompanyUserDto,
   UserQueryDto,
 } from './dto/user.dto';
 import { PlatformRole } from './entities/platform-user.entity';
 import { UsersService } from './users.service';
+import { PasswordResetService } from './password-reset.service';
 
 @ApiTags('platform company users')
 @ApiBearerAuth()
@@ -39,7 +44,10 @@ import { UsersService } from './users.service';
 @Roles(PlatformRole.PlatformAdmin)
 @Controller('companies/:companyId/users')
 export class PlatformCompanyUsersController {
-  constructor(private readonly users: UsersService) {}
+  constructor(
+    private readonly users: UsersService,
+    private readonly passwordResets: PasswordResetService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Listar usuarios de una compañía como administrador de plataforma' })
@@ -96,6 +104,28 @@ export class PlatformCompanyUsersController {
     @Body() input: UpdatePlatformCompanyUserDto,
   ): Promise<PlatformCompanyUserResponseDto> {
     return this.users.updateForPlatform(actor, companyId, userId, input);
+  }
+
+  @Patch(':userId/password')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Asignar una contraseña temporal a un usuario tenant como administrador de plataforma',
+  })
+  @ApiNoContentResponse()
+  @ApiForbiddenResponse({ description: 'Se requiere administrador de plataforma' })
+  @ApiNotFoundResponse({ description: 'Compañía o usuario no encontrado' })
+  resetPassword(
+    @CurrentUser() actor: AuthenticatedUser,
+    @Param('companyId', new ParseUUIDPipe({ version: '4' })) companyId: string,
+    @Param('userId', new ParseUUIDPipe({ version: '4' })) userId: string,
+    @Body() input: ResetPasswordDto,
+  ): Promise<void> {
+    return this.passwordResets.resetCompanyUserForPlatform(
+      actor,
+      companyId,
+      userId,
+      input.password,
+    );
   }
 
   @Delete(':userId')
