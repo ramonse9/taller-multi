@@ -106,6 +106,17 @@ export class UsersService {
     );
   }
 
+  resetPasswordForCompany(
+    companyId: string,
+    userId: string,
+    password: string,
+  ): Observable<void> {
+    return this.http.patch<void>(
+      `${environment.apiUrl}/companies/${companyId}/users/${userId}/password`,
+      { password },
+    );
+  }
+
   update(id: string, input: UpdateUserInput): Observable<TenantUser> {
     return this.http.patch<TenantUser>(`${this.endpoint}/${id}`, input);
   }

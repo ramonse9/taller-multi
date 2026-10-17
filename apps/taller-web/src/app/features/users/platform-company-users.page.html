@@ -522,6 +522,14 @@
       <footer>
         @if (editingProfile(); as profile) {
         <button
+          class="password-action"
+          type="button"
+          [disabled]="saving() || changingStatus()"
+          (click)="openPasswordReset(profile.user)"
+        >
+          Asignar contraseña temporal
+        </button>
+        <button
           class="status-action"
           [class.danger]="profile.user.isActive"
           [class.success]="!profile.user.isActive"
@@ -548,6 +556,97 @@
       </footer>
     </form>
     }
+  </section>
+</div>
+} @if (passwordTarget(); as target) {
+<div
+  class="backdrop centered password-reset-layer"
+  (click)="closePasswordReset()"
+  role="presentation"
+>
+  <section
+    class="password-dialog platform-password-dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="platform-password-title"
+    aria-describedby="platform-password-description"
+    (click)="$event.stopPropagation()"
+  >
+    <p class="breadcrumb">RESTABLECER ACCESO</p>
+    <h2 id="platform-password-title">Asignar contraseña temporal</h2>
+    <p id="platform-password-description">
+      Se asignará a <strong>{{ target.fullName }}</strong>
+      ({{ target.loginName }}). Sus sesiones actuales serán cerradas.
+    </p>
+    @if (!target.isActive) {
+    <div class="inactive-password-warning" role="status">
+      <strong>La cuenta está desactivada</strong>
+      <span>
+        La nueva contraseña quedará guardada, pero el usuario no podrá iniciar
+        sesión hasta que reactives su acceso.
+      </span>
+    </div>
+    }
+    <form [formGroup]="passwordForm" (ngSubmit)="resetPassword()" novalidate>
+      @if (passwordResetError()) {
+      <div class="error-banner password-reset-error" role="alert">
+        {{ passwordResetError() }}
+      </div>
+      }
+      <div class="field">
+        <label for="platform-reset-password">Contraseña temporal <b>*</b></label
+        ><input
+          id="platform-reset-password"
+          type="password"
+          formControlName="password"
+          autocomplete="new-password"
+          placeholder="Entre 6 y 10 caracteres"
+        />@if (passwordForm.controls.password.touched &&
+        passwordForm.controls.password.invalid) {
+        <small>Usa de 6 a 10 caracteres, con una letra y un número.</small> }
+      </div>
+      <div class="field">
+        <label for="platform-reset-confirmation"
+          >Confirmar contraseña <b>*</b></label
+        ><input
+          id="platform-reset-confirmation"
+          type="password"
+          formControlName="confirmation"
+          autocomplete="new-password"
+        />@if (passwordForm.controls.confirmation.touched &&
+        !resetPasswordsMatch()) { <small>Las contraseñas no coinciden.</small> }
+      </div>
+      <div class="password-reset-callout">
+        <strong>Cambio obligatorio al ingresar</strong>
+        <span>
+          Al volver a entrar, el usuario deberá crear su contraseña definitiva
+          antes de continuar en la aplicación.
+        </span>
+      </div>
+      <label class="reset-confirmation">
+        <input type="checkbox" formControlName="acknowledged" />
+        <span>
+          Confirmo que deseo cerrar sus sesiones y asignar este acceso temporal.
+        </span>
+      </label>
+      <footer>
+        <button
+          class="ghost"
+          type="button"
+          [disabled]="resettingPassword()"
+          (click)="closePasswordReset()"
+        >
+          Cancelar</button
+        ><button
+          class="primary"
+          type="submit"
+          [disabled]="resettingPassword() || passwordForm.invalid || !resetPasswordsMatch()"
+        >
+          {{ resettingPassword() ? 'Asignando…' : 'Asignar contraseña temporal'
+          }}
+        </button>
+      </footer>
+    </form>
   </section>
 </div>
 } @if (statusConfirmation(); as user) {

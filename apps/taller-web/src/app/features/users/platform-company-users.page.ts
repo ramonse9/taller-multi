@@ -91,7 +91,9 @@ export class PlatformCompanyUsersPage implements OnInit {
   readonly saving = signal(false);
   readonly editorLoading = signal(false);
   readonly changingStatus = signal(false);
+  readonly resettingPassword = signal(false);
   readonly error = signal("");
+  readonly passwordResetError = signal("");
   readonly notice = signal("");
   readonly company = signal<CompanyResponse | null>(null);
   readonly timezones = signal<TimezoneCatalogItem[]>([]);
@@ -103,6 +105,7 @@ export class PlatformCompanyUsersPage implements OnInit {
   readonly editorOpen = signal(false);
   readonly editingProfile = signal<PlatformCompanyUserResponse | null>(null);
   readonly statusConfirmation = signal<TenantUser | null>(null);
+  readonly passwordTarget = signal<TenantUser | null>(null);
   readonly activeFilter = signal<boolean | null>(true);
   readonly data = signal<PaginatedUsers>({
     page: 1,
@@ -194,6 +197,25 @@ export class PlatformCompanyUsersPage implements OnInit {
         Validators.maxLength(10),
         Validators.pattern(/^(?=.*[A-Za-z])(?=.*\d).+$/),
       ],
+    }),
+  });
+  readonly passwordForm = new FormGroup({
+    password: new FormControl("", {
+      nonNullable: true,
+      validators: [
+        Validators.required,
+        Validators.minLength(6),
+        Validators.maxLength(10),
+        Validators.pattern(/^(?=.*[A-Za-z])(?=.*\d).+$/),
+      ],
+    }),
+    confirmation: new FormControl("", {
+      nonNullable: true,
+      validators: [Validators.required],
+    }),
+    acknowledged: new FormControl(false, {
+      nonNullable: true,
+      validators: [Validators.requiredTrue],
     }),
   });
 
@@ -451,6 +473,76 @@ export class PlatformCompanyUsersPage implements OnInit {
             ),
           );
         },
+      });
+  }
+
+  openPasswordReset(user = this.editingProfile()?.user): void {
+    if (!user || this.resettingPassword()) return;
+    this.passwordResetError.set("");
+    this.passwordForm.reset({
+      password: "",
+      confirmation: "",
+      acknowledged: false,
+    });
+    this.passwordTarget.set(user);
+  }
+
+  closePasswordReset(): void {
+    if (!this.resettingPassword()) {
+      this.passwordTarget.set(null);
+      this.passwordResetError.set("");
+    }
+  }
+
+  resetPasswordsMatch(): boolean {
+    return (
+      this.passwordForm.controls.password.value ===
+      this.passwordForm.controls.confirmation.value
+    );
+  }
+
+  resetPassword(): void {
+    const target = this.passwordTarget();
+    if (
+      !target ||
+      this.passwordForm.invalid ||
+      !this.resetPasswordsMatch() ||
+      this.resettingPassword()
+    ) {
+      this.passwordForm.markAllAsTouched();
+      return;
+    }
+    this.resettingPassword.set(true);
+    this.passwordResetError.set("");
+    this.users
+      .resetPasswordForCompany(
+        this.companyId,
+        target.id,
+        this.passwordForm.controls.password.value,
+      )
+      .pipe(
+        finalize(() => this.resettingPassword.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: () => {
+          this.passwordTarget.set(null);
+          this.editorOpen.set(false);
+          this.editingProfile.set(null);
+          this.showNotice(
+            target.isActive
+              ? `Contraseña temporal asignada a ${target.loginName}. Sus sesiones fueron cerradas y deberá cambiarla al iniciar sesión.`
+              : `Contraseña temporal asignada a ${target.loginName}. La cuenta permanece desactivada y deberá reactivarse antes de iniciar sesión.`,
+          );
+          this.load(this.data().page);
+        },
+        error: (error: unknown) =>
+          this.passwordResetError.set(
+            apiErrorMessage(
+              error,
+              "No pudimos asignar la contraseña temporal.",
+            ),
+          ),
       });
   }
 

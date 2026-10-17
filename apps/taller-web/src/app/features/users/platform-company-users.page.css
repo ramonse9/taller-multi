@@ -199,14 +199,24 @@
   flex: 1;
 }
 
+.password-action,
 .status-action,
 .status-confirm {
   padding: 0.7rem 1rem;
   border: 1px solid currentColor;
 }
 
+.password-action,
 .status-action {
   background: transparent;
+}
+
+.password-action {
+  color: #225e87;
+}
+
+:host.dark .password-action {
+  color: #9bcbed;
 }
 
 .status-action.danger,
@@ -239,6 +249,35 @@
 
 .confirmation-layer {
   z-index: 30;
+}
+
+.password-reset-layer {
+  z-index: 40;
+}
+
+.platform-password-dialog > p strong {
+  color: var(--users-text);
+}
+
+.inactive-password-warning {
+  display: grid;
+  gap: 0.25rem;
+  margin-top: 1rem;
+  padding: 0.85rem 1rem;
+  border-left: 3px solid #c26737;
+  background: #ffedc9;
+  color: #704b16;
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
+:host.dark .inactive-password-warning {
+  background: #5b4727;
+  color: #ffd18a;
+}
+
+.password-reset-error {
+  margin: 0;
 }
 
 .status-dialog {
