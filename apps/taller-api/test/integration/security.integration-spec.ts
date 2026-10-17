@@ -3633,6 +3633,19 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       'Platform Password Reset',
       'platform.password.reset@test.local',
     );
+    const controlPlan = await request<unknown>(
+      'PATCH',
+      `/subscriptions/companies/${tenant.company.id}`,
+      {
+        token: platformToken,
+        body: {
+          planCode: 'control',
+          status: 'active',
+          reason: 'Validación integral de restablecimiento de contraseñas',
+        },
+      },
+    );
+    expect(controlPlan.status).toBe(200);
     const otherCompany = await createCompany(
       'Platform Password Reset Isolated',
       'platform.password.isolated@test.local',
@@ -3669,8 +3682,30 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         },
       },
     );
+    const inactiveOperator = await request<{
+      user: UserResponse;
+      permissionCodes: string[];
+    }>('POST', `/companies/${tenant.company.id}/users`, {
+      token: platformToken,
+      body: {
+        fullName: 'Usuario inactivo restablecido por plataforma',
+        username: 'inactive_platform_reset',
+        phone: '+526671115532',
+        password: 'Inactive1',
+        role: 'user',
+        permissionCodes: ['dashboard.view', 'orders.view'],
+      },
+    });
     expect(manager.status).toBe(201);
     expect(operator.status).toBe(201);
+    expect(inactiveOperator.status).toBe(201);
+    const deactivated = await request<{ user: UserResponse }>(
+      'DELETE',
+      `/companies/${tenant.company.id}/users/${inactiveOperator.body.user.id}`,
+      { token: platformToken },
+    );
+    expect(deactivated.status).toBe(200);
+    expect(deactivated.body.user.isActive).toBe(false);
 
     const managerTemporary = await login(manager.body.user.loginName, 'Admin41a');
     const operatorTemporary = await login(operator.body.user.loginName, 'User41a');
@@ -3689,7 +3724,12 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(managerSession.status).toBe(200);
     expect(operatorSession.status).toBe(200);
 
-    const targetIds = [tenant.company.admin.id, manager.body.user.id, operator.body.user.id];
+    const targetIds = [
+      tenant.company.admin.id,
+      manager.body.user.id,
+      operator.body.user.id,
+      inactiveOperator.body.user.id,
+    ];
     const before = await control.query<
       Array<{ id: string; role: string; is_active: boolean; permission_codes: string[] }>
     >(
@@ -3740,6 +3780,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       [tenant.company.admin.id, 'Primary4'],
       [manager.body.user.id, 'Admin43c'],
       [operator.body.user.id, 'User43c'],
+      [inactiveOperator.body.user.id, 'Inactive2'],
     ] as const) {
       const reset = await request<unknown>(
         'PATCH',
@@ -3824,7 +3865,39 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       const loginAfterReset = await login(loginName, password);
       expect(loginAfterReset.status).toBe(200);
       expect(loginAfterReset.body.user).toMatchObject({ role, mustChangePassword: true });
+      expect(
+        (
+          await request<unknown>('GET', '/dashboard/summary', {
+            token: loginAfterReset.body.accessToken,
+          })
+        ).status,
+      ).toBe(403);
     }
+
+    expect((await login(inactiveOperator.body.user.loginName, 'Inactive2')).status).toBe(401);
+    const reactivated = await request<{ user: UserResponse }>(
+      'PATCH',
+      `/companies/${tenant.company.id}/users/${inactiveOperator.body.user.id}/activate`,
+      { token: platformToken },
+    );
+    expect(reactivated.status).toBe(200);
+    expect(reactivated.body.user.isActive).toBe(true);
+    const inactiveAfterReactivation = await login(
+      inactiveOperator.body.user.loginName,
+      'Inactive2',
+    );
+    expect(inactiveAfterReactivation.status).toBe(200);
+    expect(inactiveAfterReactivation.body.user).toMatchObject({
+      role: 'user',
+      mustChangePassword: true,
+    });
+    expect(
+      (
+        await request<unknown>('GET', '/dashboard/summary', {
+          token: inactiveAfterReactivation.body.accessToken,
+        })
+      ).status,
+    ).toBe(403);
 
     const audit = await control.query<
       Array<{ target_user_id: string; reset_by_role: string; target_role: string; source: string }>
@@ -3855,6 +3928,12 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
           reset_by_role: 'platform_admin',
           source: 'platform_admin',
         }),
+        expect.objectContaining({
+          target_user_id: inactiveOperator.body.user.id,
+          target_role: 'user',
+          reset_by_role: 'platform_admin',
+          source: 'platform_admin',
+        }),
       ]),
     );
 
@@ -3863,6 +3942,17 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       path.endsWith('/companies/{companyId}/users/{userId}/password'),
     )?.[1];
     expect(passwordPath?.patch?.responses).toHaveProperty('204');
+    expect(passwordPath?.patch?.responses).toHaveProperty('400');
+    expect(passwordPath?.patch?.responses).toHaveProperty('403');
+    expect(passwordPath?.patch?.responses).toHaveProperty('404');
+    expect(JSON.stringify(passwordPath?.patch?.requestBody)).toContain(
+      '"$ref":"#/components/schemas/ResetPasswordDto"',
+    );
+    const resetPasswordSchema = JSON.stringify(swagger.components?.schemas?.ResetPasswordDto);
+    expect(resetPasswordSchema).toContain('"required":["password"]');
+    expect(resetPasswordSchema).toContain('"minLength":6');
+    expect(resetPasswordSchema).toContain('"maxLength":10');
+    expect(resetPasswordSchema).toContain('"writeOnly":true');
   });
 
   it('aplica la jerarquía company_admin → admin → user al administrar cuentas', async () => {

@@ -185,7 +185,14 @@ export class ChangePasswordDto {
 }
 
 export class ResetPasswordDto {
-  @ApiProperty({ minLength: 6, maxLength: 10, writeOnly: true })
+  @ApiProperty({
+    description:
+      'Contraseña temporal de 6 a 10 caracteres que debe contener al menos una letra y un número',
+    example: 'Temporal1',
+    minLength: 6,
+    maxLength: 10,
+    writeOnly: true,
+  })
   @IsString()
   @Length(6, 10)
   @Matches(PASSWORD_PATTERN, {

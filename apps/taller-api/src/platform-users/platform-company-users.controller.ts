@@ -14,6 +14,7 @@ import {
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiBadRequestResponse,
   ApiConflictResponse,
   ApiCreatedResponse,
   ApiForbiddenResponse,
@@ -110,8 +111,13 @@ export class PlatformCompanyUsersController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Asignar una contraseña temporal a un usuario tenant como administrador de plataforma',
+    description:
+      'Conserva el rol, los permisos y el estatus del usuario; reinicia bloqueos, revoca sus sesiones y exige cambiar la contraseña en el siguiente acceso.',
   })
-  @ApiNoContentResponse()
+  @ApiNoContentResponse({ description: 'Contraseña temporal asignada y sesiones revocadas' })
+  @ApiBadRequestResponse({
+    description: 'La contraseña temporal no cumple las reglas de longitud o complejidad',
+  })
   @ApiForbiddenResponse({ description: 'Se requiere administrador de plataforma' })
   @ApiNotFoundResponse({ description: 'Compañía o usuario no encontrado' })
   resetPassword(
