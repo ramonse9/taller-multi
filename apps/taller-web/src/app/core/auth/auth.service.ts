@@ -67,10 +67,7 @@ export class AuthService {
       return "/subscription-required";
     }
     if (user?.role === "platform_admin") return "/companies";
-    return user?.role === "company_admin" ||
-      user?.permissions.includes("dashboard.view")
-      ? "/dashboard"
-      : "/account";
+    return user ? "/home" : "/login";
   }
 
   hasFeature(feature: SubscriptionFeature): boolean {

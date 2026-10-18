@@ -1,0 +1,85 @@
+:host {
+  display: block;
+  min-height: 100%;
+}
+
+.home-page {
+  width: min(100%, 76rem);
+  margin: 0 auto;
+  padding: clamp(1.5rem, 4vw, 3.5rem);
+}
+
+header p {
+  margin: 0 0 0.5rem;
+  color: var(--orange);
+  font: 700 0.66rem var(--mono);
+  letter-spacing: 0.14em;
+}
+
+header h1 {
+  margin: 0;
+  font: 600 clamp(2rem, 5vw, 3.5rem) var(--display);
+  letter-spacing: -0.04em;
+}
+
+header > span {
+  display: block;
+  margin-top: 0.55rem;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+section {
+  margin-top: 2.5rem;
+}
+
+h2 {
+  margin: 0 0 1rem;
+  font: 600 1.25rem var(--display);
+}
+
+.module-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.module-list a {
+  display: grid;
+  gap: 0.3rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+:host-context(.dark) .module-list a {
+  background: #19283b;
+}
+
+.module-list a:hover,
+.module-list a:focus-visible {
+  border-color: var(--orange);
+}
+
+.module-list a:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--orange) 25%, transparent);
+  outline-offset: 2px;
+}
+
+.module-list strong {
+  font-size: 0.9rem;
+}
+
+.module-list span {
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 640px) {
+  .module-list {
+    grid-template-columns: 1fr;
+  }
+}
