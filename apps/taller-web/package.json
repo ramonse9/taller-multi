@@ -8,7 +8,8 @@
   "scripts": {
     "start": "ng serve",
     "build": "ng build",
-    "watch": "ng build --watch --configuration development"
+    "watch": "ng build --watch --configuration development",
+    "test:home": "node --no-warnings --experimental-strip-types --test test/home-navigation.test.mjs"
   },
   "dependencies": {
     "@angular/common": "^21.0.8",

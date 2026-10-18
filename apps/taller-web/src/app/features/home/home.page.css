@@ -4,82 +4,430 @@
 }
 
 .home-page {
-  width: min(100%, 76rem);
+  width: min(100%, 86rem);
   margin: 0 auto;
-  padding: clamp(1.5rem, 4vw, 3.5rem);
+  padding: clamp(1.25rem, 3.2vw, 3.25rem);
 }
 
-header p {
-  margin: 0 0 0.5rem;
+.welcome {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2rem;
+  overflow: hidden;
+  min-height: 12rem;
+  padding: clamp(1.5rem, 4vw, 2.6rem);
+  background:
+    linear-gradient(115deg, rgba(23, 40, 61, 0.97), rgba(34, 67, 94, 0.94)),
+    #17283d;
+  color: white;
+}
+
+.welcome::after {
+  content: "";
+  position: absolute;
+  right: -4rem;
+  bottom: -8rem;
+  width: 18rem;
+  height: 18rem;
+  border: 3rem solid rgba(255, 255, 255, 0.045);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.eyebrow {
+  margin: 0 0 0.55rem;
   color: var(--orange);
-  font: 700 0.66rem var(--mono);
-  letter-spacing: 0.14em;
+  font: 700 0.64rem var(--mono);
+  letter-spacing: 0.15em;
 }
 
-header h1 {
+.welcome h1 {
+  position: relative;
+  z-index: 1;
   margin: 0;
-  font: 600 clamp(2rem, 5vw, 3.5rem) var(--display);
+  max-width: 45rem;
+  font: 600 clamp(2rem, 4.5vw, 3.6rem) var(--display);
   letter-spacing: -0.04em;
+  line-height: 0.98;
 }
 
-header > span {
+.welcome > div > span {
+  position: relative;
+  z-index: 1;
   display: block;
-  margin-top: 0.55rem;
-  color: var(--muted);
+  margin-top: 0.8rem;
+  color: #c2d0de;
   font-size: 0.88rem;
 }
 
-section {
-  margin-top: 2.5rem;
-}
-
-h2 {
-  margin: 0 0 1rem;
-  font: 600 1.25rem var(--display);
-}
-
-.module-list {
+.plan-badge {
+  position: relative;
+  z-index: 1;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.8rem;
+  min-width: 9rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(5px);
 }
 
-.module-list a {
+.plan-badge small {
+  color: #9fb5c9;
+  font: 700 0.57rem var(--mono);
+  letter-spacing: 0.14em;
+}
+
+.plan-badge strong {
+  margin-top: 0.25rem;
+  font-size: 0.83rem;
+}
+
+.home-section {
+  margin-top: clamp(2rem, 4vw, 3rem);
+}
+
+.section-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 2rem;
+  margin-bottom: 1rem;
+}
+
+.section-heading h2 {
+  margin: 0;
+  font: 600 clamp(1.35rem, 2vw, 1.65rem) var(--display);
+}
+
+.section-heading > p {
+  max-width: 30rem;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  text-align: right;
+}
+
+.action-grid {
   display: grid;
-  gap: 0.3rem;
-  padding: 1rem 1.1rem;
-  border: 1px solid var(--line);
-  background: #fff;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.action-card,
+.module-card,
+.management-card {
   color: var(--ink);
   text-decoration: none;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease,
+    background-color 160ms ease;
 }
 
-:host-context(.dark) .module-list a {
-  background: #19283b;
+.action-card {
+  --action-color: #d25c2a;
+  --action-surface: #fff0e8;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.8rem;
+  min-height: 7rem;
+  padding: 1rem;
+  border: 1px solid color-mix(in srgb, var(--action-color) 35%, var(--line));
+  background: var(--action-surface);
 }
 
-.module-list a:hover,
-.module-list a:focus-visible {
-  border-color: var(--orange);
+.tone-blue {
+  --action-color: #296fa9;
+  --action-surface: #eaf4fc;
 }
 
-.module-list a:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--orange) 25%, transparent);
-  outline-offset: 2px;
+.tone-green {
+  --action-color: #39785a;
+  --action-surface: #eaf5ee;
 }
 
-.module-list strong {
-  font-size: 0.9rem;
+.tone-violet {
+  --action-color: #6f5797;
+  --action-surface: #f1edfa;
 }
 
-.module-list span {
+.action-icon {
+  display: grid;
+  width: 2.8rem;
+  height: 2.8rem;
+  place-items: center;
+  background: var(--action-color);
+  color: white;
+}
+
+.action-copy,
+.module-copy {
+  min-width: 0;
+}
+
+.action-copy strong,
+.action-copy small,
+.module-copy strong,
+.module-copy small {
+  display: block;
+}
+
+.action-copy strong {
+  color: var(--action-color);
+  font-size: 0.82rem;
+}
+
+.action-copy small {
+  margin-top: 0.3rem;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.65rem;
+  line-height: 1.4;
+}
+
+.arrow {
+  color: var(--muted);
+  font-size: 1.1rem;
+  transition: transform 160ms ease;
+}
+
+.module-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.module-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.9rem;
+  min-height: 7.2rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--line);
+  background: white;
+}
+
+.module-icon {
+  display: grid;
+  width: 2.8rem;
+  height: 2.8rem;
+  place-items: center;
+  background: #e1eaf2;
+  color: #285777;
+}
+
+.module-copy strong {
+  font-size: 0.86rem;
+}
+
+.module-copy small {
+  margin-top: 0.32rem;
+  color: var(--muted);
+  font-size: 0.67rem;
   line-height: 1.45;
 }
 
+.compact {
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+}
+
+.management-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.management-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.7rem;
+  min-height: 3.8rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--cream) 60%, white);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.management-icon {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  color: #466782;
+}
+
+.management-icon app-navigation-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.action-card:hover,
+.module-card:hover,
+.management-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(29, 48, 68, 0.09);
+}
+
+.action-card:hover {
+  border-color: var(--action-color);
+}
+
+.module-card:hover,
+.management-card:hover {
+  border-color: #7193ad;
+}
+
+.action-card:hover .arrow,
+.module-card:hover .arrow,
+.management-card:hover .arrow {
+  transform: translateX(0.18rem);
+}
+
+.action-card:focus-visible,
+.module-card:focus-visible,
+.management-card:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--orange) 28%, transparent);
+  outline-offset: 2px;
+}
+
+:host-context(.dark) .welcome {
+  background:
+    linear-gradient(115deg, rgba(11, 25, 42, 0.98), rgba(25, 52, 77, 0.96)),
+    #0c1726;
+}
+
+:host-context(.dark) .action-card {
+  --action-surface: #263143;
+}
+
+:host-context(.dark) .tone-blue {
+  --action-color: #7eb9e5;
+  --action-surface: #1c3850;
+}
+
+:host-context(.dark) .tone-green {
+  --action-color: #82c59d;
+  --action-surface: #203b35;
+}
+
+:host-context(.dark) .tone-violet {
+  --action-color: #b7a0dc;
+  --action-surface: #332f49;
+}
+
+:host-context(.dark) .module-card {
+  background: #19283b;
+}
+
+:host-context(.dark) .module-icon {
+  background: #29435d;
+  color: #a7d3f2;
+}
+
+:host-context(.dark) .management-card {
+  background: #1b2c40;
+}
+
+:host-context(.dark) .management-icon {
+  color: #a7c6df;
+}
+
+@media (max-width: 1180px) {
+  .action-grid,
+  .management-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .module-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 640px) {
-  .module-list {
+  .home-page {
+    padding: 1rem;
+  }
+
+  .welcome {
+    min-height: 10.5rem;
+    align-items: flex-start;
+    padding: 1.35rem;
+  }
+
+  .welcome::after {
+    right: -8rem;
+  }
+
+  .welcome h1 {
+    font-size: clamp(1.8rem, 10vw, 2.6rem);
+  }
+
+  .plan-badge {
+    min-width: auto;
+    padding: 0.55rem 0.65rem;
+  }
+
+  .plan-badge small {
+    display: none;
+  }
+
+  .section-heading {
+    display: block;
+  }
+
+  .section-heading > p {
+    margin-top: 0.4rem;
+    text-align: left;
+  }
+
+  .action-grid,
+  .module-grid,
+  .management-grid {
     grid-template-columns: 1fr;
+  }
+
+  .action-card,
+  .module-card {
+    min-height: 6.2rem;
+  }
+}
+
+@media (max-width: 390px) {
+  .welcome {
+    display: block;
+  }
+
+  .plan-badge {
+    display: inline-grid;
+    margin-top: 1rem;
+  }
+
+  .action-card,
+  .module-card {
+    gap: 0.65rem;
+    padding: 0.85rem;
+  }
+
+  .action-icon,
+  .module-icon {
+    width: 2.45rem;
+    height: 2.45rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .action-card,
+  .module-card,
+  .management-card,
+  .arrow {
+    transition: none;
   }
 }

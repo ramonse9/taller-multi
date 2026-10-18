@@ -1,19 +1,92 @@
 <main class="home-page">
-  <header>
-    <p>INICIO</p>
-    <h1>Hola, {{ auth.user()?.fullName }}</h1>
-    <span>Selecciona una sección para continuar.</span>
+  <header class="welcome">
+    <div>
+      <p class="eyebrow">INICIO</p>
+      <h1>Hola, {{ auth.user()?.fullName }}</h1>
+      <span>¿Qué necesitas hacer hoy en el taller?</span>
+    </div>
+    @if (auth.user()?.subscription; as subscription) {
+    <div class="plan-badge" aria-label="Plan contratado">
+      <small>PLAN</small>
+      <strong>{{ subscription.planName }}</strong>
+    </div>
+    }
   </header>
 
-  <section aria-labelledby="available-modules-title">
-    <h2 id="available-modules-title">Accesos disponibles</h2>
-    <div class="module-list">
-      @for (item of modules(); track item.link) {
-      <a [routerLink]="item.link">
-        <strong>{{ item.label }}</strong>
-        <span>{{ item.description }}</span>
+  @if (actions().length) {
+  <section class="home-section" aria-labelledby="quick-actions-title">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">TRABAJO DIARIO</p>
+        <h2 id="quick-actions-title">Acciones principales</h2>
+      </div>
+      <p>Comienza una tarea sin pasar por listados intermedios.</p>
+    </div>
+    <div class="action-grid">
+      @for (action of actions(); track action.label) {
+      <a
+        class="action-card"
+        [class]="'action-card tone-' + action.tone"
+        [routerLink]="action.link"
+        [queryParams]="action.queryParams ?? null"
+      >
+        <span class="action-icon">
+          <app-navigation-icon [name]="action.icon" />
+        </span>
+        <span class="action-copy">
+          <strong>+ {{ action.label }}</strong>
+          <small>{{ action.description }}</small>
+        </span>
+        <span class="arrow" aria-hidden="true">→</span>
       </a>
       }
     </div>
   </section>
+  }
+
+  <section class="home-section" aria-labelledby="available-modules-title">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">MÓDULOS</p>
+        <h2 id="available-modules-title">Accesos disponibles</h2>
+      </div>
+      <p>Solamente aparecen las secciones incluidas en tu plan y permisos.</p>
+    </div>
+    <div class="module-grid">
+      @for (item of mainModules(); track item.link) {
+      <a class="module-card" [routerLink]="item.link">
+        <span class="module-icon">
+          <app-navigation-icon [name]="item.icon" />
+        </span>
+        <span class="module-copy">
+          <strong>{{ item.label }}</strong>
+          <small>{{ item.description }}</small>
+        </span>
+        <span class="arrow" aria-hidden="true">→</span>
+      </a>
+      }
+    </div>
+  </section>
+
+  @if (managementModules().length) {
+  <section class="home-section compact" aria-labelledby="management-title">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">CONFIGURACIÓN</p>
+        <h2 id="management-title">Administración</h2>
+      </div>
+    </div>
+    <div class="management-grid">
+      @for (item of managementModules(); track item.link) {
+      <a class="management-card" [routerLink]="item.link">
+        <span class="management-icon">
+          <app-navigation-icon [name]="item.icon" />
+        </span>
+        <span>{{ item.label }}</span>
+        <span class="arrow" aria-hidden="true">→</span>
+      </a>
+      }
+    </div>
+  </section>
+  }
 </main>
