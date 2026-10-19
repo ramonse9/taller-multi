@@ -45,7 +45,7 @@
       >
     </div>
     }
-    <div class="mb-6 grid gap-3 sm:grid-cols-[minmax(0,1fr)_14rem_14rem]">
+    <div class="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_13rem_13rem_auto]">
       <div class="relative">
         <span
           class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#768079]"
@@ -77,6 +77,18 @@
         <option [ngValue]="true">Pagadas</option>
         <option [ngValue]="false">Pendientes de pago</option>
       </select>
+      @if (canViewInvoicing()) {
+      <label
+        class="flex min-h-11 cursor-pointer items-center gap-3 border border-[#c7d4df] bg-white px-4 text-sm font-semibold dark:border-[#38516d] dark:bg-[#19283b]"
+      >
+        <input
+          class="size-4 accent-[#e86a33]"
+          type="checkbox"
+          [formControl]="pendingInvoicing"
+        />
+        Pendientes de facturar
+      </label>
+      }
     </div>
 
     @if (error()) {
@@ -98,10 +110,8 @@
     <div class="relative min-h-72" [class.opacity-60]="loading()">
       <div class="grid gap-3 lg:hidden">
         @for (order of data().items; track order.id) {
-        <a
+        <article
           class="group block border border-[#d5dce3] bg-white p-5 text-inherit no-underline transition hover:border-[#c7a58f] hover:bg-[#f7f9fb] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e86a33] dark:border-[#38516d] dark:bg-[#19283b] dark:hover:border-[#6c7f74] dark:hover:bg-[#20344b]"
-          [routerLink]="['/orders', order.id]"
-          [attr.aria-label]="'Ver detalle de la orden con folio del sistema ' + order.folio"
         >
           <div
             class="grid gap-3 sm:flex sm:items-start sm:justify-between sm:gap-4"
@@ -124,24 +134,55 @@
                 >{{ formatShortDate(order.createdAt) }}</span
               >
             </div>
-            <div class="flex flex-wrap items-center gap-2 sm:justify-end">
-              <span
-                class="order-status shrink-0"
-                [class.order-status-in-progress]="order.status === 'in_progress'"
-                [class.order-status-completed]="order.status === 'completed'"
-                [class.order-status-cancelled]="order.status === 'cancelled'"
-                >{{ statusName(order.status) }}</span
-              >
-              <span
-                class="shrink-0 px-2 py-1 text-xs font-bold"
-                [class.bg-[#cfe3fb]]="order.isPaid"
-                [class.text-[#285f8a]]="order.isPaid"
-                [class.dark:bg-[#233f58]]="order.isPaid"
-                [class.dark:text-[#b9dcf5]]="order.isPaid"
-                [class.bg-[#ffe3ab]]="!order.isPaid"
-                [class.text-[#805719]]="!order.isPaid"
-                >{{ order.isPaid ? 'Pagada' : 'Pendiente' }}</span
-              >
+            <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <div>
+                <span class="detail-label">OPERACIÓN</span>
+                <span
+                  class="order-status mt-1 shrink-0"
+                  [class.order-status-in-progress]="order.status === 'in_progress'"
+                  [class.order-status-completed]="order.status === 'completed'"
+                  [class.order-status-cancelled]="order.status === 'cancelled'"
+                  >{{ statusName(order.status) }}</span
+                >
+              </div>
+              <div>
+                <span class="detail-label">COBRO</span>
+                <span
+                  class="mt-1 block w-fit shrink-0 px-2 py-1 text-xs font-bold"
+                  [class.bg-[#cfe3fb]]="order.isPaid"
+                  [class.text-[#285f8a]]="order.isPaid"
+                  [class.dark:bg-[#233f58]]="order.isPaid"
+                  [class.dark:text-[#b9dcf5]]="order.isPaid"
+                  [class.bg-[#ffe3ab]]="!order.isPaid"
+                  [class.text-[#805719]]="!order.isPaid"
+                  >{{ order.isPaid ? 'Pagada' : 'Pendiente' }}</span
+                >
+              </div>
+              @if (canViewInvoicing()) {
+              <div class="col-span-2 sm:col-span-1">
+                <span class="detail-label">FACTURACIÓN</span>
+                <span
+                  class="mt-1 block w-fit px-2 py-1 text-xs font-bold"
+                  [class.bg-[#e2e7ec]]="order.billingStatus === 'not_invoiced' || order.billingStatus === 'discarded'"
+                  [class.text-[#52606d]]="order.billingStatus === 'not_invoiced' || order.billingStatus === 'discarded'"
+                  [class.dark:bg-[#31445a]]="order.billingStatus === 'not_invoiced' || order.billingStatus === 'discarded'"
+                  [class.dark:text-[#d6e2ee]]="order.billingStatus === 'not_invoiced' || order.billingStatus === 'discarded'"
+                  [class.bg-[#ffe3ab]]="order.billingStatus === 'draft'"
+                  [class.text-[#805719]]="order.billingStatus === 'draft'"
+                  [class.dark:bg-[#4d3e22]]="order.billingStatus === 'draft'"
+                  [class.dark:text-[#ffd18a]]="order.billingStatus === 'draft'"
+                  [class.bg-[#cfe3fb]]="order.billingStatus === 'issued'"
+                  [class.text-[#285f8a]]="order.billingStatus === 'issued'"
+                  [class.dark:bg-[#233f58]]="order.billingStatus === 'issued'"
+                  [class.dark:text-[#b9dcf5]]="order.billingStatus === 'issued'"
+                  [class.bg-[#ffd1cc]]="order.billingStatus === 'cancelled'"
+                  [class.text-[#8f3325]]="order.billingStatus === 'cancelled'"
+                  [class.dark:bg-[#633d3d]]="order.billingStatus === 'cancelled'"
+                  [class.dark:text-[#ffd9d4]]="order.billingStatus === 'cancelled'"
+                  >{{ billingStatusName(order.billingStatus) }}</span
+                >
+              </div>
+              }
             </div>
           </div>
 
@@ -188,13 +229,24 @@
               <strong class="mt-1 block text-lg"
                 >{{ money(order.total) }}</strong
               >
-              <span
+              <a
                 class="text-xs font-bold text-[#b94718] group-hover:underline dark:text-[#ff9a6f]"
-                >Ver detalle →</span
+                [routerLink]="['/orders', order.id]"
+                >Ver detalle →</a
               >
             </div>
           </div>
-        </a>
+          @if (billingAction(order); as action) {
+          <div class="mt-4 border-t border-[#e2e7ec] pt-4 dark:border-[#38516d]">
+            <a
+              class="inline-flex min-h-10 items-center font-bold text-[#b94718] underline underline-offset-4 dark:text-[#ff9a6f]"
+              [routerLink]="action.link"
+              [queryParams]="action.queryParams"
+              >{{ action.label }} →</a
+            >
+          </div>
+          }
+        </article>
         } @empty { @if (!loading()) {
         <div
           class="border border-[#d5dce3] bg-white p-12 text-center text-[#63717d] dark:border-[#38516d] dark:bg-[#19283b] dark:text-[#afbed0]"
@@ -216,8 +268,11 @@
               <th class="p-4">Cliente</th>
               <th class="p-4">Vehículo</th>
               <th class="p-4">Conceptos</th>
-              <th class="p-4">Estatus</th>
-              <th class="p-4">Pago</th>
+              <th class="p-4">Operación</th>
+              <th class="p-4">Cobro</th>
+              @if (canViewInvoicing()) {
+              <th class="p-4">Facturación</th>
+              }
               <th class="p-4 text-right">Total</th>
               <th class="p-4"></th>
             </tr>
@@ -281,6 +336,30 @@
                   >{{ order.isPaid ? 'Pagada' : 'Pendiente' }}</span
                 >
               </td>
+              @if (canViewInvoicing()) {
+              <td class="p-4">
+                <span
+                  class="block w-fit px-2 py-1 text-xs font-bold"
+                  [class.bg-[#e2e7ec]]="order.billingStatus === 'not_invoiced' || order.billingStatus === 'discarded'"
+                  [class.text-[#52606d]]="order.billingStatus === 'not_invoiced' || order.billingStatus === 'discarded'"
+                  [class.dark:bg-[#31445a]]="order.billingStatus === 'not_invoiced' || order.billingStatus === 'discarded'"
+                  [class.dark:text-[#d6e2ee]]="order.billingStatus === 'not_invoiced' || order.billingStatus === 'discarded'"
+                  [class.bg-[#ffe3ab]]="order.billingStatus === 'draft'"
+                  [class.text-[#805719]]="order.billingStatus === 'draft'"
+                  [class.dark:bg-[#4d3e22]]="order.billingStatus === 'draft'"
+                  [class.dark:text-[#ffd18a]]="order.billingStatus === 'draft'"
+                  [class.bg-[#cfe3fb]]="order.billingStatus === 'issued'"
+                  [class.text-[#285f8a]]="order.billingStatus === 'issued'"
+                  [class.dark:bg-[#233f58]]="order.billingStatus === 'issued'"
+                  [class.dark:text-[#b9dcf5]]="order.billingStatus === 'issued'"
+                  [class.bg-[#ffd1cc]]="order.billingStatus === 'cancelled'"
+                  [class.text-[#8f3325]]="order.billingStatus === 'cancelled'"
+                  [class.dark:bg-[#633d3d]]="order.billingStatus === 'cancelled'"
+                  [class.dark:text-[#ffd9d4]]="order.billingStatus === 'cancelled'"
+                  >{{ billingStatusName(order.billingStatus) }}</span
+                >
+              </td>
+              }
               <td class="p-4 text-right">
                 <strong>{{ money(order.total) }}</strong>@if
                 (order.hasUnpricedItems) {<span
@@ -289,18 +368,28 @@
                 >}
               </td>
               <td class="p-4 text-right">
-                <a
-                  class="font-bold text-[#b94718] dark:text-[#ff9a6f]"
-                  [routerLink]="['/orders', order.id]"
-                  >Ver detalle →</a
-                >
+                <div class="flex flex-col items-end gap-2">
+                  <a
+                    class="font-bold text-[#b94718] dark:text-[#ff9a6f]"
+                    [routerLink]="['/orders', order.id]"
+                    >Ver detalle →</a
+                  >
+                  @if (billingAction(order); as action) {
+                  <a
+                    class="text-xs font-bold text-[#285f8a] underline underline-offset-4 dark:text-[#b9dcf5]"
+                    [routerLink]="action.link"
+                    [queryParams]="action.queryParams"
+                    >{{ action.label }}</a
+                  >
+                  }
+                </div>
               </td>
             </tr>
             } @empty { @if (!loading()) {
             <tr>
               <td
                 class="p-12 text-center text-[#63717d] dark:text-[#afbed0]"
-                colspan="8"
+                [attr.colspan]="canViewInvoicing() ? 9 : 8"
               >
                 No hay órdenes que coincidan con la búsqueda.
               </td>

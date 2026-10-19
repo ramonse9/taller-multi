@@ -48,6 +48,14 @@ export class InvoiceDetailPage implements OnInit {
       !this.auth.hasFeature("invoicing") &&
       this.auth.hasFeatureReadAccess("invoicing"),
   );
+  readonly pueIssueBlocked = computed(() => {
+    const invoice = this.invoice();
+    return (
+      invoice?.status === "draft" &&
+      invoice.paymentMethodCode === "PUE" &&
+      invoice.collectionStatus === "pending"
+    );
+  });
   readonly invoiceId = this.route.snapshot.paramMap.get("id") ?? "";
   readonly invoice = signal<SimulatedInvoice | null>(null);
   readonly catalogs = signal<InvoiceCatalogs | null>(null);
@@ -148,6 +156,13 @@ export class InvoiceDetailPage implements OnInit {
   executeConfirmedAction(): void {
     const current = this.invoice();
     const action = this.confirmAction();
+    if (action === "issue" && this.pueIssueBlocked()) {
+      this.confirmAction.set(null);
+      this.error.set(
+        "La simulación usa PUE. Marca primero la orden como pagada o cambia el método a PPD.",
+      );
+      return;
+    }
     const permitted =
       action === "issue"
         ? this.auth.hasPermission("invoices.simulate_issue")
@@ -202,6 +217,16 @@ export class InvoiceDetailPage implements OnInit {
       style: "currency",
       currency: "MXN",
     }).format(Number(value));
+  }
+
+  paymentMethodExplanation(method: string): string {
+    return method === "PPD"
+      ? "PPD · Pago en parcialidades o diferido. La simulación puede emitirse con el cobro pendiente; todavía no se generan complementos de pago."
+      : "PUE · Pago en una sola exhibición. La orden debe estar marcada como pagada antes de emitir la simulación.";
+  }
+
+  print(): void {
+    window.print();
   }
 
   eventName(type: string): string {

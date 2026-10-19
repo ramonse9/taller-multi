@@ -21,6 +21,8 @@ import { formatShortDate } from "../../core/dates/date-format";
 import { apiErrorMessage } from "../../core/http/api-error";
 import { ThemeService } from "../../core/theme/theme.service";
 import {
+  INVOICE_COLLECTION_STATUS_NAMES,
+  InvoiceCollectionStatus,
   InvoiceCatalogs,
   InvoiceSettings,
   InvoiceStatus,
@@ -234,9 +236,19 @@ export class InvoicesPage implements OnInit {
     return {
       draft: "Borrador",
       issued: "Simulación emitida",
-      cancelled: "Cancelada",
+      cancelled: "Simulación cancelada",
       discarded: "Borrador descartado",
     }[status];
+  }
+
+  collectionStatusName(status: InvoiceCollectionStatus): string {
+    return INVOICE_COLLECTION_STATUS_NAMES[status];
+  }
+
+  paymentMethodExplanation(method: "PUE" | "PPD"): string {
+    return method === "PPD"
+      ? "PPD permite emitir la simulación con la orden pendiente de pago. Esta fase no genera complementos de pago."
+      : "PUE representa pago en una sola exhibición. Para emitir la simulación, la orden deberá estar marcada como pagada.";
   }
 
   money(value: string): string {

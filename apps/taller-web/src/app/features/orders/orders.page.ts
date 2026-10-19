@@ -15,11 +15,18 @@ import { apiErrorMessage } from "../../core/http/api-error";
 import { ThemeService } from "../../core/theme/theme.service";
 import { AuthService } from "../../core/auth/auth.service";
 import {
+  ORDER_BILLING_STATUS_NAMES,
   ORDER_STATUS_NAMES,
+  OrderBillingStatus,
+  OrderListItem,
   OrderStatus,
   PaginatedOrders,
 } from "./order.models";
 import { OrdersService } from "./orders.service";
+import {
+  OrderBillingAction,
+  orderBillingAction,
+} from "./order-billing-ui";
 
 const orderStatusFromQuery = (value: string | null): OrderStatus | "" =>
   value === "in_progress" || value === "completed" || value === "cancelled" ? value : "";
@@ -64,6 +71,7 @@ export class OrdersPage implements OnInit {
       nonNullable: true,
     },
   );
+  readonly pendingInvoicing = new FormControl(false, { nonNullable: true });
   readonly loading = signal(true);
   readonly error = signal("");
   readonly data = signal<PaginatedOrders>({
@@ -89,6 +97,9 @@ export class OrdersPage implements OnInit {
     this.isPaid.valueChanges
       .pipe(distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.load(1));
+    this.pendingInvoicing.valueChanges
+      .pipe(distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.load(1));
     this.load();
   }
 
@@ -104,6 +115,7 @@ export class OrdersPage implements OnInit {
         customerId: this.customerId || undefined,
         vehicleId: this.vehicleId || undefined,
         isPaid: this.isPaid.value,
+        pendingInvoicing: this.pendingInvoicing.value,
       })
       .pipe(
         finalize(() => this.loading.set(false)),
@@ -120,6 +132,32 @@ export class OrdersPage implements OnInit {
 
   statusName(status: OrderStatus): string {
     return ORDER_STATUS_NAMES[status];
+  }
+
+  billingStatusName(status: OrderBillingStatus): string {
+    return ORDER_BILLING_STATUS_NAMES[status];
+  }
+
+  billingAction(order: OrderListItem): OrderBillingAction | null {
+    const hasInvoiceAccess =
+      this.auth.hasPermission("invoices.view") &&
+      this.auth.hasFeatureReadAccess("invoicing");
+    return orderBillingAction(order, {
+      canView: hasInvoiceAccess,
+      canCreate:
+        hasInvoiceAccess &&
+        this.auth.hasFeature("invoicing") &&
+        this.auth.hasPermission("invoices.create"),
+      canEdit:
+        hasInvoiceAccess && this.auth.hasPermission("invoices.edit"),
+    });
+  }
+
+  canViewInvoicing(): boolean {
+    return (
+      this.auth.hasPermission("invoices.view") &&
+      this.auth.hasFeatureReadAccess("invoicing")
+    );
   }
 
   money(value: string | null): string {

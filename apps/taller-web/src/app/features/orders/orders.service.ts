@@ -28,6 +28,8 @@ export class OrdersService {
     if (options.vehicleId) params = params.set("vehicleId", options.vehicleId);
     if (options.isPaid !== undefined && options.isPaid !== "")
       params = params.set("isPaid", options.isPaid);
+    if (options.pendingInvoicing)
+      params = params.set("pendingInvoicing", true);
     return this.http.get<PaginatedOrders>(this.url, { params });
   }
 

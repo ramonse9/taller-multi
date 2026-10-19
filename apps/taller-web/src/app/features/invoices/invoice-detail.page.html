@@ -1,5 +1,5 @@
 <main
-  class="min-h-screen bg-[#fbfaf7] text-[#17251e] dark:bg-[#111d2e] dark:text-[#edf4fb]"
+  class="invoice-print-page min-h-screen bg-[#fbfaf7] text-[#17251e] dark:bg-[#111d2e] dark:text-[#edf4fb]"
 >
   <header
     class="border-b border-[#d5dce3] px-[clamp(1.25rem,5vw,5rem)] py-8 dark:border-[#38516d]"
@@ -7,7 +7,7 @@
     <div class="flex flex-wrap items-end justify-between gap-5">
       <div>
         <a
-          class="mb-3 inline-block text-sm font-bold text-[#b94718] dark:text-[#ff9a6f]"
+          class="invoice-no-print mb-3 inline-block text-sm font-bold text-[#b94718] dark:text-[#ff9a6f]"
           routerLink="/invoices"
           >← Facturación</a
         >
@@ -19,9 +19,16 @@
           invoice()?.folio : 'Borrador' }}
         </h1>
       </div>
-      <button class="theme-toggle" type="button" (click)="theme.toggle()">
-        {{ theme.isDark() ? '☀' : '◐' }}
-      </button>
+      <div class="invoice-no-print flex items-center gap-2">
+        @if (invoice()) {
+        <button class="secondary-tw" type="button" (click)="print()">
+          Imprimir simulación
+        </button>
+        }
+        <button class="theme-toggle" type="button" (click)="theme.toggle()">
+          {{ theme.isDark() ? '☀' : '◐' }}
+        </button>
+      </div>
     </div>
   </header>
   <section class="space-y-6 px-[clamp(1.25rem,5vw,5rem)] pb-16 pt-8">
@@ -65,6 +72,52 @@
       </p>
     </div>
     }
+    <section
+      class="grid overflow-hidden border border-[#d5dce3] bg-white sm:grid-cols-2 lg:grid-cols-4 dark:border-[#38516d] dark:bg-[#19283b]"
+      aria-label="Resumen independiente de la simulación"
+    >
+      <div class="border-b border-[#e2e7ec] p-4 sm:border-r lg:border-b-0 dark:border-[#38516d]">
+        <span class="detail-label">ORDEN DE ORIGEN</span>
+        <a
+          class="mt-1 block font-bold text-[#b94718] dark:text-[#ff9a6f]"
+          [routerLink]="['/orders', current.orderId]"
+          >#{{ current.orderFolio }}</a
+        >
+      </div>
+      <div class="border-b border-[#e2e7ec] p-4 lg:border-b-0 lg:border-r dark:border-[#38516d]">
+        <span class="detail-label">RECEPTOR</span>
+        <strong class="mt-1 block">{{ current.receiverFiscalName }}</strong>
+      </div>
+      <div class="border-b border-[#e2e7ec] p-4 sm:border-r sm:border-b-0 dark:border-[#38516d]">
+        <span class="detail-label">COBRO DE LA ORDEN</span>
+        <strong
+          class="mt-1 block w-fit px-2 py-1 text-xs"
+          [class.bg-[#cfe3fb]]="current.collectionStatus === 'paid'"
+          [class.text-[#285f8a]]="current.collectionStatus === 'paid'"
+          [class.dark:bg-[#233f58]]="current.collectionStatus === 'paid'"
+          [class.dark:text-[#b9dcf5]]="current.collectionStatus === 'paid'"
+          [class.bg-[#ffe3ab]]="current.collectionStatus === 'pending'"
+          [class.text-[#805719]]="current.collectionStatus === 'pending'"
+          [class.dark:bg-[#4d3e22]]="current.collectionStatus === 'pending'"
+          [class.dark:text-[#ffd18a]]="current.collectionStatus === 'pending'"
+          >{{ current.collectionStatus === 'paid' ? 'Pagada' : 'Pendiente' }}</strong
+        >
+      </div>
+      <div class="p-4">
+        <span class="detail-label">FACTURACIÓN</span>
+        <strong class="mt-1 block">{{ current.status === 'draft' ? 'Borrador' : current.status === 'issued' ? 'Simulación emitida' : current.status === 'discarded' ? 'Borrador descartado' : 'Simulación cancelada' }}</strong>
+      </div>
+    </section>
+
+    @if (pueIssueBlocked()) {
+    <div
+      class="invoice-no-print border-l-4 border-[#c84d3b] bg-[#ffdcd2] p-4 text-sm text-[#8e3214] dark:border-[#ff8f7d] dark:bg-[#633d3d] dark:text-[#ffd9d4]"
+      role="alert"
+    >
+      <strong class="block">No puede emitirse con PUE mientras la orden esté pendiente</strong>
+      <span>Marca primero la orden como pagada o edita el borrador y selecciona PPD.</span>
+    </div>
+    }
     <section class="form-card-tw overflow-hidden">
       <header class="form-card-header flex-wrap justify-between">
         <div>
@@ -78,6 +131,7 @@
           auth.hasPermission('invoices.simulate_issue')) {<button
             class="primary"
             type="button"
+            [disabled]="pueIssueBlocked()"
             (click)="confirmAction.set('issue')"
           >
             Emitir simulación</button
@@ -142,10 +196,13 @@
           ><strong class="block"
             >{{ current.status === 'draft' ? 'Borrador' : current.status ===
             'issued' ? 'Simulación emitida' : current.status === 'discarded' ?
-            'Borrador descartado' : 'Cancelada' }}</strong
+            'Borrador descartado' : 'Simulación cancelada' }}</strong
           >
         </div>
       </div>
+      <p class="border-t border-[#d5dce3] px-5 py-3 text-xs leading-5 text-[#526675] dark:border-[#38516d] dark:text-[#afbed0]">
+        {{ paymentMethodExplanation(current.paymentMethodCode) }} El estado de cobro se administra desde la orden y no cambia automáticamente por emitir o cancelar esta simulación.
+      </p>
       <div class="overflow-x-auto">
         <table class="w-full min-w-[48rem] border-collapse text-sm">
           <thead class="bg-[#edf2f7] text-left dark:bg-[#22364d]">
@@ -193,7 +250,7 @@
     @if (!readOnly() && current.status === 'draft' &&
     auth.hasPermission('invoices.edit')) {
     <form
-      class="form-card-tw overflow-hidden"
+      class="invoice-no-print form-card-tw overflow-hidden"
       [formGroup]="form"
       (ngSubmit)="save()"
     >
@@ -243,6 +300,17 @@
         </div>
       </div>
       <div
+        class="mx-5 mb-5 border-l-4 px-4 py-3 text-xs leading-5"
+        [class.border-[#c84d3b]]="form.controls.paymentMethodCode.value === 'PUE' && current.collectionStatus === 'pending'"
+        [class.bg-[#ffdcd2]]="form.controls.paymentMethodCode.value === 'PUE' && current.collectionStatus === 'pending'"
+        [class.text-[#8e3214]]="form.controls.paymentMethodCode.value === 'PUE' && current.collectionStatus === 'pending'"
+        [class.border-[#4c78a8]]="form.controls.paymentMethodCode.value === 'PPD' || current.collectionStatus === 'paid'"
+        [class.bg-[#dcecff]]="form.controls.paymentMethodCode.value === 'PPD' || current.collectionStatus === 'paid'"
+        [class.text-[#234f7c]]="form.controls.paymentMethodCode.value === 'PPD' || current.collectionStatus === 'paid'"
+      >
+        {{ paymentMethodExplanation(form.controls.paymentMethodCode.value) }}
+      </div>
+      <div
         class="border-t border-[#d5dce3] p-5 dark:border-[#38516d]"
         formArrayName="items"
       >
@@ -272,7 +340,7 @@
     </form>
     }
 
-    <section class="form-card-tw overflow-hidden">
+    <section class="invoice-no-print form-card-tw overflow-hidden">
       <header class="form-card-header">
         <span class="section-number">03</span>
         <div>

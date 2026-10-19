@@ -183,6 +183,7 @@ export class OrdersService {
         query.vehicleId ?? null,
         filter,
         query.isPaid ?? null,
+        query.pendingInvoicing ?? null,
       ];
       const where = `($1::text IS NULL OR service_order.status = $1)
         AND ($2::uuid IS NULL OR service_order.customer_id = $2)
@@ -197,6 +198,14 @@ export class OrdersService {
         AND ($5::boolean IS NULL OR (
           service_order.is_paid = $5
           AND ($5 = true OR service_order.status <> 'cancelled')
+        ))
+        AND ($6::boolean IS NULL OR $6 = false OR (
+          service_order.status = 'completed'
+          AND NOT EXISTS (
+            SELECT 1 FROM ${schema}.simulated_invoices pending_invoice
+            WHERE pending_invoice.order_id = service_order.id
+              AND pending_invoice.status IN ('draft', 'issued')
+          )
         ))`;
       const countRows = (await runner.query(
         `SELECT COUNT(*) AS total
@@ -211,7 +220,7 @@ export class OrdersService {
       const totalItems = Number(countRows[0]?.total ?? 0);
       const rows = (await runner.query(
         `${this.orderSelect(schema)} WHERE ${where}
-         ORDER BY service_order.created_at DESC, service_order.id DESC LIMIT $6 OFFSET $7`,
+         ORDER BY service_order.created_at DESC, service_order.id DESC LIMIT $7 OFFSET $8`,
         [...parameters, query.limit, offset],
       )) as OrderRow[];
       return {

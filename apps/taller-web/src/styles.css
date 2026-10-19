@@ -898,3 +898,50 @@ textarea {
     opacity: 0.4;
   }
 }
+
+@media print {
+  app-shell .sidebar,
+  app-shell app-context-navigation,
+  .invoice-no-print,
+  .invoice-print-page .dialog-backdrop {
+    display: none !important;
+  }
+
+  app-shell .app-shell,
+  app-shell .workspace {
+    display: block !important;
+    min-height: auto !important;
+    background: white !important;
+  }
+
+  .invoice-print-page,
+  .invoice-print-page header,
+  .invoice-print-page section,
+  .invoice-print-page article,
+  .invoice-print-page div,
+  .invoice-print-page footer {
+    color: #111827 !important;
+    background: white !important;
+    box-shadow: none !important;
+  }
+
+  .invoice-print-page > header,
+  .invoice-print-page > section {
+    padding-inline: 0 !important;
+  }
+
+  .invoice-print-page a {
+    color: #111827 !important;
+    text-decoration: none !important;
+  }
+
+  .invoice-print-page table {
+    min-width: 0 !important;
+  }
+
+  .invoice-print-page tr,
+  .invoice-print-page article,
+  .invoice-print-page .form-card-tw {
+    break-inside: avoid;
+  }
+}

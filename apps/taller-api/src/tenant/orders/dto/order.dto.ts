@@ -261,6 +261,15 @@ export class OrderQueryDto {
   @IsOptional()
   @IsBoolean()
   isPaid?: boolean;
+
+  @ApiPropertyOptional({
+    description:
+      'Filtrar órdenes terminadas que no tienen un borrador ni una simulación emitida activos',
+  })
+  @Transform(booleanQuery)
+  @IsOptional()
+  @IsBoolean()
+  pendingInvoicing?: boolean;
 }
 
 export class OrderItemCostLayerResponseDto {

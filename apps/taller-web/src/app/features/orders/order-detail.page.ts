@@ -16,12 +16,18 @@ import { apiErrorMessage } from "../../core/http/api-error";
 import { ThemeService } from "../../core/theme/theme.service";
 import { AuthService } from "../../core/auth/auth.service";
 import {
+  ORDER_BILLING_STATUS_NAMES,
   ORDER_STATUS_NAMES,
   Order,
+  OrderBillingStatus,
   OrderItem,
   OrderStatus,
 } from "./order.models";
 import { OrdersService } from "./orders.service";
+import {
+  OrderBillingAction,
+  orderBillingAction,
+} from "./order-billing-ui";
 
 const TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   in_progress: ["completed", "cancelled"],
@@ -201,6 +207,30 @@ export class OrderDetailPage implements OnInit {
 
   statusName(status: OrderStatus): string {
     return ORDER_STATUS_NAMES[status];
+  }
+
+  billingStatusName(status: OrderBillingStatus): string {
+    return ORDER_BILLING_STATUS_NAMES[status];
+  }
+
+  canViewInvoicing(): boolean {
+    return (
+      this.auth.hasPermission("invoices.view") &&
+      this.auth.hasFeatureReadAccess("invoicing")
+    );
+  }
+
+  billingAction(order: Order): OrderBillingAction | null {
+    const hasInvoiceAccess = this.canViewInvoicing();
+    return orderBillingAction(order, {
+      canView: hasInvoiceAccess,
+      canCreate:
+        hasInvoiceAccess &&
+        this.auth.hasFeature("invoicing") &&
+        this.auth.hasPermission("invoices.create"),
+      canEdit:
+        hasInvoiceAccess && this.auth.hasPermission("invoices.edit"),
+    });
   }
 
   money(value: string | null): string {

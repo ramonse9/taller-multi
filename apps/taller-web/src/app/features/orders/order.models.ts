@@ -139,6 +139,7 @@ export interface OrderListOptions {
   customerId?: string;
   vehicleId?: string;
   isPaid?: boolean | "";
+  pendingInvoicing?: boolean;
 }
 
 export const ORDER_STATUS_NAMES: Record<OrderStatus, string> = {
@@ -152,5 +153,5 @@ export const ORDER_BILLING_STATUS_NAMES: Record<OrderBillingStatus, string> = {
   draft: "Borrador",
   issued: "Simulación emitida",
   cancelled: "Simulación cancelada",
-  discarded: "Borrador descartado",
+  discarded: "Sin factura",
 };

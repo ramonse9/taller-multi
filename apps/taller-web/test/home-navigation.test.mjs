@@ -7,6 +7,10 @@ import {
   TENANT_HOME_ACTIONS,
   TENANT_NAVIGATION,
 } from "../src/app/core/navigation/tenant-navigation.config.ts";
+import {
+  orderBillingAction,
+  orderBillingStatusName,
+} from "../src/app/features/orders/order-billing-ui.ts";
 
 const essentialFeatures = [
   "dashboard",
@@ -226,5 +230,101 @@ test("la navegación contextual reconoce listados, detalles y formularios", () =
   assert.equal(
     tenantSectionForUrl("/purchases/new", TENANT_NAVIGATION)?.label,
     "Compras",
+  );
+});
+
+const billingAccess = {
+  canView: true,
+  canCreate: true,
+  canEdit: true,
+};
+
+function billingOrder(overrides = {}) {
+  return {
+    id: "order-id",
+    status: "completed",
+    billingStatus: "not_invoiced",
+    activeInvoiceId: null,
+    ...overrides,
+  };
+}
+
+test("las acciones de facturación siguen el estado independiente de la orden", () => {
+  assert.deepEqual(orderBillingAction(billingOrder(), billingAccess), {
+    label: "Preparar factura simulada",
+    link: ["/invoices"],
+    queryParams: { orderId: "order-id" },
+  });
+  assert.deepEqual(
+    orderBillingAction(
+      billingOrder({ billingStatus: "draft", activeInvoiceId: "draft-id" }),
+      billingAccess,
+    ),
+    {
+      label: "Continuar borrador",
+      link: ["/invoices", "draft-id"],
+      queryParams: null,
+    },
+  );
+  assert.deepEqual(
+    orderBillingAction(
+      billingOrder({ billingStatus: "issued", activeInvoiceId: "invoice-id" }),
+      billingAccess,
+    ),
+    {
+      label: "Ver simulación",
+      link: ["/invoices", "invoice-id"],
+      queryParams: null,
+    },
+  );
+  assert.equal(
+    orderBillingAction(billingOrder({ status: "in_progress" }), billingAccess),
+    null,
+  );
+  assert.equal(
+    orderBillingAction(billingOrder({ status: "cancelled" }), billingAccess),
+    null,
+  );
+});
+
+test("una simulación cancelada permite preparar otra sin ocultar su historial", () => {
+  assert.equal(orderBillingStatusName("cancelled"), "Simulación cancelada");
+  assert.equal(orderBillingStatusName("discarded"), "Sin factura");
+  assert.deepEqual(
+    orderBillingAction(
+      billingOrder({ billingStatus: "cancelled" }),
+      billingAccess,
+    ),
+    {
+      label: "Preparar nueva simulación",
+      link: ["/invoices"],
+      queryParams: { orderId: "order-id" },
+    },
+  );
+});
+
+test("facturación respeta permisos de consulta, creación y edición", () => {
+  assert.equal(
+    orderBillingAction(billingOrder(), {
+      canView: true,
+      canCreate: false,
+      canEdit: false,
+    }),
+    null,
+  );
+  assert.deepEqual(
+    orderBillingAction(
+      billingOrder({ billingStatus: "draft", activeInvoiceId: "draft-id" }),
+      { canView: true, canCreate: false, canEdit: false },
+    )?.label,
+    "Ver borrador",
+  );
+  assert.equal(
+    orderBillingAction(billingOrder(), {
+      canView: false,
+      canCreate: true,
+      canEdit: true,
+    }),
+    null,
   );
 });

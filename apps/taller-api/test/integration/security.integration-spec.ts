@@ -1281,6 +1281,13 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       body: { status: 'completed' },
     });
     expect(completed.status).toBe(200);
+    const pendingBeforeDraft = await request<{ items: OrderResponse[] }>(
+      'GET',
+      '/orders?pendingInvoicing=true',
+      { token: tenant.accessToken },
+    );
+    expect(pendingBeforeDraft.status).toBe(200);
+    expect(pendingBeforeDraft.body.items.map(({ id }) => id)).toContain(order.body.id);
 
     const created = await request<SimulatedInvoiceResponse>('POST', '/invoices', {
       token: tenant.accessToken,
@@ -1338,6 +1345,12 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       billingStatus: 'draft',
       activeInvoiceId: created.body.id,
     });
+    const pendingWithDraft = await request<{ items: OrderResponse[] }>(
+      'GET',
+      '/orders?pendingInvoicing=true',
+      { token: tenant.accessToken },
+    );
+    expect(pendingWithDraft.body.items.map(({ id }) => id)).not.toContain(order.body.id);
 
     expect(
       (
@@ -1487,6 +1500,12 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       paymentMethodCode: 'PPD',
     });
     expect(orderWithCancelledSimulation.body.invoiceIssuedAt).toBeTruthy();
+    const pendingAfterCancellation = await request<{ items: OrderResponse[] }>(
+      'GET',
+      '/orders?pendingInvoicing=true',
+      { token: tenant.accessToken },
+    );
+    expect(pendingAfterCancellation.body.items.map(({ id }) => id)).toContain(order.body.id);
     const repeatedCancellation = await request<SimulatedInvoiceResponse>(
       'POST',
       `/invoices/${created.body.id}/cancel-simulation`,
@@ -1536,6 +1555,14 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       invoiceIssuedAt: null,
       paymentMethodCode: 'PPD',
     });
+    const pendingWithReplacementDraft = await request<{ items: OrderResponse[] }>(
+      'GET',
+      '/orders?pendingInvoicing=true',
+      { token: tenant.accessToken },
+    );
+    expect(pendingWithReplacementDraft.body.items.map(({ id }) => id)).not.toContain(
+      order.body.id,
+    );
     const cancelDraft = await request<unknown>(
       'POST',
       `/invoices/${replacementDraft.body.id}/cancel-simulation`,

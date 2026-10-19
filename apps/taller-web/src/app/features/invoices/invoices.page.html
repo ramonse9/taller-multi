@@ -82,6 +82,13 @@
             }
           </select>
         </div>
+        <div
+          class="border-l-4 border-[#4c78a8] bg-[#dcecff] px-4 py-3 text-xs leading-5 text-[#234f7c] md:col-span-3 dark:border-[#78a9dd] dark:bg-[#263e5a] dark:text-[#dcecff]"
+        >
+          <strong class="block">{{ createForm.controls.paymentMethodCode.value }}</strong>
+          {{ paymentMethodExplanation(createForm.controls.paymentMethodCode.value) }}
+          El cobro de la orden se administra por separado y no cambiará al crear o emitir la simulación.
+        </div>
         <div class="md:col-span-3 flex flex-wrap justify-end gap-3">
           <a class="small-action-tw no-underline" [routerLink]="['/orders', orderId]">Volver a la orden</a
           ><button class="primary" type="submit" [disabled]="saving()">
@@ -156,8 +163,8 @@
         <select class="field-control max-w-56" [formControl]="status">
           <option value="">Todos los estatus</option>
           <option value="draft">Borradores</option>
-          <option value="issued">Emitidas</option>
-          <option value="cancelled">Canceladas</option>
+          <option value="issued">Simulaciones emitidas</option>
+          <option value="cancelled">Simulaciones canceladas</option>
           <option value="discarded">Borradores descartados</option>
         </select>
       </header>
@@ -177,13 +184,46 @@
             <span
               class="px-2 py-1 text-xs font-bold"
               [class.bg-[#ffe3ab]]="invoice.status === 'draft'"
+              [class.text-[#805719]]="invoice.status === 'draft'"
+              [class.dark:bg-[#4d3e22]]="invoice.status === 'draft'"
+              [class.dark:text-[#ffd18a]]="invoice.status === 'draft'"
               [class.bg-[#cfe3fb]]="invoice.status === 'issued'"
+              [class.text-[#285f8a]]="invoice.status === 'issued'"
+              [class.dark:bg-[#233f58]]="invoice.status === 'issued'"
+              [class.dark:text-[#b9dcf5]]="invoice.status === 'issued'"
               [class.bg-[#ffd1cc]]="invoice.status === 'cancelled'"
+              [class.text-[#8f3325]]="invoice.status === 'cancelled'"
+              [class.dark:bg-[#633d3d]]="invoice.status === 'cancelled'"
+              [class.dark:text-[#ffd9d4]]="invoice.status === 'cancelled'"
               [class.bg-[#e2e7ec]]="invoice.status === 'discarded'"
+              [class.text-[#52606d]]="invoice.status === 'discarded'"
+              [class.dark:bg-[#31445a]]="invoice.status === 'discarded'"
+              [class.dark:text-[#d6e2ee]]="invoice.status === 'discarded'"
               >{{ statusName(invoice.status) }}</span
             >
           </div>
           <p class="mt-3 text-sm">Orden #{{ invoice.orderFolio }} · {{ invoice.receiverFiscalName }}</p>
+          <div class="mt-3 grid grid-cols-2 gap-2 border-y border-[#e2e7ec] py-3 dark:border-[#38516d]">
+            <div>
+              <span class="detail-label">FACTURACIÓN</span>
+              <strong class="mt-1 block text-xs">{{ statusName(invoice.status) }}</strong>
+            </div>
+            <div>
+              <span class="detail-label">COBRO</span>
+              <strong
+                class="mt-1 block w-fit px-2 py-1 text-xs"
+                [class.bg-[#cfe3fb]]="invoice.collectionStatus === 'paid'"
+                [class.text-[#285f8a]]="invoice.collectionStatus === 'paid'"
+                [class.dark:bg-[#233f58]]="invoice.collectionStatus === 'paid'"
+                [class.dark:text-[#b9dcf5]]="invoice.collectionStatus === 'paid'"
+                [class.bg-[#ffe3ab]]="invoice.collectionStatus === 'pending'"
+                [class.text-[#805719]]="invoice.collectionStatus === 'pending'"
+                [class.dark:bg-[#4d3e22]]="invoice.collectionStatus === 'pending'"
+                [class.dark:text-[#ffd18a]]="invoice.collectionStatus === 'pending'"
+                >{{ collectionStatusName(invoice.collectionStatus) }}</strong
+              >
+            </div>
+          </div>
           <strong class="mt-2 block text-xl">{{ money(invoice.total) }}</strong
           ><small class="text-[#63717d] dark:text-[#afbed0]">{{ formatShortDate(invoice.createdAt) }}</small>
         </a>
