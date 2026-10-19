@@ -1,4 +1,13 @@
 export type InvoiceStatus = "draft" | "issued" | "cancelled";
+export type InvoiceCollectionStatus = "pending" | "paid";
+
+export const INVOICE_COLLECTION_STATUS_NAMES: Record<
+  InvoiceCollectionStatus,
+  string
+> = {
+  pending: "Pendiente",
+  paid: "Pagada",
+};
 
 export interface FiscalCatalogEntry {
   code: string;
@@ -64,6 +73,8 @@ export interface SimulatedInvoice {
   series: string | null;
   folio: number | null;
   documentLabel: "Simulación sin validez fiscal";
+  collectionStatus: InvoiceCollectionStatus;
+  orderPaidAt: string | null;
   issuerFiscalName: string;
   issuerTaxId: string;
   issuerFiscalRegimeCode: string;

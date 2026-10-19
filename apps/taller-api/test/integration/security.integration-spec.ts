@@ -216,6 +216,8 @@ interface SimulatedInvoiceResponse {
   series: string | null;
   folio: number | null;
   documentLabel: string;
+  collectionStatus: 'pending' | 'paid';
+  orderPaidAt: string | null;
   cfdiUseCode: string;
   paymentFormCode: string;
   paymentMethodCode: string;
@@ -684,6 +686,12 @@ interface OrderResponse {
   folio: string;
   externalFolio: string | null;
   status: string;
+  billingStatus: 'not_invoiced' | 'draft' | 'issued' | 'cancelled';
+  activeInvoiceId: string | null;
+  invoiceSeries: string | null;
+  invoiceFolio: number | null;
+  invoiceIssuedAt: string | null;
+  paymentMethodCode: 'PUE' | 'PPD' | null;
   isPaid: boolean;
   paidAt: string | null;
   customer: { id: string; type: string; displayName: string };
@@ -1206,6 +1214,15 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       },
     });
     expect(order.status).toBe(201);
+    expect(order.body).toMatchObject({
+      billingStatus: 'not_invoiced',
+      activeInvoiceId: null,
+      invoiceSeries: null,
+      invoiceFolio: null,
+      invoiceIssuedAt: null,
+      paymentMethodCode: null,
+      isPaid: false,
+    });
 
     const inProgress = await request<unknown>('POST', '/invoices', {
       token: tenant.accessToken,
@@ -1240,6 +1257,8 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       series: null,
       folio: null,
       documentLabel: 'Simulación sin validez fiscal',
+      collectionStatus: 'pending',
+      orderPaidAt: null,
       subtotal: '1000.00',
       transferredTax: '160.00',
       total: '1160.00',
@@ -1258,6 +1277,26 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(created.body).not.toHaveProperty('uuid');
     expect(created.body).not.toHaveProperty('satSeal');
     expect(created.body).not.toHaveProperty('xml');
+
+    const orderWithDraft = await request<OrderResponse>('GET', `/orders/${order.body.id}`, {
+      token: tenant.accessToken,
+    });
+    expect(orderWithDraft.body).toMatchObject({
+      billingStatus: 'draft',
+      activeInvoiceId: created.body.id,
+      invoiceSeries: null,
+      invoiceFolio: null,
+      invoiceIssuedAt: null,
+      paymentMethodCode: 'PUE',
+      isPaid: false,
+    });
+    const listedWithDraft = await request<{ items: OrderResponse[] }>('GET', '/orders', {
+      token: tenant.accessToken,
+    });
+    expect(listedWithDraft.body.items.find(({ id }) => id === order.body.id)).toMatchObject({
+      billingStatus: 'draft',
+      activeInvoiceId: created.body.id,
+    });
 
     expect(
       (
@@ -1295,12 +1334,28 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       series: 'SIM',
       folio: 25,
       documentLabel: 'Simulación sin validez fiscal',
+      collectionStatus: 'pending',
+      orderPaidAt: null,
     });
     expect(issued.body.events.map(({ eventType }) => eventType)).toEqual([
       'created',
       'updated',
       'issued',
     ]);
+    const orderWithIssuedSimulation = await request<OrderResponse>(
+      'GET',
+      `/orders/${order.body.id}`,
+      { token: tenant.accessToken },
+    );
+    expect(orderWithIssuedSimulation.body).toMatchObject({
+      billingStatus: 'issued',
+      activeInvoiceId: created.body.id,
+      invoiceSeries: 'SIM',
+      invoiceFolio: 25,
+      paymentMethodCode: 'PPD',
+      isPaid: false,
+    });
+    expect(orderWithIssuedSimulation.body.invoiceIssuedAt).toBeTruthy();
     expect(
       (
         await request<unknown>('PATCH', `/invoices/${created.body.id}`, {
@@ -1323,6 +1378,19 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       'issued',
       'cancelled',
     ]);
+    const orderWithCancelledSimulation = await request<OrderResponse>(
+      'GET',
+      `/orders/${order.body.id}`,
+      { token: tenant.accessToken },
+    );
+    expect(orderWithCancelledSimulation.body).toMatchObject({
+      billingStatus: 'cancelled',
+      activeInvoiceId: null,
+      invoiceSeries: 'SIM',
+      invoiceFolio: 25,
+      paymentMethodCode: 'PPD',
+    });
+    expect(orderWithCancelledSimulation.body.invoiceIssuedAt).toBeTruthy();
     expect(
       (
         await request<unknown>('POST', `/invoices/${created.body.id}/cancel-simulation`, {
@@ -1343,6 +1411,50 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       [created.body.id],
     );
     expect(stored[0]).toEqual({ fiscal_uuid: null, sat_seal: null, xml: null });
+
+    const replacementDraft = await request<SimulatedInvoiceResponse>('POST', '/invoices', {
+      token: tenant.accessToken,
+      body: {
+        orderId: order.body.id,
+        cfdiUseCode: 'G03',
+        paymentFormCode: '99',
+        paymentMethodCode: 'PPD',
+      },
+    });
+    expect(replacementDraft.status).toBe(201);
+    const orderWithReplacementDraft = await request<OrderResponse>(
+      'GET',
+      `/orders/${order.body.id}`,
+      { token: tenant.accessToken },
+    );
+    expect(orderWithReplacementDraft.body).toMatchObject({
+      billingStatus: 'draft',
+      activeInvoiceId: replacementDraft.body.id,
+      invoiceSeries: null,
+      invoiceFolio: null,
+      invoiceIssuedAt: null,
+      paymentMethodCode: 'PPD',
+    });
+    const paidOrder = await request<OrderResponse>(
+      'PATCH',
+      `/orders/${order.body.id}/payment-status`,
+      { token: tenant.accessToken, body: { isPaid: true } },
+    );
+    expect(paidOrder.body.isPaid).toBe(true);
+    const replacementAfterPayment = await request<SimulatedInvoiceResponse>(
+      'GET',
+      `/invoices/${replacementDraft.body.id}`,
+      { token: tenant.accessToken },
+    );
+    expect(replacementAfterPayment.body.collectionStatus).toBe('paid');
+    expect(replacementAfterPayment.body.orderPaidAt).toBeTruthy();
+    expect(
+      (
+        await request<unknown>('GET', `/orders/${order.body.id}`, {
+          token: controlPlan.accessToken,
+        })
+      ).status,
+    ).toBe(404);
 
     const downgraded = await request<{
       planCode: string;
@@ -1470,7 +1582,16 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(swagger.paths['/api/invoices/{id}/issue-simulation']).toBeDefined();
     expect(swagger.paths['/api/invoices/{id}/cancel-simulation']).toBeDefined();
     const documentSchema = JSON.stringify(swagger.components?.schemas?.SimulatedInvoiceResponseDto);
+    const orderSchema = JSON.stringify(swagger.components?.schemas?.OrderResponseDto);
     expect(documentSchema).toContain('Simulación sin validez fiscal');
+    expect(documentSchema).toContain('collectionStatus');
+    expect(documentSchema).toContain('orderPaidAt');
+    expect(orderSchema).toContain('billingStatus');
+    expect(orderSchema).toContain('activeInvoiceId');
+    expect(orderSchema).toContain('invoiceSeries');
+    expect(orderSchema).toContain('invoiceFolio');
+    expect(orderSchema).toContain('invoiceIssuedAt');
+    expect(orderSchema).toContain('paymentMethodCode');
     expect(documentSchema).not.toContain('fiscalUuid');
     expect(documentSchema).not.toContain('satSeal');
   });

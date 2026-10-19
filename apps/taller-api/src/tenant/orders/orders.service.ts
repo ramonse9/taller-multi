@@ -16,6 +16,7 @@ import {
   OrderItemInputDto,
   OrderItemKind,
   OrderItemResponseDto,
+  OrderBillingStatus,
   OrderListItemResponseDto,
   OrderNoteResponseDto,
   OrderQueryDto,
@@ -50,6 +51,12 @@ interface OrderRow {
   inventory_applied_at: Date | null;
   has_unpriced_items: boolean;
   has_unknown_costs: boolean;
+  billing_status: OrderBillingStatus;
+  active_invoice_id: string | null;
+  invoice_series: string | null;
+  invoice_folio: string | null;
+  invoice_issued_at: Date | null;
+  payment_method_code: 'PUE' | 'PPD' | null;
   is_paid: boolean;
   paid_at: Date | null;
   item_count: string;
@@ -1012,6 +1019,18 @@ export class OrdersService {
       service_order.status, service_order.subtotal, service_order.total,
       service_order.total_cost, service_order.gross_profit, service_order.inventory_applied_at,
       service_order.is_paid, service_order.paid_at,
+      CASE
+        WHEN billing_invoice.id IS NULL THEN 'not_invoiced'
+        ELSE billing_invoice.status
+      END AS billing_status,
+      CASE
+        WHEN billing_invoice.status <> 'cancelled' THEN billing_invoice.id
+        ELSE NULL
+      END AS active_invoice_id,
+      billing_invoice.series AS invoice_series,
+      billing_invoice.folio::text AS invoice_folio,
+      billing_invoice.issued_at AS invoice_issued_at,
+      billing_invoice.payment_method_code,
       EXISTS(
         SELECT 1 FROM ${schema}.order_items unpriced
         WHERE unpriced.order_id = service_order.id
@@ -1032,7 +1051,16 @@ export class OrdersService {
       JOIN ${schema}.customers customer ON customer.id = service_order.customer_id
       JOIN ${schema}.vehicles vehicle ON vehicle.id = service_order.vehicle_id
       JOIN public.vehicle_brands brand ON brand.id = vehicle.brand_id
-      JOIN public.vehicle_models model ON model.id = vehicle.model_id`;
+      JOIN public.vehicle_models model ON model.id = vehicle.model_id
+      LEFT JOIN LATERAL (
+        SELECT invoice.id, invoice.status, invoice.series, invoice.folio,
+               invoice.issued_at, invoice.payment_method_code
+        FROM ${schema}.simulated_invoices invoice
+        WHERE invoice.order_id = service_order.id
+        ORDER BY (invoice.status <> 'cancelled') DESC,
+                 invoice.created_at DESC, invoice.id DESC
+        LIMIT 1
+      ) billing_invoice ON true`;
   }
 
   private toBaseResponse(row: OrderRow): OrderSummaryResponseDto {
@@ -1063,6 +1091,12 @@ export class OrdersService {
       hasUnpricedItems: row.has_unpriced_items,
       hasUnknownCosts: row.has_unknown_costs,
       isFinanciallyComplete: !row.has_unpriced_items && !row.has_unknown_costs,
+      billingStatus: row.billing_status,
+      activeInvoiceId: row.active_invoice_id,
+      invoiceSeries: row.invoice_series,
+      invoiceFolio: row.invoice_folio === null ? null : Number(row.invoice_folio),
+      invoiceIssuedAt: row.invoice_issued_at,
+      paymentMethodCode: row.payment_method_code,
       isPaid: row.is_paid,
       paidAt: row.paid_at,
       openedAt: row.opened_at,

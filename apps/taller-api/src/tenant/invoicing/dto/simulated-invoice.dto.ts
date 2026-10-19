@@ -25,6 +25,11 @@ export enum SimulatedInvoiceStatus {
   Cancelled = 'cancelled',
 }
 
+export enum InvoiceCollectionStatus {
+  Pending = 'pending',
+  Paid = 'paid',
+}
+
 export class SimulatedInvoiceTaxInputDto {
   @ApiProperty({ format: 'uuid' })
   @IsUUID('4')
@@ -211,6 +216,17 @@ export class SimulatedInvoiceResponseDto {
   @ApiProperty({ nullable: true, type: String }) series!: string | null;
   @ApiProperty({ nullable: true, type: Number }) folio!: number | null;
   @ApiProperty({ example: 'Simulación sin validez fiscal' }) documentLabel!: string;
+  @ApiProperty({
+    enum: InvoiceCollectionStatus,
+    description: 'Estatus de cobro derivado de la orden; no es un estatus fiscal',
+  })
+  collectionStatus!: InvoiceCollectionStatus;
+  @ApiProperty({
+    nullable: true,
+    type: Date,
+    description: 'Fecha de pago de la orden relacionada; no se almacena en la factura',
+  })
+  orderPaidAt!: Date | null;
   @ApiProperty() issuerFiscalName!: string;
   @ApiProperty() issuerTaxId!: string;
   @ApiProperty() issuerFiscalRegimeCode!: string;

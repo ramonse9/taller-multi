@@ -12,6 +12,7 @@ import { TenantSessionService } from '../tenant-session.service';
 import {
   CreateSimulatedInvoiceDto,
   FiscalCatalogEntryDto,
+  InvoiceCollectionStatus,
   PaginatedSimulatedInvoicesResponseDto,
   SimulatedInvoiceCatalogsResponseDto,
   SimulatedInvoiceEventResponseDto,
@@ -63,6 +64,8 @@ interface InvoiceRow {
   id: string;
   order_id: string;
   order_folio: string;
+  order_is_paid: boolean;
+  order_paid_at: Date | null;
   status: SimulatedInvoiceStatus;
   series: string | null;
   folio: string | null;
@@ -651,7 +654,9 @@ export class SimulatedInvoicesService {
   }
 
   private invoiceSelect(schema: string): string {
-    return `SELECT invoice.*, service_order.folio::text AS order_folio
+    return `SELECT invoice.*, service_order.folio::text AS order_folio,
+             service_order.is_paid AS order_is_paid,
+             service_order.paid_at AS order_paid_at
       FROM ${schema}.simulated_invoices invoice
       JOIN ${schema}.orders service_order ON service_order.id=invoice.order_id`;
   }
@@ -755,6 +760,10 @@ export class SimulatedInvoicesService {
       series: row.series,
       folio: row.folio === null ? null : Number(row.folio),
       documentLabel: 'Simulación sin validez fiscal',
+      collectionStatus: row.order_is_paid
+        ? InvoiceCollectionStatus.Paid
+        : InvoiceCollectionStatus.Pending,
+      orderPaidAt: row.order_paid_at,
       issuerFiscalName: row.issuer_fiscal_name,
       issuerTaxId: row.issuer_tax_id,
       issuerFiscalRegimeCode: row.issuer_fiscal_regime_code,

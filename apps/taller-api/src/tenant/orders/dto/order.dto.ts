@@ -43,6 +43,13 @@ export enum OrderStatus {
   Cancelled = 'cancelled',
 }
 
+export enum OrderBillingStatus {
+  NotInvoiced = 'not_invoiced',
+  Draft = 'draft',
+  Issued = 'issued',
+  Cancelled = 'cancelled',
+}
+
 export enum OrderItemKind {
   Product = 'product',
   Service = 'service',
@@ -384,6 +391,24 @@ export class OrderSummaryResponseDto {
     description: 'Indica si los conceptos cobrables tienen precio y todos los costos son conocidos',
   })
   isFinanciallyComplete!: boolean;
+  @ApiProperty({
+    enum: OrderBillingStatus,
+    description:
+      'Estatus documental derivado de la simulación activa o, si no existe, de la última cancelada',
+  })
+  billingStatus!: OrderBillingStatus;
+  @ApiProperty({
+    format: 'uuid',
+    nullable: true,
+    type: String,
+    description: 'Simulación activa; es null cuando no existe o la última fue cancelada',
+  })
+  activeInvoiceId!: string | null;
+  @ApiProperty({ nullable: true, type: String }) invoiceSeries!: string | null;
+  @ApiProperty({ nullable: true, type: Number }) invoiceFolio!: number | null;
+  @ApiProperty({ nullable: true, type: Date }) invoiceIssuedAt!: Date | null;
+  @ApiProperty({ nullable: true, enum: ['PUE', 'PPD'] })
+  paymentMethodCode!: 'PUE' | 'PPD' | null;
   @ApiProperty() isPaid!: boolean;
   @ApiProperty({
     nullable: true,

@@ -2,6 +2,8 @@ import { CustomerType } from "../clients/client.models";
 
 export type OrderStatus = "in_progress" | "completed" | "cancelled";
 export type OrderItemKind = "product" | "service";
+export type OrderBillingStatus =
+  "not_invoiced" | "draft" | "issued" | "cancelled";
 
 export interface OrderCustomer {
   id: string;
@@ -76,7 +78,14 @@ export interface OrderSummary {
   hasUnpricedItems: boolean;
   hasUnknownCosts: boolean;
   isFinanciallyComplete: boolean;
+  billingStatus: OrderBillingStatus;
+  activeInvoiceId: string | null;
+  invoiceSeries: string | null;
+  invoiceFolio: number | null;
+  invoiceIssuedAt: string | null;
+  paymentMethodCode: "PUE" | "PPD" | null;
   isPaid: boolean;
+  paidAt: string | null;
   openedAt: string;
   closedAt: string | null;
   createdByUserId: string;
@@ -136,4 +145,11 @@ export const ORDER_STATUS_NAMES: Record<OrderStatus, string> = {
   in_progress: "En proceso",
   completed: "Terminada",
   cancelled: "Cancelada",
+};
+
+export const ORDER_BILLING_STATUS_NAMES: Record<OrderBillingStatus, string> = {
+  not_invoiced: "Sin factura",
+  draft: "Borrador",
+  issued: "Simulación emitida",
+  cancelled: "Simulación cancelada",
 };
