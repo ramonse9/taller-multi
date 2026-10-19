@@ -123,6 +123,47 @@ test("Facturación conserva Control y agrega su módulo", () => {
   ]);
 });
 
+test("Contabilidad muestra sólo consulta operativa y facturación por permisos", () => {
+  const accountingPermissions = [
+    "orders.view",
+    "clients.view",
+    "clients.edit_fiscal",
+    "invoices.view",
+    "invoices.create",
+    "invoices.edit",
+    "invoices.simulate_issue",
+    "invoices.cancel_simulation",
+  ];
+  const features = [...controlFeatures, "invoicing"];
+  const userContext = context("invoicing", features, accountingPermissions);
+  const adminContext = { ...userContext, role: "admin" };
+
+  const expectedModules = ["Órdenes", "Clientes", "Facturación", "Seguridad"];
+  assert.deepEqual(visibleModules(userContext), expectedModules);
+  assert.deepEqual(visibleModules(adminContext), expectedModules);
+  assert.deepEqual(visibleActions(userContext), []);
+  assert.deepEqual(visibleActions(adminContext), []);
+});
+
+test("Contabilidad no recibe accesos operativos aunque el plan los incluya", () => {
+  const accessContext = context(
+    "invoicing",
+    [...controlFeatures, "invoicing"],
+    ["orders.view", "clients.view", "clients.edit_fiscal", "invoices.view"],
+  );
+
+  assert.equal(
+    isTenantAccessAllowed(
+      TENANT_HOME_ACTIONS.find(({ link }) => link === "/orders/new"),
+      accessContext,
+    ),
+    false,
+  );
+  assert.ok(!visibleModules(accessContext).includes("Gastos"));
+  assert.ok(!visibleModules(accessContext).includes("Inventario"));
+  assert.ok(!visibleModules(accessContext).includes("Utilidad"));
+});
+
 test("las acciones rápidas exigen todos los permisos de su ruta", () => {
   const accessContext = context("control", controlFeatures, [
     "orders.create",

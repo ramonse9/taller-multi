@@ -71,6 +71,7 @@ export class ClientDetailPage implements OnInit {
   readonly catalogNotice = signal("");
   readonly notice = signal("");
   readonly clientEditorOpen = signal(false);
+  readonly clientEditorFiscalOnly = signal(false);
   readonly editorOpen = signal(false);
   readonly editing = signal<Vehicle | null>(null);
   readonly history = signal<VehicleHistory | null>(null);
@@ -92,6 +93,11 @@ export class ClientDetailPage implements OnInit {
     () =>
       this.auth.hasPermission("vehicles.edit") &&
       this.auth.hasPermission("vehicle_catalog.view"),
+  );
+  readonly canEditFiscal = computed(
+    () =>
+      this.auth.hasFeature("invoicing") &&
+      this.auth.hasPermission("clients.edit_fiscal"),
   );
 
   readonly brandSearch = new FormControl("", { nonNullable: true });
@@ -137,18 +143,29 @@ export class ClientDetailPage implements OnInit {
     this.loadPage();
   }
 
-  openClientEditor(): void {
+  openClientEditor(fiscalOnly = false): void {
+    const permitted = fiscalOnly
+      ? this.canEditFiscal()
+      : this.auth.hasPermission("clients.edit");
+    if (!permitted) return;
+    this.clientEditorFiscalOnly.set(fiscalOnly);
     this.clientEditorOpen.set(true);
   }
 
   closeClientEditor(): void {
     this.clientEditorOpen.set(false);
+    this.clientEditorFiscalOnly.set(false);
   }
 
   clientSaved(client: Client): void {
     this.client.set(client);
     this.clientEditorOpen.set(false);
-    this.showNotice("Cliente actualizado.");
+    this.showNotice(
+      this.clientEditorFiscalOnly()
+        ? "Datos fiscales actualizados."
+        : "Cliente actualizado.",
+    );
+    this.clientEditorFiscalOnly.set(false);
   }
 
   loadPage(): void {
@@ -197,6 +214,7 @@ export class ClientDetailPage implements OnInit {
   }
 
   openCreate(): void {
+    if (!this.canCreateVehicle()) return;
     this.editing.set(null);
     this.models.set([]);
     this.brandSearch.setValue("");
@@ -215,6 +233,7 @@ export class ClientDetailPage implements OnInit {
   }
 
   openEdit(vehicle: Vehicle): void {
+    if (!this.canEditVehicle()) return;
     this.editing.set(vehicle);
     this.brandSearch.setValue(vehicle.brandName);
     this.modelSearch.setValue(vehicle.modelName);

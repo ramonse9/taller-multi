@@ -110,6 +110,7 @@ export class InvoiceDetailPage implements OnInit {
     const current = this.invoice();
     if (
       this.readOnly() ||
+      !this.auth.hasPermission("invoices.edit") ||
       !current ||
       current.status !== "draft" ||
       this.saving()
@@ -147,7 +148,14 @@ export class InvoiceDetailPage implements OnInit {
   executeConfirmedAction(): void {
     const current = this.invoice();
     const action = this.confirmAction();
-    if (this.readOnly() || !current || !action || this.saving()) return;
+    const permitted =
+      action === "issue"
+        ? this.auth.hasPermission("invoices.simulate_issue")
+        : action === "cancel"
+          ? this.auth.hasPermission("invoices.cancel_simulation")
+          : this.auth.hasPermission("invoices.edit");
+    if (this.readOnly() || !current || !action || !permitted || this.saving())
+      return;
     this.saving.set(true);
     this.error.set("");
     const operation =

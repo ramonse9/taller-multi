@@ -6,11 +6,8 @@ import {
   inject,
   signal,
 } from "@angular/core";
-import {
-  FormControl,
-  ReactiveFormsModule,
-} from "@angular/forms";
-import { ActivatedRoute, RouterLink } from "@angular/router";
+import { FormControl, ReactiveFormsModule } from "@angular/forms";
+import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { debounceTime, distinctUntilChanged, finalize } from "rxjs";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { Client, PaginatedClients } from "./client.models";
@@ -33,6 +30,7 @@ import { ClientEditorComponent } from "./client-editor.component";
 export class ClientsPage implements OnInit {
   private readonly clients = inject(ClientsService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   readonly theme = inject(ThemeService);
   readonly auth = inject(AuthService);
@@ -63,7 +61,8 @@ export class ClientsPage implements OnInit {
       )
       .subscribe(() => this.load(1));
     this.load();
-    if (this.route.snapshot.queryParamMap.get("new") === "true") this.openCreate();
+    if (this.route.snapshot.queryParamMap.get("new") === "true")
+      this.openCreate();
   }
 
   load(page = this.data().page): void {
@@ -94,11 +93,18 @@ export class ClientsPage implements OnInit {
   }
 
   openCreate(): void {
+    if (!this.auth.hasPermission("clients.create")) {
+      void this.router.navigate(["/access-denied"], {
+        queryParams: { permission: "clients.create" },
+      });
+      return;
+    }
     this.editing.set(null);
     this.editorOpen.set(true);
   }
 
   openEdit(client: Client): void {
+    if (!this.auth.hasPermission("clients.edit")) return;
     this.editing.set(client);
     this.editorOpen.set(true);
   }
@@ -129,5 +135,4 @@ export class ClientsPage implements OnInit {
       .map((part) => part[0]?.toUpperCase() ?? "")
       .join("");
   }
-
 }

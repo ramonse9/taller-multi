@@ -73,6 +73,16 @@
   background: var(--users-surface);
   color: var(--users-text);
 }
+.template-description {
+  display: block;
+  margin-top: 0.55rem;
+  color: var(--users-muted);
+  font-size: 0.68rem;
+  line-height: 1.45;
+}
+.template-description strong {
+  color: var(--users-text);
+}
 .copy-permissions {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

@@ -51,6 +51,15 @@ export interface ClientInput {
   isActive?: boolean;
 }
 
+export type ClientFiscalInput = Pick<
+  ClientInput,
+  | "taxId"
+  | "fiscalName"
+  | "fiscalPostalCode"
+  | "fiscalRegimeCode"
+  | "preferredCfdiUseCode"
+>;
+
 export interface FiscalRegime {
   code: string;
   name: string;

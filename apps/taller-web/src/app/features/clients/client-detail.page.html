@@ -1,6 +1,4 @@
-<main
-  class="min-h-screen bg-[#fbfaf7] text-[#17251e] transition-colors dark:bg-[#111d2e] dark:text-[#edf4fb]"
->
+<main class="min-h-screen bg-[#fbfaf7] text-[#17251e] transition-colors dark:bg-[#111d2e] dark:text-[#edf4fb]">
   <header
     class="flex min-h-36 items-center justify-between gap-4 border-b border-[#d5dce3] bg-[#fbfaf7]/90 px-[clamp(1.5rem,5vw,5rem)] py-9 max-sm:min-h-0 max-sm:flex-wrap max-sm:items-start max-sm:py-6 dark:border-[#38516d] dark:bg-[#162438]/95"
   >
@@ -10,7 +8,7 @@
         routerLink="/clients"
         >← Volver a clientes</a
       >
-      <p class="eyebrow">CLIENTE / VEHÍCULOS</p>
+      <p class="eyebrow">{{ canViewVehicles() ? 'CLIENTE / VEHÍCULOS' : 'CLIENTE' }}</p>
       <h1
         class="m-0 font-[var(--display)] text-[clamp(2.25rem,4vw,4rem)] font-semibold leading-[0.9] tracking-[-0.05em]"
       >
@@ -18,10 +16,8 @@
       </h1>
       @if (client(); as headingClient) {
       <p class="mt-3 text-sm text-[#63717d] dark:text-[#afbed0]">
-        {{ headingClient.type === 'company' ? 'Empresa' : 'Persona' }} @if
-        (headingClient.legalName) { · {{ headingClient.legalName }} } @if
-        (headingClient.contactName) { · Contacto: {{ headingClient.contactName
-        }} }
+        {{ headingClient.type === 'company' ? 'Empresa' : 'Persona' }} @if (headingClient.legalName) { · {{
+        headingClient.legalName }} } @if (headingClient.contactName) { · Contacto: {{ headingClient.contactName }} }
       </p>
       }
     </div>
@@ -30,17 +26,13 @@
       <button
         class="secondary-tw no-underline max-sm:px-3"
         type="button"
-        (click)="openClientEditor()"
+        (click)="openClientEditor(false)"
         aria-label="Editar cliente"
       >
-        <span aria-hidden="true">✎</span
-        ><span class="ml-1 max-sm:hidden">Editar cliente</span>
+        <span aria-hidden="true">✎</span><span class="ml-1 max-sm:hidden">Editar cliente</span>
       </button>
       } @if (auth.hasPermission('orders.view')) {
-      <a
-        class="secondary-tw no-underline max-sm:hidden"
-        routerLink="/orders"
-        [queryParams]="{ customerId: clientId }"
+      <a class="secondary-tw no-underline max-sm:hidden" routerLink="/orders" [queryParams]="{ customerId: clientId }"
         >Historial de órdenes</a
       >
       }
@@ -54,14 +46,8 @@
         {{ theme.isDark() ? '☀' : '◐' }}
       </button>
       @if (canCreateVehicle()) {
-      <button
-        class="primary max-sm:px-3"
-        type="button"
-        [disabled]="!client()?.isActive"
-        (click)="openCreate()"
-      >
-        <span class="mr-1 text-xl">＋</span
-        ><span class="max-[480px]:hidden">Nuevo </span>vehículo
+      <button class="primary max-sm:px-3" type="button" [disabled]="!client()?.isActive" (click)="openCreate()">
+        <span class="mr-1 text-xl">＋</span><span class="max-[480px]:hidden">Nuevo </span>vehículo
       </button>
       }
     </div>
@@ -69,10 +55,7 @@
 
   <section class="px-[clamp(1.5rem,5vw,5rem)] pb-16 pt-9 max-sm:pt-6">
     @if (notice()) {
-    <div
-      class="mb-4 bg-[#cfe9da] px-4 py-3 text-sm text-[#245b3b] dark:bg-[#294e42] dark:text-[#c9f0df]"
-      role="status"
-    >
+    <div class="mb-4 bg-[#cfe9da] px-4 py-3 text-sm text-[#245b3b] dark:bg-[#294e42] dark:text-[#c9f0df]" role="status">
       ✓ {{ notice() }}
     </div>
     } @if (error()) {
@@ -81,49 +64,28 @@
       role="alert"
     >
       <span>{{ error() }}</span
-      ><button
-        class="bg-transparent p-0 text-inherit underline"
-        type="button"
-        (click)="loadPage()"
-      >
-        Reintentar
-      </button>
+      ><button class="bg-transparent p-0 text-inherit underline" type="button" (click)="loadPage()">Reintentar</button>
     </div>
     } @if (client(); as currentClient) {
     <section
       class="mb-7 grid border border-[#d5dce3] bg-white sm:grid-cols-2 lg:grid-cols-4 dark:border-[#38516d] dark:bg-[#19283b]"
     >
-      <div
-        class="border-b border-[#e2e7ec] p-5 sm:border-r lg:border-b-0 dark:border-[#38516d]"
-      >
+      <div class="border-b border-[#e2e7ec] p-5 sm:border-r lg:border-b-0 dark:border-[#38516d]">
         <span class="detail-label">TELÉFONO</span
-        ><strong class="detail-value"
-          >{{ currentClient.phone || 'Sin teléfono' }}</strong
-        >
+        ><strong class="detail-value">{{ currentClient.phone || 'Sin teléfono' }}</strong>
       </div>
-      <div
-        class="border-b border-[#e2e7ec] p-5 lg:border-b-0 lg:border-r dark:border-[#38516d]"
-      >
+      <div class="border-b border-[#e2e7ec] p-5 lg:border-b-0 lg:border-r dark:border-[#38516d]">
         <span class="detail-label">CORREO</span
-        ><strong class="detail-value break-all"
-          >{{ currentClient.email || 'Sin correo' }}</strong
-        >
+        ><strong class="detail-value break-all">{{ currentClient.email || 'Sin correo' }}</strong>
       </div>
-      <div
-        class="border-b border-[#e2e7ec] p-5 sm:border-r sm:border-b-0 dark:border-[#38516d]"
-      >
+      <div class="border-b border-[#e2e7ec] p-5 sm:border-r sm:border-b-0 dark:border-[#38516d]">
         <span class="detail-label">RFC</span
-        ><strong class="detail-value font-[var(--mono)]"
-          >{{ currentClient.taxId || 'Sin RFC' }}</strong
-        >
+        ><strong class="detail-value font-[var(--mono)]">{{ currentClient.taxId || 'Sin RFC' }}</strong>
       </div>
       <div class="p-5">
         <span class="detail-label">ESTATUS</span
-        ><strong
-          class="detail-value"
-          [class.status-active]="currentClient.isActive"
-          >{{ currentClient.isActive ? 'Cliente activo' : 'Cliente inactivo'
-          }}</strong
+        ><strong class="detail-value" [class.status-active]="currentClient.isActive"
+          >{{ currentClient.isActive ? 'Cliente activo' : 'Cliente inactivo' }}</strong
         >
       </div>
     </section>
@@ -135,49 +97,39 @@
         : 'border-[#d8b76b] bg-[#fff8e5] dark:border-[#7c6937] dark:bg-[#3c3526]'"
       aria-labelledby="fiscal-readiness-title"
     >
-      <div
-        class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
-      >
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div class="min-w-0">
           <p class="eyebrow">PREPARACIÓN PARA FACTURACIÓN</p>
-          <h2
-            class="m-0 font-[var(--display)] text-2xl font-semibold"
-            id="fiscal-readiness-title"
-          >
-            {{ currentClient.fiscalReadiness.isReadyToInvoice ? 'Cliente listo
-            para facturar' :
-            currentClient.fiscalReadiness.isFiscalProfileComplete ? 'Perfil
-            fiscal completo' : 'Datos fiscales pendientes' }}
+          <h2 class="m-0 font-[var(--display)] text-2xl font-semibold" id="fiscal-readiness-title">
+            {{ currentClient.fiscalReadiness.isReadyToInvoice ? 'Cliente listo para facturar' :
+            currentClient.fiscalReadiness.isFiscalProfileComplete ? 'Perfil fiscal completo' : 'Datos fiscales
+            pendientes' }}
           </h2>
           @if (currentClient.fiscalReadiness.isReadyToInvoice) {
           <p class="mb-0 mt-2 text-sm text-[#526675] dark:text-[#c2d0df]">
-            El Uso CFDI guardado funcionará solamente como valor inicial y podrá
-            cambiarse en cada factura futura sin modificar al cliente.
+            El Uso CFDI guardado funcionará solamente como valor inicial y podrá cambiarse en cada factura futura sin
+            modificar al cliente.
           </p>
           } @else {
           <p class="mb-0 mt-2 text-sm text-[#526675] dark:text-[#c2d0df]">
-            Esto no impide registrar vehículos ni órdenes. Completa la
-            información cuando necesites facturar.
+            Esto no impide registrar vehículos ni órdenes. Completa la información cuando necesites facturar.
           </p>
           <ul class="mb-0 mt-3 grid gap-1 pl-5 text-sm">
-            @for (item of currentClient.fiscalReadiness.missingFields; track
-            item.code) {
+            @for (item of currentClient.fiscalReadiness.missingFields; track item.code) {
             <li>{{ item.message }}</li>
-            } @for (item of currentClient.fiscalReadiness.validationIssues;
-            track item.code) {
+            } @for (item of currentClient.fiscalReadiness.validationIssues; track item.code) {
             <li>{{ item.message }}</li>
             }
           </ul>
           }
         </div>
-        @if (auth.hasPermission('clients.edit')) {
+        @if (auth.hasPermission('clients.edit') || canEditFiscal()) {
         <button
           class="secondary-tw shrink-0"
           type="button"
-          (click)="openClientEditor()"
+          (click)="openClientEditor(!auth.hasPermission('clients.edit'))"
         >
-          {{ currentClient.fiscalReadiness.isReadyToInvoice ? 'Revisar datos
-          fiscales' : 'Completar datos fiscales' }}
+          {{ currentClient.fiscalReadiness.isReadyToInvoice ? 'Revisar datos fiscales' : 'Completar datos fiscales' }}
         </button>
         }
       </div>
@@ -186,28 +138,20 @@
     <div class="mb-5 flex items-end justify-between gap-5">
       <div>
         <p class="eyebrow">GARAGE DEL CLIENTE</p>
-        <h2 class="m-0 font-[var(--display)] text-[1.8rem] font-semibold">
-          Vehículos registrados
-        </h2>
+        <h2 class="m-0 font-[var(--display)] text-[1.8rem] font-semibold">Vehículos registrados</h2>
         <p class="mt-1 text-sm text-[#63717d] dark:text-[#afbed0]">
-          El historial se puede consultar cuando el vehículo tiene número de
-          serie.
+          El historial se puede consultar cuando el vehículo tiene número de serie.
         </p>
       </div>
       <div class="text-right">
-        <strong class="block font-[var(--display)] text-3xl"
-          >{{ vehicles().length }}</strong
-        ><span
-          class="font-[var(--mono)] text-[0.58rem] font-bold tracking-[0.1em] text-[#63717d] dark:text-[#afbed0]"
+        <strong class="block font-[var(--display)] text-3xl">{{ vehicles().length }}</strong
+        ><span class="font-[var(--mono)] text-[0.58rem] font-bold tracking-[0.1em] text-[#63717d] dark:text-[#afbed0]"
           >VEHÍCULOS</span
         >
       </div>
     </div>
 
-    <div
-      class="relative grid min-h-64 gap-4 md:grid-cols-2 xl:grid-cols-3"
-      [class.opacity-50]="loading()"
-    >
+    <div class="relative grid min-h-64 gap-4 md:grid-cols-2 xl:grid-cols-3" [class.opacity-50]="loading()">
       @for (vehicle of vehicles(); track vehicle.id) {
       <article
         class="group border border-[#d5dce3] bg-white transition hover:-translate-y-0.5 hover:border-[#b9b5a9] hover:shadow-[0_8px_20px_rgb(23_37_30/0.08)] dark:border-[#38516d] dark:bg-[#19283b] dark:hover:border-[#637268]"
@@ -221,14 +165,10 @@
               >{{ vehicle.brandName.slice(0, 2).toUpperCase() }}</span
             >
             <div class="min-w-0">
-              <h3
-                class="m-0 truncate font-[var(--display)] text-xl font-semibold"
-              >
+              <h3 class="m-0 truncate font-[var(--display)] text-xl font-semibold">
                 {{ vehicle.brandName }} {{ vehicle.modelName }}
               </h3>
-              <p class="mt-1 text-xs text-[#63717d] dark:text-[#afbed0]">
-                {{ vehicle.year }} · {{ vehicle.color }}
-              </p>
+              <p class="mt-1 text-xs text-[#63717d] dark:text-[#afbed0]">{{ vehicle.year }} · {{ vehicle.color }}</p>
             </div>
           </div>
           <span
@@ -243,15 +183,11 @@
         <div class="grid grid-cols-2 gap-x-4 gap-y-5 p-5">
           <div>
             <span class="detail-label">NÚMERO DE SERIE</span
-            ><strong class="detail-value font-[var(--mono)]"
-              >{{ vehicle.numeroSerie || 'No registrado' }}</strong
-            >
+            ><strong class="detail-value font-[var(--mono)]">{{ vehicle.numeroSerie || 'No registrado' }}</strong>
           </div>
           <div>
             <span class="detail-label">PLACA</span
-            ><strong class="detail-value font-[var(--mono)]"
-              >{{ vehicle.licensePlate || 'No registrada' }}</strong
-            >
+            ><strong class="detail-value font-[var(--mono)]">{{ vehicle.licensePlate || 'No registrada' }}</strong>
           </div>
         </div>
         <footer
@@ -292,28 +228,19 @@
       >
         <div>
           <span class="text-4xl text-[#adb5af]">◇</span>
-          <h3 class="mt-3 font-[var(--display)] text-2xl font-semibold">
-            Este cliente todavía no tiene vehículos
-          </h3>
+          <h3 class="mt-3 font-[var(--display)] text-2xl font-semibold">Este cliente todavía no tiene vehículos</h3>
           <p class="mb-5 mt-1 text-sm text-[#63717d] dark:text-[#afbed0]">
             Registra el primero para comenzar su historial de servicio.
           </p>
           @if (canCreateVehicle()) {
-          <button
-            class="secondary-tw"
-            type="button"
-            [disabled]="!client()?.isActive"
-            (click)="openCreate()"
-          >
+          <button class="secondary-tw" type="button" [disabled]="!client()?.isActive" (click)="openCreate()">
             Registrar vehículo
           </button>
           }
         </div>
       </div>
       } } @if (loading()) {
-      <div class="loader-tw" aria-label="Cargando">
-        <span></span><span></span><span></span>
-      </div>
+      <div class="loader-tw" aria-label="Cargando"><span></span><span></span><span></span></div>
       }
     </div>
     }
@@ -323,6 +250,7 @@
 @if (clientEditorOpen() && client(); as currentClient) {
 <app-client-editor
   [client]="currentClient"
+  [fiscalOnly]="clientEditorFiscalOnly()"
   (closed)="closeClientEditor()"
   (saved)="clientSaved($event)"
 />
@@ -339,22 +267,13 @@
     aria-labelledby="vehicle-editor-title"
     (click)="$event.stopPropagation()"
   >
-    <header
-      class="flex items-start justify-between border-b border-[#d5dce3] px-6 py-7 sm:px-10 dark:border-[#38516d]"
-    >
+    <header class="flex items-start justify-between border-b border-[#d5dce3] px-6 py-7 sm:px-10 dark:border-[#38516d]">
       <div>
-        <p class="eyebrow">
-          {{ editing() ? 'EDITAR VEHÍCULO' : 'NUEVO VEHÍCULO' }}
-        </p>
-        <h2
-          class="m-0 font-[var(--display)] text-3xl font-semibold"
-          id="vehicle-editor-title"
-        >
+        <p class="eyebrow">{{ editing() ? 'EDITAR VEHÍCULO' : 'NUEVO VEHÍCULO' }}</p>
+        <h2 class="m-0 font-[var(--display)] text-3xl font-semibold" id="vehicle-editor-title">
           {{ editing() ? 'Actualizar vehículo' : 'Registrar vehículo' }}
         </h2>
-        <p class="mt-2 text-sm text-[#63717d] dark:text-[#afbed0]">
-          {{ client()?.displayName }}
-        </p>
+        <p class="mt-2 text-sm text-[#63717d] dark:text-[#afbed0]">{{ client()?.displayName }}</p>
       </div>
       <button
         class="bg-transparent p-0 text-3xl text-inherit"
@@ -365,12 +284,7 @@
         ×
       </button>
     </header>
-    <form
-      class="grid grid-cols-1 gap-5 p-6 sm:grid-cols-2 sm:p-10"
-      [formGroup]="form"
-      (ngSubmit)="save()"
-      novalidate
-    >
+    <form class="grid grid-cols-1 gap-5 p-6 sm:grid-cols-2 sm:p-10" [formGroup]="form" (ngSubmit)="save()" novalidate>
       <div>
         <label class="field-label" for="vehicle-brand">Marca <b>*</b></label>
         <input
@@ -395,14 +309,11 @@
           [disabled]="savingCatalog()"
           (click)="createBrand()"
         >
-          {{ savingCatalog() ? 'Creando marca…' : '＋ Crear marca “' +
-          brandSearch.value.trim() + '”' }}
+          {{ savingCatalog() ? 'Creando marca…' : '＋ Crear marca “' + brandSearch.value.trim() + '”' }}
         </button>
-        } @else if (brandSearch.value && !form.controls.brandId.value &&
-        !canManageCatalog()) {
+        } @else if (brandSearch.value && !form.controls.brandId.value && !canManageCatalog()) {
         <span class="field-hint"
-          >La marca no existe. Solicita su creación a una persona con permiso
-          para administrar marcas y modelos.</span
+          >La marca no existe. Solicita su creación a una persona con permiso para administrar marcas y modelos.</span
         >
         } @if (form.controls.brandId.touched && form.controls.brandId.invalid) {
         <small class="field-error">Selecciona o crea una marca.</small> }
@@ -435,14 +346,11 @@
           [disabled]="savingCatalog()"
           (click)="createModel()"
         >
-          {{ savingCatalog() ? 'Creando modelo…' : '＋ Crear modelo “' +
-          modelSearch.value.trim() + '”' }}
+          {{ savingCatalog() ? 'Creando modelo…' : '＋ Crear modelo “' + modelSearch.value.trim() + '”' }}
         </button>
-        } @else if (modelSearch.value && !form.controls.modelId.value &&
-        !canManageCatalog()) {
+        } @else if (modelSearch.value && !form.controls.modelId.value && !canManageCatalog()) {
         <span class="field-hint"
-          >El modelo no existe. Solicita su creación a una persona con permiso
-          para administrar marcas y modelos.</span
+          >El modelo no existe. Solicita su creación a una persona con permiso para administrar marcas y modelos.</span
         >
         } @if (form.controls.modelId.touched && form.controls.modelId.invalid) {
         <small class="field-error">Selecciona o crea un modelo.</small> }
@@ -474,9 +382,7 @@
           [max]="maxYear"
           placeholder="2024"
         />@if (form.controls.year.touched && form.controls.year.invalid) {
-        <small class="field-error"
-          >Usa un año entre 1886 y {{ maxYear }}.</small
-        >
+        <small class="field-error">Usa un año entre 1886 y {{ maxYear }}.</small>
         }
       </div>
       <div>
@@ -491,8 +397,7 @@
         <small class="field-error">Escribe el color del vehículo.</small> }
       </div>
       <div>
-        <label class="field-label" for="vehicle-serial"
-          >Número de serie (opcional)</label
+        <label class="field-label" for="vehicle-serial">Número de serie (opcional)</label
         ><input
           class="field-control font-[var(--mono)] uppercase"
           id="vehicle-serial"
@@ -501,15 +406,10 @@
           autocomplete="off"
           placeholder="Últimos 10 caracteres"
           (input)="formatNumeroSerie()"
-        />@if (form.controls.numeroSerie.touched &&
-        form.controls.numeroSerie.invalid) {
-        <small class="field-error"
-          >Captura exactamente 10 caracteres válidos, sin I, O ni Q.</small
-        >
+        />@if (form.controls.numeroSerie.touched && form.controls.numeroSerie.invalid) {
+        <small class="field-error">Captura exactamente 10 caracteres válidos, sin I, O ni Q.</small>
         } @else {
-        <span class="field-hint"
-          >Permite consultar el historial con otros clientes.</span
-        >
+        <span class="field-hint">Permite consultar el historial con otros clientes.</span>
         }
       </div>
       <div>
@@ -526,24 +426,12 @@
       </div>
       @if (editing() && auth.hasPermission('vehicles.deactivate')) {
       <label class="col-span-full flex items-center gap-3 text-sm"
-        ><input
-          class="size-auto accent-[#e86a33]"
-          type="checkbox"
-          formControlName="isActive"
-        />
-        Vehículo activo</label
+        ><input class="size-auto accent-[#e86a33]" type="checkbox" formControlName="isActive" /> Vehículo activo</label
       >
       }
-      <footer
-        class="col-span-full mt-3 flex justify-end gap-3 border-t border-[#d5dce3] pt-6 dark:border-[#38516d]"
-      >
-        <button class="ghost-tw" type="button" (click)="closeEditor()">
-          Cancelar</button
-        ><button
-          class="primary"
-          type="submit"
-          [disabled]="saving() || savingCatalog() || loadingModels()"
-        >
+      <footer class="col-span-full mt-3 flex justify-end gap-3 border-t border-[#d5dce3] pt-6 dark:border-[#38516d]">
+        <button class="ghost-tw" type="button" (click)="closeEditor()">Cancelar</button
+        ><button class="primary" type="submit" [disabled]="saving() || savingCatalog() || loadingModels()">
           {{ saving() ? 'Guardando…' : 'Guardar vehículo' }}
         </button>
       </footer>
@@ -562,15 +450,11 @@
     <header class="mb-6 flex items-start justify-between gap-5">
       <div>
         <p class="eyebrow">HISTORIAL COMPARTIDO</p>
-        <h2
-          class="m-0 font-[var(--display)] text-3xl font-semibold"
-          id="history-title"
-        >
+        <h2 class="m-0 font-[var(--display)] text-3xl font-semibold" id="history-title">
           Serie {{ vehicleHistory.numeroSerie }}
         </h2>
         <p class="mt-2 text-sm text-[#63717d] dark:text-[#afbed0]">
-          {{ vehicleHistory.totalClients }} clientes · {{
-          vehicleHistory.totalOrders }} órdenes
+          {{ vehicleHistory.totalClients }} clientes · {{ vehicleHistory.totalOrders }} órdenes
         </p>
       </div>
       <button
@@ -584,22 +468,17 @@
     </header>
     <div class="grid gap-4">
       @for (match of vehicleHistory.matches; track match.id) {
-      <article
-        class="border border-[#d5dce3] bg-white dark:border-[#38516d] dark:bg-[#162438]"
-      >
+      <article class="border border-[#d5dce3] bg-white dark:border-[#38516d] dark:bg-[#162438]">
         <header
           class="flex flex-wrap items-center justify-between gap-3 border-b border-[#e2e7ec] bg-[#e1e9f1] px-5 py-4 dark:border-[#38516d] dark:bg-[#22364d]"
         >
           <div>
             <strong class="block">{{ match.customerName }}</strong
             ><span class="mt-1 block text-xs text-[#63717d] dark:text-[#afbed0]"
-              >{{ match.brandName }} {{ match.modelName }} · {{ match.year }} ·
-              {{ match.color }}</span
+              >{{ match.brandName }} {{ match.modelName }} · {{ match.year }} · {{ match.color }}</span
             >
           </div>
-          <span class="font-[var(--mono)] text-xs"
-            >{{ match.licensePlate || 'SIN PLACA' }}</span
-          >
+          <span class="font-[var(--mono)] text-xs">{{ match.licensePlate || 'SIN PLACA' }}</span>
         </header>
         <div class="divide-y divide-[#e2e7ec] dark:divide-[#38516d]">
           @for (order of match.orders; track order.id) {
@@ -610,8 +489,7 @@
                 >{{ formatShortDate(order.openedAt) }}</span
               >
             </div>
-            <span
-              class="border border-[#d5dce3] px-2 py-1 text-[0.65rem] font-bold dark:border-[#38516d]"
+            <span class="border border-[#d5dce3] px-2 py-1 text-[0.65rem] font-bold dark:border-[#38516d]"
               >{{ statusName(order.status) }}</span
             >
           </div>

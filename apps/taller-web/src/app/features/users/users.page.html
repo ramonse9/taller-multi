@@ -15,9 +15,7 @@
         {{ theme.isDark() ? '☀' : '◐' }}
       </button>
       @if (canCreateUsers()) {
-      <button class="primary" type="button" (click)="openCreate()">
-        <span>＋</span> Nuevo usuario
-      </button>
+      <button class="primary" type="button" (click)="openCreate()"><span>＋</span> Nuevo usuario</button>
       }
     </div>
   </header>
@@ -25,41 +23,18 @@
   <section class="content">
     <div class="intro-row">
       <p>Accesos, roles y estatus de las personas de tu compañía.</p>
-      <div class="count">
-        <strong>{{ data().totalItems }}</strong><span>RESULTADOS</span>
-      </div>
+      <div class="count"><strong>{{ data().totalItems }}</strong><span>RESULTADOS</span></div>
     </div>
 
     <div class="toolbar">
       <label class="search"
         ><span>⌕</span
-        ><input
-          [formControl]="search"
-          type="search"
-          placeholder="Buscar por nombre, usuario, celular o correo"
+        ><input [formControl]="search" type="search" placeholder="Buscar por nombre, usuario, celular o correo"
       /></label>
       <div class="segments" aria-label="Estatus">
-        <button
-          type="button"
-          [class.selected]="activeFilter() === true"
-          (click)="filterBy(true)"
-        >
-          Activos
-        </button>
-        <button
-          type="button"
-          [class.selected]="activeFilter() === false"
-          (click)="filterBy(false)"
-        >
-          Inactivos
-        </button>
-        <button
-          type="button"
-          [class.selected]="activeFilter() === null"
-          (click)="filterBy(null)"
-        >
-          Todos
-        </button>
+        <button type="button" [class.selected]="activeFilter() === true" (click)="filterBy(true)">Activos</button>
+        <button type="button" [class.selected]="activeFilter() === false" (click)="filterBy(false)">Inactivos</button>
+        <button type="button" [class.selected]="activeFilter() === null" (click)="filterBy(null)">Todos</button>
       </div>
     </div>
 
@@ -80,16 +55,10 @@
             <strong>{{ user.fullName }}</strong>
             <small>{{ user.loginName }}</small>
             @if (user.phone) {
-            <small
-              >{{ user.phone }} · {{ user.phoneVerifiedAt ? 'Verificado' : 'Sin
-              verificar' }}</small
-            >
+            <small>{{ user.phone }} · {{ user.phoneVerifiedAt ? 'Verificado' : 'Sin verificar' }}</small>
             }
           </div>
-          <span
-            class="role"
-            [class.admin]="user.role === 'admin'"
-            [class.company-admin]="user.role === 'company_admin'"
+          <span class="role" [class.admin]="user.role === 'admin'" [class.company-admin]="user.role === 'company_admin'"
             >{{ roleLabel(user.role) }}</span
           >
         </div>
@@ -97,9 +66,7 @@
         <dl class="user-card-details">
           <div>
             <dt>Estatus</dt>
-            <dd>
-              {{ user.isActive ? 'Acceso activo' : 'Acceso desactivado' }}
-            </dd>
+            <dd>{{ user.isActive ? 'Acceso activo' : 'Acceso desactivado' }}</dd>
           </div>
           <div>
             <dt>Zona horaria</dt>
@@ -119,13 +86,9 @@
         <footer class="user-card-actions">
           <button type="button" (click)="openEdit(user)">Editar</button>
           @if (canResetPassword(user)) {
-          <button type="button" (click)="openPasswordReset(user)">
-            Contraseña temporal
-          </button>
+          <button type="button" (click)="openPasswordReset(user)">Contraseña temporal</button>
           } @if (user.isActive && user.id !== auth.user()?.id) {
-          <button class="danger" type="button" (click)="deactivate(user)">
-            Desactivar
-          </button>
+          <button class="danger" type="button" (click)="deactivate(user)">Desactivar</button>
           }
         </footer>
         } @else {
@@ -138,15 +101,11 @@
         <h2>No hay usuarios aquí</h2>
         <p>Cambia los filtros o registra un nuevo acceso.</p>
         @if (canCreateUsers()) {
-        <button class="secondary" type="button" (click)="openCreate()">
-          Crear usuario
-        </button>
+        <button class="secondary" type="button" (click)="openCreate()">Crear usuario</button>
         }
       </div>
       } } @if (loading()) {
-      <div class="loader" aria-label="Cargando">
-        <span></span><span></span><span></span>
-      </div>
+      <div class="loader" aria-label="Cargando"><span></span><span></span><span></span></div>
       }
     </div>
 
@@ -168,12 +127,8 @@
               <div class="person">
                 <span class="avatar">{{ initials(user.fullName) }}</span>
                 <div>
-                  <strong>{{ user.fullName }}</strong
-                  ><small>{{ user.loginName }}</small> @if (user.phone) {
-                  <small
-                    >{{ user.phone }} · {{ user.phoneVerifiedAt ? 'Verificado' :
-                    'Sin verificar' }}</small
-                  >
+                  <strong>{{ user.fullName }}</strong><small>{{ user.loginName }}</small> @if (user.phone) {
+                  <small>{{ user.phone }} · {{ user.phoneVerifiedAt ? 'Verificado' : 'Sin verificar' }}</small>
                   }
                 </div>
               </div>
@@ -184,10 +139,7 @@
                 [class.admin]="user.role === 'admin'"
                 [class.company-admin]="user.role === 'company_admin'"
                 >{{ roleLabel(user.role) }}</span
-              ><small
-                >{{ user.isActive ? 'Acceso activo' : 'Acceso desactivado'
-                }}</small
-              >
+              ><small>{{ user.isActive ? 'Acceso activo' : 'Acceso desactivado' }}</small>
               <small class="scope">{{ managementScope(user) }}</small>
             </td>
             <td><span class="timezone">{{ user.timezoneCode }}</span></td>
@@ -195,14 +147,10 @@
             <td>
               @if (canManage(user)) {
               <div class="actions">
-                <button type="button" (click)="openEdit(user)">Editar</button
-                >@if (canResetPassword(user)) {
-                <button type="button" (click)="openPasswordReset(user)">
-                  Contraseña temporal</button
-                >} @if (user.isActive && user.id !== auth.user()?.id) {
-                <button class="danger" type="button" (click)="deactivate(user)">
-                  Desactivar
-                </button>
+                <button type="button" (click)="openEdit(user)">Editar</button>@if (canResetPassword(user)) {
+                <button type="button" (click)="openPasswordReset(user)">Contraseña temporal</button>} @if (user.isActive
+                && user.id !== auth.user()?.id) {
+                <button class="danger" type="button" (click)="deactivate(user)">Desactivar</button>
                 }
               </div>
               } @else {
@@ -218,9 +166,7 @@
                 <h2>No hay usuarios aquí</h2>
                 <p>Cambia los filtros o registra un nuevo acceso.</p>
                 @if (canCreateUsers()) {
-                <button class="secondary" type="button" (click)="openCreate()">
-                  Crear usuario
-                </button>
+                <button class="secondary" type="button" (click)="openCreate()">Crear usuario</button>
                 }
               </div>
             </td>
@@ -229,28 +175,15 @@
         </tbody>
       </table>
       @if (loading()) {
-      <div class="loader" aria-label="Cargando">
-        <span></span><span></span><span></span>
-      </div>
+      <div class="loader" aria-label="Cargando"><span></span><span></span><span></span></div>
       }
     </div>
 
     <footer class="pagination">
       <span>Página {{ data().page }} de {{ data().totalPages || 1 }}</span>
       <div>
-        <button
-          type="button"
-          (click)="previous()"
-          [disabled]="data().page <= 1"
-        >
-          ← Anterior</button
-        ><button
-          type="button"
-          (click)="next()"
-          [disabled]="!data().hasNextPage"
-        >
-          Siguiente →
-        </button>
+        <button type="button" (click)="previous()" [disabled]="data().page <= 1">← Anterior</button
+        ><button type="button" (click)="next()" [disabled]="!data().hasNextPage">Siguiente →</button>
       </div>
     </footer>
   </section>
@@ -267,40 +200,21 @@
   >
     <header>
       <div>
-        <p class="breadcrumb">
-          {{ editing() ? 'EDITAR ACCESO' : 'NUEVO ACCESO' }}
-        </p>
-        <h2 id="user-editor-title">
-          {{ editing() ? 'Editar usuario' : 'Nuevo usuario' }}
-        </h2>
+        <p class="breadcrumb">{{ editing() ? 'EDITAR ACCESO' : 'NUEVO ACCESO' }}</p>
+        <h2 id="user-editor-title">{{ editing() ? 'Editar usuario' : 'Nuevo usuario' }}</h2>
       </div>
-      <button
-        class="close"
-        type="button"
-        (click)="closeEditor()"
-        aria-label="Cerrar"
-      >
-        ×
-      </button>
+      <button class="close" type="button" (click)="closeEditor()" aria-label="Cerrar">×</button>
     </header>
     <form [formGroup]="form" (ngSubmit)="save()" novalidate>
       <div class="field full">
         <label for="user-name">Nombre completo <b>*</b></label
-        ><input
-          id="user-name"
-          formControlName="fullName"
-          autocomplete="name"
-        />@if (form.controls.fullName.touched && form.controls.fullName.invalid)
-        { <small>Escribe un nombre válido.</small> }
+        ><input id="user-name" formControlName="fullName" autocomplete="name" />@if (form.controls.fullName.touched &&
+        form.controls.fullName.invalid) { <small>Escribe un nombre válido.</small> }
       </div>
       <div class="field">
         <label for="user-username">Usuario <b>*</b></label>
         <div class="login-name-inputs">
-          <input
-            id="user-username"
-            formControlName="username"
-            autocomplete="off"
-          />
+          <input id="user-username" formControlName="username" autocomplete="off" />
           <span>{{ companyLoginSuffix() }}</span>
         </div>
         @if (form.controls.username.touched && form.controls.username.invalid) {
@@ -328,21 +242,15 @@
             (input)="formatPhone()"
           />
         </div>
-        @if ((form.controls.phoneCountryCode.touched &&
-        form.controls.phoneCountryCode.invalid) || (form.controls.phone.touched
-        && form.controls.phone.invalid)) {
+        @if ((form.controls.phoneCountryCode.touched && form.controls.phoneCountryCode.invalid) ||
+        (form.controls.phone.touched && form.controls.phone.invalid)) {
         <small>Captura una lada válida y los 10 dígitos del celular.</small>
         }
       </div>
       <div class="field full">
         <label for="user-email">Correo (opcional)</label
-        ><input
-          id="user-email"
-          type="email"
-          formControlName="email"
-          autocomplete="email"
-        />@if (form.controls.email.touched && form.controls.email.invalid) {
-        <small>Escribe un correo válido.</small> }
+        ><input id="user-email" type="email" formControlName="email" autocomplete="email" />@if
+        (form.controls.email.touched && form.controls.email.invalid) { <small>Escribe un correo válido.</small> }
       </div>
       <div class="field">
         <label for="user-role">Rol <b>*</b></label
@@ -371,32 +279,24 @@
           formControlName="password"
           autocomplete="new-password"
           placeholder="Entre 6 y 10 caracteres"
-        />@if (form.controls.password.touched && form.controls.password.invalid)
-        { <small>Usa de 6 a 10 caracteres, con una letra y un número.</small> }
+        />@if (form.controls.password.touched && form.controls.password.invalid) {
+        <small>Usa de 6 a 10 caracteres, con una letra y un número.</small> }
         <p class="temporary-password-help">
-          El usuario deberá reemplazarla al iniciar sesión antes de acceder al
-          resto del sistema.
+          El usuario deberá reemplazarla al iniciar sesión antes de acceder al resto del sistema.
         </p>
       </div>
       } @if (editing()) {
       <label class="toggle full"
-        ><input type="checkbox" formControlName="isActive" /><span></span>
-        Usuario activo</label
+        ><input type="checkbox" formControlName="isActive" /><span></span> Usuario activo</label
       >
       }
 
-      <section
-        class="permissions-panel full"
-        aria-labelledby="permissions-title"
-      >
+      <section class="permissions-panel full" aria-labelledby="permissions-title">
         <div class="permissions-heading">
           <div>
             <p class="section-kicker">ACCESO POR SECCIONES</p>
             <h3 id="permissions-title">Permisos</h3>
-            <p>
-              El rol define a quién puede administrar; los permisos controlan
-              cada sección y acción disponible.
-            </p>
+            <p>El rol define a quién puede administrar; los permisos controlan cada sección y acción disponible.</p>
           </div>
           @if (form.controls.role.value === 'company_admin') {
           <span class="permission-state automatic">Acceso automático</span>
@@ -411,8 +311,8 @@
         <div class="permission-callout">
           <strong>Administrador principal</strong>
           <span
-            >Tiene acceso completo y puede administrar Administradores y
-            Usuarios. Sus permisos no se modifican individualmente.</span
+            >Tiene acceso completo y puede administrar Administradores y Usuarios. Sus permisos no se modifican
+            individualmente.</span
           >
         </div>
         } @else if (!canManagePermissions()) {
@@ -430,11 +330,14 @@
               [disabled]="permissionsLoading()"
             >
               @for (template of permissionTemplates(); track template.code) {
-              <option [value]="template.code">
-                {{ template.name }} — {{ template.description }}
-              </option>
+              <option [value]="template.code">{{ template.name }} — {{ template.description }}</option>
               }
             </select>
+            @if (selectedTemplateDetails(); as template) {
+            <small class="template-description" role="status">
+              <strong>{{ template.name }}:</strong> {{ template.description }}
+            </small>
+            }
           </label>
           <div class="copy-permissions">
             <label>
@@ -446,9 +349,7 @@
               >
                 <option value="">Selecciona un usuario</option>
                 @for (user of copyCandidates(); track user.id) {
-                <option [value]="user.id">
-                  {{ user.fullName }} · {{ roleLabel(user.role) }}
-                </option>
+                <option [value]="user.id">{{ user.fullName }} · {{ roleLabel(user.role) }}</option>
                 }
               </select>
             </label>
@@ -467,8 +368,8 @@
         <div class="permissions-status">Cargando permisos…</div>
         } @else {
         <div class="permissions-summary">
-          <strong>{{ selectedPermissions().length }}</strong> permisos
-          seleccionados. Puedes ajustar cada acción de manera individual.
+          <strong>{{ selectedPermissions().length }}</strong> permisos seleccionados. Puedes ajustar cada acción de
+          manera individual.
         </div>
         <div class="permission-matrix">
           @for (group of permissionGroups(); track group.module) {
@@ -494,8 +395,7 @@
         } }
       </section>
       <footer>
-        <button class="ghost" type="button" (click)="closeEditor()">
-          Cancelar</button
+        <button class="ghost" type="button" (click)="closeEditor()">Cancelar</button
         ><button
           class="primary"
           type="submit"
@@ -508,11 +408,7 @@
   </section>
 </div>
 } @if (passwordTarget(); as target) {
-<div
-  class="backdrop centered"
-  (click)="closePasswordReset()"
-  role="presentation"
->
+<div class="backdrop centered" (click)="closePasswordReset()" role="presentation">
   <section
     class="password-dialog"
     role="dialog"
@@ -523,48 +419,34 @@
     <p class="breadcrumb">RESTABLECER ACCESO</p>
     <h2 id="password-title">Asignar contraseña temporal</h2>
     <p>
-      Define un acceso temporal para <strong>{{ target.fullName }}</strong>. Sus
-      sesiones abiertas se cerrarán inmediatamente.
+      Define un acceso temporal para <strong>{{ target.fullName }}</strong>. Sus sesiones abiertas se cerrarán
+      inmediatamente.
     </p>
     <form [formGroup]="passwordForm" (ngSubmit)="resetPassword()">
       <div class="field">
         <label for="reset-password">Contraseña temporal <b>*</b></label
-        ><input
-          id="reset-password"
-          type="password"
-          formControlName="password"
-          autocomplete="new-password"
-        />@if (passwordForm.controls.password.touched &&
-        passwordForm.controls.password.invalid) {
+        ><input id="reset-password" type="password" formControlName="password" autocomplete="new-password" />@if
+        (passwordForm.controls.password.touched && passwordForm.controls.password.invalid) {
         <small>Usa de 6 a 10 caracteres, con una letra y un número.</small> }
       </div>
       <div class="field">
         <label for="reset-confirmation">Confirmar <b>*</b></label
-        ><input
-          id="reset-confirmation"
-          type="password"
-          formControlName="confirmation"
-          autocomplete="new-password"
-        />@if (passwordForm.controls.confirmation.touched &&
-        !resetPasswordsMatch()) { <small>Las contraseñas no coinciden.</small> }
+        ><input id="reset-confirmation" type="password" formControlName="confirmation" autocomplete="new-password" />@if
+        (passwordForm.controls.confirmation.touched && !resetPasswordsMatch()) {
+        <small>Las contraseñas no coinciden.</small> }
       </div>
       <div class="password-reset-callout">
         <strong>Cambio obligatorio al ingresar</strong>
         <span>
-          El usuario solamente podrá entrar a Seguridad y deberá crear su
-          contraseña definitiva antes de continuar.
+          El usuario solamente podrá entrar a Seguridad y deberá crear su contraseña definitiva antes de continuar.
         </span>
       </div>
       <label class="reset-confirmation">
         <input type="checkbox" formControlName="acknowledged" />
-        <span
-          >Confirmo que deseo cerrar sus sesiones y asignar este acceso
-          temporal.</span
-        >
+        <span>Confirmo que deseo cerrar sus sesiones y asignar este acceso temporal.</span>
       </label>
       <footer>
-        <button class="ghost" type="button" (click)="closePasswordReset()">
-          Cancelar</button
+        <button class="ghost" type="button" (click)="closePasswordReset()">Cancelar</button
         ><button
           class="primary"
           type="submit"

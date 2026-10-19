@@ -27,6 +27,7 @@ import { apiErrorMessage } from "../../core/http/api-error";
 import {
   CfdiUse,
   Client,
+  ClientFiscalInput,
   ClientInput,
   CustomerType,
   FiscalRegime,
@@ -53,6 +54,7 @@ export class ClientEditorComponent implements OnInit {
   readonly auth = inject(AuthService);
 
   @Input({ required: true }) client: Client | null = null;
+  @Input() fiscalOnly = false;
   @Output() readonly closed = new EventEmitter<void>();
   @Output() readonly saved = new EventEmitter<Client>();
 
@@ -74,7 +76,11 @@ export class ClientEditorComponent implements OnInit {
     type: new FormControl<CustomerType>("person", { nonNullable: true }),
     displayName: new FormControl("", {
       nonNullable: true,
-      validators: [Validators.required, Validators.minLength(2), Validators.maxLength(180)],
+      validators: [
+        Validators.required,
+        Validators.minLength(2),
+        Validators.maxLength(180),
+      ],
     }),
     legalName: new FormControl("", {
       nonNullable: true,
@@ -138,6 +144,9 @@ export class ClientEditorComponent implements OnInit {
       },
       { emitEvent: false },
     );
+    if (this.fiscalOnly) {
+      this.disableOperationalControls();
+    }
     this.updateRfcValidator(this.form.controls.type.value);
 
     this.form.controls.type.valueChanges
@@ -187,28 +196,35 @@ export class ClientEditorComponent implements OnInit {
       return;
     }
     const raw = this.form.getRawValue();
-    const input: ClientInput = {
-      type: raw.type,
-      displayName: raw.displayName.trim(),
-      legalName: raw.type === "company" ? raw.legalName.trim() || null : null,
-      contactName: raw.type === "company" ? raw.contactName.trim() || null : null,
+    const fiscalInput: ClientFiscalInput = {
       taxId: raw.taxId.trim().toUpperCase() || null,
       fiscalName: raw.fiscalName.trim() || null,
       fiscalPostalCode: raw.fiscalPostalCode.trim() || null,
       fiscalRegimeCode: raw.fiscalRegimeCode || null,
       preferredCfdiUseCode: raw.preferredCfdiUseCode || null,
+    };
+    const input: ClientInput = {
+      type: raw.type,
+      displayName: raw.displayName.trim(),
+      legalName: raw.type === "company" ? raw.legalName.trim() || null : null,
+      contactName:
+        raw.type === "company" ? raw.contactName.trim() || null : null,
+      ...fiscalInput,
       email: raw.email.trim() || null,
       phone: this.internationalPhone(raw.phoneCountryCode, raw.phone),
       notes: raw.notes.trim() || null,
     };
-    const request = this.client
-      ? this.clients.update(this.client.id, {
-          ...input,
-          ...(this.auth.hasPermission("clients.deactivate")
-            ? { isActive: raw.isActive }
-            : {}),
-        })
-      : this.clients.create(input);
+    const request =
+      this.fiscalOnly && this.client
+        ? this.clients.updateFiscal(this.client.id, fiscalInput)
+        : this.client
+          ? this.clients.update(this.client.id, {
+              ...input,
+              ...(this.auth.hasPermission("clients.deactivate")
+                ? { isActive: raw.isActive }
+                : {}),
+            })
+          : this.clients.create(input);
 
     this.saving.set(true);
     this.error.set("");
@@ -257,7 +273,9 @@ export class ClientEditorComponent implements OnInit {
         ? raw.legalName.trim() || raw.displayName.trim()
         : raw.displayName.trim();
     if (!source) {
-      this.catalogNotice.set("Captura primero el nombre del cliente para poder copiarlo.");
+      this.catalogNotice.set(
+        "Captura primero el nombre del cliente para poder copiarlo.",
+      );
       return;
     }
     this.form.controls.fiscalName.setValue(source);
@@ -291,7 +309,8 @@ export class ClientEditorComponent implements OnInit {
       .listFiscalRegimes(type)
       .pipe(
         finalize(() => {
-          if (requestId === this.regimeRequestId) this.regimesLoading.set(false);
+          if (requestId === this.regimeRequestId)
+            this.regimesLoading.set(false);
         }),
         takeUntilDestroyed(this.destroyRef),
       )
@@ -308,8 +327,12 @@ export class ClientEditorComponent implements OnInit {
           this.regimes.set(ordered);
           const selected = this.form.controls.fiscalRegimeCode.value;
           if (selected && !ordered.some(({ code }) => code === selected)) {
-            this.form.controls.fiscalRegimeCode.setValue("", { emitEvent: false });
-            this.form.controls.preferredCfdiUseCode.setValue("", { emitEvent: false });
+            this.form.controls.fiscalRegimeCode.setValue("", {
+              emitEvent: false,
+            });
+            this.form.controls.preferredCfdiUseCode.setValue("", {
+              emitEvent: false,
+            });
             if (announceClear) {
               this.catalogNotice.set(
                 "El régimen y el Uso de CFDI se limpiaron porque no son compatibles con el nuevo tipo de cliente.",
@@ -341,7 +364,9 @@ export class ClientEditorComponent implements OnInit {
     if (!regimeCode) {
       this.usesLoading.set(false);
       if (selectedUse) {
-        this.form.controls.preferredCfdiUseCode.setValue("", { emitEvent: false });
+        this.form.controls.preferredCfdiUseCode.setValue("", {
+          emitEvent: false,
+        });
         if (announceClear) {
           this.catalogNotice.set(
             "El Uso de CFDI se limpió porque necesita un régimen fiscal compatible.",
@@ -365,7 +390,9 @@ export class ClientEditorComponent implements OnInit {
           if (requestId !== this.useRequestId) return;
           this.cfdiUses.set(uses);
           if (selectedUse && !uses.some(({ code }) => code === selectedUse)) {
-            this.form.controls.preferredCfdiUseCode.setValue("", { emitEvent: false });
+            this.form.controls.preferredCfdiUseCode.setValue("", {
+              emitEvent: false,
+            });
             if (announceClear) {
               this.catalogNotice.set(
                 "El Uso de CFDI se limpió porque no es compatible con el régimen seleccionado.",
@@ -391,6 +418,18 @@ export class ClientEditorComponent implements OnInit {
     this.form.controls.taxId.updateValueAndValidity({ emitEvent: false });
   }
 
+  private disableOperationalControls(): void {
+    this.form.controls.type.disable({ emitEvent: false });
+    this.form.controls.displayName.disable({ emitEvent: false });
+    this.form.controls.legalName.disable({ emitEvent: false });
+    this.form.controls.contactName.disable({ emitEvent: false });
+    this.form.controls.email.disable({ emitEvent: false });
+    this.form.controls.phoneCountryCode.disable({ emitEvent: false });
+    this.form.controls.phone.disable({ emitEvent: false });
+    this.form.controls.notes.disable({ emitEvent: false });
+    this.form.controls.isActive.disable({ emitEvent: false });
+  }
+
   private rfcValidator(type: CustomerType): ValidatorFn {
     return (control: AbstractControl<string>): ValidationErrors | null => {
       const rfc = control.value.trim().toUpperCase();
@@ -407,18 +446,27 @@ export class ClientEditorComponent implements OnInit {
     };
   }
 
-  private internationalPhone(countryCode: string, nationalPhone: string): string | null {
+  private internationalPhone(
+    countryCode: string,
+    nationalPhone: string,
+  ): string | null {
     const digits = nationalPhone.replace(/\D/g, "");
     return digits ? `${countryCode.trim()}${digits}` : null;
   }
 
-  private splitPhone(value: string | null): { countryCode: string; national: string } {
+  private splitPhone(value: string | null): {
+    countryCode: string;
+    national: string;
+  } {
     if (!value) return { countryCode: "+52", national: "" };
     const normalized = value.trim();
     const allDigits = normalized.replace(/\D/g, "");
     const nationalDigits = allDigits.slice(-10);
     const countryDigits = normalized.startsWith("+")
-      ? allDigits.slice(0, Math.max(0, allDigits.length - nationalDigits.length))
+      ? allDigits.slice(
+          0,
+          Math.max(0, allDigits.length - nationalDigits.length),
+        )
       : "52";
     const sections = [
       nationalDigits.slice(0, 3),

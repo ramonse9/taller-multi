@@ -54,6 +54,7 @@ const MODULE_LABELS: Record<string, string> = {
   purchases: "Compras",
   expenses: "Gastos",
   profitability: "Utilidad",
+  invoices: "Facturación",
   vehicle_catalog: "Marcas y modelos",
   users: "Usuarios",
   permissions: "Permisos",
@@ -100,6 +101,12 @@ export class PlatformCompanyUsersPage implements OnInit {
   readonly permissionCatalog = signal<PermissionCatalogItem[]>([]);
   readonly permissionTemplates = signal<PermissionTemplate[]>([]);
   readonly selectedTemplate = signal<PermissionTemplateCode | null>(null);
+  readonly selectedTemplateDetails = computed(
+    () =>
+      this.permissionTemplates().find(
+        ({ code }) => code === this.selectedTemplate(),
+      ) ?? null,
+  );
   readonly selectedPermissions = signal<string[]>([]);
   readonly targetRole = signal<TenantRole>("user");
   readonly editorOpen = signal(false);

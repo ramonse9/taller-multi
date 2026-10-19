@@ -29,65 +29,38 @@
   <section class="content">
     <div class="company-context">
       <div>
-        <span
-          class="company-status"
-          [class.inactive]="company() && !company()?.isActive"
-        >
+        <span class="company-status" [class.inactive]="company() && !company()?.isActive">
           {{ company()?.isActive ? 'Compañía activa' : 'Compañía inactiva' }}
         </span>
         <strong>&#64;{{ company()?.loginCode || 'compania' }}</strong>
       </div>
       <p>
-        Consulta y administra sus accesos, roles, plantillas y permisos
-        individuales sin ingresar a la cuenta de la compañía.
+        Consulta y administra sus accesos, roles, plantillas y permisos individuales sin ingresar a la cuenta de la
+        compañía.
       </p>
     </div>
 
     @if (company() && !company()?.isActive) {
     <div class="inactive-banner" role="status">
-      La compañía está desactivada. Puedes consultar o editar sus usuarios, pero
-      debes reactivarla antes de crear o reactivar un acceso.
+      La compañía está desactivada. Puedes consultar o editar sus usuarios, pero debes reactivarla antes de crear o
+      reactivar un acceso.
     </div>
     }
 
     <div class="intro-row">
       <p>Usuarios registrados dentro de esta compañía.</p>
-      <div class="count">
-        <strong>{{ data().totalItems }}</strong><span>RESULTADOS</span>
-      </div>
+      <div class="count"><strong>{{ data().totalItems }}</strong><span>RESULTADOS</span></div>
     </div>
 
     <div class="toolbar">
       <label class="search">
         <span>⌕</span>
-        <input
-          [formControl]="search"
-          type="search"
-          placeholder="Buscar por nombre, usuario, celular o correo"
-        />
+        <input [formControl]="search" type="search" placeholder="Buscar por nombre, usuario, celular o correo" />
       </label>
       <div class="segments" aria-label="Estatus">
-        <button
-          type="button"
-          [class.selected]="activeFilter() === true"
-          (click)="filterBy(true)"
-        >
-          Activos
-        </button>
-        <button
-          type="button"
-          [class.selected]="activeFilter() === false"
-          (click)="filterBy(false)"
-        >
-          Inactivos
-        </button>
-        <button
-          type="button"
-          [class.selected]="activeFilter() === null"
-          (click)="filterBy(null)"
-        >
-          Todos
-        </button>
+        <button type="button" [class.selected]="activeFilter() === true" (click)="filterBy(true)">Activos</button>
+        <button type="button" [class.selected]="activeFilter() === false" (click)="filterBy(false)">Inactivos</button>
+        <button type="button" [class.selected]="activeFilter() === null" (click)="filterBy(null)">Todos</button>
       </div>
     </div>
 
@@ -120,9 +93,7 @@
         <dl class="user-card-details">
           <div>
             <dt>Estatus</dt>
-            <dd>
-              {{ user.isActive ? 'Acceso activo' : 'Acceso desactivado' }}
-            </dd>
+            <dd>{{ user.isActive ? 'Acceso activo' : 'Acceso desactivado' }}</dd>
           </div>
           <div>
             <dt>Registro</dt>
@@ -134,13 +105,7 @@
           </div>
         </dl>
         <div class="user-card-actions platform-card-actions">
-          <button
-            type="button"
-            [disabled]="permissionsLoading()"
-            (click)="openEdit(user)"
-          >
-            Editar
-          </button>
+          <button type="button" [disabled]="permissionsLoading()" (click)="openEdit(user)">Editar</button>
           <button
             type="button"
             [class.danger]="user.isActive"
@@ -159,9 +124,7 @@
         <p>Cambia los filtros o registra un nuevo acceso.</p>
       </div>
       } } @if (loading()) {
-      <div class="loader" aria-label="Cargando">
-        <span></span><span></span><span></span>
-      </div>
+      <div class="loader" aria-label="Cargando"><span></span><span></span><span></span></div>
       }
     </div>
 
@@ -203,10 +166,7 @@
               >
                 {{ roleLabel(user.role) }}
               </span>
-              <small
-                >{{ user.isActive ? 'Acceso activo' : 'Acceso desactivado'
-                }}</small
-              >
+              <small>{{ user.isActive ? 'Acceso activo' : 'Acceso desactivado' }}</small>
               <small class="scope">{{ managementScope(user.role) }}</small>
             </td>
             <td><span class="timezone">{{ user.timezoneCode }}</span></td>
@@ -246,25 +206,15 @@
         </tbody>
       </table>
       @if (loading()) {
-      <div class="loader" aria-label="Cargando">
-        <span></span><span></span><span></span>
-      </div>
+      <div class="loader" aria-label="Cargando"><span></span><span></span><span></span></div>
       }
     </div>
 
     <footer class="pagination">
       <span>Página {{ data().page }} de {{ data().totalPages || 1 }}</span>
       <div>
-        <button
-          type="button"
-          (click)="previous()"
-          [disabled]="data().page <= 1"
-        >
-          ← Anterior
-        </button>
-        <button type="button" (click)="next()" [disabled]="!data().hasNextPage">
-          Siguiente →
-        </button>
+        <button type="button" (click)="previous()" [disabled]="data().page <= 1">← Anterior</button>
+        <button type="button" (click)="next()" [disabled]="!data().hasNextPage">Siguiente →</button>
       </div>
     </footer>
   </section>
@@ -281,28 +231,14 @@
   >
     <header>
       <div>
-        <p class="breadcrumb">
-          {{ isEditing() ? 'EDITAR ACCESO' : 'NUEVO ACCESO' }} / {{
-          company()?.name }}
-        </p>
-        <h2 id="platform-user-editor-title">
-          {{ isEditing() ? 'Editar usuario' : 'Nuevo usuario' }}
-        </h2>
+        <p class="breadcrumb">{{ isEditing() ? 'EDITAR ACCESO' : 'NUEVO ACCESO' }} / {{ company()?.name }}</p>
+        <h2 id="platform-user-editor-title">{{ isEditing() ? 'Editar usuario' : 'Nuevo usuario' }}</h2>
       </div>
-      <button
-        class="close"
-        type="button"
-        (click)="closeEditor()"
-        aria-label="Cerrar"
-      >
-        ×
-      </button>
+      <button class="close" type="button" (click)="closeEditor()" aria-label="Cerrar">×</button>
     </header>
     @if (editorLoading()) {
     <div class="editor-loading" role="status">
-      <div class="loader inline-loader" aria-hidden="true">
-        <span></span><span></span><span></span>
-      </div>
+      <div class="loader inline-loader" aria-hidden="true"><span></span><span></span><span></span></div>
       <p>Cargando usuario y permisos…</p>
     </div>
     } @else {
@@ -311,19 +247,15 @@
       <section class="access-summary full" aria-label="Resumen del acceso">
         <div>
           <span>Estatus</span>
-          <strong
-            class="access-status"
-            [class.inactive]="!profile.user.isActive"
-          >
+          <strong class="access-status" [class.inactive]="!profile.user.isActive">
             {{ profile.user.isActive ? 'Activo' : 'Desactivado' }}
           </strong>
         </div>
         <div>
           <span>Configuración</span>
           <strong>
-            @if (targetRole() === 'company_admin') { Acceso completo automático
-            } @else if (permissionsCustomized()) { Permisos personalizados }
-            @else { Plantilla {{ templateLabel(selectedTemplate()) }} }
+            @if (targetRole() === 'company_admin') { Acceso completo automático } @else if (permissionsCustomized()) {
+            Permisos personalizados } @else { Plantilla {{ templateLabel(selectedTemplate()) }} }
           </strong>
         </div>
         <div>
@@ -332,17 +264,11 @@
         </div>
       </section>
       } @if (error()) {
-      <div class="error-banner editor-error full" role="alert">
-        {{ error() }}
-      </div>
+      <div class="error-banner editor-error full" role="alert">{{ error() }}</div>
       }
       <div class="field full">
         <label for="platform-user-name">Nombre completo <b>*</b></label>
-        <input
-          id="platform-user-name"
-          formControlName="fullName"
-          autocomplete="name"
-        />
+        <input id="platform-user-name" formControlName="fullName" autocomplete="name" />
         @if (form.controls.fullName.touched && form.controls.fullName.invalid) {
         <small>Escribe un nombre válido.</small>
         }
@@ -350,11 +276,7 @@
       <div class="field">
         <label for="platform-user-username">Usuario <b>*</b></label>
         <div class="login-name-inputs">
-          <input
-            id="platform-user-username"
-            formControlName="username"
-            autocomplete="off"
-          />
+          <input id="platform-user-username" formControlName="username" autocomplete="off" />
           <span>&#64;{{ company()?.loginCode }}</span>
         </div>
         @if (form.controls.username.touched && form.controls.username.invalid) {
@@ -383,31 +305,21 @@
             (input)="formatPhone()"
           />
         </div>
-        @if ((form.controls.phoneCountryCode.touched &&
-        form.controls.phoneCountryCode.invalid) || (form.controls.phone.touched
-        && form.controls.phone.invalid)) {
+        @if ((form.controls.phoneCountryCode.touched && form.controls.phoneCountryCode.invalid) ||
+        (form.controls.phone.touched && form.controls.phone.invalid)) {
         <small>Captura una lada válida y los 10 dígitos del celular.</small>
         }
       </div>
       <div class="field full">
         <label for="platform-user-email">Correo (opcional)</label>
-        <input
-          id="platform-user-email"
-          type="email"
-          formControlName="email"
-          autocomplete="email"
-        />
+        <input id="platform-user-email" type="email" formControlName="email" autocomplete="email" />
         @if (form.controls.email.touched && form.controls.email.invalid) {
         <small>Escribe un correo válido.</small>
         }
       </div>
       <div class="field">
         <label for="platform-user-role">Rol <b>*</b></label>
-        <select
-          id="platform-user-role"
-          formControlName="role"
-          (change)="roleChanged()"
-        >
+        <select id="platform-user-role" formControlName="role" (change)="roleChanged()">
           <option value="user">Usuario</option>
           <option value="admin">Administrador</option>
           <option value="company_admin">Administrador principal</option>
@@ -435,23 +347,19 @@
         <small>Usa de 6 a 10 caracteres, con una letra y un número.</small>
         }
         <p class="temporary-password-help">
-          El usuario deberá reemplazarla al iniciar sesión. Sus permisos
-          quedarán dentro de {{ company()?.name }}.
+          El usuario deberá reemplazarla al iniciar sesión. Sus permisos quedarán dentro de {{ company()?.name }}.
         </p>
       </div>
       }
 
-      <section
-        class="permissions-panel full"
-        aria-labelledby="platform-permissions-title"
-      >
+      <section class="permissions-panel full" aria-labelledby="platform-permissions-title">
         <div class="permissions-heading">
           <div>
             <p class="section-kicker">ACCESO POR SECCIONES</p>
             <h3 id="platform-permissions-title">Permisos</h3>
             <p>
-              El rol define su jerarquía; la plantilla y la matriz controlan las
-              operaciones disponibles dentro de la compañía.
+              El rol define su jerarquía; la plantilla y la matriz controlan las operaciones disponibles dentro de la
+              compañía.
             </p>
           </div>
           @if (targetRole() === 'company_admin') {
@@ -467,8 +375,7 @@
         <div class="permission-callout">
           <strong>Administrador principal</strong>
           <span>
-            Recibe acceso completo automáticamente y puede administrar
-            Administradores y Usuarios de esta compañía.
+            Recibe acceso completo automáticamente y puede administrar Administradores y Usuarios de esta compañía.
           </span>
         </div>
         } @else {
@@ -481,19 +388,22 @@
               [disabled]="permissionsLoading()"
             >
               @for (template of permissionTemplates(); track template.code) {
-              <option [value]="template.code">
-                {{ template.name }} — {{ template.description }}
-              </option>
+              <option [value]="template.code">{{ template.name }} — {{ template.description }}</option>
               }
             </select>
+            @if (selectedTemplateDetails(); as template) {
+            <small class="template-description" role="status">
+              <strong>{{ template.name }}:</strong> {{ template.description }}
+            </small>
+            }
           </label>
         </div>
         @if (permissionsLoading()) {
         <div class="permissions-status">Cargando permisos…</div>
         } @else {
         <div class="permissions-summary">
-          <strong>{{ selectedPermissions().length }}</strong> permisos
-          seleccionados. Puedes ajustar cada acción de manera individual.
+          <strong>{{ selectedPermissions().length }}</strong> permisos seleccionados. Puedes ajustar cada acción de
+          manera individual.
         </div>
         <div class="permission-matrix">
           @for (group of permissionGroups(); track group.module) {
@@ -537,21 +447,13 @@
           [disabled]="saving() || (!profile.user.isActive && !company()?.isActive)"
           (click)="requestStatusChange(profile.user)"
         >
-          {{ profile.user.isActive ? 'Desactivar usuario' : 'Reactivar usuario'
-          }}
+          {{ profile.user.isActive ? 'Desactivar usuario' : 'Reactivar usuario' }}
         </button>
         }
         <span class="footer-spacer"></span>
-        <button class="ghost" type="button" (click)="closeEditor()">
-          Cancelar
-        </button>
-        <button
-          class="primary"
-          type="submit"
-          [disabled]="saving() || permissionsLoading()"
-        >
-          {{ saving() ? 'Guardando…' : (isEditing() ? 'Guardar cambios' : 'Crear
-          usuario') }}
+        <button class="ghost" type="button" (click)="closeEditor()">Cancelar</button>
+        <button class="primary" type="submit" [disabled]="saving() || permissionsLoading()">
+          {{ saving() ? 'Guardando…' : (isEditing() ? 'Guardar cambios' : 'Crear usuario') }}
         </button>
       </footer>
     </form>
@@ -559,11 +461,7 @@
   </section>
 </div>
 } @if (passwordTarget(); as target) {
-<div
-  class="backdrop centered password-reset-layer"
-  (click)="closePasswordReset()"
-  role="presentation"
->
+<div class="backdrop centered password-reset-layer" (click)="closePasswordReset()" role="presentation">
   <section
     class="password-dialog platform-password-dialog"
     role="dialog"
@@ -582,16 +480,13 @@
     <div class="inactive-password-warning" role="status">
       <strong>La cuenta está desactivada</strong>
       <span>
-        La nueva contraseña quedará guardada, pero el usuario no podrá iniciar
-        sesión hasta que reactives su acceso.
+        La nueva contraseña quedará guardada, pero el usuario no podrá iniciar sesión hasta que reactives su acceso.
       </span>
     </div>
     }
     <form [formGroup]="passwordForm" (ngSubmit)="resetPassword()" novalidate>
       @if (passwordResetError()) {
-      <div class="error-banner password-reset-error" role="alert">
-        {{ passwordResetError() }}
-      </div>
+      <div class="error-banner password-reset-error" role="alert">{{ passwordResetError() }}</div>
       }
       <div class="field">
         <label for="platform-reset-password">Contraseña temporal <b>*</b></label
@@ -601,60 +496,45 @@
           formControlName="password"
           autocomplete="new-password"
           placeholder="Entre 6 y 10 caracteres"
-        />@if (passwordForm.controls.password.touched &&
-        passwordForm.controls.password.invalid) {
+        />@if (passwordForm.controls.password.touched && passwordForm.controls.password.invalid) {
         <small>Usa de 6 a 10 caracteres, con una letra y un número.</small> }
       </div>
       <div class="field">
-        <label for="platform-reset-confirmation"
-          >Confirmar contraseña <b>*</b></label
+        <label for="platform-reset-confirmation">Confirmar contraseña <b>*</b></label
         ><input
           id="platform-reset-confirmation"
           type="password"
           formControlName="confirmation"
           autocomplete="new-password"
-        />@if (passwordForm.controls.confirmation.touched &&
-        !resetPasswordsMatch()) { <small>Las contraseñas no coinciden.</small> }
+        />@if (passwordForm.controls.confirmation.touched && !resetPasswordsMatch()) {
+        <small>Las contraseñas no coinciden.</small> }
       </div>
       <div class="password-reset-callout">
         <strong>Cambio obligatorio al ingresar</strong>
         <span>
-          Al volver a entrar, el usuario deberá crear su contraseña definitiva
-          antes de continuar en la aplicación.
+          Al volver a entrar, el usuario deberá crear su contraseña definitiva antes de continuar en la aplicación.
         </span>
       </div>
       <label class="reset-confirmation">
         <input type="checkbox" formControlName="acknowledged" />
-        <span>
-          Confirmo que deseo cerrar sus sesiones y asignar este acceso temporal.
-        </span>
+        <span> Confirmo que deseo cerrar sus sesiones y asignar este acceso temporal. </span>
       </label>
       <footer>
-        <button
-          class="ghost"
-          type="button"
-          [disabled]="resettingPassword()"
-          (click)="closePasswordReset()"
-        >
+        <button class="ghost" type="button" [disabled]="resettingPassword()" (click)="closePasswordReset()">
           Cancelar</button
         ><button
           class="primary"
           type="submit"
           [disabled]="resettingPassword() || passwordForm.invalid || !resetPasswordsMatch()"
         >
-          {{ resettingPassword() ? 'Asignando…' : 'Asignar contraseña temporal'
-          }}
+          {{ resettingPassword() ? 'Asignando…' : 'Asignar contraseña temporal' }}
         </button>
       </footer>
     </form>
   </section>
 </div>
 } @if (statusConfirmation(); as user) {
-<div
-  class="backdrop centered confirmation-layer"
-  (click)="closeStatusConfirmation()"
-  role="presentation"
->
+<div class="backdrop centered confirmation-layer" (click)="closeStatusConfirmation()" role="presentation">
   <section
     class="status-dialog"
     role="alertdialog"
@@ -664,29 +544,18 @@
     (click)="$event.stopPropagation()"
   >
     <p class="breadcrumb">CONFIRMAR CAMBIO DE ESTATUS</p>
-    <h2 id="platform-status-dialog-title">
-      {{ user.isActive ? '¿Desactivar usuario?' : '¿Reactivar usuario?' }}
-    </h2>
+    <h2 id="platform-status-dialog-title">{{ user.isActive ? '¿Desactivar usuario?' : '¿Reactivar usuario?' }}</h2>
     <p id="platform-status-dialog-description">
       @if (user.isActive) {
-      <strong>{{ user.loginName }}</strong> perderá el acceso y todas sus
-      sesiones abiertas serán revocadas. Sus datos y permisos se conservarán. }
-      @else { <strong>{{ user.loginName }}</strong> recuperará el acceso con el
-      rol y los permisos que tiene configurados. }
+      <strong>{{ user.loginName }}</strong> perderá el acceso y todas sus sesiones abiertas serán revocadas. Sus datos y
+      permisos se conservarán. } @else { <strong>{{ user.loginName }}</strong> recuperará el acceso con el rol y los
+      permisos que tiene configurados. }
     </p>
     @if (user.isActive && user.role === 'company_admin') {
-    <div class="dialog-warning">
-      La compañía siempre debe conservar al menos un Administrador principal
-      activo.
-    </div>
+    <div class="dialog-warning">La compañía siempre debe conservar al menos un Administrador principal activo.</div>
     }
     <footer>
-      <button
-        class="ghost"
-        type="button"
-        [disabled]="changingStatus()"
-        (click)="closeStatusConfirmation()"
-      >
+      <button class="ghost" type="button" [disabled]="changingStatus()" (click)="closeStatusConfirmation()">
         Cancelar
       </button>
       <button
@@ -697,8 +566,7 @@
         [disabled]="changingStatus()"
         (click)="confirmStatusChange()"
       >
-        {{ changingStatus() ? 'Guardando…' : (user.isActive ? 'Sí, desactivar' :
-        'Sí, reactivar') }}
+        {{ changingStatus() ? 'Guardando…' : (user.isActive ? 'Sí, desactivar' : 'Sí, reactivar') }}
       </button>
     </footer>
   </section>

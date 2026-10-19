@@ -338,7 +338,7 @@ export const routes: Routes = [
         path: "users",
         canActivate: [roleGuard, featureGuard, permissionGuard],
         data: {
-          roles: ["company_admin", "admin"],
+          roles: ["company_admin", "admin", "user"],
           feature: "user_management",
           permission: "users.view",
         },

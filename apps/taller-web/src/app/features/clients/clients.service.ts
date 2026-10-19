@@ -1,27 +1,33 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { inject, Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
-import { environment } from '../../../environments/environment';
+import { HttpClient, HttpParams } from "@angular/common/http";
+import { inject, Injectable } from "@angular/core";
+import { Observable } from "rxjs";
+import { environment } from "../../../environments/environment";
 import {
   CfdiUse,
   Client,
+  ClientFiscalInput,
   ClientInput,
   CustomerType,
   FiscalRegime,
   PaginatedClients,
-} from './client.models';
+} from "./client.models";
 
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class ClientsService {
   private readonly http = inject(HttpClient);
   private readonly endpoint = `${environment.apiUrl}/clients`;
 
-  list(options: { page: number; limit: number; search: string; isActive: boolean }): Observable<PaginatedClients> {
+  list(options: {
+    page: number;
+    limit: number;
+    search: string;
+    isActive: boolean;
+  }): Observable<PaginatedClients> {
     const params = new HttpParams()
-      .set('page', options.page)
-      .set('limit', options.limit)
-      .set('search', options.search)
-      .set('isActive', options.isActive);
+      .set("page", options.page)
+      .set("limit", options.limit)
+      .set("search", options.search)
+      .set("isActive", options.isActive);
     return this.http.get<PaginatedClients>(this.endpoint, { params });
   }
 
@@ -30,8 +36,10 @@ export class ClientsService {
   }
 
   listFiscalRegimes(customerType: CustomerType): Observable<FiscalRegime[]> {
-    const params = new HttpParams().set('customerType', customerType);
-    return this.http.get<FiscalRegime[]>(`${this.endpoint}/fiscal-regimes`, { params });
+    const params = new HttpParams().set("customerType", customerType);
+    return this.http.get<FiscalRegime[]>(`${this.endpoint}/fiscal-regimes`, {
+      params,
+    });
   }
 
   listCfdiUses(
@@ -39,8 +47,8 @@ export class ClientsService {
     fiscalRegimeCode: string,
   ): Observable<CfdiUse[]> {
     const params = new HttpParams()
-      .set('customerType', customerType)
-      .set('fiscalRegimeCode', fiscalRegimeCode);
+      .set("customerType", customerType)
+      .set("fiscalRegimeCode", fiscalRegimeCode);
     return this.http.get<CfdiUse[]>(`${this.endpoint}/cfdi-uses`, { params });
   }
 
@@ -50,5 +58,12 @@ export class ClientsService {
 
   update(id: string, input: Partial<ClientInput>): Observable<Client> {
     return this.http.patch<Client>(`${this.endpoint}/${id}`, input);
+  }
+
+  updateFiscal(id: string, input: ClientFiscalInput): Observable<Client> {
+    return this.http.patch<Client>(
+      `${this.endpoint}/${id}/fiscal-profile`,
+      input,
+    );
   }
 }

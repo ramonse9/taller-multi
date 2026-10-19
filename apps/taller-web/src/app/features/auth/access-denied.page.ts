@@ -57,6 +57,7 @@ const PERMISSION_LABELS: Record<string, string> = {
   "clients.view": "consultar clientes",
   "clients.create": "registrar clientes",
   "clients.edit": "editar clientes",
+  "clients.edit_fiscal": "editar los datos fiscales de clientes",
   "vehicles.view": "consultar vehículos",
   "vehicles.create": "registrar vehículos",
   "vehicles.edit": "editar vehículos",

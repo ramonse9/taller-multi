@@ -14,147 +14,160 @@
       class="flex items-start justify-between border-b border-[#d5dce3] px-5 py-6 sm:px-10 sm:py-7 dark:border-[#38516d]"
     >
       <div>
-        <p class="eyebrow">{{ client ? 'EDITAR REGISTRO' : 'NUEVO REGISTRO' }}</p>
+        <p class="eyebrow">
+          {{ fiscalOnly ? "DATOS FISCALES" : client ? "EDITAR REGISTRO" : "NUEVO REGISTRO" }}
+        </p>
         <h2 class="m-0 font-[var(--display)] text-3xl font-semibold" id="client-editor-title">
-          {{ client ? 'Editar cliente' : 'Nuevo cliente' }}
+          {{ fiscalOnly ? "Editar perfil fiscal" : client ? "Editar cliente" : "Nuevo cliente" }}
         </h2>
+        @if (fiscalOnly) {
+          <p class="mb-0 mt-2 text-sm text-[#63717d] dark:text-[#afbed0]">
+            Los datos operativos permanecen bloqueados. Sólo se guardará la información fiscal.
+          </p>
+        }
       </div>
       <button
         class="bg-transparent p-1 text-3xl leading-none text-inherit"
         type="button"
         aria-label="Cerrar formulario"
         (click)="close()"
-      >×</button>
+      >
+        ×
+      </button>
     </header>
 
-    <form
-      class="grid grid-cols-1 gap-5 p-5 sm:grid-cols-2 sm:p-10"
-      [formGroup]="form"
-      (ngSubmit)="save()"
-      novalidate
-    >
+    <form class="grid grid-cols-1 gap-5 p-5 sm:grid-cols-2 sm:p-10" [formGroup]="form" (ngSubmit)="save()" novalidate>
       @if (error()) {
-      <div
-        class="col-span-full bg-[#ffdcd2] px-4 py-3 text-sm text-[#8e3214] dark:bg-[#633d3d] dark:text-[#ffd9d4]"
-        role="alert"
-      >{{ error() }}</div>
-      }
-
-      <div class="sm:col-span-2">
-        <span class="field-label">Tipo de cliente <b>*</b></span>
-        <div class="segments-tw mt-1 inline-flex" aria-label="Tipo de cliente">
-          <button
-            type="button"
-            [class.segment-selected]="form.controls.type.value === 'person'"
-            (click)="selectType('person')"
-          >Persona</button>
-          <button
-            type="button"
-            [class.segment-selected]="form.controls.type.value === 'company'"
-            (click)="selectType('company')"
-          >Empresa</button>
+        <div
+          class="col-span-full bg-[#ffdcd2] px-4 py-3 text-sm text-[#8e3214] dark:bg-[#633d3d] dark:text-[#ffd9d4]"
+          role="alert"
+        >
+          {{ error() }}
         </div>
-      </div>
-
-      <div class="sm:col-span-2">
-        <label class="field-label" for="client-display-name">
-          {{ form.controls.type.value === 'company' ? 'Nombre comercial' : 'Nombre completo' }}
-          <b>*</b>
-        </label>
-        <input
-          class="field-control"
-          id="client-display-name"
-          formControlName="displayName"
-          autocomplete="name"
-          [placeholder]="form.controls.type.value === 'company' ? 'Ej. Transportes del Pacífico' : 'Ej. Ana López García'"
-        />
-        @if (form.controls.displayName.touched && form.controls.displayName.invalid) {
-        <small class="field-error">Escribe un nombre de 2 a 180 caracteres.</small>
-        }
-      </div>
-
-      @if (form.controls.type.value === 'company') {
-      <div class="sm:col-span-2">
-        <label class="field-label" for="client-legal-name">Razón social</label>
-        <input
-          class="field-control"
-          id="client-legal-name"
-          formControlName="legalName"
-          maxlength="180"
-          autocomplete="organization"
-          placeholder="Ej. Transportes del Pacífico, S.A. de C.V."
-        />
-      </div>
-      <div class="sm:col-span-2">
-        <label class="field-label" for="client-contact-name">Contacto principal</label>
-        <input
-          class="field-control"
-          id="client-contact-name"
-          formControlName="contactName"
-          maxlength="180"
-          autocomplete="name"
-          placeholder="Ej. Pedro López"
-        />
-      </div>
       }
 
-      <div class="sm:col-span-2">
-        <label class="field-label" for="client-phone">Teléfono</label>
-        <div class="grid grid-cols-[5rem_minmax(0,1fr)] gap-2">
-          <input
-            class="field-control text-center font-bold"
-            type="tel"
-            inputmode="tel"
-            formControlName="phoneCountryCode"
-            autocomplete="tel-country-code"
-            maxlength="4"
-            aria-label="Lada internacional"
-          />
+      @if (!fiscalOnly) {
+        <div class="sm:col-span-2">
+          <span class="field-label">Tipo de cliente <b>*</b></span>
+          <div class="segments-tw mt-1 inline-flex" aria-label="Tipo de cliente">
+            <button
+              type="button"
+              [class.segment-selected]="form.controls.type.value === 'person'"
+              (click)="selectType('person')"
+            >
+              Persona
+            </button>
+            <button
+              type="button"
+              [class.segment-selected]="form.controls.type.value === 'company'"
+              (click)="selectType('company')"
+            >
+              Empresa
+            </button>
+          </div>
+        </div>
+
+        <div class="sm:col-span-2">
+          <label class="field-label" for="client-display-name">
+            {{ form.controls.type.value === "company" ? "Nombre comercial" : "Nombre completo" }}
+            <b>*</b>
+          </label>
           <input
             class="field-control"
-            id="client-phone"
-            type="tel"
-            inputmode="numeric"
-            formControlName="phone"
-            autocomplete="tel-national"
-            maxlength="13"
-            placeholder="667 122 33 44"
-            (input)="formatPhone()"
+            id="client-display-name"
+            formControlName="displayName"
+            autocomplete="name"
+            [placeholder]="
+              form.controls.type.value === 'company' ? 'Ej. Transportes del Pacífico' : 'Ej. Ana López García'
+            "
           />
+          @if (form.controls.displayName.touched && form.controls.displayName.invalid) {
+            <small class="field-error">Escribe un nombre de 2 a 180 caracteres.</small>
+          }
         </div>
-        @if ((form.controls.phoneCountryCode.touched &&
-        form.controls.phoneCountryCode.invalid) || (form.controls.phone.touched &&
-        form.controls.phone.invalid)) {
-        <small class="field-error">
-          Usa una lada como +52 y un teléfono con el formato 667 122 33 44.
-        </small>
-        }
-      </div>
 
-      <div class="sm:col-span-2">
-        <label class="field-label" for="client-email">Correo</label>
-        <input
-          class="field-control"
-          id="client-email"
-          formControlName="email"
-          autocomplete="email"
-          placeholder="ana@ejemplo.com"
-        />
-        @if (form.controls.email.touched && form.controls.email.invalid) {
-        <small class="field-error">Escribe un correo válido.</small>
+        @if (form.controls.type.value === "company") {
+          <div class="sm:col-span-2">
+            <label class="field-label" for="client-legal-name">Razón social</label>
+            <input
+              class="field-control"
+              id="client-legal-name"
+              formControlName="legalName"
+              maxlength="180"
+              autocomplete="organization"
+              placeholder="Ej. Transportes del Pacífico, S.A. de C.V."
+            />
+          </div>
+          <div class="sm:col-span-2">
+            <label class="field-label" for="client-contact-name">Contacto principal</label>
+            <input
+              class="field-control"
+              id="client-contact-name"
+              formControlName="contactName"
+              maxlength="180"
+              autocomplete="name"
+              placeholder="Ej. Pedro López"
+            />
+          </div>
         }
-      </div>
 
-      <div class="sm:col-span-2">
-        <label class="field-label" for="client-notes">Notas</label>
-        <textarea
-          class="field-control"
-          id="client-notes"
-          formControlName="notes"
-          rows="4"
-          placeholder="Preferencias, referencias o información útil"
-        ></textarea>
-      </div>
+        <div class="sm:col-span-2">
+          <label class="field-label" for="client-phone">Teléfono</label>
+          <div class="grid grid-cols-[5rem_minmax(0,1fr)] gap-2">
+            <input
+              class="field-control text-center font-bold"
+              type="tel"
+              inputmode="tel"
+              formControlName="phoneCountryCode"
+              autocomplete="tel-country-code"
+              maxlength="4"
+              aria-label="Lada internacional"
+            />
+            <input
+              class="field-control"
+              id="client-phone"
+              type="tel"
+              inputmode="numeric"
+              formControlName="phone"
+              autocomplete="tel-national"
+              maxlength="13"
+              placeholder="667 122 33 44"
+              (input)="formatPhone()"
+            />
+          </div>
+          @if (
+            (form.controls.phoneCountryCode.touched && form.controls.phoneCountryCode.invalid) ||
+            (form.controls.phone.touched && form.controls.phone.invalid)
+          ) {
+            <small class="field-error"> Usa una lada como +52 y un teléfono con el formato 667 122 33 44. </small>
+          }
+        </div>
+
+        <div class="sm:col-span-2">
+          <label class="field-label" for="client-email">Correo</label>
+          <input
+            class="field-control"
+            id="client-email"
+            formControlName="email"
+            autocomplete="email"
+            placeholder="ana@ejemplo.com"
+          />
+          @if (form.controls.email.touched && form.controls.email.invalid) {
+            <small class="field-error">Escribe un correo válido.</small>
+          }
+        </div>
+
+        <div class="sm:col-span-2">
+          <label class="field-label" for="client-notes">Notas</label>
+          <textarea
+            class="field-control"
+            id="client-notes"
+            formControlName="notes"
+            rows="4"
+            placeholder="Preferencias, referencias o información útil"
+          ></textarea>
+        </div>
+      }
 
       <section
         class="col-span-full mt-2 border border-[#c7d4df] bg-[#f2f6f9] dark:border-[#38516d] dark:bg-[#19283b]"
@@ -165,57 +178,64 @@
         >
           <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
             <h3 class="m-0 font-[var(--display)] text-xl font-semibold" id="fiscal-data-title">
-              Datos fiscales <span class="text-[#63717d] dark:text-[#afbed0]">· Opcionales</span>
+              Datos fiscales
+              <span class="text-[#63717d] dark:text-[#afbed0]">· Opcionales</span>
             </h3>
             <span
               class="font-[var(--mono)] text-[0.58rem] font-bold tracking-[0.1em] text-[#537086] dark:text-[#b9cade]"
-            >CFDI 4.0</span>
+              >CFDI 4.0</span
+            >
           </div>
           <p class="mb-0 mt-2 max-w-2xl text-xs leading-5 text-[#526675] dark:text-[#afbed0]">
-            Puedes registrar al cliente sin estos datos. Serán necesarios cuando quieras
-            facturar una orden.
+            Puedes registrar al cliente sin estos datos. Serán necesarios cuando quieras facturar una orden.
           </p>
           <div
             class="mt-4 border px-3 py-3 text-xs"
-            [class]="!client || fiscalDataChanged()
-              ? 'border-[#d8b76b] bg-[#fff1c9] text-[#765415] dark:border-[#7c6937] dark:bg-[#4b4027] dark:text-[#ffe9a8]'
-              : client.fiscalReadiness.isReadyToInvoice
-                ? 'border-[#8fc5a7] bg-[#dff0e6] text-[#245b3b] dark:border-[#47715f] dark:bg-[#294e42] dark:text-[#c9f0df]'
-                : 'border-[#d8b76b] bg-[#fff1c9] text-[#765415] dark:border-[#7c6937] dark:bg-[#4b4027] dark:text-[#ffe9a8]'"
+            [class]="
+              !client || fiscalDataChanged()
+                ? 'border-[#d8b76b] bg-[#fff1c9] text-[#765415] dark:border-[#7c6937] dark:bg-[#4b4027] dark:text-[#ffe9a8]'
+                : client.fiscalReadiness.isReadyToInvoice
+                  ? 'border-[#8fc5a7] bg-[#dff0e6] text-[#245b3b] dark:border-[#47715f] dark:bg-[#294e42] dark:text-[#c9f0df]'
+                  : 'border-[#d8b76b] bg-[#fff1c9] text-[#765415] dark:border-[#7c6937] dark:bg-[#4b4027] dark:text-[#ffe9a8]'
+            "
             role="status"
           >
             @if (!client) {
-            <strong class="block">Preparación fiscal pendiente</strong>
-            <span>La API calculará el estatus cuando guardes al cliente.</span>
+              <strong class="block">Preparación fiscal pendiente</strong>
+              <span>La API calculará el estatus cuando guardes al cliente.</span>
             } @else if (fiscalDataChanged()) {
-            <strong class="block">Cambios fiscales sin validar</strong>
-            <span>La API volverá a calcular el estatus cuando guardes los cambios.</span>
+              <strong class="block">Cambios fiscales sin validar</strong>
+              <span>La API volverá a calcular el estatus cuando guardes los cambios.</span>
             } @else if (client.fiscalReadiness.isReadyToInvoice) {
-            <strong class="block">Listo para facturar</strong>
-            <span>El Uso CFDI es una preferencia y podrá cambiarse en cada factura futura.</span>
+              <strong class="block">Listo para facturar</strong>
+              <span>El Uso CFDI es una preferencia y podrá cambiarse en cada factura futura.</span>
             } @else {
-            <strong class="block">
-              {{ client.fiscalReadiness.isFiscalProfileComplete
-                ? 'Perfil completo · falta la preferencia de Uso CFDI'
-                : 'Perfil fiscal incompleto' }}
-            </strong>
-            @for (item of client.fiscalReadiness.missingFields; track item.code) {
-            <span class="mt-1 block">• {{ item.message }}</span>
-            }
-            @for (item of client.fiscalReadiness.validationIssues; track item.code) {
-            <span class="mt-1 block">• {{ item.message }}</span>
-            }
+              <strong class="block">
+                {{
+                  client.fiscalReadiness.isFiscalProfileComplete
+                    ? "Perfil completo · falta la preferencia de Uso CFDI"
+                    : "Perfil fiscal incompleto"
+                }}
+              </strong>
+              @for (item of client.fiscalReadiness.missingFields; track item.code) {
+                <span class="mt-1 block">• {{ item.message }}</span>
+              }
+              @for (item of client.fiscalReadiness.validationIssues; track item.code) {
+                <span class="mt-1 block">• {{ item.message }}</span>
+              }
             }
           </div>
         </header>
 
         <div class="grid grid-cols-1 gap-5 p-4 sm:grid-cols-2 sm:p-6">
           @if (catalogNotice()) {
-          <div
-            class="col-span-full border border-[#9fc6b0] bg-[#dff0e6] px-4 py-3 text-sm text-[#245b3b] dark:border-[#47715f] dark:bg-[#294e42] dark:text-[#c9f0df]"
-            role="status"
-            aria-live="polite"
-          >{{ catalogNotice() }}</div>
+            <div
+              class="col-span-full border border-[#9fc6b0] bg-[#dff0e6] px-4 py-3 text-sm text-[#245b3b] dark:border-[#47715f] dark:bg-[#294e42] dark:text-[#c9f0df]"
+              role="status"
+              aria-live="polite"
+            >
+              {{ catalogNotice() }}
+            </div>
           }
 
           <div>
@@ -230,29 +250,29 @@
               [placeholder]="form.controls.type.value === 'company' ? 'ABC010101AB1' : 'LOPA900101AB1'"
               (input)="formatRfc()"
             />
-            @if (form.controls.taxId.touched &&
-            form.controls.taxId.errors?.['companyRfcForPerson']) {
-            <small class="field-error">Este RFC corresponde a una persona moral.</small>
-            } @else if (form.controls.taxId.touched &&
-            form.controls.taxId.errors?.['personRfcForCompany']) {
-            <small class="field-error">Este RFC corresponde a una persona física.</small>
+            @if (form.controls.taxId.touched && form.controls.taxId.errors?.["companyRfcForPerson"]) {
+              <small class="field-error">Este RFC corresponde a una persona moral.</small>
+            } @else if (form.controls.taxId.touched && form.controls.taxId.errors?.["personRfcForCompany"]) {
+              <small class="field-error">Este RFC corresponde a una persona física.</small>
             } @else if (form.controls.taxId.touched && form.controls.taxId.invalid) {
-            <small class="field-error">El RFC no tiene una estructura válida.</small>
+              <small class="field-error">El RFC no tiene una estructura válida.</small>
             } @else {
-            <span class="field-hint">También se admiten los RFC genéricos autorizados.</span>
+              <span class="field-hint">También se admiten los RFC genéricos autorizados.</span>
             }
           </div>
 
           <div>
             <div class="mb-[0.42rem] flex flex-wrap items-center justify-between gap-2">
               <label class="field-label mb-0!" for="client-fiscal-name">
-                {{ form.controls.type.value === 'company' ? 'Razón social fiscal' : 'Nombre fiscal' }}
+                {{ form.controls.type.value === "company" ? "Razón social fiscal" : "Nombre fiscal" }}
               </label>
               <button
                 class="bg-transparent p-0 text-[0.67rem] font-bold text-[#b94718] underline underline-offset-4 dark:text-[#ff9a6f]"
                 type="button"
                 (click)="copyClientName()"
-              >Copiar nombre del cliente</button>
+              >
+                Copiar nombre del cliente
+              </button>
             </div>
             <input
               class="field-control"
@@ -260,12 +280,14 @@
               formControlName="fiscalName"
               maxlength="180"
               autocomplete="off"
-              [placeholder]="form.controls.type.value === 'company' ? 'Razón social de la constancia' : 'Nombre de la constancia'"
+              [placeholder]="
+                form.controls.type.value === 'company' ? 'Razón social de la constancia' : 'Nombre de la constancia'
+              "
             />
             @if (form.controls.fiscalName.touched && form.controls.fiscalName.invalid) {
-            <small class="field-error">Escribe de 2 a 180 caracteres o deja el campo vacío.</small>
+              <small class="field-error">Escribe de 2 a 180 caracteres o deja el campo vacío.</small>
             } @else {
-            <span class="field-hint">Debe coincidir exactamente con la constancia fiscal.</span>
+              <span class="field-hint">Debe coincidir exactamente con la constancia fiscal.</span>
             }
           </div>
 
@@ -282,9 +304,8 @@
               placeholder="80000"
               (input)="formatPostalCode()"
             />
-            @if (form.controls.fiscalPostalCode.touched &&
-            form.controls.fiscalPostalCode.invalid) {
-            <small class="field-error">Captura exactamente 5 dígitos o deja el campo vacío.</small>
+            @if (form.controls.fiscalPostalCode.touched && form.controls.fiscalPostalCode.invalid) {
+              <small class="field-error">Captura exactamente 5 dígitos o deja el campo vacío.</small>
             }
           </div>
 
@@ -299,28 +320,28 @@
             >
               <option value="">Selecciona un régimen</option>
               @for (regime of regimes(); track regime.code) {
-              <option [value]="regime.code">{{ regime.code }} · {{ regime.name }}</option>
+                <option [value]="regime.code">{{ regime.code }} · {{ regime.name }}</option>
               }
             </select>
             @if (regimesLoading()) {
-            <span class="field-hint" role="status">Cargando regímenes fiscales…</span>
+              <span class="field-hint" role="status">Cargando regímenes fiscales…</span>
             } @else if (regimesError()) {
-            <div class="mt-2 flex flex-wrap items-center gap-2" role="alert">
-              <span class="text-xs text-[#a63725] dark:text-[#ff9e8c]">{{ regimesError() }}</span>
-              <button
-                class="bg-transparent p-0 text-xs text-inherit underline"
-                type="button"
-                (click)="retryFiscalRegimes()"
-              >Reintentar</button>
-            </div>
+              <div class="mt-2 flex flex-wrap items-center gap-2" role="alert">
+                <span class="text-xs text-[#a63725] dark:text-[#ff9e8c]">{{ regimesError() }}</span>
+                <button
+                  class="bg-transparent p-0 text-xs text-inherit underline"
+                  type="button"
+                  (click)="retryFiscalRegimes()"
+                >
+                  Reintentar
+                </button>
+              </div>
             } @else if (regimes().length === 0) {
-            <span class="field-hint" role="status">
-              No hay regímenes disponibles para este tipo de cliente.
-            </span>
-            } @else if (form.controls.type.value === 'company') {
-            <span class="field-hint">
-              601 aparece primero como referencia, pero debes elegir el régimen correcto.
-            </span>
+              <span class="field-hint" role="status"> No hay regímenes disponibles para este tipo de cliente. </span>
+            } @else if (form.controls.type.value === "company") {
+              <span class="field-hint">
+                601 aparece primero como referencia, pero debes elegir el régimen correcto.
+              </span>
             }
           </div>
 
@@ -334,45 +355,43 @@
               [attr.aria-busy]="usesLoading()"
             >
               <option value="">
-                {{ form.controls.fiscalRegimeCode.value ? 'Selecciona un uso de CFDI' : 'Selecciona primero un régimen fiscal' }}
+                {{
+                  form.controls.fiscalRegimeCode.value
+                    ? "Selecciona un uso de CFDI"
+                    : "Selecciona primero un régimen fiscal"
+                }}
               </option>
               @for (use of cfdiUses(); track use.code) {
-              <option [value]="use.code">{{ use.code }} · {{ use.description }}</option>
+                <option [value]="use.code">{{ use.code }} · {{ use.description }}</option>
               }
             </select>
             @if (usesLoading()) {
-            <span class="field-hint" role="status">Cargando usos compatibles…</span>
+              <span class="field-hint" role="status">Cargando usos compatibles…</span>
             } @else if (usesError()) {
-            <div class="mt-2 flex flex-wrap items-center gap-2" role="alert">
-              <span class="text-xs text-[#a63725] dark:text-[#ff9e8c]">{{ usesError() }}</span>
-              <button
-                class="bg-transparent p-0 text-xs text-inherit underline"
-                type="button"
-                (click)="retryCfdiUses()"
-              >Reintentar</button>
-            </div>
+              <div class="mt-2 flex flex-wrap items-center gap-2" role="alert">
+                <span class="text-xs text-[#a63725] dark:text-[#ff9e8c]">{{ usesError() }}</span>
+                <button
+                  class="bg-transparent p-0 text-xs text-inherit underline"
+                  type="button"
+                  (click)="retryCfdiUses()"
+                >
+                  Reintentar
+                </button>
+              </div>
             } @else if (form.controls.fiscalRegimeCode.value && cfdiUses().length === 0) {
-            <span class="field-hint" role="status">
-              No hay usos de CFDI vigentes compatibles con este régimen.
-            </span>
+              <span class="field-hint" role="status"> No hay usos de CFDI vigentes compatibles con este régimen. </span>
             } @else {
-            <span class="field-hint">
-              Será la preferencia inicial; podrá cambiarse para cada factura futura.
-            </span>
+              <span class="field-hint"> Será la preferencia inicial; podrá cambiarse para cada factura futura. </span>
             }
           </div>
         </div>
       </section>
 
-      @if (client && auth.hasPermission('clients.deactivate')) {
-      <label class="col-span-full flex items-center gap-3 text-sm">
-        <input
-          class="size-auto accent-[#e86a33]"
-          type="checkbox"
-          formControlName="isActive"
-        />
-        Cliente activo
-      </label>
+      @if (client && auth.hasPermission("clients.deactivate")) {
+        <label class="col-span-full flex items-center gap-3 text-sm">
+          <input class="size-auto accent-[#e86a33]" type="checkbox" formControlName="isActive" />
+          Cliente activo
+        </label>
       }
 
       <footer
@@ -380,7 +399,7 @@
       >
         <button class="ghost-tw w-full sm:w-auto" type="button" (click)="close()">Cancelar</button>
         <button class="primary w-full sm:w-auto" type="submit" [disabled]="saving()">
-          {{ saving() ? 'Guardando…' : 'Guardar cliente' }}
+          {{ saving() ? "Guardando…" : fiscalOnly ? "Guardar datos fiscales" : "Guardar cliente" }}
         </button>
       </footer>
     </form>

@@ -124,9 +124,11 @@ export class InvoicesPage implements OnInit {
         }
       });
     forkJoin({
-      settings: this.auth.hasFeature("invoicing")
-        ? this.invoicesService.settings()
-        : of(null),
+      settings:
+        this.auth.user()?.role === "company_admin" &&
+        this.auth.hasPermission("invoices.configure")
+          ? this.invoicesService.settings()
+          : of(null),
       catalogs: this.invoicesService.catalogs(),
       invoices: this.invoicesService.list(),
     })
@@ -164,6 +166,7 @@ export class InvoicesPage implements OnInit {
   createDraft(): void {
     if (
       this.readOnly() ||
+      !this.auth.hasPermission("invoices.create") ||
       !this.orderId ||
       this.createForm.invalid ||
       this.saving()
@@ -193,7 +196,13 @@ export class InvoicesPage implements OnInit {
   }
 
   saveSettings(): void {
-    if (this.readOnly() || this.settingsForm.invalid || this.saving()) {
+    if (
+      this.readOnly() ||
+      this.auth.user()?.role !== "company_admin" ||
+      !this.auth.hasPermission("invoices.configure") ||
+      this.settingsForm.invalid ||
+      this.saving()
+    ) {
       this.settingsForm.markAllAsTouched();
       return;
     }
