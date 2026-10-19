@@ -6,6 +6,7 @@ import { PermissionsService } from '../../permissions/permissions.service';
 import { ORDER_PAYMENT_PERMISSIONS } from '../../permissions/permission-policies';
 import { TenantSessionService } from '../tenant-session.service';
 import { unknownOrderItemCostSql } from '../orders/order-cost-rules';
+import { BillingReconciliationQueryService } from '../invoicing/billing-reconciliation-query.service';
 import {
   DashboardActivityResponseDto,
   DashboardExpenseActivityResponseDto,
@@ -111,9 +112,10 @@ export class DashboardService {
   constructor(
     private readonly tenant: TenantSessionService,
     private readonly permissions: PermissionsService,
+    private readonly billingReconciliation: BillingReconciliationQueryService,
   ) {}
 
-  summary(user: AuthenticatedUser): Promise<DashboardSummaryResponseDto> {
+  async summary(user: AuthenticatedUser): Promise<DashboardSummaryResponseDto> {
     const subscription = user.subscription;
     if (!subscription) throw new ForbiddenException('Se requiere una suscripción de compañía');
     const includesFinancials =
@@ -121,9 +123,13 @@ export class DashboardService {
       this.permissions.has(user, 'profitability.view');
     const includesLowStock =
       subscription.features.includes('inventory') && this.permissions.has(user, 'inventory.view');
+    const includesBillingReconciliation =
+      (subscription.features.includes('invoicing') ||
+        subscription.readOnlyFeatures.includes('invoicing')) &&
+      this.permissions.has(user, 'invoices.view');
     const includesRevenue =
       this.permissions.hasAny(user, ORDER_PAYMENT_PERMISSIONS) || includesFinancials;
-    return this.tenant.run(user, async (runner, schemaName) => {
+    const operational = await this.tenant.run(user, async (runner, schemaName) => {
       const schema = quoteIdentifier(schemaName);
       const operations = await this.operations(runner, schema);
       const financials = includesFinancials ? await this.financials(runner, schema) : null;
@@ -139,6 +145,7 @@ export class DashboardService {
           planName: subscription.planName,
           includesFinancials,
           includesLowStock,
+          includesBillingReconciliation,
         },
         orders: {
           inProgressCount: operations.in_progress_count,
@@ -154,8 +161,19 @@ export class DashboardService {
         },
         financials,
         lowStock,
+        billingReconciliation: null,
       };
     });
+    const billingReconciliation = includesBillingReconciliation
+      ? await this.billingReconciliation.dashboard(user, {
+          occurredFrom: operational.period.startsOn,
+          occurredTo: operational.period.endsOn,
+        })
+      : null;
+    return {
+      ...operational,
+      billingReconciliation,
+    };
   }
 
   activity(user: AuthenticatedUser): Promise<DashboardActivityResponseDto> {

@@ -37,6 +37,11 @@ import {
   UpdateSimulatedInvoiceDto,
 } from './dto/simulated-invoice.dto';
 import { SimulatedInvoicesService } from './simulated-invoices.service';
+import { BillingReconciliationQueryService } from './billing-reconciliation-query.service';
+import {
+  BillingReconciliationPeriodQueryDto,
+  InvoiceBillingReconciliationResponseDto,
+} from './dto/billing-reconciliation.dto';
 
 @ApiTags('invoices')
 @ApiBearerAuth()
@@ -44,7 +49,10 @@ import { SimulatedInvoicesService } from './simulated-invoices.service';
 @RequiresSubscription()
 @Controller('invoices')
 export class SimulatedInvoicesController {
-  constructor(private readonly invoices: SimulatedInvoicesService) {}
+  constructor(
+    private readonly invoices: SimulatedInvoicesService,
+    private readonly billingReconciliation: BillingReconciliationQueryService,
+  ) {}
 
   @Get('catalogs')
   @RequiresFeatureReadAccess('invoicing')
@@ -53,6 +61,21 @@ export class SimulatedInvoicesController {
   @ApiOkResponse({ type: SimulatedInvoiceCatalogsResponseDto })
   catalogs(@CurrentUser() user: AuthenticatedUser): Promise<SimulatedInvoiceCatalogsResponseDto> {
     return this.invoices.catalogs(user);
+  }
+
+  @Get('summary')
+  @RequiresFeatureReadAccess('invoicing')
+  @RequiresPermissions('invoices.view')
+  @ApiOperation({
+    summary: 'Consultar indicadores de conciliación de facturación simulada',
+    description: 'No incluye costos, gastos, utilidad ni márgenes.',
+  })
+  @ApiOkResponse({ type: InvoiceBillingReconciliationResponseDto })
+  summary(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: BillingReconciliationPeriodQueryDto,
+  ): Promise<InvoiceBillingReconciliationResponseDto> {
+    return this.billingReconciliation.invoicing(user, query);
   }
 
   @Get()

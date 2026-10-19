@@ -1,16 +1,14 @@
 import { Controller, Get, Query, Res, StreamableFile, UseGuards } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiOkResponse,
-  ApiOperation,
-  ApiProduces,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { JwtAuthGuard } from '../../auth/roles';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../../common/types/authenticated-user';
-import { RequiresFeature, SubscriptionGuard } from '../../subscriptions/subscription.guard';
+import {
+  RequiresFeature,
+  RequiresFeatureReadAccess,
+  SubscriptionGuard,
+} from '../../subscriptions/subscription.guard';
 import { PermissionGuard, RequiresPermissions } from '../../permissions/permission.guard';
 import {
   MonthlyProfitabilityReportQueryDto,
@@ -22,6 +20,11 @@ import {
 } from './dto/profitability.dto';
 import { ProfitabilityService } from './profitability.service';
 import { ProfitabilityWorkbookService } from './profitability-workbook.service';
+import { BillingReconciliationQueryService } from '../invoicing/billing-reconciliation-query.service';
+import {
+  BillingReconciliationPeriodQueryDto,
+  ProfitabilityBillingReconciliationResponseDto,
+} from '../invoicing/dto/billing-reconciliation.dto';
 
 @ApiTags('profitability')
 @ApiBearerAuth()
@@ -32,7 +35,24 @@ export class ProfitabilityController {
   constructor(
     private readonly profitability: ProfitabilityService,
     private readonly workbook: ProfitabilityWorkbookService,
+    private readonly billingReconciliation: BillingReconciliationQueryService,
   ) {}
+
+  @Get('billing-reconciliation')
+  @RequiresFeatureReadAccess('invoicing')
+  @RequiresPermissions('profitability.view', 'invoices.view')
+  @ApiOperation({
+    summary: 'Conciliar utilidad operativa con facturación simulada por periodo',
+    description:
+      'Separa importes operativos de totales documentales simulados; facturar no modifica la utilidad.',
+  })
+  @ApiOkResponse({ type: ProfitabilityBillingReconciliationResponseDto })
+  billingSummary(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: BillingReconciliationPeriodQueryDto,
+  ): Promise<ProfitabilityBillingReconciliationResponseDto> {
+    return this.billingReconciliation.profitability(user, query);
+  }
 
   @Get('monthly-report.xlsx')
   @RequiresPermissions('profitability.view')

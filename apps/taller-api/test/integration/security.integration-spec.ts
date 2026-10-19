@@ -572,6 +572,7 @@ interface DashboardSummaryResponse {
     planName: string;
     includesFinancials: boolean;
     includesLowStock: boolean;
+    includesBillingReconciliation: boolean;
   };
   orders: {
     inProgressCount: number;
@@ -600,6 +601,14 @@ interface DashboardSummaryResponse {
       stock: string;
       minimumStock: string;
     }>;
+  };
+  billingReconciliation: null | {
+    pendingToInvoiceCount: number;
+    pendingToInvoiceOperationalAmount: string;
+    activeDraftCount: number;
+    issuedThisPeriodCount: number;
+    issuedThisPeriodSimulatedTotal: string;
+    ppdPendingCollectionCount: number;
   };
 }
 
@@ -1560,9 +1569,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       '/orders?pendingInvoicing=true',
       { token: tenant.accessToken },
     );
-    expect(pendingWithReplacementDraft.body.items.map(({ id }) => id)).not.toContain(
-      order.body.id,
-    );
+    expect(pendingWithReplacementDraft.body.items.map(({ id }) => id)).not.toContain(order.body.id);
     const cancelDraft = await request<unknown>(
       'POST',
       `/invoices/${replacementDraft.body.id}/cancel-simulation`,
@@ -4798,17 +4805,29 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(active.body.user.role).toBe('user');
     expect([...active.body.user.permissions].sort()).toEqual([...exactPermissions].sort());
 
-    expect((await request<unknown>('GET', '/orders', { token: active.body.accessToken })).status).toBe(
-      200,
-    );
-    expect((await request<unknown>('GET', '/clients', { token: active.body.accessToken })).status).toBe(
-      200,
-    );
-    expect((await request<unknown>('GET', '/invoices', { token: active.body.accessToken })).status).toBe(
-      200,
-    );
     expect(
-      (await request<unknown>('GET', '/invoices/settings', { token: active.body.accessToken })).status,
+      (await request<unknown>('GET', '/orders', { token: active.body.accessToken })).status,
+    ).toBe(200);
+    expect(
+      (await request<unknown>('GET', '/clients', { token: active.body.accessToken })).status,
+    ).toBe(200);
+    expect(
+      (await request<unknown>('GET', '/invoices', { token: active.body.accessToken })).status,
+    ).toBe(200);
+    expect(
+      (await request<unknown>('GET', '/invoices/summary', { token: active.body.accessToken }))
+        .status,
+    ).toBe(200);
+    expect(
+      (
+        await request<unknown>('GET', '/profitability/billing-reconciliation', {
+          token: active.body.accessToken,
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (await request<unknown>('GET', '/invoices/settings', { token: active.body.accessToken }))
+        .status,
     ).toBe(403);
 
     const fiscalUpdate = await request<ClientResponse>(
@@ -4928,7 +4947,8 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     ).toBe(204);
     const controlActive = await login(platformAccountant.body.user.loginName, PERMANENT_PASSWORD);
     expect(
-      (await request<unknown>('GET', '/invoices', { token: controlActive.body.accessToken })).status,
+      (await request<unknown>('GET', '/invoices', { token: controlActive.body.accessToken }))
+        .status,
     ).toBe(403);
     expect(
       (
@@ -7120,6 +7140,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       planName: 'Esencial',
       includesFinancials: true,
       includesLowStock: false,
+      includesBillingReconciliation: false,
     });
     expect(essential.body.orders).toEqual({
       inProgressCount: 1,
@@ -7144,6 +7165,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       isComplete: true,
     });
     expect(essential.body.lowStock).toBeNull();
+    expect(essential.body.billingReconciliation).toBeNull();
     const essentialActivity = await request<DashboardActivityResponse>(
       'GET',
       '/dashboard/activity',
@@ -7338,6 +7360,37 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       planName: 'Facturación',
       includesFinancials: true,
       includesLowStock: true,
+      includesBillingReconciliation: true,
+    });
+    expect(invoicingSummary.body.billingReconciliation).toMatchObject({
+      pendingToInvoiceCount: 3,
+      pendingToInvoiceOperationalAmount: '1500.00',
+      activeDraftCount: 0,
+      issuedThisPeriodCount: 0,
+      issuedThisPeriodSimulatedTotal: '0.00',
+      ppdPendingCollectionCount: 0,
+    });
+    const invoiceIndicators = await request<{
+      pendingToInvoiceCount: number;
+      pendingToInvoiceOperationalAmount: string;
+      issuedSimulationCount: number;
+    }>('GET', '/invoices/summary', { token: tenant.accessToken });
+    expect(invoiceIndicators.status).toBe(200);
+    expect(invoiceIndicators.body).toMatchObject({
+      pendingToInvoiceCount: 3,
+      pendingToInvoiceOperationalAmount: '1500.00',
+      issuedSimulationCount: 0,
+    });
+    const profitabilityReconciliation = await request<{
+      completedOrderCount: number;
+      generatedOperationalAmount: string;
+      pendingToInvoiceOperationalAmount: string;
+    }>('GET', '/profitability/billing-reconciliation', { token: tenant.accessToken });
+    expect(profitabilityReconciliation.status).toBe(200);
+    expect(profitabilityReconciliation.body).toMatchObject({
+      completedOrderCount: 2,
+      generatedOperationalAmount: '500.00',
+      pendingToInvoiceOperationalAmount: '500.00',
     });
     const invoicingActivity = await request<DashboardActivityResponse>(
       'GET',
@@ -7347,6 +7400,32 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(invoicingActivity.body.recentPurchases).not.toBeNull();
     expect(invoicingActivity.body.recentExpenses).not.toBeNull();
     expect(invoicingActivity.body.recentInventoryMovements).not.toBeNull();
+
+    await request<unknown>('PATCH', `/subscriptions/companies/${tenant.company.id}`, {
+      token: platformToken,
+      body: { planCode: 'control', status: 'active', reason: 'Validar consulta histórica' },
+    });
+    const historicalDashboard = await request<DashboardSummaryResponse>(
+      'GET',
+      '/dashboard/summary',
+      { token: tenant.accessToken },
+    );
+    expect(historicalDashboard.status).toBe(200);
+    expect(historicalDashboard.body.access).toMatchObject({
+      planCode: 'control',
+      includesBillingReconciliation: true,
+    });
+    expect(
+      (await request<unknown>('GET', '/invoices/summary', { token: tenant.accessToken })).status,
+    ).toBe(200);
+    expect(
+      (
+        await request<unknown>('POST', '/invoices', {
+          token: tenant.accessToken,
+          body: { orderId: paidOrder.body.id },
+        })
+      ).status,
+    ).toBe(403);
 
     const isolated = await provisionAndLogin(
       'Dashboard Isolated Integration',

@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { SubscriptionPlanCode } from '../../../subscriptions/subscription.types';
+import { DashboardBillingReconciliationResponseDto } from '../../invoicing/dto/billing-reconciliation.dto';
 
 export class DashboardPeriodResponseDto {
   @ApiProperty({ example: '2026-10' }) month!: string;
@@ -13,6 +14,7 @@ export class DashboardAccessResponseDto {
   @ApiProperty() planName!: string;
   @ApiProperty() includesFinancials!: boolean;
   @ApiProperty() includesLowStock!: boolean;
+  @ApiProperty() includesBillingReconciliation!: boolean;
 }
 
 export class DashboardOrdersResponseDto {
@@ -79,6 +81,8 @@ export class DashboardSummaryResponseDto {
   financials!: DashboardFinancialsResponseDto | null;
   @ApiProperty({ type: DashboardLowStockResponseDto, nullable: true })
   lowStock!: DashboardLowStockResponseDto | null;
+  @ApiProperty({ type: DashboardBillingReconciliationResponseDto, nullable: true })
+  billingReconciliation!: DashboardBillingReconciliationResponseDto | null;
 }
 
 export class DashboardOrderActivityResponseDto {

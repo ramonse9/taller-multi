@@ -77,5 +77,41 @@ cancelar una simulación no cambia ninguna de estas fórmulas.
 ## Fuente única
 
 `BillingReconciliationService` contiene las definiciones, clasificación temporal y aritmética
-monetaria común. Los endpoints del Tablero, Utilidad y Facturación deberán consumir este servicio
-en los siguientes bloques para evitar fórmulas divergentes.
+monetaria común. Los endpoints del Tablero, Utilidad y Facturación consumen este servicio para
+evitar fórmulas divergentes.
+
+## API agregada
+
+Los indicadores se obtienen mediante una sola consulta agregada por solicitud. La consulta no
+carga una colección de órdenes ni ejecuta una consulta por cada documento.
+
+- `GET /api/dashboard/summary` incorpora `billingReconciliation` únicamente cuando existe acceso
+  actual o histórico a Facturación y el usuario tiene `invoices.view`.
+- `GET /api/profitability/billing-reconciliation` exige simultáneamente `profitability.view`,
+  `invoices.view`, la capacidad Utilidad y acceso actual o histórico a Facturación.
+- `GET /api/invoices/summary` exige `invoices.view` y acceso actual o histórico a Facturación. Su
+  respuesta no contiene costos, gastos, utilidad ni márgenes.
+
+Los parámetros `occurredFrom` y `occurredTo` son fechas locales inclusivas. Internamente se
+convierten con la zona horaria del usuario a un intervalo UTC semiabierto `[startsAt, endsBefore)`.
+Sin parámetros se utiliza el mes local actual completo.
+
+El acceso histórico permite consultar los indicadores después de bajar de Facturación a Control,
+pero no habilita creación, edición, emisión o cancelación de simulaciones.
+
+## Evaluación de índices
+
+La consulta real aprovecha los índices existentes:
+
+- `simulated_invoices_open_order_unique` para localizar el documento activo de cada orden;
+- `orders_paid_at_idx` para cortes por fecha de pago;
+- `expenses_status_date_idx` para gastos confirmados por fecha;
+- `simulated_invoices_status_date_idx` para separar estados documentales.
+
+Los indicadores de foto actual requieren revisar el conjunto de órdenes terminadas y se calculan
+en la misma pasada que la cohorte del periodo. Por ello no se agregó un índice especulativo para
+`closed_at`, `issued_at` o `cancelled_at`: en tenants pequeños y medianos puede aumentar escritura y
+almacenamiento sin mejorar el plan elegido por PostgreSQL. Antes de agregarlo se debe capturar
+`EXPLAIN (ANALYZE, BUFFERS)` con volumen representativo. Si el volumen demuestra scans costosos,
+los candidatos son índices parciales por `orders(closed_at)` para `status='completed'` y por las
+fechas de emisión/cancelación para sus estados respectivos.

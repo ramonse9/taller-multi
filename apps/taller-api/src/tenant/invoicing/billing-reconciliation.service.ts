@@ -192,6 +192,40 @@ export interface BillingReconciliationSummary {
   };
 }
 
+export interface BillingReconciliationAggregates {
+  snapshotPendingCount: number;
+  snapshotPendingAmount: ReconciliationMoney;
+  snapshotDraftCount: number;
+  snapshotDraftAmount: ReconciliationMoney;
+  snapshotPpdPendingCount: number;
+  snapshotPpdPendingAmount: ReconciliationMoney;
+  snapshotPpdPendingSimulatedTotal: ReconciliationMoney;
+  completedCount: number;
+  generatedAmount: ReconciliationMoney;
+  cohortCollectedCount: number;
+  cohortCollectedAmount: ReconciliationMoney;
+  cohortPendingCollectionCount: number;
+  cohortPendingCollectionAmount: ReconciliationMoney;
+  cohortIssuedCount: number;
+  cohortIssuedOperationalAmount: ReconciliationMoney;
+  cohortIssuedSubtotal: ReconciliationMoney;
+  cohortIssuedTax: ReconciliationMoney;
+  cohortIssuedTotal: ReconciliationMoney;
+  cohortPendingInvoiceCount: number;
+  cohortPendingInvoiceAmount: ReconciliationMoney;
+  incompleteCostCount: number;
+  knownDirectCost: ReconciliationMoney;
+  paidInPeriodCount: number;
+  paidInPeriodAmount: ReconciliationMoney;
+  issuedInPeriodCount: number;
+  issuedInPeriodSubtotal: ReconciliationMoney;
+  issuedInPeriodTax: ReconciliationMoney;
+  issuedInPeriodTotal: ReconciliationMoney;
+  cancelledInPeriodCount: number;
+  cancelledInPeriodTotal: ReconciliationMoney;
+  operatingExpenses: ReconciliationMoney;
+}
+
 interface InvoiceSelection {
   activeDraft: BillingReconciliationInvoice | null;
   activeIssued: BillingReconciliationInvoice | null;
@@ -354,6 +388,53 @@ export class BillingReconciliationService {
       }
     }
 
+    return this.summarize(period, {
+      snapshotPendingCount,
+      snapshotPendingAmount: this.format(snapshotPendingAmount),
+      snapshotDraftCount,
+      snapshotDraftAmount: this.format(snapshotDraftAmount),
+      snapshotPpdPendingCount,
+      snapshotPpdPendingAmount: this.format(snapshotPpdPendingAmount),
+      snapshotPpdPendingSimulatedTotal: this.format(snapshotPpdPendingSimulatedTotal),
+      completedCount,
+      generatedAmount: this.format(generatedAmount),
+      cohortCollectedCount,
+      cohortCollectedAmount: this.format(cohortCollectedAmount),
+      cohortPendingCollectionCount,
+      cohortPendingCollectionAmount: this.format(cohortPendingCollectionAmount),
+      cohortIssuedCount,
+      cohortIssuedOperationalAmount: this.format(cohortIssuedOperationalAmount),
+      cohortIssuedSubtotal: this.format(cohortIssuedSubtotal),
+      cohortIssuedTax: this.format(cohortIssuedTax),
+      cohortIssuedTotal: this.format(cohortIssuedTotal),
+      cohortPendingInvoiceCount,
+      cohortPendingInvoiceAmount: this.format(cohortPendingInvoiceAmount),
+      incompleteCostCount,
+      knownDirectCost: this.format(knownDirectCost),
+      paidInPeriodCount,
+      paidInPeriodAmount: this.format(paidInPeriodAmount),
+      issuedInPeriodCount,
+      issuedInPeriodSubtotal: this.format(issuedInPeriodSubtotal),
+      issuedInPeriodTax: this.format(issuedInPeriodTax),
+      issuedInPeriodTotal: this.format(issuedInPeriodTotal),
+      cancelledInPeriodCount,
+      cancelledInPeriodTotal: this.format(cancelledInPeriodTotal),
+      operatingExpenses: this.format(operatingExpenses),
+    });
+  }
+
+  summarize(
+    period: BillingReconciliationPeriod,
+    aggregate: BillingReconciliationAggregates,
+  ): BillingReconciliationSummary {
+    const startsAt = this.timestamp(period.startsAt, 'period.startsAt');
+    const endsBefore = this.timestamp(period.endsBefore, 'period.endsBefore');
+    if (startsAt >= endsBefore) {
+      throw new BadRequestException('El inicio del periodo debe ser anterior a su fin exclusivo');
+    }
+    const generatedAmount = this.money(aggregate.generatedAmount, 'ingresos generados');
+    const knownDirectCost = this.money(aggregate.knownDirectCost, 'costo directo conocido');
+    const operatingExpenses = this.money(aggregate.operatingExpenses, 'gastos operativos');
     const grossProfit = generatedAmount - knownDirectCost;
     const operatingProfit = grossProfit - operatingExpenses;
     return {
@@ -362,43 +443,82 @@ export class BillingReconciliationService {
         endsBefore: new Date(endsBefore).toISOString(),
       },
       snapshot: {
-        pendingToInvoiceCount: snapshotPendingCount,
-        pendingToInvoiceOperationalAmount: this.format(snapshotPendingAmount),
-        activeDraftCount: snapshotDraftCount,
-        activeDraftOperationalAmount: this.format(snapshotDraftAmount),
-        ppdPendingCollectionCount: snapshotPpdPendingCount,
-        ppdPendingCollectionOperationalAmount: this.format(snapshotPpdPendingAmount),
-        ppdPendingCollectionSimulatedTotal: this.format(snapshotPpdPendingSimulatedTotal),
+        pendingToInvoiceCount: aggregate.snapshotPendingCount,
+        pendingToInvoiceOperationalAmount: this.moneyText(
+          aggregate.snapshotPendingAmount,
+          'pendiente de facturar',
+        ),
+        activeDraftCount: aggregate.snapshotDraftCount,
+        activeDraftOperationalAmount: this.moneyText(
+          aggregate.snapshotDraftAmount,
+          'borradores activos',
+        ),
+        ppdPendingCollectionCount: aggregate.snapshotPpdPendingCount,
+        ppdPendingCollectionOperationalAmount: this.moneyText(
+          aggregate.snapshotPpdPendingAmount,
+          'PPD pendiente de cobro',
+        ),
+        ppdPendingCollectionSimulatedTotal: this.moneyText(
+          aggregate.snapshotPpdPendingSimulatedTotal,
+          'total simulado PPD',
+        ),
       },
       completionPeriod: {
-        completedOrderCount: completedCount,
+        completedOrderCount: aggregate.completedCount,
         generatedOperationalAmount: this.format(generatedAmount),
-        collectedOrderCount: cohortCollectedCount,
-        collectedOperationalAmount: this.format(cohortCollectedAmount),
-        pendingCollectionOrderCount: cohortPendingCollectionCount,
-        pendingCollectionOperationalAmount: this.format(cohortPendingCollectionAmount),
-        issuedOrderCount: cohortIssuedCount,
-        issuedOrderOperationalAmount: this.format(cohortIssuedOperationalAmount),
-        issuedSimulationSubtotal: this.format(cohortIssuedSubtotal),
-        issuedSimulationTax: this.format(cohortIssuedTax),
-        issuedSimulationTotal: this.format(cohortIssuedTotal),
-        pendingToInvoiceCount: cohortPendingInvoiceCount,
-        pendingToInvoiceOperationalAmount: this.format(cohortPendingInvoiceAmount),
-        incompleteCostOrderCount: incompleteCostCount,
+        collectedOrderCount: aggregate.cohortCollectedCount,
+        collectedOperationalAmount: this.moneyText(
+          aggregate.cohortCollectedAmount,
+          'cobrado de la cohorte',
+        ),
+        pendingCollectionOrderCount: aggregate.cohortPendingCollectionCount,
+        pendingCollectionOperationalAmount: this.moneyText(
+          aggregate.cohortPendingCollectionAmount,
+          'pendiente de cobro de la cohorte',
+        ),
+        issuedOrderCount: aggregate.cohortIssuedCount,
+        issuedOrderOperationalAmount: this.moneyText(
+          aggregate.cohortIssuedOperationalAmount,
+          'importe operativo emitido',
+        ),
+        issuedSimulationSubtotal: this.moneyText(
+          aggregate.cohortIssuedSubtotal,
+          'subtotal simulado emitido',
+        ),
+        issuedSimulationTax: this.moneyText(aggregate.cohortIssuedTax, 'impuesto simulado emitido'),
+        issuedSimulationTotal: this.moneyText(
+          aggregate.cohortIssuedTotal,
+          'total simulado emitido',
+        ),
+        pendingToInvoiceCount: aggregate.cohortPendingInvoiceCount,
+        pendingToInvoiceOperationalAmount: this.moneyText(
+          aggregate.cohortPendingInvoiceAmount,
+          'pendiente de facturar de la cohorte',
+        ),
+        incompleteCostOrderCount: aggregate.incompleteCostCount,
       },
       paymentPeriod: {
-        collectedOrderCount: paidInPeriodCount,
-        collectedOperationalAmount: this.format(paidInPeriodAmount),
+        collectedOrderCount: aggregate.paidInPeriodCount,
+        collectedOperationalAmount: this.moneyText(
+          aggregate.paidInPeriodAmount,
+          'cobrado en el periodo',
+        ),
       },
       issuancePeriod: {
-        issuedSimulationCount: issuedInPeriodCount,
-        simulatedSubtotal: this.format(issuedInPeriodSubtotal),
-        simulatedTax: this.format(issuedInPeriodTax),
-        simulatedTotal: this.format(issuedInPeriodTotal),
+        issuedSimulationCount: aggregate.issuedInPeriodCount,
+        simulatedSubtotal: this.moneyText(
+          aggregate.issuedInPeriodSubtotal,
+          'subtotal simulado del periodo',
+        ),
+        simulatedTax: this.moneyText(aggregate.issuedInPeriodTax, 'impuesto simulado del periodo'),
+        simulatedTotal: this.moneyText(aggregate.issuedInPeriodTotal, 'total simulado del periodo'),
       },
       cancellationPeriod: {
-        cancelledSimulationCount: cancelledInPeriodCount,
-        cancelledSimulatedTotal: this.format(cancelledInPeriodTotal),
+        cancelledSimulationCount: aggregate.cancelledInPeriodCount,
+        cancelledSimulatedTotal: this.moneyText(
+          aggregate.cancelledInPeriodTotal,
+          'total simulado cancelado',
+        ),
       },
       profitability: {
         generatedOperationalAmount: this.format(generatedAmount),
@@ -406,7 +526,7 @@ export class BillingReconciliationService {
         provisionalGrossProfit: this.format(grossProfit),
         operatingExpenses: this.format(operatingExpenses),
         provisionalOperatingProfit: this.format(operatingProfit),
-        incompleteCostOrderCount: incompleteCostCount,
+        incompleteCostOrderCount: aggregate.incompleteCostCount,
       },
     };
   }
@@ -454,5 +574,9 @@ export class BillingReconciliationService {
     const sign = value < 0n ? '-' : '';
     const absolute = value < 0n ? -value : value;
     return `${sign}${absolute / 100n}.${(absolute % 100n).toString().padStart(2, '0')}`;
+  }
+
+  private moneyText(value: ReconciliationMoney, label: string): string {
+    return this.format(this.money(value, label));
   }
 }

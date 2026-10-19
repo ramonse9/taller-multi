@@ -54,8 +54,8 @@ export class SubscriptionGuard implements CanActivate {
     if (!user.companyId) throw new ForbiddenException('Compañía requerida');
     const subscription = await this.subscriptions.getByCompanyId(user.companyId);
     if (feature) this.subscriptions.assertFeature(subscription, feature);
-    else if (readFeature) this.subscriptions.assertFeatureReadAccess(subscription, readFeature);
-    else this.subscriptions.assertUsable(subscription);
+    if (readFeature) this.subscriptions.assertFeatureReadAccess(subscription, readFeature);
+    if (!feature && !readFeature) this.subscriptions.assertUsable(subscription);
     return true;
   }
 }

@@ -6,6 +6,8 @@ import { DashboardService } from '../../tenant/dashboard/dashboard.service';
 import { ProfitabilityService } from '../../tenant/profitability/profitability.service';
 import { ProfitabilityWorkbookService } from '../../tenant/profitability/profitability-workbook.service';
 import { TenantSessionService } from '../../tenant/tenant-session.service';
+import { BillingReconciliationService } from '../../tenant/invoicing/billing-reconciliation.service';
+import { BillingReconciliationQueryService } from '../../tenant/invoicing/billing-reconciliation-query.service';
 import { PermissionsService } from '../../permissions/permissions.service';
 import { PlatformRole } from '../../platform-users/entities/platform-user.entity';
 import { SubscriptionsService } from '../../subscriptions/subscriptions.service';
@@ -138,8 +140,7 @@ function slug(value: string): string {
 
 function orderTotal(order: DemoOrder): number {
   return order.items.reduce(
-    (total, item) =>
-      total + (item.affectsOrderTotal ? item.quantity * (item.unitPrice ?? 0) : 0),
+    (total, item) => total + (item.affectsOrderTotal ? item.quantity * (item.unitPrice ?? 0) : 0),
     0,
   );
 }
@@ -201,10 +202,7 @@ async function resolveContext(dataSource: DataSource): Promise<{
   };
 }
 
-async function validateCustomersAndVehicles(
-  dataSource: DataSource,
-  schema: string,
-): Promise<void> {
+async function validateCustomersAndVehicles(dataSource: DataSource, schema: string): Promise<void> {
   const rows = await dataSource.query<CustomerValidationRow[]>(
     `SELECT customer.display_name, customer.customer_type,
             count(DISTINCT vehicle.id)::int AS vehicle_count,
@@ -231,7 +229,10 @@ async function validateCustomersAndVehicles(
     ).length;
     assertEqual(actual.vehicle_count, vehicleCount, `Vehículos de ${customer.displayName}`);
     assertEqual(actual.order_count, orderCount, `Órdenes de ${customer.displayName}`);
-    assert(vehicleCount >= 1 && vehicleCount <= 3, `${customer.displayName} debe tener de 1 a 3 vehículos`);
+    assert(
+      vehicleCount >= 1 && vehicleCount <= 3,
+      `${customer.displayName} debe tener de 1 a 3 vehículos`,
+    );
     assert(orderCount >= 1 && orderCount <= 2, `${customer.displayName} debe tener 1 o 2 órdenes`);
   }
 }
@@ -273,7 +274,9 @@ async function validateOrders(dataSource: DataSource, schema: string): Promise<v
   for (const expected of PRUEBAS_DEMO_DATASET.orders) {
     const actual = actualByFolio.get(expected.externalFolio);
     assert(actual, `No se encontró la orden ${expected.externalFolio}`);
-    const customer = PRUEBAS_DEMO_DATASET.customers.find(({ key }) => key === expected.customerKey)!;
+    const customer = PRUEBAS_DEMO_DATASET.customers.find(
+      ({ key }) => key === expected.customerKey,
+    )!;
     const vehicle = PRUEBAS_DEMO_DATASET.vehicles.find(({ key }) => key === expected.vehicleKey)!;
     const expectedCost = orderCost(expected);
     assertEqual(actual.customer_name, customer.displayName, `Cliente de ${expected.externalFolio}`);
@@ -289,9 +292,21 @@ async function validateOrders(dataSource: DataSource, schema: string): Promise<v
     );
     assertEqual(actual.status, expected.status, `Estatus de ${expected.externalFolio}`);
     assertEqual(actual.is_paid, expected.isPaid, `Pago de ${expected.externalFolio}`);
-    assertEqual(actual.opened_at, localTimestamp(expected.openedAt), `Apertura de ${expected.externalFolio}`);
-    assertEqual(actual.closed_at, localTimestamp(expected.closedAt), `Terminación de ${expected.externalFolio}`);
-    assertEqual(actual.paid_at, localTimestamp(expected.paidAt), `Pago fechado de ${expected.externalFolio}`);
+    assertEqual(
+      actual.opened_at,
+      localTimestamp(expected.openedAt),
+      `Apertura de ${expected.externalFolio}`,
+    );
+    assertEqual(
+      actual.closed_at,
+      localTimestamp(expected.closedAt),
+      `Terminación de ${expected.externalFolio}`,
+    );
+    assertEqual(
+      actual.paid_at,
+      localTimestamp(expected.paidAt),
+      `Pago fechado de ${expected.externalFolio}`,
+    );
     assertEqual(actual.total, money(orderTotal(expected)), `Total de ${expected.externalFolio}`);
     assertEqual(actual.total_cost, money(expectedCost), `Costo de ${expected.externalFolio}`);
     assertEqual(
@@ -301,7 +316,11 @@ async function validateOrders(dataSource: DataSource, schema: string): Promise<v
     );
     assertEqual(actual.item_count, expected.items.length, `Conceptos de ${expected.externalFolio}`);
     assertEqual(actual.catalog_item_count, 0, `Conceptos de catálogo de ${expected.externalFolio}`);
-    assertEqual(actual.unknown_product_cost_count, 0, `Productos sin costo de ${expected.externalFolio}`);
+    assertEqual(
+      actual.unknown_product_cost_count,
+      0,
+      `Productos sin costo de ${expected.externalFolio}`,
+    );
     assertEqual(
       actual.status_event_count,
       expected.status === 'completed' ? 2 : 1,
@@ -329,7 +348,11 @@ async function validateExpenses(dataSource: DataSource, schema: string): Promise
     assertEqual(actual.occurred_on, expected.occurredOn, `Fecha de ${expected.reference}`);
     assertEqual(actual.amount, money(expected.amount), `Importe de ${expected.reference}`);
     assertEqual(actual.status, 'confirmed', `Estatus de ${expected.reference}`);
-    assertEqual(actual.recurrence_type, expected.recurrenceType, `Recurrencia de ${expected.reference}`);
+    assertEqual(
+      actual.recurrence_type,
+      expected.recurrenceType,
+      `Recurrencia de ${expected.reference}`,
+    );
   }
 }
 
@@ -381,13 +404,41 @@ async function validateWorkbook(
   assert(summary, `Falta la pestaña Resumen ${report.label}`);
   assert(orders, `Falta la pestaña Órdenes ${report.label}`);
   assertEqual(workbook.worksheets.length, 2, `Pestañas de ${report.label}`);
-  assertEqual(summary.getCell('B6').value, Number(report.summary.generatedIncome), `Ingreso en Excel ${report.label}`);
-  assertEqual(summary.getCell('D6').value, Number(report.summary.collectedIncome), `Cobrado en Excel ${report.label}`);
-  assertEqual(summary.getCell('F6').value, Number(report.summary.outstandingIncome), `Pendiente en Excel ${report.label}`);
-  assertEqual(summary.getCell('H6').value, Number(report.summary.directCost), `Costo en Excel ${report.label}`);
-  assertEqual(summary.getCell('D7').value, Number(report.summary.operatingExpenses), `Gastos en Excel ${report.label}`);
-  assertEqual(summary.getCell('F7').value, Number(report.summary.netProfit), `Utilidad neta en Excel ${report.label}`);
-  assertEqual(orders.rowCount, 5 + report.orders.length, `Filas de órdenes en Excel ${report.label}`);
+  assertEqual(
+    summary.getCell('B6').value,
+    Number(report.summary.generatedIncome),
+    `Ingreso en Excel ${report.label}`,
+  );
+  assertEqual(
+    summary.getCell('D6').value,
+    Number(report.summary.collectedIncome),
+    `Cobrado en Excel ${report.label}`,
+  );
+  assertEqual(
+    summary.getCell('F6').value,
+    Number(report.summary.outstandingIncome),
+    `Pendiente en Excel ${report.label}`,
+  );
+  assertEqual(
+    summary.getCell('H6').value,
+    Number(report.summary.directCost),
+    `Costo en Excel ${report.label}`,
+  );
+  assertEqual(
+    summary.getCell('D7').value,
+    Number(report.summary.operatingExpenses),
+    `Gastos en Excel ${report.label}`,
+  );
+  assertEqual(
+    summary.getCell('F7').value,
+    Number(report.summary.netProfit),
+    `Utilidad neta en Excel ${report.label}`,
+  );
+  assertEqual(
+    orders.rowCount,
+    5 + report.orders.length,
+    `Filas de órdenes en Excel ${report.label}`,
+  );
   assertEqual(orders.views[0]?.state, 'frozen', `Encabezado congelado de ${report.label}`);
   const exportedFolios = new Set<string>();
   for (let rowNumber = 6; rowNumber <= orders.rowCount; rowNumber += 1) {
@@ -446,7 +497,11 @@ export async function validatePruebasDemo(
 
     const tenant = new TenantSessionService(dataSource);
     const permissions = new PermissionsService(dataSource);
-    const dashboardService = new DashboardService(tenant, permissions);
+    const billingReconciliation = new BillingReconciliationQueryService(
+      tenant,
+      new BillingReconciliationService(),
+    );
+    const dashboardService = new DashboardService(tenant, permissions, billingReconciliation);
     const profitabilityService = new ProfitabilityService(tenant);
     const [dashboard, activity, analytics] = await Promise.all([
       dashboardService.summary(user),
@@ -454,7 +509,10 @@ export async function validatePruebasDemo(
       profitabilityService.analytics(user, { months: 6, endingMonth: '2026-10' }),
     ]);
     assertEqual(dashboard.period.month, '2026-10', 'Periodo del tablero');
-    assert(activity.oldestInProgress.length >= 3, 'El tablero no muestra las órdenes demo en proceso');
+    assert(
+      activity.oldestInProgress.length >= 3,
+      'El tablero no muestra las órdenes demo en proceso',
+    );
     assert(activity.pendingCollection.length > 0, 'El tablero no muestra pendientes de cobro');
     assert(activity.pendingCollection.length <= 5, 'El tablero excedió el límite de pendientes');
     assert(dashboard.financials, 'El plan de pruebas no expone utilidad en el tablero');
@@ -473,19 +531,51 @@ export async function validatePruebasDemo(
         PRUEBAS_DEMO_DATASET.timezone,
       );
       if (additional.completedOrders === 0 && additional.expenses === 0) {
-        assertEqual(report.summary.completedOrderCount, expected.completedOrderCount, `Órdenes terminadas ${period}`);
-        assertEqual(report.summary.paidOrderCount, expected.paidOrderCount, `Órdenes pagadas ${period}`);
+        assertEqual(
+          report.summary.completedOrderCount,
+          expected.completedOrderCount,
+          `Órdenes terminadas ${period}`,
+        );
+        assertEqual(
+          report.summary.paidOrderCount,
+          expected.paidOrderCount,
+          `Órdenes pagadas ${period}`,
+        );
         assertEqual(
           report.summary.pendingOrderCount,
           expected.completedOrderCount - expected.paidOrderCount,
           `Órdenes pendientes ${period}`,
         );
-        assertEqual(report.summary.generatedIncome, money(expected.generatedRevenue), `Ingreso ${period}`);
-        assertEqual(report.summary.collectedIncome, money(expected.collectedRevenue), `Cobrado ${period}`);
-        assertEqual(report.summary.outstandingIncome, money(expected.outstandingRevenue), `Pendiente ${period}`);
-        assertEqual(report.summary.directCost, money(expected.directCost), `Costo directo ${period}`);
-        assertEqual(report.summary.grossProfit, money(expected.grossProfit), `Utilidad bruta ${period}`);
-        assertEqual(report.summary.operatingExpenses, money(expected.operatingExpenses), `Gastos ${period}`);
+        assertEqual(
+          report.summary.generatedIncome,
+          money(expected.generatedRevenue),
+          `Ingreso ${period}`,
+        );
+        assertEqual(
+          report.summary.collectedIncome,
+          money(expected.collectedRevenue),
+          `Cobrado ${period}`,
+        );
+        assertEqual(
+          report.summary.outstandingIncome,
+          money(expected.outstandingRevenue),
+          `Pendiente ${period}`,
+        );
+        assertEqual(
+          report.summary.directCost,
+          money(expected.directCost),
+          `Costo directo ${period}`,
+        );
+        assertEqual(
+          report.summary.grossProfit,
+          money(expected.grossProfit),
+          `Utilidad bruta ${period}`,
+        );
+        assertEqual(
+          report.summary.operatingExpenses,
+          money(expected.operatingExpenses),
+          `Gastos ${period}`,
+        );
         assertEqual(report.summary.netProfit, money(expected.netProfit), `Utilidad neta ${period}`);
       } else {
         assert(
@@ -496,14 +586,34 @@ export async function validatePruebasDemo(
       if (additional.completedOrders === 0) {
         assertEqual(report.summary.incompleteCostOrderCount, 0, `Costos incompletos ${period}`);
       }
-      assertEqual(report.orders.length, report.summary.completedOrderCount, `Detalle de órdenes ${period}`);
+      assertEqual(
+        report.orders.length,
+        report.summary.completedOrderCount,
+        `Detalle de órdenes ${period}`,
+      );
 
       const graphMonth = analytics.series.find((entry) => entry.period === period);
       assert(graphMonth, `La gráfica no contiene ${period}`);
-      assertEqual(graphMonth.generatedIncome, report.summary.generatedIncome, `Ingreso en gráfica ${period}`);
-      assertEqual(graphMonth.generatedDirectCost, report.summary.directCost, `Costo en gráfica ${period}`);
-      assertEqual(graphMonth.operatingExpenses, report.summary.operatingExpenses, `Gastos en gráfica ${period}`);
-      assertEqual(graphMonth.generatedNetProfit, report.summary.netProfit, `Utilidad en gráfica ${period}`);
+      assertEqual(
+        graphMonth.generatedIncome,
+        report.summary.generatedIncome,
+        `Ingreso en gráfica ${period}`,
+      );
+      assertEqual(
+        graphMonth.generatedDirectCost,
+        report.summary.directCost,
+        `Costo en gráfica ${period}`,
+      );
+      assertEqual(
+        graphMonth.operatingExpenses,
+        report.summary.operatingExpenses,
+        `Gastos en gráfica ${period}`,
+      );
+      assertEqual(
+        graphMonth.generatedNetProfit,
+        report.summary.netProfit,
+        `Utilidad en gráfica ${period}`,
+      );
 
       const expectedFolios = PRUEBAS_DEMO_DATASET.orders
         .filter((order) => order.status === 'completed' && order.closedAt?.startsWith(period))
@@ -527,9 +637,13 @@ export async function validatePruebasDemo(
     }
 
     const october = PRUEBAS_DEMO_DATASET.expectedMonthlyResults['2026-10'];
-    assert(analytics.collection.paidOrderCount >= october.paidOrderCount, 'Faltan pagadas en dona de octubre');
     assert(
-      analytics.collection.pendingOrderCount >= october.completedOrderCount - october.paidOrderCount,
+      analytics.collection.paidOrderCount >= october.paidOrderCount,
+      'Faltan pagadas en dona de octubre',
+    );
+    assert(
+      analytics.collection.pendingOrderCount >=
+        october.completedOrderCount - october.paidOrderCount,
       'Faltan pendientes en dona de octubre',
     );
     assertEqual(
