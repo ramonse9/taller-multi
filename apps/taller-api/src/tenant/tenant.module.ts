@@ -29,6 +29,7 @@ import {
 import { InvoiceSettingsService } from './invoicing/invoice-settings.service';
 import { SimulatedInvoicesController } from './invoicing/simulated-invoices.controller';
 import { SimulatedInvoicesService } from './invoicing/simulated-invoices.service';
+import { BillingReconciliationService } from './invoicing/billing-reconciliation.service';
 
 @Global()
 @Module({
@@ -64,7 +65,8 @@ import { SimulatedInvoicesService } from './invoicing/simulated-invoices.service
     DashboardService,
     InvoiceSettingsService,
     SimulatedInvoicesService,
+    BillingReconciliationService,
   ],
-  exports: [TenantSessionService],
+  exports: [TenantSessionService, BillingReconciliationService],
 })
 export class TenantModule {}
