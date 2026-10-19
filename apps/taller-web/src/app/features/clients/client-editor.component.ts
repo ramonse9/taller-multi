@@ -300,6 +300,8 @@ export class ClientEditorComponent implements OnInit {
   private loadFiscalRegimes(type: CustomerType, announceClear: boolean): void {
     const requestId = ++this.regimeRequestId;
     ++this.useRequestId;
+    this.form.controls.fiscalRegimeCode.disable({ emitEvent: false });
+    this.form.controls.preferredCfdiUseCode.disable({ emitEvent: false });
     this.regimesLoading.set(true);
     this.regimesError.set("");
     this.usesError.set("");
@@ -317,6 +319,7 @@ export class ClientEditorComponent implements OnInit {
       .subscribe({
         next: (regimes) => {
           if (requestId !== this.regimeRequestId) return;
+          this.form.controls.fiscalRegimeCode.enable({ emitEvent: false });
           const ordered = [...regimes].sort((left, right) => {
             if (type === "company") {
               if (left.code === "601" && right.code !== "601") return -1;
@@ -363,6 +366,7 @@ export class ClientEditorComponent implements OnInit {
     const selectedUse = this.form.controls.preferredCfdiUseCode.value;
     if (!regimeCode) {
       this.usesLoading.set(false);
+      this.form.controls.preferredCfdiUseCode.disable({ emitEvent: false });
       if (selectedUse) {
         this.form.controls.preferredCfdiUseCode.setValue("", {
           emitEvent: false,
@@ -376,6 +380,7 @@ export class ClientEditorComponent implements OnInit {
       return;
     }
 
+    this.form.controls.preferredCfdiUseCode.disable({ emitEvent: false });
     this.usesLoading.set(true);
     this.clients
       .listCfdiUses(type, regimeCode)
@@ -388,6 +393,7 @@ export class ClientEditorComponent implements OnInit {
       .subscribe({
         next: (uses) => {
           if (requestId !== this.useRequestId) return;
+          this.form.controls.preferredCfdiUseCode.enable({ emitEvent: false });
           this.cfdiUses.set(uses);
           if (selectedUse && !uses.some(({ code }) => code === selectedUse)) {
             this.form.controls.preferredCfdiUseCode.setValue("", {

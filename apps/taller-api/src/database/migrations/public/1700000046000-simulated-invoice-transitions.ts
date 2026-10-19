@@ -41,7 +41,9 @@ export class SimulatedInvoiceTransitions1700000046000 implements MigrationInterf
       }
       await this.dropLifecycleChecks(queryRunner, company.schema_name);
       await this.dropEventTypeCheck(queryRunner, company.schema_name);
-      await queryRunner.query(`DROP INDEX IF EXISTS ${schema}.simulated_invoices_open_order_unique`);
+      await queryRunner.query(
+        `DROP INDEX IF EXISTS ${schema}.simulated_invoices_open_order_unique`,
+      );
       await queryRunner.query(`
         ALTER TABLE ${schema}.simulated_invoices
           DROP COLUMN discarded_by_user_id,
@@ -113,25 +115,24 @@ export class SimulatedInvoiceTransitions1700000046000 implements MigrationInterf
     `);
   }
 
-  private async dropLifecycleChecks(
-    queryRunner: QueryRunner,
-    schemaName: string,
-  ): Promise<void> {
+  private async dropLifecycleChecks(queryRunner: QueryRunner, schemaName: string): Promise<void> {
     const schema = quoteIdentifier(schemaName);
     const constraints = (await queryRunner.query(
-      `SELECT constraint_name
-       FROM information_schema.check_constraints checks
-       JOIN information_schema.table_constraints tables
-         ON tables.constraint_schema=checks.constraint_schema
-        AND tables.constraint_name=checks.constraint_name
-       WHERE tables.table_schema=$1 AND tables.table_name='simulated_invoices'
-         AND (checks.check_clause ILIKE '%status%' OR checks.check_clause ILIKE '%cancelled_at%'
-              OR checks.check_clause ILIKE '%discarded_at%')`,
+      `SELECT constraint_record.conname AS constraint_name
+       FROM pg_catalog.pg_constraint constraint_record
+       JOIN pg_catalog.pg_class table_record ON table_record.oid=constraint_record.conrelid
+       JOIN pg_catalog.pg_namespace namespace_record ON namespace_record.oid=table_record.relnamespace
+       WHERE namespace_record.nspname=$1
+         AND table_record.relname='simulated_invoices'
+         AND constraint_record.contype='c'
+         AND (pg_get_constraintdef(constraint_record.oid) ILIKE '%status%'
+              OR pg_get_constraintdef(constraint_record.oid) ILIKE '%cancelled_at%'
+              OR pg_get_constraintdef(constraint_record.oid) ILIKE '%discarded_at%')`,
       [schemaName],
     )) as Array<{ constraint_name: string }>;
     for (const constraint of constraints) {
       await queryRunner.query(
-        `ALTER TABLE ${schema}.simulated_invoices DROP CONSTRAINT ${quoteIdentifier(constraint.constraint_name)}`,
+        `ALTER TABLE ${schema}.simulated_invoices DROP CONSTRAINT ${queryRunner.connection.driver.escape(constraint.constraint_name)}`,
       );
     }
   }
@@ -139,18 +140,19 @@ export class SimulatedInvoiceTransitions1700000046000 implements MigrationInterf
   private async dropEventTypeCheck(queryRunner: QueryRunner, schemaName: string): Promise<void> {
     const schema = quoteIdentifier(schemaName);
     const constraints = (await queryRunner.query(
-      `SELECT constraint_name
-       FROM information_schema.check_constraints checks
-       JOIN information_schema.table_constraints tables
-         ON tables.constraint_schema=checks.constraint_schema
-        AND tables.constraint_name=checks.constraint_name
-       WHERE tables.table_schema=$1 AND tables.table_name='simulated_invoice_events'
-         AND checks.check_clause ILIKE '%event_type%'`,
+      `SELECT constraint_record.conname AS constraint_name
+       FROM pg_catalog.pg_constraint constraint_record
+       JOIN pg_catalog.pg_class table_record ON table_record.oid=constraint_record.conrelid
+       JOIN pg_catalog.pg_namespace namespace_record ON namespace_record.oid=table_record.relnamespace
+       WHERE namespace_record.nspname=$1
+         AND table_record.relname='simulated_invoice_events'
+         AND constraint_record.contype='c'
+         AND pg_get_constraintdef(constraint_record.oid) ILIKE '%event_type%'`,
       [schemaName],
     )) as Array<{ constraint_name: string }>;
     for (const constraint of constraints) {
       await queryRunner.query(
-        `ALTER TABLE ${schema}.simulated_invoice_events DROP CONSTRAINT ${quoteIdentifier(constraint.constraint_name)}`,
+        `ALTER TABLE ${schema}.simulated_invoice_events DROP CONSTRAINT ${queryRunner.connection.driver.escape(constraint.constraint_name)}`,
       );
     }
   }

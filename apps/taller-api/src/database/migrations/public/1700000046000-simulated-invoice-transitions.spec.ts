@@ -9,13 +9,14 @@ describe('SimulatedInvoiceTransitions1700000046000', () => {
           { id: '11111111-1111-4111-8111-111111111111', schema_name: '_0001_mul_test' },
         ]);
       }
-      if (sql.includes('information_schema.check_constraints')) return Promise.resolve([]);
+      if (sql.includes('pg_catalog.pg_constraint')) return Promise.resolve([]);
       if (sql.includes("invoice.status='issued'")) return Promise.resolve([]);
       return Promise.resolve(undefined);
     });
 
     await new SimulatedInvoiceTransitions1700000046000().up({
       query,
+      connection: { driver: { escape: (value: string) => `"${value}"` } },
     } as unknown as QueryRunner);
 
     const sql = query.mock.calls.map(([statement]) => statement).join('\n');
@@ -23,6 +24,7 @@ describe('SimulatedInvoiceTransitions1700000046000', () => {
     expect(sql).toContain("status IN ('draft','issued','cancelled','discarded')");
     expect(sql).toContain("WHERE status IN ('draft','issued')");
     expect(sql).toContain("'discarded'");
+    expect(sql).toContain("constraint_record.contype='c'");
     expect(sql).toContain('VALUES ($1, 29, $2)');
   });
 });

@@ -80,9 +80,11 @@ export const permissionGuard: CanActivateFn = (route) => {
   const configured = route.data["permission"] as string | string[] | undefined;
   const required =
     typeof configured === "string" ? [configured] : (configured ?? []);
-  if (required.every((permission) => auth.hasPermission(permission)))
-    return true;
+  const missing = required.filter(
+    (permission) => !auth.hasPermission(permission),
+  );
+  if (missing.length === 0) return true;
   return router.createUrlTree(["/access-denied"], {
-    queryParams: { permission: required.join(",") },
+    queryParams: { permission: missing.join(",") },
   });
 };

@@ -6,5 +6,6 @@ coverage/
 !.env.example
 !.env.production.example
 !.env.test.example
+!.env.demo.example
 npm-debug.log*
 .DS_Store
