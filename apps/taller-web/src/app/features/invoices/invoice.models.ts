@@ -1,4 +1,4 @@
-export type InvoiceStatus = "draft" | "issued" | "cancelled";
+export type InvoiceStatus = "draft" | "issued" | "cancelled" | "discarded";
 export type InvoiceCollectionStatus = "pending" | "paid";
 
 export const INVOICE_COLLECTION_STATUS_NAMES: Record<
@@ -58,7 +58,7 @@ export interface SimulatedInvoiceItem {
 
 export interface SimulatedInvoiceEvent {
   id: string;
-  eventType: "created" | "updated" | "issued" | "cancelled";
+  eventType: "created" | "updated" | "issued" | "cancelled" | "discarded";
   details: Record<string, unknown>;
   actorUserId: string;
   actorName: string;
@@ -94,6 +94,7 @@ export interface SimulatedInvoice {
   total: string;
   issuedAt: string | null;
   cancelledAt: string | null;
+  discardedAt: string | null;
   createdAt: string;
   updatedAt: string;
   items: SimulatedInvoiceItem[];

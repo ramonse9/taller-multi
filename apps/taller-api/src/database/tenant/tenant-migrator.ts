@@ -8,8 +8,8 @@ export interface TenantMigration {
   up(queryRunner: QueryRunner, schemaName: string): Promise<void>;
 }
 
-export const TENANT_BASE_VERSION = 28;
-export const TENANT_BASE_NAME = 'tenant-base-v28';
+export const TENANT_BASE_VERSION = 29;
+export const TENANT_BASE_NAME = 'tenant-base-v29';
 
 /**
  * Dynamic tenant migrations deliberately use qualified identifiers everywhere.
@@ -371,7 +371,7 @@ export class TenantMigrator {
       `CREATE TABLE ${s}.simulated_invoices (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
         order_id uuid NOT NULL REFERENCES ${s}.orders(id) ON DELETE RESTRICT,
-        status varchar(20) NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','issued','cancelled')),
+        status varchar(20) NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','issued','cancelled','discarded')),
         series varchar(25), folio bigint CHECK (folio IS NULL OR folio > 0),
         issuer_fiscal_name varchar(180) NOT NULL, issuer_tax_id varchar(13) NOT NULL,
         issuer_fiscal_regime_code varchar(3) NOT NULL REFERENCES public.sat_fiscal_regimes(code),
@@ -388,20 +388,21 @@ export class TenantMigrator {
         subtotal numeric(14,2) NOT NULL DEFAULT 0 CHECK (subtotal >= 0),
         transferred_tax numeric(14,2) NOT NULL DEFAULT 0 CHECK (transferred_tax >= 0),
         total numeric(14,2) NOT NULL DEFAULT 0 CHECK (total >= 0),
-        issued_at timestamptz, cancelled_at timestamptz,
+        issued_at timestamptz, cancelled_at timestamptz, discarded_at timestamptz,
         created_by_user_id uuid NOT NULL REFERENCES public.users(id) ON DELETE RESTRICT,
         updated_by_user_id uuid NOT NULL REFERENCES public.users(id) ON DELETE RESTRICT,
         issued_by_user_id uuid REFERENCES public.users(id) ON DELETE RESTRICT,
         cancelled_by_user_id uuid REFERENCES public.users(id) ON DELETE RESTRICT,
+        discarded_by_user_id uuid REFERENCES public.users(id) ON DELETE RESTRICT,
         created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
-        CHECK ((status = 'draft' AND folio IS NULL AND issued_at IS NULL) OR
-               (status IN ('issued','cancelled') AND series IS NOT NULL AND folio IS NOT NULL AND issued_at IS NOT NULL)),
-        CHECK ((status <> 'cancelled' AND cancelled_at IS NULL) OR
-               (status = 'cancelled' AND cancelled_at IS NOT NULL)),
+        CHECK ((status='draft' AND series IS NULL AND folio IS NULL AND issued_at IS NULL AND cancelled_at IS NULL AND discarded_at IS NULL) OR
+               (status='discarded' AND series IS NULL AND folio IS NULL AND issued_at IS NULL AND cancelled_at IS NULL AND discarded_at IS NOT NULL) OR
+               (status='issued' AND series IS NOT NULL AND folio IS NOT NULL AND issued_at IS NOT NULL AND cancelled_at IS NULL AND discarded_at IS NULL) OR
+               (status='cancelled' AND series IS NOT NULL AND folio IS NOT NULL AND issued_at IS NOT NULL AND cancelled_at IS NOT NULL AND discarded_at IS NULL)),
         UNIQUE(series, folio)
       )`,
       `CREATE UNIQUE INDEX simulated_invoices_open_order_unique
-       ON ${s}.simulated_invoices(order_id) WHERE status <> 'cancelled'`,
+       ON ${s}.simulated_invoices(order_id) WHERE status IN ('draft','issued')`,
       `CREATE INDEX simulated_invoices_status_date_idx
        ON ${s}.simulated_invoices(status, created_at DESC, id DESC)`,
       `CREATE TABLE ${s}.simulated_invoice_items (
@@ -426,7 +427,7 @@ export class TenantMigrator {
       `CREATE TABLE ${s}.simulated_invoice_events (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
         invoice_id uuid NOT NULL REFERENCES ${s}.simulated_invoices(id) ON DELETE CASCADE,
-        event_type varchar(20) NOT NULL CHECK (event_type IN ('created','updated','issued','cancelled')),
+        event_type varchar(20) NOT NULL CHECK (event_type IN ('created','updated','issued','cancelled','discarded')),
         details jsonb NOT NULL DEFAULT '{}'::jsonb,
         actor_user_id uuid NOT NULL REFERENCES public.users(id) ON DELETE RESTRICT,
         created_at timestamptz NOT NULL DEFAULT now()

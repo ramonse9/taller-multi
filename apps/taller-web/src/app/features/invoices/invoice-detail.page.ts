@@ -55,7 +55,7 @@ export class InvoiceDetailPage implements OnInit {
   readonly saving = signal(false);
   readonly error = signal("");
   readonly notice = signal("");
-  readonly confirmAction = signal<"issue" | "cancel" | null>(null);
+  readonly confirmAction = signal<"issue" | "cancel" | "discard" | null>(null);
 
   readonly form = new FormGroup({
     cfdiUseCode: new FormControl("", { nonNullable: true }),
@@ -153,7 +153,9 @@ export class InvoiceDetailPage implements OnInit {
     const operation =
       action === "issue"
         ? this.invoices.issue(current.id)
-        : this.invoices.cancel(current.id);
+        : action === "cancel"
+          ? this.invoices.cancel(current.id)
+          : this.invoices.discard(current.id);
     operation
       .pipe(
         finalize(() => this.saving.set(false)),
@@ -166,7 +168,9 @@ export class InvoiceDetailPage implements OnInit {
           this.showNotice(
             action === "issue"
               ? "Simulación emitida."
-              : "Simulación cancelada.",
+              : action === "cancel"
+                ? "Simulación cancelada."
+                : "Borrador descartado.",
           );
         },
         error: (error: unknown) =>
@@ -199,6 +203,7 @@ export class InvoiceDetailPage implements OnInit {
         updated: "Borrador actualizado",
         issued: "Simulación emitida",
         cancelled: "Simulación cancelada",
+        discarded: "Borrador descartado",
       }[type] ?? type
     );
   }

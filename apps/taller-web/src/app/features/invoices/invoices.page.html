@@ -237,6 +237,7 @@
           <option value="draft">Borradores</option>
           <option value="issued">Emitidas</option>
           <option value="cancelled">Canceladas</option>
+          <option value="discarded">Borradores descartados</option>
         </select>
       </header>
       <div
@@ -260,6 +261,7 @@
               [class.bg-[#ffe3ab]]="invoice.status === 'draft'"
               [class.bg-[#cfe3fb]]="invoice.status === 'issued'"
               [class.bg-[#ffd1cc]]="invoice.status === 'cancelled'"
+              [class.bg-[#e2e7ec]]="invoice.status === 'discarded'"
               >{{ statusName(invoice.status) }}</span
             >
           </div>

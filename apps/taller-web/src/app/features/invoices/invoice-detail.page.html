@@ -81,6 +81,13 @@
             (click)="confirmAction.set('issue')"
           >
             Emitir simulación</button
+          >} @if (!readOnly() && current.status === 'draft' &&
+          auth.hasPermission('invoices.edit')) {<button
+            class="small-action-tw"
+            type="button"
+            (click)="confirmAction.set('discard')"
+          >
+            Descartar borrador</button
           >} @if (!readOnly() && current.status === 'issued' &&
           auth.hasPermission('invoices.cancel_simulation')) {<button
             class="small-action-tw"
@@ -134,7 +141,8 @@
           <span class="detail-label">ESTATUS</span
           ><strong class="block"
             >{{ current.status === 'draft' ? 'Borrador' : current.status ===
-            'issued' ? 'Simulación emitida' : 'Cancelada' }}</strong
+            'issued' ? 'Simulación emitida' : current.status === 'discarded' ?
+            'Borrador descartado' : 'Cancelada' }}</strong
           >
         </div>
       </div>
@@ -302,14 +310,15 @@
   >
     <p class="eyebrow">CONFIRMAR ACCIÓN</p>
     <h2>
-      {{ confirmAction() === 'issue' ? 'Emitir simulación' : 'Cancelar
-      simulación' }}
+      {{ confirmAction() === 'issue' ? 'Emitir simulación' : confirmAction() ===
+      'cancel' ? 'Cancelar simulación' : 'Descartar borrador' }}
     </h2>
     <p class="mt-3">
       {{ confirmAction() === 'issue' ? 'Se asignará una serie y un folio
-      interno. Seguirá siendo un documento sin validez fiscal.' : 'La
-      cancelación será únicamente interna y no realizará ninguna operación ante
-      el SAT.' }}
+      interno. Seguirá siendo un documento sin validez fiscal.' :
+      confirmAction() === 'cancel' ? 'La cancelación será únicamente interna y
+      no realizará ninguna operación ante el SAT.' : 'El borrador dejará de
+      estar activo, pero el documento y su historial se conservarán.' }}
     </p>
     <footer class="dialog-footer">
       <button class="ghost-tw" type="button" (click)="confirmAction.set(null)">

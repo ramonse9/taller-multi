@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
   UnprocessableEntityException,
@@ -316,6 +317,9 @@ export class OrdersService {
           `No se puede cambiar una orden de ${order.status} a ${input.status}`,
         );
       }
+      if (order.status === OrderStatus.Completed && input.status !== OrderStatus.Completed) {
+        await this.assertNoActiveInvoice(runner, schema, order.id);
+      }
       if (input.status === OrderStatus.Cancelled && order.is_paid) {
         throw new BadRequestException('Marca la orden como pendiente antes de cancelarla');
       }
@@ -362,6 +366,19 @@ export class OrdersService {
         throw new BadRequestException(
           'Define todos los precios antes de marcar la orden como pagada',
         );
+      }
+      if (!input.isPaid) {
+        const invoices = (await runner.query(
+          `SELECT id FROM ${schema}.simulated_invoices
+           WHERE order_id=$1 AND status='issued' AND payment_method_code='PUE'
+           ORDER BY created_at DESC, id DESC LIMIT 1 FOR UPDATE`,
+          [id],
+        )) as Array<{ id: string }>;
+        if (invoices[0]) {
+          throw new ConflictException(
+            `No se puede marcar la orden como pendiente mientras exista la simulación PUE emitida (${invoices[0].id}). Cancélala primero.`,
+          );
+        }
       }
       await runner.query(
         `UPDATE ${schema}.orders
@@ -711,6 +728,26 @@ export class OrdersService {
     return rows[0];
   }
 
+  private async assertNoActiveInvoice(
+    runner: QueryRunner,
+    schema: string,
+    orderId: string,
+  ): Promise<void> {
+    const rows = (await runner.query(
+      `SELECT id, status FROM ${schema}.simulated_invoices
+       WHERE order_id=$1 AND status IN ('draft','issued')
+       ORDER BY created_at DESC, id DESC LIMIT 1 FOR UPDATE`,
+      [orderId],
+    )) as Array<{ id: string; status: 'draft' | 'issued' }>;
+    const invoice = rows[0];
+    if (!invoice) return;
+    throw new ConflictException(
+      invoice.status === 'draft'
+        ? `La orden está bloqueada por el borrador de factura (${invoice.id}). Descártalo primero.`
+        : `La orden está bloqueada por la simulación emitida (${invoice.id}). Cancélala primero.`,
+    );
+  }
+
   private assertEditable(status: OrderStatus): void {
     if (status === OrderStatus.Completed || status === OrderStatus.Cancelled) {
       throw new BadRequestException('La orden ya no permite modificar sus datos o conceptos');
@@ -1024,7 +1061,7 @@ export class OrdersService {
         ELSE billing_invoice.status
       END AS billing_status,
       CASE
-        WHEN billing_invoice.status <> 'cancelled' THEN billing_invoice.id
+        WHEN billing_invoice.status IN ('draft', 'issued') THEN billing_invoice.id
         ELSE NULL
       END AS active_invoice_id,
       billing_invoice.series AS invoice_series,
@@ -1057,7 +1094,7 @@ export class OrdersService {
                invoice.issued_at, invoice.payment_method_code
         FROM ${schema}.simulated_invoices invoice
         WHERE invoice.order_id = service_order.id
-        ORDER BY (invoice.status <> 'cancelled') DESC,
+        ORDER BY (invoice.status IN ('draft', 'issued')) DESC,
                  invoice.created_at DESC, invoice.id DESC
         LIMIT 1
       ) billing_invoice ON true`;

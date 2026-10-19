@@ -141,4 +141,20 @@ export class SimulatedInvoicesController {
   ): Promise<SimulatedInvoiceResponseDto> {
     return this.invoices.cancel(user, id);
   }
+
+  @Post(':id/discard-draft')
+  @RequiresFeature('invoicing')
+  @HttpCode(HttpStatus.OK)
+  @RequiresPermissions('invoices.edit')
+  @ApiOperation({
+    summary: 'Descartar un borrador de simulación',
+    description: 'Conserva el documento y su historial; no cancela una simulación emitida.',
+  })
+  @ApiOkResponse({ type: SimulatedInvoiceResponseDto })
+  discard(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+  ): Promise<SimulatedInvoiceResponseDto> {
+    return this.invoices.discard(user, id);
+  }
 }

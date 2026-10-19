@@ -23,6 +23,7 @@ export enum SimulatedInvoiceStatus {
   Draft = 'draft',
   Issued = 'issued',
   Cancelled = 'cancelled',
+  Discarded = 'discarded',
 }
 
 export enum InvoiceCollectionStatus {
@@ -201,7 +202,8 @@ export class SimulatedInvoiceItemResponseDto {
 
 export class SimulatedInvoiceEventResponseDto {
   @ApiProperty({ format: 'uuid' }) id!: string;
-  @ApiProperty({ enum: ['created', 'updated', 'issued', 'cancelled'] }) eventType!: string;
+  @ApiProperty({ enum: ['created', 'updated', 'issued', 'cancelled', 'discarded'] })
+  eventType!: string;
   @ApiProperty({ type: Object }) details!: Record<string, unknown>;
   @ApiProperty({ format: 'uuid' }) actorUserId!: string;
   @ApiProperty() actorName!: string;
@@ -246,6 +248,7 @@ export class SimulatedInvoiceResponseDto {
   @ApiProperty() total!: string;
   @ApiProperty({ nullable: true, type: Date }) issuedAt!: Date | null;
   @ApiProperty({ nullable: true, type: Date }) cancelledAt!: Date | null;
+  @ApiProperty({ nullable: true, type: Date }) discardedAt!: Date | null;
   @ApiProperty() createdAt!: Date;
   @ApiProperty() updatedAt!: Date;
   @ApiProperty({ type: SimulatedInvoiceItemResponseDto, isArray: true })

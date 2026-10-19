@@ -41,6 +41,7 @@ interface OrderFiscalRow {
   id: string;
   folio: string;
   status: string;
+  is_paid: boolean;
   customer_type: 'person' | 'company';
   fiscal_name: string | null;
   tax_id: string | null;
@@ -88,6 +89,7 @@ interface InvoiceRow {
   total: string;
   issued_at: Date | null;
   cancelled_at: Date | null;
+  discarded_at: Date | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -174,8 +176,14 @@ export class SimulatedInvoicesService {
       .run(user, async (runner, schemaName) => {
         const schema = quoteIdentifier(schemaName);
         const settings = await this.requireSimulationReady(runner, schema, true);
-        const order = await this.findOrder(runner, schema, input.orderId);
+        const order = await this.findOrder(runner, schema, input.orderId, true);
         this.assertOrderReady(order);
+        const active = await this.activeInvoiceForOrder(runner, schema, order.id);
+        if (active) {
+          throw new ConflictException(
+            `La orden ya tiene una simulación activa (${active.id})`,
+          );
+        }
         await this.validateHeaderCatalogs(runner, order, input);
         const sourceItems = await this.orderItems(runner, schema, input.orderId);
         if (sourceItems.length === 0) {
@@ -286,12 +294,25 @@ export class SimulatedInvoicesService {
     return this.tenant.run(user, async (runner, schemaName) => {
       const schema = quoteIdentifier(schemaName);
       const settings = await this.requireSimulationReady(runner, schema, true);
+      const invoiceOrderId = await this.findInvoiceOrderId(runner, schema, id);
+      const order = await this.findOrder(runner, schema, invoiceOrderId, true);
       const invoice = await this.lockInvoice(runner, schema, id);
-      if (invoice.status !== SimulatedInvoiceStatus.Draft) {
-        throw new BadRequestException('La simulación ya fue emitida o cancelada');
+      if (invoice.status === SimulatedInvoiceStatus.Issued) {
+        return this.getInvoice(runner, schema, id);
       }
-      const order = await this.findOrder(runner, schema, invoice.order_id);
+      if (invoice.status !== SimulatedInvoiceStatus.Draft) {
+        throw new BadRequestException(
+          invoice.status === SimulatedInvoiceStatus.Discarded
+            ? 'El borrador fue descartado y ya no puede emitirse'
+            : 'La simulación fue cancelada y ya no puede emitirse',
+        );
+      }
       this.assertOrderReady(order);
+      if (invoice.payment_method_code === 'PUE' && !order.is_paid) {
+        throw new UnprocessableEntityException(
+          'Una simulación PUE solamente puede emitirse cuando la orden está pagada',
+        );
+      }
       await this.validateHeaderCatalogs(runner, order, {
         cfdiUseCode: invoice.cfdi_use_code,
         paymentFormCode: invoice.payment_form_code,
@@ -326,8 +347,15 @@ export class SimulatedInvoicesService {
       const schema = quoteIdentifier(schemaName);
       await this.requireSimulationReady(runner, schema);
       const invoice = await this.lockInvoice(runner, schema, id);
+      if (invoice.status === SimulatedInvoiceStatus.Cancelled) {
+        return this.getInvoice(runner, schema, id);
+      }
       if (invoice.status !== SimulatedInvoiceStatus.Issued) {
-        throw new BadRequestException('Solamente una simulación emitida puede cancelarse');
+        throw new BadRequestException(
+          invoice.status === SimulatedInvoiceStatus.Draft
+            ? 'Un borrador debe descartarse; solamente una simulación emitida puede cancelarse'
+            : 'El borrador ya fue descartado',
+        );
       }
       await runner.query(
         `UPDATE ${schema}.simulated_invoices SET status='cancelled', cancelled_at=now(),
@@ -335,6 +363,31 @@ export class SimulatedInvoicesService {
         [id, user.id],
       );
       await this.event(runner, schema, id, 'cancelled', {}, user.id);
+      return this.getInvoice(runner, schema, id);
+    });
+  }
+
+  discard(user: AuthenticatedUser, id: string): Promise<SimulatedInvoiceResponseDto> {
+    return this.tenant.run(user, async (runner, schemaName) => {
+      const schema = quoteIdentifier(schemaName);
+      await this.requireSimulationReady(runner, schema);
+      const invoice = await this.lockInvoice(runner, schema, id);
+      if (invoice.status === SimulatedInvoiceStatus.Discarded) {
+        return this.getInvoice(runner, schema, id);
+      }
+      if (invoice.status !== SimulatedInvoiceStatus.Draft) {
+        throw new BadRequestException(
+          invoice.status === SimulatedInvoiceStatus.Issued
+            ? 'Una simulación emitida debe cancelarse; no puede descartarse como borrador'
+            : 'Una simulación cancelada no puede descartarse como borrador',
+        );
+      }
+      await runner.query(
+        `UPDATE ${schema}.simulated_invoices SET status='discarded', discarded_at=now(),
+         discarded_by_user_id=$2, updated_by_user_id=$2, updated_at=now() WHERE id=$1`,
+        [id, user.id],
+      );
+      await this.event(runner, schema, id, 'discarded', {}, user.id);
       return this.getInvoice(runner, schema, id);
     });
   }
@@ -372,19 +425,48 @@ export class SimulatedInvoicesService {
     runner: QueryRunner,
     schema: string,
     id: string,
+    lock = false,
   ): Promise<OrderFiscalRow> {
     const rows = (await runner.query(
       `SELECT service_order.id, service_order.folio::text, service_order.status,
+              service_order.is_paid,
               customer.customer_type, customer.fiscal_name, customer.tax_id,
               customer.fiscal_postal_code, customer.fiscal_regime_code,
               customer.preferred_cfdi_use_code
        FROM ${schema}.orders service_order
        JOIN ${schema}.customers customer ON customer.id=service_order.customer_id
-       WHERE service_order.id=$1`,
+       WHERE service_order.id=$1${lock ? ' FOR UPDATE OF service_order' : ''}`,
       [id],
     )) as OrderFiscalRow[];
     if (!rows[0]) throw new NotFoundException('Orden no encontrada');
     return rows[0];
+  }
+
+  private async findInvoiceOrderId(
+    runner: QueryRunner,
+    schema: string,
+    id: string,
+  ): Promise<string> {
+    const rows = (await runner.query(
+      `SELECT order_id FROM ${schema}.simulated_invoices WHERE id=$1`,
+      [id],
+    )) as Array<{ order_id: string }>;
+    if (!rows[0]) throw new NotFoundException('Simulación no encontrada');
+    return rows[0].order_id;
+  }
+
+  private async activeInvoiceForOrder(
+    runner: QueryRunner,
+    schema: string,
+    orderId: string,
+  ): Promise<{ id: string; status: SimulatedInvoiceStatus } | null> {
+    const rows = (await runner.query(
+      `SELECT id, status FROM ${schema}.simulated_invoices
+       WHERE order_id=$1 AND status IN ('draft','issued')
+       ORDER BY created_at DESC, id DESC LIMIT 1 FOR UPDATE`,
+      [orderId],
+    )) as Array<{ id: string; status: SimulatedInvoiceStatus }>;
+    return rows[0] ?? null;
   }
 
   private assertOrderReady(order: OrderFiscalRow): void {
@@ -783,6 +865,7 @@ export class SimulatedInvoicesService {
       total: row.total,
       issuedAt: row.issued_at,
       cancelledAt: row.cancelled_at,
+      discardedAt: row.discarded_at,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       items: items.map((item): SimulatedInvoiceItemResponseDto => ({

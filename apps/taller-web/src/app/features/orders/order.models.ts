@@ -3,7 +3,7 @@ import { CustomerType } from "../clients/client.models";
 export type OrderStatus = "in_progress" | "completed" | "cancelled";
 export type OrderItemKind = "product" | "service";
 export type OrderBillingStatus =
-  "not_invoiced" | "draft" | "issued" | "cancelled";
+  "not_invoiced" | "draft" | "issued" | "cancelled" | "discarded";
 
 export interface OrderCustomer {
   id: string;
@@ -152,4 +152,5 @@ export const ORDER_BILLING_STATUS_NAMES: Record<OrderBillingStatus, string> = {
   draft: "Borrador",
   issued: "Simulación emitida",
   cancelled: "Simulación cancelada",
+  discarded: "Borrador descartado",
 };

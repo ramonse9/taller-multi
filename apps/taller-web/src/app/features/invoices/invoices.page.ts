@@ -226,6 +226,7 @@ export class InvoicesPage implements OnInit {
       draft: "Borrador",
       issued: "Simulación emitida",
       cancelled: "Cancelada",
+      discarded: "Borrador descartado",
     }[status];
   }
 

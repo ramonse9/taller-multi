@@ -86,4 +86,11 @@ export class InvoicesService {
       {},
     );
   }
+
+  discard(id: string): Observable<SimulatedInvoice> {
+    return this.http.post<SimulatedInvoice>(
+      `${this.url}/${id}/discard-draft`,
+      {},
+    );
+  }
 }

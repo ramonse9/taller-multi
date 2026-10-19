@@ -48,6 +48,7 @@ export enum OrderBillingStatus {
   Draft = 'draft',
   Issued = 'issued',
   Cancelled = 'cancelled',
+  Discarded = 'discarded',
 }
 
 export enum OrderItemKind {
