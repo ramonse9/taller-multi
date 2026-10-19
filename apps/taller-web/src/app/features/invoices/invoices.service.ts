@@ -5,6 +5,7 @@ import { environment } from "../../../environments/environment";
 import {
   InvoiceCatalogs,
   InvoiceSettings,
+  InvoiceReconciliationSummary,
   InvoiceStatus,
   InvoiceTaxInput,
   PaginatedInvoices,
@@ -18,6 +19,10 @@ export class InvoicesService {
 
   catalogs(): Observable<InvoiceCatalogs> {
     return this.http.get<InvoiceCatalogs>(`${this.url}/catalogs`);
+  }
+
+  summary(): Observable<InvoiceReconciliationSummary> {
+    return this.http.get<InvoiceReconciliationSummary>(`${this.url}/summary`);
   }
 
   settings(): Observable<InvoiceSettings> {

@@ -110,6 +110,23 @@ export interface PaginatedInvoices {
   items: SimulatedInvoice[];
 }
 
+export interface InvoiceReconciliationSummary {
+  period: { startsAt: string; endsBefore: string };
+  pendingToInvoiceCount: number;
+  pendingToInvoiceOperationalAmount: string;
+  activeDraftCount: number;
+  activeDraftOperationalAmount: string;
+  issuedSimulationCount: number;
+  issuedSimulationSubtotal: string;
+  issuedSimulationTax: string;
+  issuedSimulationTotal: string;
+  cancelledSimulationCount: number;
+  cancelledSimulatedTotal: string;
+  ppdPendingCollectionCount: number;
+  ppdPendingCollectionOperationalAmount: string;
+  ppdPendingCollectionSimulatedTotal: string;
+}
+
 export interface InvoiceSettings {
   mode: "disabled" | "simulation";
   issuerType: "person" | "company" | null;

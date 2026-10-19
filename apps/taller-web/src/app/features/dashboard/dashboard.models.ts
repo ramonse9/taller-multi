@@ -23,6 +23,7 @@ export interface DashboardSummary {
     planName: string;
     includesFinancials: boolean;
     includesLowStock: boolean;
+    includesBillingReconciliation: boolean;
   };
   orders: {
     inProgressCount: number;
@@ -47,6 +48,14 @@ export interface DashboardSummary {
     isComplete: boolean;
   } | null;
   lowStock: DashboardLowStock | null;
+  billingReconciliation: {
+    pendingToInvoiceCount: number;
+    pendingToInvoiceOperationalAmount: string;
+    activeDraftCount: number;
+    issuedThisPeriodCount: number;
+    issuedThisPeriodSimulatedTotal: string;
+    ppdPendingCollectionCount: number;
+  } | null;
 }
 
 export interface DashboardOrderActivity {

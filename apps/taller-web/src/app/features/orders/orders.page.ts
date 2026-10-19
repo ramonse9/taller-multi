@@ -23,19 +23,20 @@ import {
   PaginatedOrders,
 } from "./order.models";
 import { OrdersService } from "./orders.service";
-import {
-  OrderBillingAction,
-  orderBillingAction,
-} from "./order-billing-ui";
+import { OrderBillingAction, orderBillingAction } from "./order-billing-ui";
 
 const orderStatusFromQuery = (value: string | null): OrderStatus | "" =>
-  value === "in_progress" || value === "completed" || value === "cancelled" ? value : "";
+  value === "in_progress" || value === "completed" || value === "cancelled"
+    ? value
+    : "";
 
 const paymentStatusFromQuery = (value: string | null): boolean | "" => {
   if (value === "true") return true;
   if (value === "false") return false;
   return "";
 };
+
+const booleanFromQuery = (value: string | null): boolean => value === "true";
 
 @Component({
   selector: "app-orders-page",
@@ -71,7 +72,10 @@ export class OrdersPage implements OnInit {
       nonNullable: true,
     },
   );
-  readonly pendingInvoicing = new FormControl(false, { nonNullable: true });
+  readonly pendingInvoicing = new FormControl(
+    booleanFromQuery(this.route.snapshot.queryParamMap.get("pendingInvoicing")),
+    { nonNullable: true },
+  );
   readonly loading = signal(true);
   readonly error = signal("");
   readonly data = signal<PaginatedOrders>({
@@ -148,8 +152,7 @@ export class OrdersPage implements OnInit {
         hasInvoiceAccess &&
         this.auth.hasFeature("invoicing") &&
         this.auth.hasPermission("invoices.create"),
-      canEdit:
-        hasInvoiceAccess && this.auth.hasPermission("invoices.edit"),
+      canEdit: hasInvoiceAccess && this.auth.hasPermission("invoices.edit"),
     });
   }
 

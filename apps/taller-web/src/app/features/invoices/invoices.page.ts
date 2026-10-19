@@ -24,6 +24,7 @@ import {
   INVOICE_COLLECTION_STATUS_NAMES,
   InvoiceCollectionStatus,
   InvoiceCatalogs,
+  InvoiceReconciliationSummary,
   InvoiceSettings,
   InvoiceStatus,
   PaginatedInvoices,
@@ -38,6 +39,14 @@ const emptyList = (): PaginatedInvoices => ({
   hasNextPage: false,
   items: [],
 });
+
+const invoiceStatusFromQuery = (value: string | null): InvoiceStatus | "" =>
+  value === "draft" ||
+  value === "issued" ||
+  value === "cancelled" ||
+  value === "discarded"
+    ? value
+    : "";
 
 @Component({
   selector: "app-invoices-page",
@@ -62,15 +71,35 @@ export class InvoicesPage implements OnInit {
 
   readonly orderId = this.route.snapshot.queryParamMap.get("orderId") ?? "";
   readonly loading = signal(true);
+  readonly summaryLoading = signal(true);
   readonly saving = signal(false);
   readonly error = signal("");
+  readonly summaryError = signal("");
   readonly notice = signal("");
+  readonly summary = signal<InvoiceReconciliationSummary | null>(null);
   readonly settings = signal<InvoiceSettings | null>(null);
   readonly catalogs = signal<InvoiceCatalogs | null>(null);
   readonly invoices = signal<PaginatedInvoices>(emptyList());
-  readonly status = new FormControl<InvoiceStatus | "">("", {
-    nonNullable: true,
+  readonly status = new FormControl<InvoiceStatus | "">(
+    invoiceStatusFromQuery(this.route.snapshot.queryParamMap.get("status")),
+    { nonNullable: true },
+  );
+  readonly summaryEmpty = computed(() => {
+    const summary = this.summary();
+    return (
+      summary !== null &&
+      summary.pendingToInvoiceCount === 0 &&
+      summary.activeDraftCount === 0 &&
+      summary.issuedSimulationCount === 0 &&
+      summary.cancelledSimulationCount === 0 &&
+      summary.ppdPendingCollectionCount === 0
+    );
   });
+  readonly accountingView = computed(
+    () =>
+      this.auth.hasPermission("invoices.view") &&
+      !this.auth.hasPermission("profitability.view"),
+  );
 
   readonly createForm = new FormGroup({
     cfdiUseCode: new FormControl("G03", {
@@ -113,9 +142,16 @@ export class InvoicesPage implements OnInit {
   });
 
   ngOnInit(): void {
+    this.loadSummary();
     this.status.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.loadList(1));
+    this.route.queryParamMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((parameters) => {
+        const status = invoiceStatusFromQuery(parameters.get("status"));
+        if (status !== this.status.value) this.status.setValue(status);
+      });
     this.createForm.controls.paymentMethodCode.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((method) => {
@@ -132,7 +168,7 @@ export class InvoicesPage implements OnInit {
           ? this.invoicesService.settings()
           : of(null),
       catalogs: this.invoicesService.catalogs(),
-      invoices: this.invoicesService.list(),
+      invoices: this.invoicesService.list(1, this.status.value),
     })
       .pipe(
         finalize(() => this.loading.set(false)),
@@ -149,6 +185,26 @@ export class InvoicesPage implements OnInit {
           this.error.set(
             apiErrorMessage(error, "No pudimos cargar Facturación."),
           ),
+      });
+  }
+
+  loadSummary(): void {
+    this.summaryLoading.set(true);
+    this.summaryError.set("");
+    this.invoicesService
+      .summary()
+      .pipe(
+        finalize(() => this.summaryLoading.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (summary) => this.summary.set(summary),
+        error: (error: unknown) => {
+          this.summary.set(null);
+          this.summaryError.set(
+            apiErrorMessage(error, "No pudimos cargar la conciliación."),
+          );
+        },
       });
   }
 
@@ -256,6 +312,14 @@ export class InvoicesPage implements OnInit {
       style: "currency",
       currency: "MXN",
     }).format(Number(value));
+  }
+
+  periodName(value: string): string {
+    return new Intl.DateTimeFormat("es-MX", {
+      month: "long",
+      year: "numeric",
+      timeZone: "UTC",
+    }).format(new Date(value));
   }
 
   supported<T extends { isActive: boolean; simulationSupported: boolean }>(

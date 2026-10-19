@@ -210,6 +210,47 @@ test("Inicio no importa ni ejecuta consultas del Tablero", () => {
   assert.doesNotMatch(source, /OnInit|ngOnInit/);
 });
 
+test("Facturación consume el resumen de conciliación sin campos de utilidad", () => {
+  const serviceSource = readFileSync(
+    new URL(
+      "../src/app/features/invoices/invoices.service.ts",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  const modelSource = readFileSync(
+    new URL("../src/app/features/invoices/invoice.models.ts", import.meta.url),
+    "utf8",
+  );
+  const summaryModel = modelSource.match(
+    /export interface InvoiceReconciliationSummary \{[\s\S]*?\n\}/,
+  )?.[0];
+
+  assert.match(serviceSource, /`\$\{this\.url\}\/summary`/);
+  assert.ok(summaryModel);
+  assert.doesNotMatch(
+    summaryModel,
+    /directCost|operatingExpenses|profit|margin/i,
+  );
+});
+
+test("las tarjetas de conciliación navegan a órdenes y documentos filtrados", () => {
+  const invoiceTemplate = readFileSync(
+    new URL("../src/app/features/invoices/invoices.page.html", import.meta.url),
+    "utf8",
+  );
+  const ordersSource = readFileSync(
+    new URL("../src/app/features/orders/orders.page.ts", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(invoiceTemplate, /pendingInvoicing: true/);
+  assert.match(invoiceTemplate, /status: 'draft'/);
+  assert.match(invoiceTemplate, /status: 'issued'/);
+  assert.match(invoiceTemplate, /status: 'cancelled'/);
+  assert.match(ordersSource, /queryParamMap\.get\("pendingInvoicing"\)/);
+});
+
 test("la navegación contextual reconoce listados, detalles y formularios", () => {
   assert.equal(tenantSectionForUrl("/home", TENANT_NAVIGATION), null);
   assert.equal(
