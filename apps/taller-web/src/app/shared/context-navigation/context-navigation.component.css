@@ -1,0 +1,70 @@
+:host {
+  display: block;
+}
+
+.context-navigation {
+  display: flex;
+  min-height: 2.9rem;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem clamp(1rem, 3.2vw, 3.25rem);
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--cream) 42%, var(--paper));
+  font-size: 0.7rem;
+}
+
+a {
+  display: inline-flex;
+  min-height: 1.8rem;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.35rem;
+  color: #355c79;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+app-navigation-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+a:hover {
+  color: var(--orange-dark);
+  text-decoration: underline;
+  text-underline-offset: 0.2rem;
+}
+
+a:focus-visible {
+  border-radius: 0.15rem;
+  outline: 3px solid color-mix(in srgb, var(--orange) 28%, transparent);
+  outline-offset: 1px;
+}
+
+.separator {
+  color: #96a3ae;
+}
+
+.current {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:host-context(.dark) .context-navigation {
+  background: #16263a;
+}
+
+:host-context(.dark) a {
+  color: #a9cee8;
+}
+
+@media (max-width: 640px) {
+  .context-navigation {
+    min-height: 2.65rem;
+    padding-block: 0.4rem;
+  }
+}

@@ -259,3 +259,19 @@ export function isTenantAccessAllowed(
   if (rule.permission && !hasPermission(rule.permission)) return false;
   return (rule.permissions ?? []).every(hasPermission);
 }
+
+export function tenantSectionForUrl(
+  url: string,
+  items: readonly TenantNavigationItem[],
+): TenantNavigationItem | null {
+  const path = url.split(/[?#]/, 1)[0]?.replace(/\/+$/, "") || "/";
+  return (
+    items
+      .filter(
+        (item) =>
+          item.link !== "/home" &&
+          (path === item.link || path.startsWith(`${item.link}/`)),
+      )
+      .sort((left, right) => right.link.length - left.link.length)[0] ?? null
+  );
+}

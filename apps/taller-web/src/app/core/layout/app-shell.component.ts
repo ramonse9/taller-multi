@@ -3,10 +3,16 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from "@angular/router";
 import { AuthService } from "../auth/auth.service";
 import { TenantNavigationService } from "../navigation/tenant-navigation.service";
 import { ThemeService } from "../theme/theme.service";
+import { ContextNavigationComponent } from "../../shared/context-navigation/context-navigation.component";
 
 @Component({
   selector: "app-shell",
-  imports: [RouterLink, RouterLinkActive, RouterOutlet],
+  imports: [
+    RouterLink,
+    RouterLinkActive,
+    RouterOutlet,
+    ContextNavigationComponent,
+  ],
   templateUrl: "./app-shell.component.html",
   styleUrl: "./app-shell.component.css",
   host: { "[class.dark]": "theme.isDark()" },

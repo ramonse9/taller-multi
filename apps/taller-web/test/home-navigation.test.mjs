@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   isTenantAccessAllowed,
+  tenantSectionForUrl,
   TENANT_HOME_ACTIONS,
   TENANT_NAVIGATION,
 } from "../src/app/core/navigation/tenant-navigation.config.ts";
@@ -162,4 +163,27 @@ test("Inicio no importa ni ejecuta consultas del Tablero", () => {
     /DashboardService|DashboardSummary|HttpClient|\.summary\(|\.activity\(|\.analytics\(/,
   );
   assert.doesNotMatch(source, /OnInit|ngOnInit/);
+});
+
+test("la navegación contextual reconoce listados, detalles y formularios", () => {
+  assert.equal(tenantSectionForUrl("/home", TENANT_NAVIGATION), null);
+  assert.equal(
+    tenantSectionForUrl("/orders", TENANT_NAVIGATION)?.label,
+    "Órdenes",
+  );
+  assert.equal(
+    tenantSectionForUrl(
+      "/orders/6f3b1aa1-480c-4821-96fe-d4a989a88a10/edit?step=3",
+      TENANT_NAVIGATION,
+    )?.label,
+    "Órdenes",
+  );
+  assert.equal(
+    tenantSectionForUrl("/clients/customer-id", TENANT_NAVIGATION)?.label,
+    "Clientes",
+  );
+  assert.equal(
+    tenantSectionForUrl("/purchases/new", TENANT_NAVIGATION)?.label,
+    "Compras",
+  );
 });

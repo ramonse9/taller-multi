@@ -1,0 +1,10 @@
+@if (section(); as currentSection) {
+  <nav class="context-navigation" aria-label="Ruta de navegación">
+    <a routerLink="/home">
+      <app-navigation-icon name="home" />
+      <span>Inicio</span>
+    </a>
+    <span class="separator" aria-hidden="true">/</span>
+    <span class="current" aria-current="page">{{ currentSection.label }}</span>
+  </nav>
+}
