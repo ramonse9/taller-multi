@@ -3,6 +3,7 @@ export const PERMISSION_CODES = [
   'clients.view',
   'clients.create',
   'clients.edit',
+  'clients.edit_fiscal',
   'clients.deactivate',
   'vehicles.view',
   'vehicles.create',
@@ -54,6 +55,7 @@ export const PERMISSION_TEMPLATE_CODES = [
   'mechanic',
   'warehouse',
   'administration',
+  'accounting',
 ] as const;
 
 export type PermissionTemplateCode = (typeof PERMISSION_TEMPLATE_CODES)[number];

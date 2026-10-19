@@ -14,6 +14,7 @@ import {
   ApiBearerAuth,
   ApiCreatedResponse,
   ApiOkResponse,
+  ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/roles';
@@ -38,6 +39,7 @@ import {
   FiscalRegimeResponseDto,
   PaginatedClientsResponseDto,
   UpdateClientDto,
+  UpdateClientFiscalDto,
 } from './dto/client.dto';
 
 @ApiTags('clients')
@@ -131,5 +133,26 @@ export class ClientsController {
     if (editsData) this.permissions.assert(user, 'clients.edit');
     if (input.isActive !== undefined) this.permissions.assert(user, 'clients.deactivate');
     return this.clients.update(user, id, input);
+  }
+
+  @Patch(':id/fiscal-profile')
+  @RequiresFeature('invoicing')
+  @RequiresPermissions('clients.edit_fiscal')
+  @ApiOperation({
+    summary: 'Actualizar únicamente el perfil fiscal de un cliente',
+    description:
+      'No permite modificar nombre operativo, teléfono, correo, notas, tipo ni estatus del cliente.',
+  })
+  @ApiOkResponse({ type: ClientResponseDto })
+  @ApiBadRequestResponse({
+    description:
+      'RFC, régimen o Uso CFDI inválido o incompatible, o intento de enviar campos operativos',
+  })
+  updateFiscal(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @Body() input: UpdateClientFiscalDto,
+  ): Promise<ClientResponseDto> {
+    return this.clients.updateFiscal(user, id, input);
   }
 }

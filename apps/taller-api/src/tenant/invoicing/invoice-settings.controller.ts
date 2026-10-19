@@ -30,6 +30,8 @@ export class InvoiceSettingsController {
   constructor(private readonly settings: InvoiceSettingsService) {}
 
   @Get()
+  @UseGuards(RolesGuard)
+  @Roles(PlatformRole.CompanyAdmin)
   @RequiresPermissions('invoices.view')
   @ApiOperation({
     summary: 'Consultar la configuración del emisor para facturación simulada',

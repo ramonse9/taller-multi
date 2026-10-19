@@ -48,6 +48,7 @@ import { RenameBasicPlanToEssential1700000043000 } from './migrations/public/170
 import { DefinitiveSubscriptionPlanMatrix1700000044000 } from './migrations/public/1700000044000-definitive-subscription-plan-matrix';
 import { SimulatedInvoiceDocuments1700000045000 } from './migrations/public/1700000045000-simulated-invoice-documents';
 import { SimulatedInvoiceTransitions1700000046000 } from './migrations/public/1700000046000-simulated-invoice-transitions';
+import { AccountingPermissionTemplate1700000047000 } from './migrations/public/1700000047000-accounting-permission-template';
 
 export default new DataSource({
   type: 'postgres',
@@ -102,6 +103,7 @@ export default new DataSource({
     DefinitiveSubscriptionPlanMatrix1700000044000,
     SimulatedInvoiceDocuments1700000045000,
     SimulatedInvoiceTransitions1700000046000,
+    AccountingPermissionTemplate1700000047000,
   ],
   migrationsTableName: 'public_schema_migrations',
   synchronize: false,

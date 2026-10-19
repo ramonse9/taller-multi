@@ -23,6 +23,7 @@ import {
   FiscalRegimeResponseDto,
   PaginatedClientsResponseDto,
   UpdateClientDto,
+  UpdateClientFiscalDto,
 } from './dto/client.dto';
 import {
   COMPANY_RFC_PATTERN,
@@ -415,6 +416,17 @@ export class ClientsService {
         this.rethrowConstraint(error);
       }
     });
+  }
+
+  updateFiscal(
+    user: AuthenticatedUser,
+    id: string,
+    input: UpdateClientFiscalDto,
+  ): Promise<ClientResponseDto> {
+    if (Object.values(input).every((value) => value === undefined)) {
+      throw new BadRequestException('Captura al menos un dato fiscal para actualizar');
+    }
+    return this.update(user, id, input);
   }
 
   private async findOne(

@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional, PartialType, PickType } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
   IsBoolean,
@@ -150,6 +150,14 @@ export class UpdateClientDto extends PartialType(CreateClientDto) {
   @IsBoolean()
   isActive?: boolean;
 }
+
+export class UpdateClientFiscalDto extends PickType(CreateClientDto, [
+  'taxId',
+  'fiscalName',
+  'fiscalPostalCode',
+  'fiscalRegimeCode',
+  'preferredCfdiUseCode',
+] as const) {}
 
 export class ClientQueryDto {
   @ApiPropertyOptional({ default: 1, minimum: 1 })

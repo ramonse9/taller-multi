@@ -1,7 +1,11 @@
 export type TenantRole = "company_admin" | "admin" | "user";
 
 export type PermissionTemplateCode =
-  "reception" | "mechanic" | "warehouse" | "administration";
+  | "reception"
+  | "mechanic"
+  | "warehouse"
+  | "administration"
+  | "accounting";
 
 export interface PermissionCatalogItem {
   code: string;

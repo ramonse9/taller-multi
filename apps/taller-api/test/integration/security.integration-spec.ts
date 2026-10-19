@@ -50,6 +50,7 @@ import { RenameBasicPlanToEssential1700000043000 } from '../../src/database/migr
 import { DefinitiveSubscriptionPlanMatrix1700000044000 } from '../../src/database/migrations/public/1700000044000-definitive-subscription-plan-matrix';
 import { SimulatedInvoiceDocuments1700000045000 } from '../../src/database/migrations/public/1700000045000-simulated-invoice-documents';
 import { SimulatedInvoiceTransitions1700000046000 } from '../../src/database/migrations/public/1700000046000-simulated-invoice-transitions';
+import { AccountingPermissionTemplate1700000047000 } from '../../src/database/migrations/public/1700000047000-accounting-permission-template';
 import { quoteIdentifier } from '../../src/database/schema-name';
 import { seedPublicCatalogs } from '../../src/database/seeds/public-catalogs.seed';
 import { changePlatformAdminPassword } from '../../src/platform-users/change-platform-admin-password';
@@ -797,6 +798,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         DefinitiveSubscriptionPlanMatrix1700000044000,
         SimulatedInvoiceDocuments1700000045000,
         SimulatedInvoiceTransitions1700000046000,
+        AccountingPermissionTemplate1700000047000,
       ],
       migrationsTableName: 'public_schema_migrations',
       synchronize: false,
@@ -1035,7 +1037,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(
       (await request<unknown>('GET', '/invoices/settings', { token: activeAdmin.body.accessToken }))
         .status,
-    ).toBe(200);
+    ).toBe(403);
     expect(
       (
         await request<unknown>('PATCH', '/invoices/settings', {
@@ -4578,7 +4580,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       { token: tenant.accessToken },
     );
     expect(catalog.status).toBe(200);
-    expect(catalog.body).toHaveLength(46);
+    expect(catalog.body).toHaveLength(47);
     expect(catalog.body).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ code: 'orders.create', module: 'orders', action: 'create' }),
@@ -4586,6 +4588,11 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
         expect.objectContaining({ code: 'permissions.manage' }),
         expect.objectContaining({ code: 'invoices.view', module: 'invoices', action: 'view' }),
         expect.objectContaining({ code: 'invoices.configure' }),
+        expect.objectContaining({
+          code: 'clients.edit_fiscal',
+          module: 'clients',
+          action: 'edit_fiscal',
+        }),
       ]),
     );
 
@@ -4598,6 +4605,7 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       'mechanic',
       'warehouse',
       'administration',
+      'accounting',
     ]);
 
     const principal = await request<UserPermissionProfileResponse>(
@@ -4686,6 +4694,230 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     );
     expect(preserved.status).toBe(200);
     expect(preserved.body.permissionCodes).toEqual(reception.permissionCodes);
+  });
+
+  it('limita la plantilla Contabilidad al perfil fiscal y facturación del plan contratado', async () => {
+    const tenant = await provisionAndLogin(
+      'Accounting Template Integration',
+      'accounting.admin@test.local',
+      'invoicing',
+    );
+    const foreign = await provisionAndLogin(
+      'Accounting Foreign Integration',
+      'accounting.foreign@test.local',
+      'invoicing',
+    );
+    const templates = await request<PermissionTemplateResponse[]>('GET', '/permissions/templates', {
+      token: tenant.accessToken,
+    });
+    const accounting = templates.body.find(({ code }) => code === 'accounting')!;
+    const exactPermissions = [
+      'orders.view',
+      'clients.view',
+      'clients.edit_fiscal',
+      'invoices.view',
+      'invoices.create',
+      'invoices.edit',
+      'invoices.simulate_issue',
+      'invoices.cancel_simulation',
+    ];
+    expect([...accounting.permissionCodes].sort()).toEqual([...exactPermissions].sort());
+
+    const client = await request<ClientResponse>('POST', '/clients', {
+      token: tenant.accessToken,
+      body: { type: 'person', displayName: 'Cliente para Contabilidad' },
+    });
+    const foreignClient = await request<ClientResponse>('POST', '/clients', {
+      token: foreign.accessToken,
+      body: { type: 'person', displayName: 'Cliente de otra compañía' },
+    });
+    const accountant = await request<UserResponse>('POST', '/users', {
+      token: tenant.accessToken,
+      body: {
+        fullName: 'Contador Integration',
+        username: 'contador_integration',
+        phone: '+526671110061',
+        password: USER_PASSWORD,
+        timezoneCode: 'America/Mazatlan',
+        role: 'user',
+      },
+    });
+    expect(accountant.status).toBe(201);
+    const assigned = await request<UserPermissionProfileResponse>(
+      'PUT',
+      `/permissions/users/${accountant.body.id}`,
+      {
+        token: tenant.accessToken,
+        body: { templateCode: 'accounting', permissionCodes: accounting.permissionCodes },
+      },
+    );
+    expect(assigned.body).toMatchObject({
+      role: 'user',
+      templateCode: 'accounting',
+      isCustomized: false,
+      permissionCodes: accounting.permissionCodes,
+    });
+
+    const temporary = await login(accountant.body.loginName, USER_PASSWORD);
+    expect(
+      (
+        await request<unknown>('PATCH', '/users/me/password', {
+          token: temporary.body.accessToken,
+          body: { currentPassword: USER_PASSWORD, newPassword: PERMANENT_PASSWORD },
+        })
+      ).status,
+    ).toBe(204);
+    const active = await login(accountant.body.loginName, PERMANENT_PASSWORD);
+    expect(active.body.user.role).toBe('user');
+    expect([...active.body.user.permissions].sort()).toEqual([...exactPermissions].sort());
+
+    expect((await request<unknown>('GET', '/orders', { token: active.body.accessToken })).status).toBe(
+      200,
+    );
+    expect((await request<unknown>('GET', '/clients', { token: active.body.accessToken })).status).toBe(
+      200,
+    );
+    expect((await request<unknown>('GET', '/invoices', { token: active.body.accessToken })).status).toBe(
+      200,
+    );
+    expect(
+      (await request<unknown>('GET', '/invoices/settings', { token: active.body.accessToken })).status,
+    ).toBe(403);
+
+    const fiscalUpdate = await request<ClientResponse>(
+      'PATCH',
+      `/clients/${client.body.id}/fiscal-profile`,
+      {
+        token: active.body.accessToken,
+        body: {
+          taxId: 'GODE561231GR8',
+          fiscalName: 'CLIENTE PARA CONTABILIDAD',
+          fiscalPostalCode: '80000',
+          fiscalRegimeCode: '612',
+          preferredCfdiUseCode: 'G03',
+        },
+      },
+    );
+    expect(fiscalUpdate.status).toBe(200);
+    expect(fiscalUpdate.body).toMatchObject({
+      displayName: 'Cliente para Contabilidad',
+      taxId: 'GODE561231GR8',
+      fiscalName: 'CLIENTE PARA CONTABILIDAD',
+      fiscalReadiness: { isReadyToInvoice: true },
+    });
+    expect(
+      (
+        await request<unknown>('PATCH', `/clients/${client.body.id}/fiscal-profile`, {
+          token: active.body.accessToken,
+          body: { phone: '+526671234567' },
+        })
+      ).status,
+    ).toBe(400);
+    expect(
+      (
+        await request<unknown>('PATCH', `/clients/${client.body.id}`, {
+          token: active.body.accessToken,
+          body: { fiscalName: 'INTENTO POR ENDPOINT GENERAL' },
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await request<unknown>('GET', `/clients/${foreignClient.body.id}`, {
+          token: active.body.accessToken,
+        })
+      ).status,
+    ).toBe(404);
+    expect(
+      (
+        await request<unknown>('PATCH', `/clients/${foreignClient.body.id}/fiscal-profile`, {
+          token: active.body.accessToken,
+          body: { fiscalName: 'NO DEBE MODIFICARSE' },
+        })
+      ).status,
+    ).toBe(404);
+
+    for (const [method, path, body] of [
+      ['POST', '/clients', { type: 'person', displayName: 'No permitido' }],
+      ['POST', '/orders', {}],
+      ['POST', '/orders/00000000-0000-4000-8000-000000000001/status', { status: 'completed' }],
+      ['PATCH', '/orders/00000000-0000-4000-8000-000000000001/payment-status', { isPaid: true }],
+      ['GET', '/expenses', undefined],
+      ['GET', '/profitability', undefined],
+      ['GET', '/inventory/products', undefined],
+      ['GET', '/purchases', undefined],
+      ['GET', '/suppliers', undefined],
+    ] as const) {
+      const denied = await request<unknown>(method, path, {
+        token: active.body.accessToken,
+        ...(body === undefined ? {} : { body }),
+      });
+      expect(denied.status).toBe(403);
+    }
+
+    const audit = await control.query<Array<{ changes: Record<string, unknown> }>>(
+      `SELECT changes FROM public.platform_company_user_events
+       WHERE company_id=$1 AND target_user_id=$2 AND event_type='user_updated'
+       ORDER BY created_at DESC, id DESC LIMIT 1`,
+      [tenant.company.id, accountant.body.id],
+    );
+    expect(audit[0]?.changes).toHaveProperty('templateCode');
+    expect(audit[0]?.changes).toHaveProperty('permissionCodes');
+
+    const controlTenant = await provisionAndLogin(
+      'Accounting Control Plan Integration',
+      'accounting.control@test.local',
+      'control',
+    );
+    const platformAccountant = await request<{ user: UserResponse; permissionCodes: string[] }>(
+      'POST',
+      `/companies/${controlTenant.company.id}/users`,
+      {
+        token: platformToken,
+        body: {
+          fullName: 'Contador asignado por plataforma',
+          username: 'contador_plataforma',
+          phone: '+526671110062',
+          password: USER_PASSWORD,
+          timezoneCode: 'America/Mazatlan',
+          role: 'user',
+          templateCode: 'accounting',
+          permissionCodes: accounting.permissionCodes,
+        },
+      },
+    );
+    expect(platformAccountant.status).toBe(201);
+    expect([...platformAccountant.body.permissionCodes].sort()).toEqual(
+      [...accounting.permissionCodes].sort(),
+    );
+    const controlTemporary = await login(platformAccountant.body.user.loginName, USER_PASSWORD);
+    expect(
+      (
+        await request<unknown>('PATCH', '/users/me/password', {
+          token: controlTemporary.body.accessToken,
+          body: { currentPassword: USER_PASSWORD, newPassword: PERMANENT_PASSWORD },
+        })
+      ).status,
+    ).toBe(204);
+    const controlActive = await login(platformAccountant.body.user.loginName, PERMANENT_PASSWORD);
+    expect(
+      (await request<unknown>('GET', '/invoices', { token: controlActive.body.accessToken })).status,
+    ).toBe(403);
+    expect(
+      (
+        await request<unknown>('PATCH', `/clients/${client.body.id}/fiscal-profile`, {
+          token: controlActive.body.accessToken,
+          body: { fiscalName: 'NO DISPONIBLE EN CONTROL' },
+        })
+      ).status,
+    ).toBe(403);
+
+    const swagger = SwaggerModule.createDocument(app, new DocumentBuilder().build());
+    expect(swagger.paths['/api/clients/{id}/fiscal-profile']).toBeDefined();
+    const fiscalDto = JSON.stringify(swagger.components?.schemas?.UpdateClientFiscalDto);
+    expect(fiscalDto).toContain('preferredCfdiUseCode');
+    expect(fiscalDto).not.toContain('phone');
+    expect(fiscalDto).not.toContain('isActive');
   });
 
   it('ofrece el mismo comportamiento operativo a admin y user con permisos idénticos', async () => {
@@ -7906,16 +8138,28 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       'vehicle_catalog.view',
       'vehicle_catalog.manage',
     ]);
+    expect(
+      (
+        await request<unknown>('GET', '/auth/me', {
+          token: ordinarySession.body.accessToken,
+        })
+      ).status,
+    ).toBe(401);
+    const ordinarySessionWithManagement = await login(
+      `catalogos@${beta.company.loginCode}`,
+      PERMANENT_PASSWORD,
+    );
+    expect(ordinarySessionWithManagement.status).toBe(200);
 
     const delegatedBrand = await request<VehicleBrandResponse>('POST', '/catalogs/vehicle-brands', {
-      token: ordinarySession.body.accessToken,
+      token: ordinarySessionWithManagement.body.accessToken,
       body: { name: 'Marca creada con permiso configurable' },
     });
     expect(delegatedBrand.status).toBe(201);
     expect(delegatedBrand.body.createdByUserId).toBe(ordinary.body.id);
 
     const delegatedModel = await request<VehicleModelResponse>('POST', '/catalogs/vehicle-models', {
-      token: ordinarySession.body.accessToken,
+      token: ordinarySessionWithManagement.body.accessToken,
       body: {
         brandId: delegatedBrand.body.id,
         name: 'Modelo creado con permiso configurable',

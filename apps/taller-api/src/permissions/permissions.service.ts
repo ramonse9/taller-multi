@@ -39,6 +39,7 @@ interface TargetRow {
   company_id: string;
   template_code: PermissionTemplateCode | null;
   is_customized: boolean | null;
+  is_active: boolean;
 }
 
 const ADMIN_PERMISSION_CODES: PermissionCode[] = [
@@ -170,6 +171,7 @@ export class PermissionsService {
           throw new ForbiddenException('No puedes conceder permisos que no posees');
         }
       }
+      const previousPermissions = await this.forUserWithRunner(runner, userId);
       const templatePermissions = input.templateCode
         ? await this.templatePermissions(runner, input.templateCode)
         : [];
@@ -197,6 +199,30 @@ export class PermissionsService {
            updated_at = now()`,
         [userId, input.templateCode ?? null, customized, actor.id],
       );
+      await runner.query(
+        `INSERT INTO public.platform_company_user_events(
+           company_id, target_user_id, actor_user_id, event_type,
+           previous_role, target_role, previous_is_active, current_is_active,
+           previous_template_code, template_code,
+           previous_permission_codes, permission_codes, changes
+         ) VALUES ($1,$2,$3,'user_updated',$4,$4,$5,$5,$6,$7,$8,$9,$10)`,
+        [
+          actor.companyId,
+          userId,
+          actor.id,
+          target.role,
+          target.is_active,
+          target.template_code,
+          input.templateCode ?? null,
+          previousPermissions,
+          requested,
+          JSON.stringify({
+            templateCode: { before: target.template_code, after: input.templateCode ?? null },
+            permissionCodes: { before: previousPermissions.sort(), after: requested },
+          }),
+        ],
+      );
+      await this.revokeSessions(runner, userId);
       await runner.commitTransaction();
     } catch (error: unknown) {
       if (runner.isTransactionActive) await runner.rollbackTransaction();
@@ -510,10 +536,23 @@ export class PermissionsService {
 
   private targetSelect(): string {
     return `SELECT user_account.id, user_account.role, user_account.company_id,
+                   user_account.is_active,
                    profile.template_code, profile.is_customized
             FROM public.users user_account
             LEFT JOIN public.user_permission_profiles profile ON profile.user_id = user_account.id
             WHERE user_account.id = $1 AND user_account.company_id = $2`;
+  }
+
+  private async revokeSessions(runner: QueryRunner, userId: string): Promise<void> {
+    await runner.query(
+      `UPDATE public.auth_refresh_tokens SET revoked_at=COALESCE(revoked_at, now())
+       WHERE session_id IN (SELECT id FROM public.auth_sessions WHERE user_id=$1)`,
+      [userId],
+    );
+    await runner.query(
+      `UPDATE public.auth_sessions SET revoked_at=COALESCE(revoked_at, now()) WHERE user_id=$1`,
+      [userId],
+    );
   }
 
   private assertCanManageTarget(actor: AuthenticatedUser, target: TargetRow): void {
