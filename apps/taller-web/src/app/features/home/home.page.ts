@@ -7,6 +7,7 @@ import {
 import { RouterLink } from "@angular/router";
 import { AuthService } from "../../core/auth/auth.service";
 import { TenantNavigationService } from "../../core/navigation/tenant-navigation.service";
+import { ThemeService } from "../../core/theme/theme.service";
 import { NavigationIconComponent } from "../../shared/navigation-icon/navigation-icon.component";
 
 @Component({
@@ -14,10 +15,12 @@ import { NavigationIconComponent } from "../../shared/navigation-icon/navigation
   imports: [RouterLink, NavigationIconComponent],
   templateUrl: "./home.page.html",
   styleUrl: "./home.page.css",
+  host: { "[class.dark]": "theme.isDark()" },
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HomePage {
   readonly auth = inject(AuthService);
+  readonly theme = inject(ThemeService);
   private readonly navigation = inject(TenantNavigationService);
 
   readonly actions = this.navigation.homeActions;

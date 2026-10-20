@@ -5,12 +5,27 @@
       <h1>Hola, {{ auth.user()?.fullName }}</h1>
       <span>¿Qué necesitas hacer hoy en el taller?</span>
     </div>
-    @if (auth.user()?.subscription; as subscription) {
-    <div class="plan-badge" aria-label="Plan contratado">
-      <small>PLAN</small>
-      <strong>{{ subscription.planName }}</strong>
+    <div class="welcome-actions">
+      <button
+        class="theme-toggle"
+        type="button"
+        (click)="theme.toggle()"
+        [attr.aria-label]="
+          theme.isDark() ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'
+        "
+        [attr.title]="
+          theme.isDark() ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'
+        "
+      >
+        <span aria-hidden="true">{{ theme.isDark() ? '☀' : '◐' }}</span>
+      </button>
+      @if (auth.user()?.subscription; as subscription) {
+      <div class="plan-badge" aria-label="Plan contratado">
+        <small>PLAN</small>
+        <strong>{{ subscription.planName }}</strong>
+      </div>
+      }
     </div>
-    }
   </header>
 
   @if (actions().length) {

@@ -210,6 +210,23 @@ test("Inicio no importa ni ejecuta consultas del Tablero", () => {
   assert.doesNotMatch(source, /OnInit|ngOnInit/);
 });
 
+test("Inicio permite cambiar el tema con un control accesible", () => {
+  const source = readFileSync(
+    new URL("../src/app/features/home/home.page.ts", import.meta.url),
+    "utf8",
+  );
+  const template = readFileSync(
+    new URL("../src/app/features/home/home.page.html", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /ThemeService/);
+  assert.match(template, /\(click\)="theme\.toggle\(\)"/);
+  assert.match(template, /theme\.isDark\(\)/);
+  assert.match(template, /Cambiar a tema claro/);
+  assert.match(template, /Cambiar a tema oscuro/);
+});
+
 test("Facturación consume el resumen de conciliación sin campos de utilidad", () => {
   const serviceSource = readFileSync(
     new URL(
