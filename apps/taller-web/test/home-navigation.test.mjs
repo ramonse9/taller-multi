@@ -289,6 +289,25 @@ test("Facturación identifica la orden de origen por su folio y datos operativos
   assert.doesNotMatch(template, /orderId\.slice/);
 });
 
+test("el detalle de la orden oculta Inventario fuera de los planes que lo incluyen", () => {
+  const template = readFileSync(
+    new URL(
+      "../src/app/features/orders/order-detail.page.html",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+
+  assert.match(
+    template,
+    /@if \(auth\.hasFeature\('inventory'\)\) \{[\s\S]*?<span class="detail-label">INVENTARIO<\/span>/,
+  );
+  assert.match(
+    template,
+    /\[class\.sm:grid-cols-2\]="!auth\.hasFeature\('inventory'\)"/,
+  );
+});
+
 test("Utilidad oculta completamente la conciliación sin plan y permisos", () => {
   const source = readFileSync(
     new URL(
