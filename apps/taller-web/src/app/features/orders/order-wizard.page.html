@@ -845,9 +845,7 @@
                 }}</span
               >{{ item.value.description }}
               <small class="text-[#63717d] dark:text-[#afbed0]"
-                >× {{ item.value.quantity }}@if (item.value.unitSymbol &&
-                item.value.unitSymbol !== 'u') { {{ item.value.unitSymbol }}
-                }</small
+                >× {{ item.value.quantity }}</small
               ></span
             ><strong
               >{{ item.value.affectsOrderTotal ? money(itemAmount(i)) :

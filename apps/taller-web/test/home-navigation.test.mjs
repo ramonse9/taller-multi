@@ -308,6 +308,22 @@ test("el detalle de la orden oculta Inventario fuera de los planes que lo incluy
   );
 });
 
+test("la confirmación de una orden muestra cantidades sin sufijos de unidad", () => {
+  const template = readFileSync(
+    new URL(
+      "../src/app/features/orders/order-wizard.page.html",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+
+  assert.match(template, />× \{\{ item\.value\.quantity \}\}<\/small/);
+  assert.doesNotMatch(
+    template,
+    />× \{\{ item\.value\.quantity \}\}@if \(item\.value\.unitSymbol/,
+  );
+});
+
 test("Utilidad oculta completamente la conciliación sin plan y permisos", () => {
   const source = readFileSync(
     new URL(
