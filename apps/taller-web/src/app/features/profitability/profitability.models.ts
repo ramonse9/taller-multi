@@ -140,3 +140,21 @@ export interface ProfitabilityWorkbookDownload {
   blob: Blob;
   filename: string;
 }
+
+export interface ProfitabilityBillingReconciliation {
+  period: {
+    startsAt: string;
+    endsBefore: string;
+  };
+  completedOrderCount: number;
+  generatedOperationalAmount: string;
+  issuedOrderCount: number;
+  issuedOrderOperationalAmount: string;
+  pendingToInvoiceCount: number;
+  pendingToInvoiceOperationalAmount: string;
+  collectedOperationalAmount: string;
+  pendingCollectionOperationalAmount: string;
+  issuedSimulationSubtotal: string;
+  issuedSimulationTax: string;
+  issuedSimulationTotal: string;
+}

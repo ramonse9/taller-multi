@@ -188,6 +188,203 @@
     </div>
     }
 
+    @if (canViewBillingReconciliation()) {
+    <section
+      class="form-card-tw mb-8 overflow-hidden"
+      aria-labelledby="profitability-billing-reconciliation-title"
+      [attr.aria-busy]="billingReconciliationLoading()"
+    >
+      <header class="form-card-header flex-wrap justify-between gap-4">
+        <div class="min-w-0">
+          <p class="eyebrow">CONCILIACIÓN</p>
+          <h2
+            class="section-title"
+            id="profitability-billing-reconciliation-title"
+          >
+            Operación, cobro y facturación
+          </h2>
+          <p class="mb-0 mt-2 max-w-3xl text-sm text-[#63717d] dark:text-[#afbed0]">
+            Compara las órdenes terminadas con sus simulaciones y su cobro. Los
+            impuestos documentales se muestran por separado y no modifican la
+            utilidad operativa.
+          </p>
+        </div>
+        <a
+          class="small-action-tw shrink-0"
+          routerLink="/invoices"
+        >
+          Ver documentos
+        </a>
+      </header>
+
+      @if (billingReconciliationError()) {
+      <div
+        class="flex flex-wrap items-center justify-between gap-3 bg-[#ffdcd2] px-4 py-4 text-sm text-[#8e3214] dark:bg-[#633d3d] dark:text-[#ffd9d4]"
+        role="alert"
+      >
+        <span>{{ billingReconciliationError() }}</span>
+        <button
+          class="bg-transparent p-0 font-bold underline"
+          type="button"
+          (click)="loadBillingReconciliation()"
+        >
+          Reintentar
+        </button>
+      </div>
+      } @else if (billingReconciliationLoading()) {
+      <div
+        class="grid gap-4 p-4 sm:grid-cols-2 sm:p-5 xl:grid-cols-3"
+        aria-label="Cargando conciliación de facturación"
+      >
+        @for (item of [1, 2, 3, 4, 5, 6]; track item) {
+        <div
+          class="h-32 animate-pulse rounded-xl bg-[#e6ebef] dark:bg-[#294158]"
+        ></div>
+        }
+      </div>
+      } @else if (billingReconciliationEmpty()) {
+      <div class="grid min-h-48 place-items-center px-5 py-10 text-center">
+        <div class="max-w-lg">
+          <strong class="block text-lg">Sin actividad para conciliar</strong>
+          <p class="mb-0 mt-2 text-sm text-[#63717d] dark:text-[#afbed0]">
+            No hay órdenes terminadas ni simulaciones relacionadas dentro del
+            periodo seleccionado.
+          </p>
+        </div>
+      </div>
+      } @else if (billingReconciliation(); as reconciliation) {
+      <div class="grid gap-5 p-4 sm:p-5 xl:grid-cols-2">
+        <section
+          class="min-w-0 border border-[#d5dce3] bg-[#f8fafb] p-4 sm:p-5 dark:border-[#38516d] dark:bg-[#1d3045]"
+          aria-labelledby="invoiced-orders-title"
+        >
+          <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p class="eyebrow">ÓRDENES TERMINADAS</p>
+              <h3 class="m-0 text-lg" id="invoiced-orders-title">
+                Facturadas contra pendientes
+              </h3>
+            </div>
+            <span class="text-sm text-[#63717d] dark:text-[#afbed0]">
+              {{ reconciliation.completedOrderCount }} en el periodo
+            </span>
+          </div>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <a
+              class="block min-w-0 rounded-xl border border-[#9fc6e4] bg-[#e7f3fb] p-4 text-inherit no-underline transition hover:-translate-y-0.5 hover:border-[#4388c5] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4388c5] dark:border-[#456f91] dark:bg-[#243e57]"
+              routerLink="/invoices"
+              [queryParams]="{ status: 'issued' }"
+            >
+              <span class="detail-label">FACTURADAS</span>
+              <strong class="mt-2 block text-2xl text-[#285f8c] dark:text-[#b9dcf5]">
+                {{ reconciliation.issuedOrderCount }}
+              </strong>
+              <small class="mt-1 block text-[#566878] dark:text-[#b9c8d8]">
+                Importe operativo {{ money(reconciliation.issuedOrderOperationalAmount) }}
+              </small>
+            </a>
+            <a
+              class="block min-w-0 rounded-xl border border-[#e4bd76] bg-[#fff4dc] p-4 text-inherit no-underline transition hover:-translate-y-0.5 hover:border-[#d6922e] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d6922e] dark:border-[#806536] dark:bg-[#49351b]"
+              routerLink="/orders"
+              [queryParams]="{ pendingInvoicing: true }"
+            >
+              <span class="detail-label">PENDIENTES DE FACTURAR</span>
+              <strong class="mt-2 block text-2xl text-[#805719] dark:text-[#ffd18a]">
+                {{ reconciliation.pendingToInvoiceCount }}
+              </strong>
+              <small class="mt-1 block text-[#6d5a38] dark:text-[#e7c99a]">
+                Importe operativo {{ money(reconciliation.pendingToInvoiceOperationalAmount) }}
+              </small>
+            </a>
+          </div>
+          <p class="mb-0 mt-4 border-t border-[#d5dce3] pt-3 text-sm text-[#63717d] dark:border-[#38516d] dark:text-[#afbed0]">
+            Total operativo terminado:
+            <strong>{{ money(reconciliation.generatedOperationalAmount) }}</strong>
+          </p>
+        </section>
+
+        <section
+          class="min-w-0 border border-[#d5dce3] bg-[#f8fafb] p-4 sm:p-5 dark:border-[#38516d] dark:bg-[#1d3045]"
+          aria-labelledby="collection-reconciliation-title"
+        >
+          <div class="mb-4">
+            <p class="eyebrow">COBRO OPERATIVO</p>
+            <h3 class="m-0 text-lg" id="collection-reconciliation-title">
+              Cobrado contra pendiente
+            </h3>
+          </div>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <a
+              class="block min-w-0 rounded-xl border border-[#a7cfb4] bg-[#e5f4ea] p-4 text-inherit no-underline transition hover:-translate-y-0.5 hover:border-[#5b9b70] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5b9b70] dark:border-[#4b765d] dark:bg-[#294e42]"
+              routerLink="/orders"
+              [queryParams]="{ isPaid: true }"
+            >
+              <span class="detail-label">COBRADO</span>
+              <strong class="mt-2 block break-words text-2xl text-[#245b3b] dark:text-[#c9f0df]">
+                {{ money(reconciliation.collectedOperationalAmount) }}
+              </strong>
+              <small class="mt-1 block text-[#567062] dark:text-[#b8d5c5]">
+                Importe operativo
+              </small>
+            </a>
+            <a
+              class="block min-w-0 rounded-xl border border-[#e4bd76] bg-[#fff4dc] p-4 text-inherit no-underline transition hover:-translate-y-0.5 hover:border-[#d6922e] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d6922e] dark:border-[#806536] dark:bg-[#49351b]"
+              routerLink="/orders"
+              [queryParams]="{ isPaid: false }"
+            >
+              <span class="detail-label">PENDIENTE</span>
+              <strong class="mt-2 block break-words text-2xl text-[#805719] dark:text-[#ffd18a]">
+                {{ money(reconciliation.pendingCollectionOperationalAmount) }}
+              </strong>
+              <small class="mt-1 block text-[#6d5a38] dark:text-[#e7c99a]">
+                Importe operativo
+              </small>
+            </a>
+          </div>
+        </section>
+
+        <section
+          class="min-w-0 border border-[#b9c9d8] bg-[#edf5fb] p-4 sm:p-5 xl:col-span-2 dark:border-[#45627f] dark:bg-[#1a2d43]"
+          aria-labelledby="simulated-document-amounts-title"
+        >
+          <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-center">
+            <div>
+              <p class="eyebrow">DOCUMENTOS SIMULADOS</p>
+              <h3 class="m-0 text-lg" id="simulated-document-amounts-title">
+                Importes fiscales por separado
+              </h3>
+              <p class="mb-0 mt-2 text-sm text-[#566878] dark:text-[#b9c8d8]">
+                Estos importes pertenecen a la simulación documental. No se
+                suman nuevamente a los ingresos ni cambian la utilidad.
+              </p>
+            </div>
+            <dl class="m-0 grid gap-px overflow-hidden rounded-xl bg-[#b9c9d8] sm:grid-cols-3 dark:bg-[#45627f]">
+              <div class="min-w-0 bg-white p-4 dark:bg-[#20344b]">
+                <dt class="detail-label">SUBTOTAL SIMULADO</dt>
+                <dd class="m-0 mt-2 break-words text-xl font-bold">
+                  {{ money(reconciliation.issuedSimulationSubtotal) }}
+                </dd>
+              </div>
+              <div class="min-w-0 bg-white p-4 dark:bg-[#20344b]">
+                <dt class="detail-label">IMPUESTOS SIMULADOS</dt>
+                <dd class="m-0 mt-2 break-words text-xl font-bold text-[#6d4d82] dark:text-[#dec4eb]">
+                  {{ money(reconciliation.issuedSimulationTax) }}
+                </dd>
+              </div>
+              <div class="min-w-0 bg-white p-4 dark:bg-[#20344b]">
+                <dt class="detail-label">TOTAL SIMULADO</dt>
+                <dd class="m-0 mt-2 break-words text-xl font-bold text-[#285f8c] dark:text-[#b9dcf5]">
+                  {{ money(reconciliation.issuedSimulationTotal) }}
+                </dd>
+              </div>
+            </dl>
+          </div>
+        </section>
+      </div>
+      }
+    </section>
+    }
+
     <div class="relative" [class.opacity-60]="loading()">
       <div
         class="mb-8 grid gap-px bg-[#d5dce3] sm:grid-cols-2 xl:grid-cols-3 dark:bg-[#38516d]"

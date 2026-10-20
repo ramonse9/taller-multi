@@ -4,6 +4,7 @@ import { map, Observable } from "rxjs";
 import { environment } from "../../../environments/environment";
 import {
   ProfitabilityAnalytics,
+  ProfitabilityBillingReconciliation,
   MonthlyProfitabilityReport,
   ProfitabilityReport,
   ProfitabilityWorkbookDownload,
@@ -34,6 +35,19 @@ export class ProfitabilityService {
     return this.http.get<ProfitabilityAnalytics>(`${this.url}/analytics`, {
       params,
     });
+  }
+
+  billingReconciliation(
+    occurredFrom: string,
+    occurredTo: string,
+  ): Observable<ProfitabilityBillingReconciliation> {
+    const params = new HttpParams()
+      .set("occurredFrom", occurredFrom)
+      .set("occurredTo", occurredTo);
+    return this.http.get<ProfitabilityBillingReconciliation>(
+      `${this.url}/billing-reconciliation`,
+      { params },
+    );
   }
 
   monthlyReport(

@@ -251,6 +251,57 @@ test("las tarjetas de conciliación navegan a órdenes y documentos filtrados", 
   assert.match(ordersSource, /queryParamMap\.get\("pendingInvoicing"\)/);
 });
 
+test("Utilidad oculta completamente la conciliación sin plan y permisos", () => {
+  const source = readFileSync(
+    new URL(
+      "../src/app/features/profitability/profitability.page.ts",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  const template = readFileSync(
+    new URL(
+      "../src/app/features/profitability/profitability.page.html",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+
+  assert.match(source, /hasFeatureReadAccess\("invoicing"\)/);
+  assert.match(source, /hasPermission\("profitability\.view"\)/);
+  assert.match(source, /hasPermission\("invoices\.view"\)/);
+  assert.match(template, /@if \(canViewBillingReconciliation\(\)\)/);
+});
+
+test("Utilidad separa importes operativos de impuestos documentales", () => {
+  const serviceSource = readFileSync(
+    new URL(
+      "../src/app/features/profitability/profitability.service.ts",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  const modelSource = readFileSync(
+    new URL(
+      "../src/app/features/profitability/profitability.models.ts",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  const reconciliationModel = modelSource.match(
+    /export interface ProfitabilityBillingReconciliation \{[\s\S]*?\n\}/,
+  )?.[0];
+
+  assert.match(serviceSource, /`\$\{this\.url\}\/billing-reconciliation`/);
+  assert.ok(reconciliationModel);
+  assert.match(reconciliationModel, /generatedOperationalAmount/);
+  assert.match(reconciliationModel, /issuedSimulationTax/);
+  assert.doesNotMatch(
+    reconciliationModel,
+    /directCost|operatingExpenses|grossProfit|netProfit|margin/i,
+  );
+});
+
 test("la navegación contextual reconoce listados, detalles y formularios", () => {
   assert.equal(tenantSectionForUrl("/home", TENANT_NAVIGATION), null);
   assert.equal(

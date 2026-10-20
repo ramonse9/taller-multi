@@ -22,6 +22,7 @@ import { apiErrorMessage } from "../../core/http/api-error";
 import { ThemeService } from "../../core/theme/theme.service";
 import {
   ProfitabilityAnalytics,
+  ProfitabilityBillingReconciliation,
   ProfitabilityOrderRow,
   ProfitabilityPeriodRow,
   ProfitabilityReport,
@@ -92,11 +93,32 @@ export class ProfitabilityPage implements OnInit {
   readonly selectedMonthPeriod = signal<string | null>(null);
   readonly loading = signal(true);
   readonly error = signal("");
+  readonly billingReconciliation =
+    signal<ProfitabilityBillingReconciliation | null>(null);
+  readonly billingReconciliationLoading = signal(false);
+  readonly billingReconciliationError = signal("");
   readonly exporting = signal(false);
   readonly exportError = signal("");
   readonly exportNotice = signal("");
   readonly exportEmpty = signal("");
   readonly periodView = signal<"day" | "month">("day");
+  readonly canViewBillingReconciliation = computed(
+    () =>
+      this.auth.hasFeatureReadAccess("invoicing") &&
+      this.auth.hasPermission("profitability.view") &&
+      this.auth.hasPermission("invoices.view"),
+  );
+  readonly billingReconciliationEmpty = computed(() => {
+    const summary = this.billingReconciliation();
+    return (
+      summary !== null &&
+      summary.completedOrderCount === 0 &&
+      summary.issuedOrderCount === 0 &&
+      summary.pendingToInvoiceCount === 0 &&
+      Number(summary.generatedOperationalAmount) === 0 &&
+      Number(summary.issuedSimulationTotal) === 0
+    );
+  });
   readonly exportMonths = [
     { value: 1, label: "Enero" },
     { value: 2, label: "Febrero" },
@@ -266,6 +288,7 @@ export class ProfitabilityPage implements OnInit {
     }
     this.loading.set(true);
     this.error.set("");
+    this.loadBillingReconciliation(occurredFrom, occurredTo);
     forkJoin({
       report: this.profitability.report(occurredFrom, occurredTo),
       analytics: this.profitability.analytics(
@@ -298,6 +321,39 @@ export class ProfitabilityPage implements OnInit {
               "No pudimos calcular la utilidad del periodo.",
             ),
           ),
+      });
+  }
+
+  loadBillingReconciliation(
+    occurredFrom = this.filters.controls.occurredFrom.value,
+    occurredTo = this.filters.controls.occurredTo.value,
+  ): void {
+    if (!this.canViewBillingReconciliation()) {
+      this.billingReconciliation.set(null);
+      this.billingReconciliationError.set("");
+      this.billingReconciliationLoading.set(false);
+      return;
+    }
+
+    this.billingReconciliationLoading.set(true);
+    this.billingReconciliationError.set("");
+    this.profitability
+      .billingReconciliation(occurredFrom, occurredTo)
+      .pipe(
+        finalize(() => this.billingReconciliationLoading.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (summary) => this.billingReconciliation.set(summary),
+        error: (error: unknown) => {
+          this.billingReconciliation.set(null);
+          this.billingReconciliationError.set(
+            apiErrorMessage(
+              error,
+              "No pudimos consultar la conciliación de facturación del periodo.",
+            ),
+          );
+        },
       });
   }
 
