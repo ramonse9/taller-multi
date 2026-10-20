@@ -239,6 +239,35 @@ interface SimulatedInvoiceResponse {
   events: Array<{ eventType: string }>;
 }
 
+interface InvoiceReconciliationResponse {
+  pendingToInvoiceCount: number;
+  pendingToInvoiceOperationalAmount: string;
+  activeDraftCount: number;
+  activeDraftOperationalAmount: string;
+  issuedSimulationCount: number;
+  issuedSimulationSubtotal: string;
+  issuedSimulationTax: string;
+  issuedSimulationTotal: string;
+  cancelledSimulationCount: number;
+  cancelledSimulatedTotal: string;
+  ppdPendingCollectionCount: number;
+  ppdPendingCollectionOperationalAmount: string;
+}
+
+interface ProfitabilityBillingReconciliationResponse {
+  completedOrderCount: number;
+  generatedOperationalAmount: string;
+  issuedOrderCount: number;
+  issuedOrderOperationalAmount: string;
+  pendingToInvoiceCount: number;
+  pendingToInvoiceOperationalAmount: string;
+  collectedOperationalAmount: string;
+  pendingCollectionOperationalAmount: string;
+  issuedSimulationSubtotal: string;
+  issuedSimulationTax: string;
+  issuedSimulationTotal: string;
+}
+
 interface BinaryHttpResult {
   status: number;
   body: Buffer;
@@ -1096,6 +1125,26 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       'invoice.documents@test.local',
       'invoicing',
     );
+    const tenantInvoiceSchema = quoteIdentifier(tenant.company.schemaName);
+    const reconciliationIndexes = await control.query<Array<{ indexname: string }>>(
+      `SELECT indexname
+       FROM pg_indexes
+       WHERE schemaname=$1
+         AND indexname IN (
+           'orders_paid_at_idx',
+           'expenses_status_date_idx',
+           'simulated_invoices_open_order_unique',
+           'simulated_invoices_status_date_idx'
+         )
+       ORDER BY indexname`,
+      [tenant.company.schemaName],
+    );
+    expect(reconciliationIndexes.map(({ indexname }) => indexname)).toEqual([
+      'expenses_status_date_idx',
+      'orders_paid_at_idx',
+      'simulated_invoices_open_order_unique',
+      'simulated_invoices_status_date_idx',
+    ]);
     const controlPlan = await provisionAndLogin(
       'Control Sin Facturación Integration',
       'invoice.control@test.local',
@@ -1335,6 +1384,21 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect(created.body).not.toHaveProperty('satSeal');
     expect(created.body).not.toHaveProperty('xml');
 
+    const draftReconciliation = await request<InvoiceReconciliationResponse>(
+      'GET',
+      '/invoices/summary?occurredFrom=2026-09-01&occurredTo=2026-10-31',
+      { token: tenant.accessToken },
+    );
+    expect(draftReconciliation.status).toBe(200);
+    expect(draftReconciliation.body).toMatchObject({
+      pendingToInvoiceCount: 1,
+      pendingToInvoiceOperationalAmount: '1160.00',
+      activeDraftCount: 1,
+      activeDraftOperationalAmount: '1160.00',
+      issuedSimulationCount: 0,
+      ppdPendingCollectionCount: 0,
+    });
+
     const orderWithDraft = await request<OrderResponse>('GET', `/orders/${order.body.id}`, {
       token: tenant.accessToken,
     });
@@ -1454,6 +1518,67 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       'updated',
       'issued',
     ]);
+    await control.query(
+      `UPDATE ${tenantInvoiceSchema}.orders
+       SET closed_at='2026-09-28T18:00:00.000Z'
+       WHERE id=$1`,
+      [order.body.id],
+    );
+    await control.query(
+      `UPDATE ${tenantInvoiceSchema}.simulated_invoices
+       SET issued_at='2026-10-04T18:00:00.000Z'
+       WHERE id=$1`,
+      [created.body.id],
+    );
+    const septemberProfitability = await request<ProfitabilityBillingReconciliationResponse>(
+      'GET',
+      '/profitability/billing-reconciliation?occurredFrom=2026-09-01&occurredTo=2026-09-30',
+      { token: tenant.accessToken },
+    );
+    expect(septemberProfitability.status).toBe(200);
+    expect(septemberProfitability.body).toMatchObject({
+      completedOrderCount: 1,
+      generatedOperationalAmount: '1160.00',
+      issuedOrderCount: 1,
+      issuedOrderOperationalAmount: '1160.00',
+      pendingToInvoiceCount: 0,
+      issuedSimulationSubtotal: '1000.00',
+      issuedSimulationTax: '160.00',
+      issuedSimulationTotal: '1160.00',
+    });
+    const octoberIssuance = await request<InvoiceReconciliationResponse>(
+      'GET',
+      '/invoices/summary?occurredFrom=2026-10-01&occurredTo=2026-10-31',
+      { token: tenant.accessToken },
+    );
+    expect(octoberIssuance.body).toMatchObject({
+      pendingToInvoiceCount: 0,
+      activeDraftCount: 0,
+      issuedSimulationCount: 1,
+      issuedSimulationSubtotal: '1000.00',
+      issuedSimulationTax: '160.00',
+      issuedSimulationTotal: '1160.00',
+      ppdPendingCollectionCount: 1,
+      ppdPendingCollectionOperationalAmount: '1160.00',
+    });
+    const repeatedOctoberIssuance = await request<InvoiceReconciliationResponse>(
+      'GET',
+      '/invoices/summary?occurredFrom=2026-10-01&occurredTo=2026-10-31',
+      { token: tenant.accessToken },
+    );
+    expect(repeatedOctoberIssuance.body).toEqual(octoberIssuance.body);
+    const isolatedReconciliation = await request<InvoiceReconciliationResponse>(
+      'GET',
+      '/invoices/summary?occurredFrom=2026-10-01&occurredTo=2026-10-31',
+      { token: controlPlan.accessToken },
+    );
+    expect(isolatedReconciliation.body).toMatchObject({
+      pendingToInvoiceCount: 0,
+      activeDraftCount: 0,
+      issuedSimulationCount: 0,
+      cancelledSimulationCount: 0,
+      ppdPendingCollectionCount: 0,
+    });
     for (const status of ['in_progress', 'cancelled']) {
       const blocked = await request<unknown>('POST', `/orders/${order.body.id}/status`, {
         token: tenant.accessToken,
@@ -1468,6 +1593,15 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       { token: tenant.accessToken, body: { isPaid: true } },
     );
     expect(paidWithPpd.body.isPaid).toBe(true);
+    expect(
+      (
+        await request<InvoiceReconciliationResponse>(
+          'GET',
+          '/invoices/summary?occurredFrom=2026-10-01&occurredTo=2026-10-31',
+          { token: tenant.accessToken },
+        )
+      ).body.ppdPendingCollectionCount,
+    ).toBe(0);
     const pendingWithPpd = await request<OrderResponse>(
       'PATCH',
       `/orders/${order.body.id}/payment-status`,
@@ -1496,6 +1630,25 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       'issued',
       'cancelled',
     ]);
+    await control.query(
+      `UPDATE ${tenantInvoiceSchema}.simulated_invoices
+       SET cancelled_at='2026-10-15T18:00:00.000Z'
+       WHERE id=$1`,
+      [created.body.id],
+    );
+    const cancelledReconciliation = await request<InvoiceReconciliationResponse>(
+      'GET',
+      '/invoices/summary?occurredFrom=2026-10-01&occurredTo=2026-10-31',
+      { token: tenant.accessToken },
+    );
+    expect(cancelledReconciliation.body).toMatchObject({
+      pendingToInvoiceCount: 1,
+      activeDraftCount: 0,
+      issuedSimulationCount: 0,
+      cancelledSimulationCount: 1,
+      cancelledSimulatedTotal: '1160.00',
+      ppdPendingCollectionCount: 0,
+    });
     const orderWithCancelledSimulation = await request<OrderResponse>(
       'GET',
       `/orders/${order.body.id}`,
@@ -1564,6 +1717,15 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       invoiceIssuedAt: null,
       paymentMethodCode: 'PPD',
     });
+    expect(
+      (
+        await request<InvoiceReconciliationResponse>(
+          'GET',
+          '/invoices/summary?occurredFrom=2026-09-01&occurredTo=2026-10-31',
+          { token: tenant.accessToken },
+        )
+      ).body,
+    ).toMatchObject({ pendingToInvoiceCount: 1, activeDraftCount: 1 });
     const pendingWithReplacementDraft = await request<{ items: OrderResponse[] }>(
       'GET',
       '/orders?pendingInvoicing=true',
@@ -1604,6 +1766,15 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       { token: tenant.accessToken, body: { status: 'in_progress' } },
     );
     expect(reopenedAfterDiscard.status).toBe(200);
+    expect(
+      (
+        await request<InvoiceReconciliationResponse>(
+          'GET',
+          '/invoices/summary?occurredFrom=2026-09-01&occurredTo=2026-10-31',
+          { token: tenant.accessToken },
+        )
+      ).body,
+    ).toMatchObject({ pendingToInvoiceCount: 0, activeDraftCount: 0 });
     expect(
       (
         await request<OrderResponse>('POST', `/orders/${order.body.id}/status`, {
@@ -1649,6 +1820,20 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
       status: 'issued',
       paymentMethodCode: 'PUE',
       collectionStatus: 'paid',
+    });
+    expect(
+      (
+        await request<InvoiceReconciliationResponse>(
+          'GET',
+          '/invoices/summary?occurredFrom=2026-09-01&occurredTo=2026-10-31',
+          { token: tenant.accessToken },
+        )
+      ).body,
+    ).toMatchObject({
+      pendingToInvoiceCount: 0,
+      activeDraftCount: 0,
+      issuedSimulationCount: 1,
+      ppdPendingCollectionCount: 0,
     });
     const blockedPending = await request<unknown>(
       'PATCH',
@@ -1712,6 +1897,13 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     );
     expect(
       (
+        await request<unknown>('GET', '/profitability/billing-reconciliation', {
+          token: tenant.accessToken,
+        })
+      ).status,
+    ).toBe(200);
+    expect(
+      (
         await request<SimulatedInvoiceResponse>('GET', `/invoices/${created.body.id}`, {
           token: tenant.accessToken,
         })
@@ -1751,6 +1943,13 @@ describe('Integracion y seguridad multi-tenant con PostgreSQL real', () => {
     expect((await request<unknown>('GET', '/invoices', { token: tenant.accessToken })).status).toBe(
       403,
     );
+    expect(
+      (
+        await request<unknown>('GET', '/profitability/billing-reconciliation', {
+          token: tenant.accessToken,
+        })
+      ).status,
+    ).toBe(403);
     expect(
       (await request<unknown>('GET', '/catalogs/concepts', { token: tenant.accessToken })).status,
     ).toBe(403);

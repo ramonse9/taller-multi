@@ -97,8 +97,70 @@ describe('BillingReconciliationService', () => {
 
     expect(result.completionPeriod.completedOrderCount).toBe(1);
     expect(result.completionPeriod.issuedOrderCount).toBe(1);
+    expect(result.completionPeriod.generatedOperationalAmount).toBe('1000.00');
+    expect(result.completionPeriod.issuedOrderOperationalAmount).toBe('1000.00');
     expect(result.paymentPeriod.collectedOrderCount).toBe(1);
+    expect(result.paymentPeriod.collectedOperationalAmount).toBe('1000.00');
     expect(result.issuancePeriod.issuedSimulationCount).toBe(1);
+    expect(result.issuancePeriod.simulatedTotal).toBe('1160.00');
+  });
+
+  it('separa PUE y PPD del estatus de cobro sin duplicar órdenes', () => {
+    const result = service.calculate(
+      [
+        order({
+          id: 'pue-paid',
+          operationalAmount: '1000.00',
+          invoices: [invoice({ id: 'invoice-pue', paymentMethodCode: 'PUE' })],
+        }),
+        order({
+          id: 'ppd-pending',
+          operationalAmount: '2000.00',
+          isPaid: false,
+          paidAt: null,
+          invoices: [
+            invoice({
+              id: 'invoice-ppd-pending',
+              paymentMethodCode: 'PPD',
+              subtotal: '2000.00',
+              transferredTax: '320.00',
+              total: '2320.00',
+            }),
+          ],
+        }),
+        order({
+          id: 'ppd-paid',
+          operationalAmount: '3000.00',
+          invoices: [
+            invoice({
+              id: 'invoice-ppd-paid',
+              paymentMethodCode: 'PPD',
+              subtotal: '3000.00',
+              transferredTax: '480.00',
+              total: '3480.00',
+            }),
+          ],
+        }),
+      ],
+      [],
+      period,
+    );
+
+    expect(result.completionPeriod).toMatchObject({
+      completedOrderCount: 3,
+      generatedOperationalAmount: '6000.00',
+      collectedOrderCount: 2,
+      collectedOperationalAmount: '4000.00',
+      pendingCollectionOrderCount: 1,
+      pendingCollectionOperationalAmount: '2000.00',
+      issuedOrderCount: 3,
+      issuedOrderOperationalAmount: '6000.00',
+    });
+    expect(result.snapshot).toMatchObject({
+      ppdPendingCollectionCount: 1,
+      ppdPendingCollectionOperationalAmount: '2000.00',
+      ppdPendingCollectionSimulatedTotal: '2320.00',
+    });
   });
 
   it('no modifica ingresos ni utilidad al crear, emitir o cancelar simulaciones', () => {
@@ -186,6 +248,70 @@ describe('BillingReconciliationService', () => {
     expect(result.snapshot.ppdPendingCollectionOperationalAmount).toBe('1500.00');
     expect(result.snapshot.ppdPendingCollectionSimulatedTotal).toBe('1740.00');
     expect(result.completionPeriod.pendingCollectionOperationalAmount).toBe('1500.00');
+  });
+
+  it('excluye una orden reabierta de la operación aunque conserve historial cancelado', () => {
+    const result = service.calculate(
+      [
+        order({
+          status: 'in_progress',
+          completedAt: '2026-10-10T18:00:00.000Z',
+          isPaid: false,
+          paidAt: null,
+          invoices: [
+            invoice({
+              status: 'cancelled',
+              cancelledAt: '2026-10-15T18:00:00.000Z',
+            }),
+          ],
+        }),
+      ],
+      [],
+      period,
+    );
+
+    expect(result.snapshot.pendingToInvoiceCount).toBe(0);
+    expect(result.completionPeriod.completedOrderCount).toBe(0);
+    expect(result.completionPeriod.generatedOperationalAmount).toBe('0.00');
+    expect(result.cancellationPeriod).toEqual({
+      cancelledSimulationCount: 1,
+      cancelledSimulatedTotal: '1160.00',
+    });
+  });
+
+  it('cuenta una nueva emisión una sola vez después de cancelar la anterior', () => {
+    const result = service.calculate(
+      [
+        order({
+          invoices: [
+            invoice({
+              id: 'invoice-cancelled',
+              status: 'cancelled',
+              cancelledAt: '2026-10-15T18:00:00.000Z',
+            }),
+            invoice({ id: 'invoice-active' }),
+          ],
+        }),
+      ],
+      [],
+      period,
+    );
+
+    expect(result.completionPeriod).toMatchObject({
+      completedOrderCount: 1,
+      generatedOperationalAmount: '1000.00',
+      issuedOrderCount: 1,
+      issuedOrderOperationalAmount: '1000.00',
+      issuedSimulationTotal: '1160.00',
+    });
+    expect(result.issuancePeriod).toMatchObject({
+      issuedSimulationCount: 1,
+      simulatedTotal: '1160.00',
+    });
+    expect(result.cancellationPeriod).toEqual({
+      cancelledSimulationCount: 1,
+      cancelledSimulatedTotal: '1160.00',
+    });
   });
 
   it('rechaza más de una simulación activa para la misma orden', () => {

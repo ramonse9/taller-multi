@@ -115,3 +115,63 @@ almacenamiento sin mejorar el plan elegido por PostgreSQL. Antes de agregarlo se
 `EXPLAIN (ANALYZE, BUFFERS)` con volumen representativo. Si el volumen demuestra scans costosos,
 los candidatos son índices parciales por `orders(closed_at)` para `status='completed'` y por las
 fechas de emisión/cancelación para sus estados respectivos.
+
+## Matriz de validación
+
+La validación combina pruebas unitarias del cálculo, pruebas HTTP con PostgreSQL real y pruebas de
+presentación en el frontend.
+
+| Escenario                                      | Resultado esperado                                                                |
+| ---------------------------------------------- | --------------------------------------------------------------------------------- |
+| Borrador activo                                | Cuenta como pendiente de facturar y como borrador; nunca como emitido             |
+| PUE pagada                                     | Puede estar emitida y no aparece como PPD pendiente de cobro                      |
+| PPD pendiente                                  | Conserva por separado el importe operativo por cobrar y el total simulado         |
+| PPD pagada                                     | Sale de pendientes de cobro sin cambiar el documento emitido                      |
+| Simulación cancelada                           | Sale de emitidas, entra al flujo de cancelaciones y la orden vuelve a pendiente   |
+| Borrador descartado                            | Deja de ser activo, conserva historial y permite reabrir la orden                 |
+| Orden reabierta                                | No cuenta como terminada, generada o pendiente de facturar                        |
+| Nueva emisión después de cancelar              | Solo la nueva activa participa en la cohorte; no duplica la orden                 |
+| Terminación en septiembre y emisión en octubre | La operación pertenece a septiembre y la emisión documental a octubre             |
+| Reducción de Facturación a Control             | Mantiene consulta histórica; bloquea mutaciones                                   |
+| Reducción a Esencial                           | Oculta y bloquea completamente la conciliación de facturación                     |
+| Usuario sin `profitability.view`               | Puede consultar Facturación si tiene permiso, pero no la conciliación de Utilidad |
+| Segundo tenant                                 | Obtiene únicamente sus propios indicadores, aunque consulte el mismo periodo      |
+
+Las pruebas HTTP fijan fechas históricas directamente en la base de pruebas para comprobar los
+ejes temporales sin depender del reloj del sistema. También repiten consultas y transiciones
+idempotentes para comprobar que una emisión o cancelación no se contabilice dos veces.
+
+## Validación de presentación
+
+Las secciones de Tablero, Facturación y Utilidad utilizan cuadrículas `mobile-first`, puntos de
+quiebre para tableta y escritorio, estados de carga/vacío/error, foco visible y variantes de modo
+oscuro. El build de Angular valida todas las plantillas. Las pruebas de regresión verifican que la
+conciliación de Utilidad:
+
+- esté encerrada por capacidad de Facturación y por los permisos `invoices.view` y
+  `profitability.view`;
+- no solicite el endpoint cuando falta alguno de esos accesos;
+- separe importes operativos de subtotal, impuestos y total documental;
+- no incluya en su modelo de presentación costos, gastos, márgenes o utilidad.
+
+La inspección visual automatizada por navegador todavía no forma parte del repositorio. Antes de
+una presentación comercial debe hacerse una revisión manual mínima a 320 px, tableta y escritorio,
+en temas claro y oscuro.
+
+## Riesgos y límites conocidos
+
+1. **Volumen por tenant.** La consulta es una sola agregación y evita N+1, pero las métricas de foto
+   actual revisan las órdenes terminadas. Debe medirse nuevamente cuando un tenant acumule decenas
+   de miles de órdenes.
+2. **Índices dependientes del volumen.** No se agregaron índices especulativos. Un índice adicional
+   solo debe incorporarse después de observar un plan costoso con `EXPLAIN (ANALYZE, BUFFERS)` sobre
+   datos representativos, no sobre fixtures pequeños.
+3. **Utilidad provisional.** Los productos libres sin costo conocido mantienen el resultado
+   incompleto. La facturación no corrige ni sustituye costos operativos.
+4. **Simulación fiscal.** Subtotal, impuestos y total no tienen validez fiscal y no representan XML
+   timbrado, PAC, CSD, UUID ni cancelación ante el SAT.
+5. **Histórico de plan.** Control conserva lectura histórica solamente si `invoicing` aparece en
+   `readOnlyFeatures`; Esencial no recibe ese acceso.
+6. **Zona horaria.** Los límites se resuelven con `users.timezone_code`. Cambiar la zona horaria de
+   un usuario puede mover eventos cercanos a medianoche entre periodos, sin alterar los timestamps
+   almacenados.

@@ -302,6 +302,25 @@ test("Utilidad separa importes operativos de impuestos documentales", () => {
   );
 });
 
+test("la conciliación de Utilidad conserva estados y diseño responsivo en ambos temas", () => {
+  const template = readFileSync(
+    new URL(
+      "../src/app/features/profitability/profitability.page.html",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+
+  assert.match(template, /billingReconciliationLoading\(\)/);
+  assert.match(template, /billingReconciliationError\(\)/);
+  assert.match(template, /billingReconciliationEmpty\(\)/);
+  assert.match(template, /sm:grid-cols-2/);
+  assert.match(template, /xl:grid-cols-2/);
+  assert.match(template, /dark:bg-\[/);
+  assert.match(template, /focus-visible:outline/);
+  assert.match(template, /IMPUESTOS SIMULADOS/);
+});
+
 test("la navegación contextual reconoce listados, detalles y formularios", () => {
   assert.equal(tenantSectionForUrl("/home", TENANT_NAVIGATION), null);
   assert.equal(
