@@ -221,16 +221,138 @@
         <div>
           <h2 class="section-title">Preparar simulación</h2>
           <p class="section-copy">
-            Orden #{{ orderId.slice(0, 8) }} · los conceptos cobrables se
-            copiarán automáticamente.
+            Confirma la orden de origen antes de crear el borrador. Los
+            conceptos cobrables se copiarán automáticamente.
           </p>
         </div>
       </header>
+      @if (sourceOrderLoading()) {
+      <div
+        class="m-5 grid min-h-44 animate-pulse gap-3 border border-[#d5dce3] bg-[#edf2f6] p-5 dark:border-[#38516d] dark:bg-[#22364d]"
+        aria-label="Cargando orden de origen"
+      >
+        <div class="h-5 w-40 bg-[#d5dce3] dark:bg-[#38516d]"></div>
+        <div class="h-10 w-64 max-w-full bg-[#d5dce3] dark:bg-[#38516d]"></div>
+        <div class="grid gap-3 sm:grid-cols-3">
+          <div class="h-12 bg-[#d5dce3] dark:bg-[#38516d]"></div>
+          <div class="h-12 bg-[#d5dce3] dark:bg-[#38516d]"></div>
+          <div class="h-12 bg-[#d5dce3] dark:bg-[#38516d]"></div>
+        </div>
+      </div>
+      } @else if (sourceOrderError()) {
+      <div
+        class="m-5 flex flex-wrap items-center justify-between gap-3 border-l-4 border-[#c84d3b] bg-[#ffdcd2] px-4 py-3 text-sm text-[#8e3214] dark:border-[#ff8f82] dark:bg-[#633d3d] dark:text-[#ffd9d4]"
+        role="alert"
+      >
+        <div>
+          <strong class="block">No fue posible identificar la orden</strong>
+          <span>{{ sourceOrderError() }}</span>
+        </div>
+        <button
+          class="bg-transparent p-0 font-bold underline"
+          type="button"
+          (click)="loadSourceOrder()"
+        >
+          Reintentar
+        </button>
+      </div>
+      } @else if (sourceOrder(); as currentOrder) {
       <form
         class="grid gap-4 p-5 md:grid-cols-3"
         [formGroup]="createForm"
         (ngSubmit)="createDraft()"
       >
+        <section
+          class="overflow-hidden border border-[#b9cddd] bg-[#f4f8fb] md:col-span-3 dark:border-[#42627d] dark:bg-[#1c3147]"
+          aria-labelledby="source-order-title"
+        >
+          <header
+            class="flex flex-wrap items-start justify-between gap-4 border-b border-[#cfdee9] px-5 py-4 dark:border-[#38516d]"
+          >
+            <div>
+              <span
+                class="font-[var(--mono)] text-[.62rem] font-bold tracking-[.14em] text-[#4b6f89] dark:text-[#a9cbe3]"
+                >ORDEN DE ORIGEN</span
+              >
+              <h3
+                id="source-order-title"
+                class="mt-1 font-[var(--display)] text-2xl font-semibold tracking-[-.03em]"
+              >
+                Orden #{{ currentOrder.folio }}
+              </h3>
+              @if (currentOrder.externalFolio) {
+              <p class="mt-1 text-xs text-[#63717d] dark:text-[#afbed0]">
+                Folio externo: <strong>{{ currentOrder.externalFolio }}</strong>
+              </p>
+              }
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <span
+                class="bg-[#cfe9da] px-2.5 py-1.5 text-xs font-bold text-[#245b3b] dark:bg-[#294e42] dark:text-[#c9f0df]"
+              >
+                {{ operationStatusName(currentOrder.status) }}
+              </span>
+              <span
+                class="px-2.5 py-1.5 text-xs font-bold"
+                [class.bg-[#cfe3fb]]="currentOrder.isPaid"
+                [class.text-[#285f8a]]="currentOrder.isPaid"
+                [class.dark:bg-[#233f58]]="currentOrder.isPaid"
+                [class.dark:text-[#b9dcf5]]="currentOrder.isPaid"
+                [class.bg-[#ffe3ab]]="!currentOrder.isPaid"
+                [class.text-[#805719]]="!currentOrder.isPaid"
+                [class.dark:bg-[#4d3e22]]="!currentOrder.isPaid"
+                [class.dark:text-[#ffd18a]]="!currentOrder.isPaid"
+              >
+                {{ currentOrder.isPaid ? 'Pagada' : 'Pendiente de pago' }}
+              </span>
+            </div>
+          </header>
+          <div
+            class="grid gap-px bg-[#cfdee9] sm:grid-cols-2 xl:grid-cols-[1.15fr_1.75fr_.7fr_.8fr] dark:bg-[#38516d]"
+          >
+            <div class="bg-white px-5 py-4 dark:bg-[#19283b]">
+              <span class="detail-label">CLIENTE</span>
+              <strong class="mt-1 block text-sm">
+                {{ currentOrder.customer.displayName }}
+              </strong>
+            </div>
+            <div class="bg-white px-5 py-4 dark:bg-[#19283b]">
+              <span class="detail-label">VEHÍCULO</span>
+              <strong class="mt-1 block text-sm">
+                {{ currentOrder.vehicle.brandName }}
+                {{ currentOrder.vehicle.modelName }} ·
+                {{ currentOrder.vehicle.year }}
+              </strong>
+              <small class="mt-1 block text-[#63717d] dark:text-[#afbed0]">
+                {{ currentOrder.vehicle.color }} @if
+                (currentOrder.vehicle.licensePlate) { · Placa
+                {{ currentOrder.vehicle.licensePlate }} }
+              </small>
+            </div>
+            <div class="bg-white px-5 py-4 dark:bg-[#19283b]">
+              <span class="detail-label">TOTAL</span>
+              <strong class="mt-1 block text-lg">
+                {{ currentOrder.total ? money(currentOrder.total) : '—' }}
+              </strong>
+            </div>
+            <div class="bg-white px-5 py-4 dark:bg-[#19283b]">
+              <span class="detail-label">TERMINADA</span>
+              <strong class="mt-1 block text-sm">
+                {{ currentOrder.closedAt ? formatShortDate(currentOrder.closedAt) : '—' }}
+              </strong>
+            </div>
+          </div>
+          <footer
+            class="flex justify-end border-t border-[#cfdee9] bg-[#edf4f8] px-5 py-3 dark:border-[#38516d] dark:bg-[#22364d]"
+          >
+            <a
+              class="text-xs font-bold text-[#2d668f] underline-offset-4 hover:underline dark:text-[#9ec9e8]"
+              [routerLink]="['/orders', currentOrder.id]"
+            >
+              Ver orden completa →
+            </a>
+          </footer>
+        </section>
         <div>
           <label class="field-label" for="invoice-use">Uso CFDI <b>*</b></label
           ><select
@@ -299,6 +421,7 @@
           </button>
         </div>
       </form>
+      }
     </section>
     } @if (settings(); as currentSettings) { @if (auth.user()?.role ===
     'company_admin' && auth.hasPermission('invoices.configure')) {

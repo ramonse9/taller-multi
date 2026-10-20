@@ -21,6 +21,12 @@ import { formatShortDate } from "../../core/dates/date-format";
 import { apiErrorMessage } from "../../core/http/api-error";
 import { ThemeService } from "../../core/theme/theme.service";
 import {
+  ORDER_STATUS_NAMES,
+  Order,
+  OrderStatus,
+} from "../orders/order.models";
+import { OrdersService } from "../orders/orders.service";
+import {
   INVOICE_COLLECTION_STATUS_NAMES,
   InvoiceCollectionStatus,
   InvoiceCatalogs,
@@ -57,6 +63,7 @@ const invoiceStatusFromQuery = (value: string | null): InvoiceStatus | "" =>
 })
 export class InvoicesPage implements OnInit {
   private readonly invoicesService = inject(InvoicesService);
+  private readonly ordersService = inject(OrdersService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
@@ -76,6 +83,9 @@ export class InvoicesPage implements OnInit {
   readonly error = signal("");
   readonly summaryError = signal("");
   readonly notice = signal("");
+  readonly sourceOrder = signal<Order | null>(null);
+  readonly sourceOrderLoading = signal(!!this.orderId);
+  readonly sourceOrderError = signal("");
   readonly summary = signal<InvoiceReconciliationSummary | null>(null);
   readonly settings = signal<InvoiceSettings | null>(null);
   readonly catalogs = signal<InvoiceCatalogs | null>(null);
@@ -143,6 +153,7 @@ export class InvoicesPage implements OnInit {
 
   ngOnInit(): void {
     this.loadSummary();
+    this.loadSourceOrder();
     this.status.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.loadList(1));
@@ -208,6 +219,30 @@ export class InvoicesPage implements OnInit {
       });
   }
 
+  loadSourceOrder(): void {
+    if (!this.orderId) return;
+    this.sourceOrderLoading.set(true);
+    this.sourceOrderError.set("");
+    this.ordersService
+      .getOne(this.orderId)
+      .pipe(
+        finalize(() => this.sourceOrderLoading.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (order) => this.sourceOrder.set(order),
+        error: (error: unknown) => {
+          this.sourceOrder.set(null);
+          this.sourceOrderError.set(
+            apiErrorMessage(
+              error,
+              "No pudimos cargar la orden seleccionada para facturar.",
+            ),
+          );
+        },
+      });
+  }
+
   loadList(page = this.invoices().page): void {
     this.invoicesService
       .list(page, this.status.value)
@@ -226,6 +261,7 @@ export class InvoicesPage implements OnInit {
       this.readOnly() ||
       !this.auth.hasPermission("invoices.create") ||
       !this.orderId ||
+      !this.sourceOrder() ||
       this.createForm.invalid ||
       this.saving()
     ) {
@@ -299,6 +335,10 @@ export class InvoicesPage implements OnInit {
 
   collectionStatusName(status: InvoiceCollectionStatus): string {
     return INVOICE_COLLECTION_STATUS_NAMES[status];
+  }
+
+  operationStatusName(status: OrderStatus): string {
+    return ORDER_STATUS_NAMES[status];
   }
 
   paymentMethodExplanation(method: "PUE" | "PPD"): string {

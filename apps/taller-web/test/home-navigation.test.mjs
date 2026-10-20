@@ -268,6 +268,27 @@ test("las tarjetas de conciliación navegan a órdenes y documentos filtrados", 
   assert.match(ordersSource, /queryParamMap\.get\("pendingInvoicing"\)/);
 });
 
+test("Facturación identifica la orden de origen por su folio y datos operativos", () => {
+  const source = readFileSync(
+    new URL("../src/app/features/invoices/invoices.page.ts", import.meta.url),
+    "utf8",
+  );
+  const template = readFileSync(
+    new URL("../src/app/features/invoices/invoices.page.html", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /OrdersService/);
+  assert.match(source, /getOne\(this\.orderId\)/);
+  assert.match(template, /Orden #\{\{ currentOrder\.folio \}\}/);
+  assert.match(template, /currentOrder\.externalFolio/);
+  assert.match(template, /currentOrder\.customer\.displayName/);
+  assert.match(template, /currentOrder\.vehicle\.brandName/);
+  assert.match(template, /currentOrder\.total/);
+  assert.match(template, /Ver orden completa/);
+  assert.doesNotMatch(template, /orderId\.slice/);
+});
+
 test("Utilidad oculta completamente la conciliación sin plan y permisos", () => {
   const source = readFileSync(
     new URL(
